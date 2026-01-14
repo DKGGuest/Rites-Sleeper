@@ -1,0 +1,300 @@
+/**
+ * Call Desk Dashboard Styles
+ * Optimized for "No-Scroll" Desktop and Responsive Mobile
+ */
+
+:root {
+    --color-bg: #f8f9fa;
+    --color-surface: #ffffff;
+    --color-primary: #12344d;
+    --color-secondary: #6c757d;
+    --color-accent: #3b82f6;
+    --color-border: #eaecf0;
+    --color-text: #101828;
+    --color-text-secondary: #475467;
+    --color-table-header-bg: #FFF9F0;
+
+    --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
+    --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.1), 0 1px 2px rgba(16, 24, 40, 0.06);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+}
+
+body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    margin: 0;
+    overflow-x: hidden;
+}
+
+.dashboard-container {
+    width: 100%;
+    padding: 12px;
+    box-sizing: border-box;
+}
+
+/* --- KPI Grid --- */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.kpi-card {
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: var(--shadow-sm);
+}
+
+.kpi-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.kpi-icon-box {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+}
+
+.kpi-icon-box svg {
+    width: 14px;
+    height: 14px;
+}
+
+.kpi-title {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.kpi-value {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.kpi-blue {
+    color: #2563eb;
+}
+
+.kpi-blue .kpi-icon-box {
+    background: #eff6ff;
+}
+
+.kpi-green {
+    color: #059669;
+}
+
+.kpi-green .kpi-icon-box {
+    background: #ecfdf5;
+}
+
+.kpi-purple {
+    color: #7c3aed;
+}
+
+.kpi-purple .kpi-icon-box {
+    background: #f5f3ff;
+}
+
+.kpi-red {
+    color: #dc2626;
+}
+
+.kpi-red .kpi-icon-box {
+    background: #fef2f2;
+}
+
+/* --- Table Styles Optimized for Width --- */
+.data-table-card {
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.table-toolbar {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.table-search-input {
+    flex: 1;
+    max-width: 300px;
+    padding: 6px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    /* Still allow swipe on mobile, but fit on desktop */
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+th {
+    background: var(--color-table-header-bg);
+    padding: 10px 12px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #4b5563;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+}
+
+td {
+    padding: 10px 12px;
+    font-size: 12px;
+    color: #374151;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+}
+
+/* Specific Column Narrowing */
+.col-nowrap {
+    white-space: nowrap;
+}
+
+.col-bold {
+    font-weight: 600;
+    color: #111827;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    background: #fef3c7;
+    color: #92400e;
+}
+
+/* --- Action Buttons Grid (Super Compact) --- */
+.action-buttons-flex {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-width: 180px;
+    /* Small enough for desktop column */
+}
+
+.btn-action {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-action svg {
+    width: 10px;
+    height: 10px;
+}
+
+.btn-verify {
+    background: #ecfdf5;
+    color: #059669;
+    border-color: #d1fae5;
+}
+
+.btn-reroute {
+    background: #0284c7;
+    color: #ffffff;
+    border-color: #0284c7;
+}
+
+/* --- Search Bar Large --- */
+.search-container-large {
+    margin-bottom: 16px;
+}
+
+.main-search-input {
+    width: 100%;
+    max-width: 480px;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 1200px) {
+
+    th,
+    td {
+        padding: 8px;
+        font-size: 11px;
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .action-buttons-flex {
+        max-width: 100%;
+    }
+
+    .table-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .table-search-input {
+        max-width: 100%;
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    th {
+        font-size: 9px;
+    }
+
+    td {
+        font-size: 11px;
+    }
+}
