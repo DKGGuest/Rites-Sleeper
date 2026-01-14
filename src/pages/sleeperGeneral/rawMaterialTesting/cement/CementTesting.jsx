@@ -1,8 +1,3 @@
-/**
- * Cement Testing Screen
- * Modularized with sub-components for each test type
- * Integrated with the provided form logic and design
- */
 
 import React, { useState } from 'react';
 import EnhancedDataTable from '../../../../components/EnhancedDataTable';
@@ -16,6 +11,7 @@ import './CementForms.css';
 
 const CementTesting = ({ onBack }) => {
     const [showForm, setShowForm] = useState(false);
+    const [show, setShow] = useState(false);
     const [activeFormSection, setActiveFormSection] = useState(1);
 
     // Business Logic: 15-day periodic mandate
