@@ -140,22 +140,22 @@ export default function SettingTimeForm() {
                         <tbody>
                             {rows.map((r, i) => (
                                 <tr key={i}>
-                                    <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{i + 1}</td>
-                                    <td>
+                                    <td data-label="#" style={{ textAlign: 'center', fontWeight: 'bold' }}>{i + 1}</td>
+                                    <td data-label="Reading Time">
                                         <input
                                             type="time"
                                             value={r.time}
                                             onChange={(e) => updateRow(i, "time", e.target.value)}
                                         />
                                     </td>
-                                    <td>
+                                    <td data-label="Needle (mm)">
                                         <input
                                             type="number"
                                             value={r.needle}
                                             onChange={(e) => updateRow(i, "needle", e.target.value)}
                                         />
                                     </td>
-                                    <td>
+                                    <td data-label="Final Spot?">
                                         <select
                                             value={r.spot}
                                             onChange={(e) => updateRow(i, "spot", e.target.value)}

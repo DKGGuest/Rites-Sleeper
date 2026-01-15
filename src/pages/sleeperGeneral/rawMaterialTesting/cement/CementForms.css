@@ -41,15 +41,15 @@
 }
 
 .cement-forms-scope .form-header {
-    padding: 0.5rem 1rem;
-    /* Minimized padding */
+    background-color: #FBF6EC;
+    /* Global beige box header */
+    padding: 14px 20px;
     border-bottom: 1px solid var(--input-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
     position: sticky;
     top: 0;
-    background: #fff;
     z-index: 10;
 }
 
@@ -282,14 +282,15 @@
 }
 
 .cement-forms-scope th {
-    background: #fbf7ed;
-    padding: 14px 16px;
-    font-size: 13px;
+    background-color: #FBF6EC;
+    padding: 14px;
     font-weight: 600;
-    color: var(--text-label);
+    color: #4a5568;
     border-bottom: 1px solid #e5e7eb;
-    text-transform: none;
-    letter-spacing: normal;
+    text-transform: uppercase;
+    /* Standardized to global */
+    font-size: var(--fs-xs);
+    letter-spacing: 0.05em;
     vertical-align: middle;
 }
 
@@ -315,6 +316,67 @@
 
 .cement-forms-scope tr:hover {
     background-color: #fafafa;
+}
+
+/* --- Responsive Table Fix for Forms --- */
+@media (max-width: 768px) {
+    .cement-forms-scope .table-container {
+        border: none;
+        background: transparent;
+        overflow: visible;
+    }
+
+    .cement-forms-scope table,
+    .cement-forms-scope thead,
+    .cement-forms-scope tbody,
+    .cement-forms-scope th,
+    .cement-forms-scope td,
+    .cement-forms-scope tr {
+        display: block;
+        width: 100%;
+    }
+
+    .cement-forms-scope thead tr {
+        display: none;
+        /* Hide header on mobile */
+    }
+
+    .cement-forms-scope tr {
+        margin-bottom: 20px;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 10px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .cement-forms-scope td {
+        border: none;
+        padding: 8px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: right;
+        position: relative;
+    }
+
+    .cement-forms-scope td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #64748b;
+        font-size: 11px;
+        text-align: left;
+        margin-right: 16px;
+        flex: 1;
+    }
+
+    .cement-forms-scope td input {
+        width: 60%;
+        /* Take up remaining space */
+        text-align: right;
+        background: white;
+        border: 1px solid #e2e8f0;
+    }
 }
 
 /* Inputs inside table cells should be very compact and blend in */

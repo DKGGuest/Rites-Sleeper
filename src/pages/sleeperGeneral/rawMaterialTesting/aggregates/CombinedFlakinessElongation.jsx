@@ -58,12 +58,12 @@ const FlakinessTable = ({ title, sieveData, onDataChange }) => {
                     <tbody>
                         {rows.map((row, idx) => (
                             <tr key={idx}>
-                                <td>{row.passing}</td>
-                                <td>{row.retained}</td>
-                                <td><input type="number" step="0.01" value={row.a || ''} onChange={(e) => handleInputChange(idx, 'a', e.target.value)} /></td>
-                                <td><input type="number" step="0.01" value={row.b || ''} onChange={(e) => handleInputChange(idx, 'b', e.target.value)} /></td>
-                                <td className="readOnly">{row.c.toFixed(2)}</td>
-                                <td><input type="number" step="0.01" value={row.d || ''} onChange={(e) => handleInputChange(idx, 'd', e.target.value)} /></td>
+                                <td data-label="IS Sieve Passing">{row.passing}</td>
+                                <td data-label="IS Sieve Retained">{row.retained}</td>
+                                <td data-label="Wt. Sample (A)"><input type="number" step="0.01" value={row.a || ''} onChange={(e) => handleInputChange(idx, 'a', e.target.value)} /></td>
+                                <td data-label="Wt. Passed (B)"><input type="number" step="0.01" value={row.b || ''} onChange={(e) => handleInputChange(idx, 'b', e.target.value)} /></td>
+                                <td data-label="Wt. Retained (C=A-B)" className="readOnly">{row.c.toFixed(2)}</td>
+                                <td data-label="Wt. Retained Length (D)"><input type="number" step="0.01" value={row.d || ''} onChange={(e) => handleInputChange(idx, 'd', e.target.value)} /></td>
                             </tr>
                         ))}
                     </tbody>

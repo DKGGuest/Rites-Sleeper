@@ -135,11 +135,13 @@ const AggregateTesting = ({ onBack }) => {
                 </div>
 
                 <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <h4 style={{ margin: 0, color: '#475467', fontSize: '15px' }}>Historical Quality Logs</h4>
-                        <button className="btn-action btn-verify" onClick={() => { setSelectedEntry(null); setShowForm(true); }} style={{ fontSize: '12px', padding: '6px 14px' }}>
-                            + Add New Test
-                        </button>
+                    <div className="table-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '16px' }}>
+                        <h4 style={{ margin: 0, color: '#475467', fontSize: '15px', fontWeight: 600 }}>Historical Quality Logs</h4>
+                        <div className="kpi-group-mobile" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                            <button className="btn-action btn-verify" onClick={() => { setSelectedEntry(null); setShowForm(true); }} style={{ fontSize: '12px', padding: '6px 14px' }}>
+                                + Add New Test
+                            </button>
+                        </div>
                     </div>
                     <EnhancedDataTable columns={historyColumns} data={MOCK_AGGREGATES_HISTORY} />
                 </div>

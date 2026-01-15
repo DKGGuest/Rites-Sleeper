@@ -52,11 +52,11 @@ const SieveTable = ({ title, sieveSizes, onDataChange }) => {
                     <tbody>
                         {rows.map((row, idx) => (
                             <tr key={idx}>
-                                <td style={{ fontWeight: 600 }}>{row.size}</td>
-                                <td><input type="number" step="0.01" value={row.wtRetained || ''} onChange={(e) => handleWtChange(idx, e.target.value)} /></td>
-                                <td className="readOnly">{row.cummWtRetained.toFixed(2)}</td>
-                                <td className="readOnly">{row.pctRetained.toFixed(2)}%</td>
-                                <td className="readOnly">{row.pctPassing.toFixed(2)}%</td>
+                                <td data-label="Sieve Size" style={{ fontWeight: 600 }}>{row.size}</td>
+                                <td data-label="Wt. Retained (gms)"><input type="number" step="0.01" value={row.wtRetained || ''} onChange={(e) => handleWtChange(idx, e.target.value)} /></td>
+                                <td data-label="Cumm. Wt. Retained" className="readOnly">{row.cummWtRetained.toFixed(2)}</td>
+                                <td data-label="% Retained" className="readOnly">{row.pctRetained.toFixed(2)}%</td>
+                                <td data-label="% Passing" className="readOnly">{row.pctPassing.toFixed(2)}%</td>
                             </tr>
                         ))}
                     </tbody>
@@ -136,12 +136,12 @@ export default function CombinedGranulometricCurve({ onSave, onCancel, consignme
                             <tbody>
                                 {sieveSizes.map((size, idx) => (
                                     <tr key={idx}>
-                                        <td style={{ fontWeight: 600 }}>{size}</td>
-                                        <td className="readOnly">{ca1Data.pctPassingList[idx].toFixed(2)}%</td>
-                                        <td className="readOnly">{ca2Data.pctPassingList[idx].toFixed(2)}%</td>
-                                        <td className="readOnly">{faData.pctPassingList[idx].toFixed(2)}%</td>
-                                        <td className="readOnly" style={{ color: '#64748b' }}>TBD</td>
-                                        <td className="readOnly" style={{ color: '#64748b' }}>TBD</td>
+                                        <td data-label="Sieve Size" style={{ fontWeight: 600 }}>{size}</td>
+                                        <td data-label="CA1 % Passing" className="readOnly">{ca1Data.pctPassingList[idx].toFixed(2)}%</td>
+                                        <td data-label="CA2 % Passing" className="readOnly">{ca2Data.pctPassingList[idx].toFixed(2)}%</td>
+                                        <td data-label="FA % Passing" className="readOnly">{faData.pctPassingList[idx].toFixed(2)}%</td>
+                                        <td data-label="Combined Passing" className="readOnly" style={{ color: '#64748b' }}>TBD</td>
+                                        <td data-label="Grading Range" className="readOnly" style={{ color: '#64748b' }}>TBD</td>
                                     </tr>
                                 ))}
                             </tbody>

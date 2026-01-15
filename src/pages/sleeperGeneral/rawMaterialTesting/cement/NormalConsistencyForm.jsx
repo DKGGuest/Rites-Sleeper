@@ -106,8 +106,8 @@ export default function NormalConsistencyForm() {
                         <tbody>
                             {rows.map((row, i) => (
                                 <tr key={i}>
-                                    <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{i + 1}</td>
-                                    <td>
+                                    <td data-label="#" style={{ textAlign: 'center', fontWeight: 'bold' }}>{i + 1}</td>
+                                    <td data-label="% Water Added">
                                         <input
                                             type="number"
                                             step="0.1"
@@ -115,28 +115,28 @@ export default function NormalConsistencyForm() {
                                             onChange={(e) => updateRow(i, "percent", e.target.value)}
                                         />
                                     </td>
-                                    <td>
+                                    <td data-label="Volume (ml)">
                                         <input
                                             type="number"
                                             value={row.volume}
                                             onChange={(e) => updateRow(i, "volume", e.target.value)}
                                         />
                                     </td>
-                                    <td>
+                                    <td data-label="Time of Adding">
                                         <input
                                             type="time"
                                             value={row.addTime}
                                             onChange={(e) => updateRow(i, "addTime", e.target.value)}
                                         />
                                     </td>
-                                    <td>
+                                    <td data-label="Reading Time">
                                         <input
                                             type="time"
                                             value={row.readTime}
                                             onChange={(e) => updateRow(i, "readTime", e.target.value)}
                                         />
                                     </td>
-                                    <td>
+                                    <td data-label="Needle Reading (mm)">
                                         <input
                                             type="number"
                                             step="0.1"

@@ -41,8 +41,8 @@ export default function CollectionAwaitingInspection() {
                     <tbody>
                         {records.map((rec, idx) => (
                             <tr key={rec.id} style={styles.tr}>
-                                <td style={styles.td}>{rec.id}</td>
-                                <td style={styles.td}>{rec.status}</td>
+                                <td data-label="Record ID" style={styles.td}>{rec.id}</td>
+                                <td data-label="Status" style={styles.td}>{rec.status}</td>
                             </tr>
                         ))}
                     </tbody>

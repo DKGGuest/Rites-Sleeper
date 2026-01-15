@@ -1,8 +1,3 @@
-/**
- * Raw Material Testing Dashboard
- * Updated to follow the requested folder structure: pages/sleeperGeneral/rawMaterialTesting/
- */
-
 import React, { useState } from 'react';
 import CementTesting from './cement/CementTesting';
 import AggregateTesting from './aggregates/AggregatesTesting';
@@ -33,88 +28,37 @@ const RawMaterialDashboard = () => {
     };
 
     return (
-        <div className="dashboard-container" style={{ padding: '0 20px' }}>
-            <style>{`
-                .ie-dashboard-title {
-                    font-size: var(--fs-xl);
-                    font-weight: 600;
-                    color: #0d3b3f;
-                    margin-bottom: 24px;
-                }
-                .ie-tab-row {
-                    display: grid;
-                    grid-template-columns: repeat(5, 1fr);
-                    gap: 16px;
-                    margin-bottom: 32px;
-                    width: 100%;
-                }
-                .ie-tab-card {
-                    background: white;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 12px;
-                    padding: 16px;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-                    height: 100%;
-                    box-sizing: border-box;
-                    min-height: 80px;
-                }
-                .ie-tab-card:hover {
-                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-                    transform: translateY(-2px);
-                }
-                .ie-tab-card.active {
-                    background: #e0f2f1;
-                    border: 1px solid #00838f;
-                    box-shadow: 0 0 0 1px #00838f; /* Focus ring effect */
-                }
-                .ie-tab-title {
-                    font-size: var(--fs-md);
-                    font-weight: 600;
-                    color: #101828;
-                    margin-bottom: 4px;
-                }
-                .ie-tab-card.active .ie-tab-title {
-                    color: #0d3b3f;
-                }
-                .ie-tab-subtitle {
-                    font-size: var(--fs-xs);
-                    color: #64748b;
-                }
-                
-                /* Responsive Behavior */
-                @media (max-width: 1024px) {
-                    .ie-tab-row {
-                        grid-template-columns: repeat(3, 1fr);
-                    }
-                }
-                @media (max-width: 640px) {
-                    .ie-tab-row {
-                        grid-template-columns: repeat(2, 1fr);
-                    }
-                }
-                @media (max-width: 480px) {
-                    .ie-tab-row {
-                        grid-template-columns: 1fr;
-                    }
-                }
-            `}</style>
+        <div className="dashboard-container">
+            <header style={{ marginBottom: '24px' }}>
+                <h1 style={{ fontSize: 'var(--fs-2xl)', fontWeight: '700', color: '#0d3b3f', margin: '0 0 8px 0' }}>Raw Material Dashboard</h1>
+                <p style={{ margin: 0, color: '#64748b', fontSize: 'var(--fs-sm)' }}>Manage and monitor material quality tests</p>
+            </header>
 
-            <h1 className="ie-dashboard-title">Raw Material Dashboard</h1>
-
-            <div className="ie-tab-row">
+            <div className="ie-tab-row" style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: '16px',
+                marginBottom: '32px'
+            }}>
                 {materials.map(mat => (
                     <div
                         key={mat.id}
                         className={`ie-tab-card ${selectedMaterial === mat.id ? 'active' : ''}`}
                         onClick={() => setSelectedMaterial(mat.id)}
+                        style={{
+                            background: selectedMaterial === mat.id ? 'var(--primary-50)' : 'white',
+                            border: `1px solid ${selectedMaterial === mat.id ? 'var(--rites-green)' : 'var(--neutral-200)'}`,
+                            borderRadius: '12px',
+                            padding: '16px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px'
+                        }}
                     >
-                        <span className="ie-tab-title">{mat.title}</span>
-                        <span className="ie-tab-subtitle">{mat.subtitle}</span>
+                        <span className="ie-tab-title" style={{ fontWeight: '700', fontSize: 'var(--fs-md)', color: selectedMaterial === mat.id ? 'var(--rites-dark)' : 'var(--neutral-700)' }}>{mat.title}</span>
+                        <span className="ie-tab-subtitle" style={{ fontSize: 'var(--fs-xxs)', color: '#64748b' }}>{mat.subtitle}</span>
                     </div>
                 ))}
             </div>

@@ -143,12 +143,12 @@ export default function SevenDayStrengthForm() {
                         <tbody>
                             {form.cubes.map((cube, i) => (
                                 <tr key={i}>
-                                    <td><input type="date" value={cube.castDate} onChange={e => updateCube(i, "castDate", e.target.value)} /></td>
-                                    <td><input type="time" value={cube.castTime} onChange={e => updateCube(i, "castTime", e.target.value)} /></td>
-                                    <td><input type="date" value={cube.testDate} onChange={e => updateCube(i, "testDate", e.target.value)} /></td>
-                                    <td><input type="time" value={cube.testTime} onChange={e => updateCube(i, "testTime", e.target.value)} /></td>
-                                    <td><input type="number" value={cube.load} onChange={e => updateCube(i, "load", e.target.value)} /></td>
-                                    <td><input type="number" value={cube.strength} onChange={e => updateCube(i, "strength", e.target.value)} /></td>
+                                    <td data-label="Cast Date"><input type="date" value={cube.castDate} onChange={e => updateCube(i, "castDate", e.target.value)} /></td>
+                                    <td data-label="Cast Time"><input type="time" value={cube.castTime} onChange={e => updateCube(i, "castTime", e.target.value)} /></td>
+                                    <td data-label="Test Date"><input type="date" value={cube.testDate} onChange={e => updateCube(i, "testDate", e.target.value)} /></td>
+                                    <td data-label="Test Time"><input type="time" value={cube.testTime} onChange={e => updateCube(i, "testTime", e.target.value)} /></td>
+                                    <td data-label="Load (kN)"><input type="number" value={cube.load} onChange={e => updateCube(i, "load", e.target.value)} /></td>
+                                    <td data-label="Strength (N/mm²)"><input type="number" value={cube.strength} onChange={e => updateCube(i, "strength", e.target.value)} /></td>
                                 </tr>
                             ))}
                         </tbody>

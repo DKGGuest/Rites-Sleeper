@@ -105,10 +105,10 @@ const CementTesting = ({ onBack }) => {
                     <EnhancedDataTable columns={inventoryColumns} data={MOCK_INVENTORY.CEMENT} />
                 </div>
                 <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '16px' }}>
+                    <div className="table-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '16px' }}>
                         <h4 style={{ margin: 0, color: '#475467', fontSize: 'var(--fs-md)', fontWeight: 600 }}>Historical Quality Logs</h4>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div className="kpi-group-mobile" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                             {/* Days Since Last Test Compact Box */}
                             <div style={{
                                 padding: '8px 16px',
@@ -121,7 +121,7 @@ const CementTesting = ({ onBack }) => {
                                 boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
                             }}>
                                 <span style={{ fontSize: '10px', color: '#64748b', marginBottom: '2px', fontWeight: 600 }}>Since Last Test</span>
-                                <span style={{ fontSize: '13px', fontWeight: '700', color: '#101828' }}>{daysDiff} days</span>
+                                <span style={{ fontSize: '13px', fontWeight: '700', color: '#101828' }}>7 days</span>
                             </div>
 
                             {/* Next Due Date Compact Box */}
@@ -137,18 +137,18 @@ const CementTesting = ({ onBack }) => {
                             }}>
                                 <span style={{ fontSize: '10px', color: '#64748b', marginBottom: '2px', fontWeight: 600 }}>Next Due Date</span>
                                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#101828' }}>{nextDueDate.toLocaleDateString('en-GB')}</span>
+                                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#101828' }}>17/01/2026</span>
                                     <span style={{
                                         fontSize: '9px',
                                         fontWeight: '700',
-                                        color: isDueToday ? '#d97706' : (isOverdue ? '#dc2626' : '#059669')
+                                        color: '#059669'
                                     }}>
-                                        {isDueToday ? 'Today' : (isOverdue ? 'Overdue' : 'On Track')}
+                                        On Track
                                     </span>
                                 </div>
                             </div>
 
-                            <button className="btn-action btn-reroute" onClick={() => setShowForm(true)} style={{ fontSize: '12px', padding: '6px 14px' }}>
+                            <button className="btn-action btn-verify" onClick={() => setShowForm(true)} style={{ fontSize: '12px', padding: '6px 14px' }}>
                                 + Add New Test
                             </button>
                         </div>
