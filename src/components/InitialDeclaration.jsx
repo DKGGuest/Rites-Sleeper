@@ -109,8 +109,8 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate }) => {
 
             {batches.map((batch) => (
                 <div key={batch.id} className="batch-entry-card" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '3rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                        <div className="form-field" style={{ width: '100%', maxWidth: '300px' }}>
+                    <div className="batch-header-row">
+                        <div className="form-field">
                             <label>Batch Number <span className="required">*</span></label>
                             <input
                                 type="number"
@@ -119,7 +119,7 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate }) => {
                                 placeholder="e.g. 601"
                             />
                         </div>
-                        <div style={{ textAlign: 'right' }}>
+                        <div className="status-container">
                             <span className="calc-label">Proportion Status</span>
                             <span style={{
                                 padding: '0.4rem 1rem',
@@ -140,82 +140,82 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate }) => {
                         <div className="calculated-grid">
                             <div className="calc-card">
                                 <span className="calc-label">CA 1 (20MM)</span>
-                                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', alignItems: 'center' }}>
+                                <div className="calc-inputs-row">
                                     <div style={{ flex: 1 }}>
-                                        <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>SET</span>
-                                        <input type="number" step="0.01" value={batch.setValues.ca1} onChange={e => handleBatchChange(batch.id, 'setValues', 'ca1', e.target.value)} style={{ padding: '0.4rem', fontSize: '0.9rem' }} />
+                                        <span className="mini-label">SET</span>
+                                        <input type="number" step="0.01" value={batch.setValues.ca1} onChange={e => handleBatchChange(batch.id, 'setValues', 'ca1', e.target.value)} />
                                     </div>
                                     <div style={{ flex: 1, textAlign: 'left' }}>
-                                        <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>ADJ</span>
-                                        <div className="calc-value" style={{ fontSize: '1rem' }}>{batch.adjustedWeights.ca1}</div>
+                                        <span className="mini-label">ADJ</span>
+                                        <div className="calc-value">{batch.adjustedWeights.ca1}</div>
                                     </div>
                                 </div>
                             </div>
                             <div className="calc-card">
                                 <span className="calc-label">CA 2 (10MM)</span>
-                                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', alignItems: 'center' }}>
+                                <div className="calc-inputs-row">
                                     <div style={{ flex: 1 }}>
-                                        <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>SET</span>
-                                        <input type="number" step="0.01" value={batch.setValues.ca2} onChange={e => handleBatchChange(batch.id, 'setValues', 'ca2', e.target.value)} style={{ padding: '0.4rem', fontSize: '0.9rem' }} />
+                                        <span className="mini-label">SET</span>
+                                        <input type="number" step="0.01" value={batch.setValues.ca2} onChange={e => handleBatchChange(batch.id, 'setValues', 'ca2', e.target.value)} />
                                     </div>
                                     <div style={{ flex: 1, textAlign: 'left' }}>
-                                        <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>ADJ</span>
-                                        <div className="calc-value" style={{ fontSize: '1rem' }}>{batch.adjustedWeights.ca2}</div>
+                                        <span className="mini-label">ADJ</span>
+                                        <div className="calc-value">{batch.adjustedWeights.ca2}</div>
                                     </div>
                                 </div>
                             </div>
                             <div className="calc-card">
                                 <span className="calc-label">Fine Aggregate</span>
-                                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', alignItems: 'center' }}>
+                                <div className="calc-inputs-row">
                                     <div style={{ flex: 1 }}>
-                                        <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>SET</span>
-                                        <input type="number" step="0.01" value={batch.setValues.fa} onChange={e => handleBatchChange(batch.id, 'setValues', 'fa', e.target.value)} style={{ padding: '0.4rem', fontSize: '0.9rem' }} />
+                                        <span className="mini-label">SET</span>
+                                        <input type="number" step="0.01" value={batch.setValues.fa} onChange={e => handleBatchChange(batch.id, 'setValues', 'fa', e.target.value)} />
                                     </div>
                                     <div style={{ flex: 1, textAlign: 'left' }}>
-                                        <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>ADJ</span>
-                                        <div className="calc-value" style={{ fontSize: '1rem' }}>{batch.adjustedWeights.fa}</div>
+                                        <span className="mini-label">ADJ</span>
+                                        <div className="calc-value">{batch.adjustedWeights.fa}</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="calculated-grid" style={{ marginTop: '1.5rem' }}>
+                        <div className="calculated-grid second-row">
                             <div className="calc-card">
                                 <span className="calc-label">Cement</span>
-                                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', alignItems: 'center' }}>
+                                <div className="calc-inputs-row">
                                     <div style={{ flex: 1 }}>
-                                        <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>SET</span>
-                                        <input type="number" step="0.01" value={batch.setValues.cement} onChange={e => handleBatchChange(batch.id, 'setValues', 'cement', e.target.value)} style={{ padding: '0.4rem', fontSize: '0.9rem' }} />
+                                        <span className="mini-label">SET</span>
+                                        <input type="number" step="0.01" value={batch.setValues.cement} onChange={e => handleBatchChange(batch.id, 'setValues', 'cement', e.target.value)} />
                                     </div>
                                     <div style={{ flex: 1, textAlign: 'left' }}>
-                                        <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>ADJ</span>
-                                        <div className="calc-value" style={{ fontSize: '1rem' }}>{batch.adjustedWeights.cement}</div>
+                                        <span className="mini-label">ADJ</span>
+                                        <div className="calc-value">{batch.adjustedWeights.cement}</div>
                                     </div>
                                 </div>
                             </div>
                             <div className="calc-card">
                                 <span className="calc-label">Water</span>
-                                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', alignItems: 'center' }}>
+                                <div className="calc-inputs-row">
                                     <div style={{ flex: 1 }}>
-                                        <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>SET</span>
-                                        <input type="number" step="0.01" value={batch.setValues.water} onChange={e => handleBatchChange(batch.id, 'setValues', 'water', e.target.value)} style={{ padding: '0.4rem', fontSize: '0.9rem' }} />
+                                        <span className="mini-label">SET</span>
+                                        <input type="number" step="0.01" value={batch.setValues.water} onChange={e => handleBatchChange(batch.id, 'setValues', 'water', e.target.value)} />
                                     </div>
                                     <div style={{ flex: 1, textAlign: 'left' }}>
-                                        <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>ADJ</span>
-                                        <div className="calc-value" style={{ fontSize: '1rem' }}>{batch.adjustedWeights.water}</div>
+                                        <span className="mini-label">ADJ</span>
+                                        <div className="calc-value">{batch.adjustedWeights.water}</div>
                                     </div>
                                 </div>
                             </div>
                             <div className="calc-card">
                                 <span className="calc-label">Admixture</span>
-                                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', alignItems: 'center' }}>
+                                <div className="calc-inputs-row">
                                     <div style={{ flex: 1 }}>
-                                        <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>SET</span>
-                                        <input type="number" step="0.01" value={batch.setValues.admixture} onChange={e => handleBatchChange(batch.id, 'setValues', 'admixture', e.target.value)} style={{ padding: '0.4rem', fontSize: '0.9rem' }} />
+                                        <span className="mini-label">SET</span>
+                                        <input type="number" step="0.01" value={batch.setValues.admixture} onChange={e => handleBatchChange(batch.id, 'setValues', 'admixture', e.target.value)} />
                                     </div>
                                     <div style={{ flex: 1, textAlign: 'left' }}>
-                                        <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>ADJ</span>
-                                        <div className="calc-value" style={{ fontSize: '1rem' }}>{batch.adjustedWeights.admixture}</div>
+                                        <span className="mini-label">ADJ</span>
+                                        <div className="calc-value">{batch.adjustedWeights.admixture}</div>
                                     </div>
                                 </div>
                             </div>
@@ -224,7 +224,7 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate }) => {
                 </div>
             ))}
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
+            <div className="declaration-actions">
                 <button className="toggle-btn secondary" onClick={addBatch}>+ Add New Batch Definition</button>
                 <button className="toggle-btn" onClick={handleSaveDeclaration} disabled={saving}>
                     {saving ? 'Saving...' : 'Save Configuration'}
