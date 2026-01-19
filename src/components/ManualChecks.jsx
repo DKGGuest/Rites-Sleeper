@@ -49,11 +49,10 @@ const ManualChecks = ({ onBack, onAlertChange }) => {
                             key={tab.id}
                             className={`modal-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
                             onClick={() => setActiveTab(tab.id)}
-                            style={{ position: 'relative' }}
                         >
                             {tab.label}
                             {alerts[tab.key] && (
-                                <span className="badge-count" style={{ position: 'absolute', top: '-10px', right: '-10px', fontSize: '0.6rem', padding: '0.1rem 0.4rem' }}>!</span>
+                                <span className="badge-count">!</span>
                             )}
                         </button>
                     ))}

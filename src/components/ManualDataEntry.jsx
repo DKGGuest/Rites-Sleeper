@@ -122,11 +122,11 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave }) => {
                         ) : (
                             witnessedRecords.map(r => (
                                 <tr key={r.id}>
-                                    <td data-label="Time">{r.time}</td>
-                                    <td data-label="Batch">{r.batchNo || r.batch}</td>
-                                    <td data-label="Source">{r.source}</td>
-                                    <td data-label="Cement">{r.cement}</td>
-                                    <td data-label="Water">{r.water}</td>
+                                    <td data-label="Time"><span>{r.time}</span></td>
+                                    <td data-label="Batch"><span>{r.batchNo || r.batch}</span></td>
+                                    <td data-label="Source"><span>{r.source}</span></td>
+                                    <td data-label="Cement"><span>{r.cement}</span></td>
+                                    <td data-label="Water"><span>{r.water}</span></td>
                                     <td data-label="Actions">
                                         {r.source === 'Manual Entry' || r.source === 'Manual' ? (
                                             <button

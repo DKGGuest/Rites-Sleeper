@@ -1,14 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import MainLayout from './components/Layout/MainLayout';
-import CallDeskDashboard from './components/CallDeskDashboard';
-import RawMaterialDashboard from './pages/sleeperGeneral/rawMaterialTesting/RawMaterialDashboard';
+// Removed CallDeskDashboard and RawMaterialDashboard imports as per request
 import BatchWeighment from './components/BatchWeighment'
 import ManualChecks from './components/ManualChecks'
 import MoistureAnalysis from './components/MoistureAnalysis'
 import TensionRegister from './components/TensionRegister'
 
 const App = () => {
-  const [view, setView] = useState('Sleeper Process Duty');
   const [dutyStarted, setDutyStarted] = useState(false);
   const [activeTab, setActiveTab] = useState('Manual Checks');
   const [manualChecksAlert, setManualChecksAlert] = useState(true);
@@ -236,32 +234,11 @@ const App = () => {
   };
 
   const renderView = () => {
-    switch (view) {
-      case 'Call Desk Dashboard':
-        return <CallDeskDashboard />;
-      case 'Raw Material Inspection':
-        return <RawMaterialDashboard />;
-      case 'Sleeper Process Duty':
-        return renderProcessEngineerDashboard();
-      default:
-        return (
-          <div style={{ padding: '40px', textAlign: 'center' }}>
-            <h1>{view}</h1>
-            <p>This module is under development.</p>
-            <button
-              className="btn-action btn-verify"
-              style={{ margin: '0 auto' }}
-              onClick={() => setView('Sleeper Process Duty')}
-            >
-              Back to Process Duty
-            </button>
-          </div>
-        );
-    }
+    return renderProcessEngineerDashboard();
   };
 
   return (
-    <MainLayout activeItem={view} onItemClick={setView}>
+    <MainLayout activeItem="Sleeper Process Duty" onItemClick={() => { }}>
       {renderView()}
     </MainLayout>
   );

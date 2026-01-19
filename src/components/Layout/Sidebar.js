@@ -6,8 +6,6 @@ const Sidebar = ({ activeItem, onItemClick, isOpen }) => {
             label: 'Inspection Dashboard',
             items: [
                 { id: 'Sleeper Process Duty', label: 'Sleeper Process Duty' },
-                { id: 'Raw Material Inspection', label: 'Raw Material Inspection' },
-                { id: 'Call Desk Dashboard', label: 'Call Desk Dashboard' },
             ]
         }
     ];

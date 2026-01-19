@@ -69,8 +69,9 @@ export default function ScadaTable({
 
 
     return (
-        <div className="bg-white border rounded-xl shadow overflow-hidden">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1.25rem', borderBottom: '1px solid var(--border-color)', background: '#f8fafc' }}>
+        <div className="bg-white border rounded-xl shadow" style={{ height: height, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {/* Header */}
+            <div style={{ flex: '0 0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1.25rem', borderBottom: '1px solid var(--border-color)', background: '#f8fafc' }}>
                 <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                     <span style={{ color: 'var(--primary-color)', marginRight: '0.5rem' }}>●</span>
                     Last Sync: {lastUpdated}
@@ -84,9 +85,11 @@ export default function ScadaTable({
                     {loading ? '...' : 'Refresh'}
                 </button>
             </div>
-            <div className="overflow-auto" style={{ maxHeight: height }}>
+
+            {/* Table Scroll Area */}
+            <div className="table-scroll-container" style={{ flex: '1 1 auto', overflow: 'auto', position: 'relative' }}>
                 <table className="ui-table min-w-full border-collapse text-sm">
-                    <thead className="sticky top-0 bg-gray-100 z-10">
+                    <thead className="sticky top-0 bg-gray-100 z-10" style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
                         {headerRows.map(
                             (row, i) =>
                                 row.length > 0 && (
@@ -96,7 +99,8 @@ export default function ScadaTable({
                                                 key={j}
                                                 colSpan={cell.colSpan}
                                                 rowSpan={cell.rowSpan}
-                                                className="border px-3 py-2 text-center font-semibold whitespace-nowrap"
+                                                className="border px-3 py-2 text-center font-semibold"
+                                                style={{ background: '#f1f5f9', color: '#475569' }}
                                             >
                                                 {cell.label}
                                             </th>
@@ -108,14 +112,17 @@ export default function ScadaTable({
 
                     <tbody>
                         {rows.map((row, i) => (
-                            <tr key={i} className="odd:bg-white even:bg-gray-50">
+                            <tr key={i} className="odd:bg-white even:bg-gray-50 hover:bg-blue-50 transition-colors">
                                 {flatColumns.map(col => (
                                     <td
                                         key={col.key}
                                         data-label={col.label}
-                                        className="border px-3 py-1 text-center whitespace-nowrap"
+                                        className="border px-3 py-2 text-center"
+                                        style={{ fontSize: '0.85rem', color: '#334155' }}
                                     >
-                                        {typeof row[col.key] === 'object' ? row[col.key] : <span>{row[col.key] ?? "-"}</span>}
+                                        <div className="table-cell-content">
+                                            {row[col.key] ?? "-"}
+                                        </div>
                                     </td>
                                 ))}
                             </tr>
@@ -124,22 +131,25 @@ export default function ScadaTable({
                 </table>
             </div>
 
-            <div className="flex justify-between items-center px-4 py-3 border-t">
-                <span className="text-sm">
+            {/* Footer */}
+            <div style={{ flex: '0 0 auto', width: '100%', backgroundColor: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', borderTop: '1px solid var(--border-color)', gap: '1rem', zIndex: 20 }}>
+                <span style={{ fontSize: '0.875rem', color: '#64748b' }}>
                     Page {page} of {totalPages}
                 </span>
-                <div className="flex gap-2">
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button
                         disabled={page === 1}
                         onClick={() => setPage(p => p - 1)}
-                        className="px-3 py-1 border rounded"
+                        className="toggle-btn secondary"
+                        style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', opacity: page === 1 ? 0.5 : 1, cursor: page === 1 ? 'not-allowed' : 'pointer' }}
                     >
-                        Prev
+                        Previous
                     </button>
                     <button
                         disabled={page === totalPages}
                         onClick={() => setPage(p => p + 1)}
-                        className="px-3 py-1 border rounded"
+                        className="toggle-btn secondary"
+                        style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', opacity: page === totalPages ? 0.5 : 1, cursor: page === totalPages ? 'not-allowed' : 'pointer' }}
                     >
                         Next
                     </button>

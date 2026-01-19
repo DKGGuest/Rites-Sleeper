@@ -52,5 +52,16 @@ export const apiService = {
             console.error('API Error:', error);
             return [];
         }
+    },
+
+    getTensionRecords: async (page, size, batch) => {
+        try {
+            const response = await fetch(`${BASE_URL}/tension?page=${page}&size=${size}&batch=${batch}`);
+            if (!response.ok) throw new Error('Failed to fetch Tension data');
+            return await response.json();
+        } catch (error) {
+            console.error('API Error:', error);
+            return null;
+        }
     }
 };

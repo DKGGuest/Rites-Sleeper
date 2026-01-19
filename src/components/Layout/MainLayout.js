@@ -54,7 +54,7 @@ const MainLayout = ({ children, activeItem, onItemClick }) => {
                                 fontSize: 'var(--fs-sm)',
                                 fontWeight: '600'
                             }}>I</div>
-                            <button className="btn-action" style={{ padding: '0', background: 'transparent', color: '#475467', fontSize: 'var(--fs-sm)', fontWeight: '500' }}>
+                            <button style={{ padding: '0', background: 'transparent', border: 'none', color: '#475467', fontSize: 'var(--fs-sm)', fontWeight: '500', cursor: 'pointer' }}>
                                 Logout
                             </button>
                         </div>

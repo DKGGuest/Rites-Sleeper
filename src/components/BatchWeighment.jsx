@@ -74,7 +74,9 @@ const BatchWeighment = ({ onBack, sharedState }) => {
                 <header className="modal-header" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <h2 style={{ margin: 0 }}>Batch Weighment – Shift Duty</h2>
-                        <span className="badge-count">{witnessedRecords.length} Witnessed</span>
+                        <span style={{ fontSize: '0.75rem', background: '#e2e8f0', color: '#475569', padding: '0.2rem 0.6rem', borderRadius: '999px', fontWeight: '600' }}>
+                            {witnessedRecords.length} Witnessed
+                        </span>
                     </div>
                     <button className="close-btn" onClick={onBack}>×</button>
                 </header>

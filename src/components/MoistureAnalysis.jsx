@@ -259,8 +259,8 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                 </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '3rem' }}>
-                <button className="toggle-btn secondary" onClick={onCancel} style={{ background: '#f1f5f9', color: '#475569', border: 'none' }}>Cancel</button>
+            <div className="form-actions-center">
+                <button className="toggle-btn secondary" onClick={onCancel}>Cancel</button>
                 <button className="toggle-btn" onClick={() => onSave({
                     id: initialData?.id || Date.now(),
                     ...commonData,
