@@ -1,4 +1,50 @@
+<<<<<<< Updated upstream
 :root {
+=======
+/* Global Design System - Rites Sleeper Application */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --font-primary: 'Inter', system-ui, -apple-system, sans-serif;
+
+    /* Primary Palette */
+    --primary-50: #effafb;
+    --primary-100: #dbeef0;
+    --primary-200: #b9dee2;
+    --primary-300: #86c4cc;
+    --primary-400: #4da1ac;
+    --primary-500: #338691;
+    --primary-600: #2d6d7a;
+    --primary-700: #295965;
+    --primary-800: #264b54;
+    --primary-900: #234048;
+    --primary-950: #132a31;
+
+    /* Rites Brand Colors */
+    --rites-green: #21808d;
+    --rites-dark: #0d3b3f;
+
+    /* Neutral Palette */
+    --neutral-50: #f8fafc;
+    --neutral-100: #f1f5f9;
+    --neutral-200: #e2e8f0;
+    --neutral-300: #cbd5e1;
+    --neutral-400: #94a3b8;
+    --neutral-500: #64748b;
+    --neutral-600: #475569;
+    --neutral-700: #334155;
+
+    /* Font Sizes */
+    --fs-xxs: 0.65rem;
+    --fs-xs: 0.75rem;
+    --fs-sm: 0.8125rem;
+    --fs-md: 0.875rem;
+    --fs-lg: 1rem;
+    --fs-xl: 1.125rem;
+    --fs-2xl: 1.25rem;
+
+    /* Legacy Variables (from UrviShift) */
+>>>>>>> Stashed changes
     --primary-color: #21808d;
     --primary-hover: #134252;
     --bg-color: #fffffd;
@@ -25,6 +71,7 @@
 }
 
 body {
+<<<<<<< Updated upstream
     font-family: 'Inter', 'Outfit', sans-serif;
     background-color: #f8fafc;
     color: var(--text-main);
@@ -32,6 +79,19 @@ body {
     overflow-x: hidden;
 }
 
+=======
+    font-family: var(--font-primary);
+    font-size: var(--fs-md);
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    color: var(--neutral-700);
+    background: var(--neutral-50);
+}
+
+/* --- Layout Components --- */
+
+>>>>>>> Stashed changes
 .app-layout {
     display: flex;
     min-height: 100vh;
@@ -322,7 +382,6 @@ body {
         border-radius: 12px;
         margin-bottom: 1.25rem;
         padding: 1rem;
-        /* Reduced padding */
         box-shadow: var(--shadow-sm);
     }
 
@@ -378,13 +437,11 @@ body {
         text-align: center;
     }
 
-    /* Prevent flex containers from forcing horizontal width */
     .flex,
     [style*="display: flex"] {
         flex-wrap: wrap;
     }
 
-    /* Modal padding adjustment */
     .modal-body {
         padding: 1rem 0.75rem !important;
     }
@@ -563,12 +620,6 @@ body {
     }
 }
 
-@media (max-width: 768px) {
-    .calculated-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
 .calc-card {
     background: #fff;
     border: 1px solid var(--border-color);
@@ -620,7 +671,6 @@ body {
 
 .toggle-btn.secondary {
     background: #4a868e;
-    /* Slightly different teal for secondary if needed, or same as primary */
     color: white;
     border: none;
 }

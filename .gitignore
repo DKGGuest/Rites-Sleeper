@@ -1,4 +1,30 @@
+<<<<<<< Updated upstream
 # Logs
+=======
+# dependencies
+node_modules
+/node_modules
+/.pnp
+.pnp.js
+
+# production
+/dist
+/build
+dist
+dist-ssr
+
+# testing
+/coverage
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# logs
+>>>>>>> Stashed changes
 logs
 *.log
 npm-debug.log*
@@ -7,16 +33,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
