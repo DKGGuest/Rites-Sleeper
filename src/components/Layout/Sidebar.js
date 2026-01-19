@@ -5,7 +5,9 @@ const Sidebar = ({ activeItem, onItemClick, isOpen }) => {
         {
             label: 'Inspection Dashboard',
             items: [
+                { id: 'Sleeper Process Duty', label: 'Sleeper Process Duty' },
                 { id: 'Raw Material Inspection', label: 'Raw Material Inspection' },
+                { id: 'Call Desk Dashboard', label: 'Call Desk Dashboard' },
             ]
         }
     ];
@@ -35,7 +37,7 @@ const Sidebar = ({ activeItem, onItemClick, isOpen }) => {
             </nav>
 
             <div style={{ padding: '16px 20px', borderTop: '1px solid #f1f5f9', fontSize: 'var(--fs-xxs)', color: '#94a3b8' }}>
-                v1.1.0
+                v1.2.0
             </div>
         </aside>
     );
