@@ -7,7 +7,6 @@ import TensionRegister from './components/TensionRegister'
 import CompactionConcrete from './components/CompactionConcrete'
 import MouldBenchCheck from './components/MouldBenchCheck'
 import SteamCuring from './components/SteamCuring'
-import CallDeskDashboard from './components/CallDeskDashboard'
 import RawMaterialDashboard from './pages/sleeperGeneral/rawMaterialTesting/RawMaterialDashboard'
 
 const App = () => {
@@ -547,8 +546,6 @@ const App = () => {
 
   const renderView = () => {
     switch (mainView) {
-      case 'Call Desk Dashboard':
-        return <CallDeskDashboard />;
       case 'Raw Material Inspection':
         return <RawMaterialDashboard />;
       case 'Sleeper Process Duty':
