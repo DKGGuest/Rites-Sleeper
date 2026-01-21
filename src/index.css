@@ -64,6 +64,30 @@ body {
     position: relative;
 }
 
+h1 {
+    font-size: var(--fs-2xl);
+    font-weight: 700;
+    color: var(--rites-dark);
+}
+
+h2 {
+    font-size: var(--fs-xl);
+    font-weight: 600;
+    color: #1e293b;
+}
+
+h3 {
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    color: var(--neutral-700);
+}
+
+h4 {
+    font-size: var(--fs-md);
+    font-weight: 600;
+    color: var(--neutral-600);
+}
+
 #root {
     height: 100%;
     width: 100%;
@@ -132,7 +156,8 @@ body {
 .sidebar-brand h1,
 .sidebar-logo {
     margin: 0;
-    font-size: 1.25rem;
+    font-size: var(--fs-xl);
+    /* 1.125rem */
     color: var(--primary-color);
     font-weight: 700;
     word-break: break-all;
@@ -146,10 +171,11 @@ body {
 
 .nav-item,
 .menu-item {
-    padding: 0.875rem 1.5rem;
+    padding: 0.75rem 1.5rem;
     color: var(--text-muted);
     font-weight: 500;
-    font-size: 0.875rem;
+    font-size: var(--fs-sm);
+    /* 13px */
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
@@ -280,8 +306,9 @@ body {
 
 .rm-card-title,
 .ie-tab-title {
-    font-weight: 600;
-    font-size: 0.8125rem;
+    font-weight: 700;
+    font-size: var(--fs-md);
+    /* 14px */
     color: #1e293b;
     margin: 0;
     line-height: 1.2;
@@ -331,9 +358,10 @@ body {
 
 .ui-table td,
 .data-table td {
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--border-color);
-    font-size: 0.875rem;
+    font-size: var(--fs-sm);
+    /* 13px */
     color: var(--text-main);
     word-break: break-word;
     vertical-align: middle;
@@ -487,7 +515,7 @@ body {
 
 .modal-tab-btn .badge-count {
     position: static !important;
-    font-size: 0.6rem;
+    font-size: var(--fs-xxs);
     padding: 1px 5px;
     border-radius: 4px;
     top: auto !important;
@@ -558,7 +586,8 @@ body {
 }
 
 label {
-    font-size: 0.875rem;
+    font-size: var(--fs-xs);
+    /* 12px */
     font-weight: 600;
     color: var(--text-main);
 }
@@ -567,12 +596,19 @@ input,
 select,
 textarea {
     width: 100%;
-    padding: 0.75rem 1rem;
+    padding: 0 12px;
+    height: 32px;
     border: 1px solid var(--neutral-300);
-    border-radius: 8px;
-    font-size: 0.95rem;
+    border-radius: 6px;
+    font-size: var(--fs-sm);
+    /* 13px */
     transition: all 0.2s;
     background: #fff;
+}
+
+textarea {
+    height: auto;
+    padding: 8px 12px;
 }
 
 input:focus,

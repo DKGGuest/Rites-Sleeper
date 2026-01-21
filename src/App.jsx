@@ -220,8 +220,8 @@ const App = () => {
 
     return (
       <div className="app-container">
-        <div className="dashboard-header" style={{ border: 'none', padding: 0, marginBottom: '2.5rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: '500', color: '#13343b' }}>Sleeper Process Engineer – Shift</h1>
+        <div className="dashboard-header" style={{ border: 'none', padding: 0, marginBottom: '2rem' }}>
+          <h1 style={{ fontSize: 'var(--fs-2xl)', fontWeight: '700', color: '#13343b' }}>Sleeper Process Engineer – Shift</h1>
         </div>
 
         <div className="rm-grid-cards">
@@ -233,7 +233,7 @@ const App = () => {
             >
               <div className="rm-card-title">{tab.title}</div>
               <span className="rm-card-subtitle">{tab.subtitle}</span>
-              <div style={{ marginTop: '0.75rem', fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>
+              <div style={{ marginTop: '0.75rem', fontSize: 'var(--fs-xxs)', fontWeight: 'bold', color: 'var(--primary-color)' }}>
                 {tab.title === 'Weight Batching' ? `● ${witnessedRecords.length} Witnessed` :
                   tab.title === 'Moisture Analysis' ? '● 4 Logs (Shift A)' :
                     tab.title === 'Compaction of Concrete' ? '● Live Monitoring' :
@@ -249,7 +249,7 @@ const App = () => {
         <div className="dashboard-detail-view" style={{ background: 'none', border: 'none', boxShadow: 'none', padding: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '500', color: '#1e293b' }}>{activeTab} Record</h2>
+              <h2 style={{ fontSize: 'var(--fs-xl)', fontWeight: '600', color: '#1e293b' }}>{activeTab} Record</h2>
               {activeTab === 'Weight Batching' && <span className="badge-count" style={{ marginLeft: 0 }}>{witnessedRecords.length}</span>}
             </div>
             <button className="toggle-btn" onClick={() => setDetailView('detail_modal')}>New Entry</button>
@@ -262,11 +262,11 @@ const App = () => {
                 <div className="rm-grid-cards" style={{ overflowX: 'auto', paddingBottom: '1rem' }}>
                   {batchStats?.ingredientStats.map(stat => (
                     <div key={stat.name} className="calc-card" style={{ flex: '0 0 160px', padding: '1rem' }}>
-                      <span className="calc-label" style={{ fontSize: '0.65rem' }}>{stat.name} DEV</span>
-                      <div className="calc-value" style={{ fontSize: '1.1rem', color: Math.abs(stat.meanDev) > 1 ? 'var(--color-danger)' : 'var(--color-success)' }}>
+                      <span className="calc-label" style={{ fontSize: 'var(--fs-xxs)' }}>{stat.name} DEV</span>
+                      <div className="calc-value" style={{ fontSize: 'var(--fs-lg)', color: Math.abs(stat.meanDev) > 1 ? 'var(--color-danger)' : 'var(--color-success)' }}>
                         {stat.meanDev > 0 ? '+' : ''}{stat.meanDev.toFixed(2)}%
                       </div>
-                      <div style={{ fontSize: '0.6rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+                      <div style={{ fontSize: 'var(--fs-xxs)', color: '#94a3b8', marginTop: '0.2rem' }}>
                         Std Dev: {stat.stdDev.toFixed(2)}
                       </div>
                     </div>
