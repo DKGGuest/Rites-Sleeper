@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import MainLayout from './components/Layout/MainLayout';
-// Removed CallDeskDashboard and RawMaterialDashboard imports as per request
 import BatchWeighment from './components/BatchWeighment'
 import ManualChecks from './components/ManualChecks'
 import MoistureAnalysis from './components/MoistureAnalysis'
@@ -8,6 +7,8 @@ import TensionRegister from './components/TensionRegister'
 import CompactionConcrete from './components/CompactionConcrete'
 import MouldBenchCheck from './components/MouldBenchCheck'
 import SteamCuring from './components/SteamCuring'
+import CallDeskDashboard from './components/CallDeskDashboard'
+import RawMaterialDashboard from './pages/sleeperGeneral/rawMaterialTesting/RawMaterialDashboard'
 
 const App = () => {
   const [dutyStarted, setDutyStarted] = useState(false);
@@ -15,6 +16,7 @@ const App = () => {
   const [manualChecksAlert, setManualChecksAlert] = useState(true);
   const [moistureAlert, setMoistureAlert] = useState(true);
   const [detailView, setDetailView] = useState('dashboard');
+  const [mainView, setMainView] = useState('Sleeper Process Duty');
 
   // Shared State for Batch Weighment (Process Engineer)
   const [batchDeclarations, setBatchDeclarations] = useState([
@@ -544,11 +546,19 @@ const App = () => {
   };
 
   const renderView = () => {
-    return renderProcessEngineerDashboard();
+    switch (mainView) {
+      case 'Call Desk Dashboard':
+        return <CallDeskDashboard />;
+      case 'Raw Material Inspection':
+        return <RawMaterialDashboard />;
+      case 'Sleeper Process Duty':
+      default:
+        return renderProcessEngineerDashboard();
+    }
   };
 
   return (
-    <MainLayout activeItem="Sleeper Process Duty" onItemClick={() => { }}>
+    <MainLayout activeItem={mainView} onItemClick={setMainView}>
       {renderView()}
     </MainLayout>
   );
