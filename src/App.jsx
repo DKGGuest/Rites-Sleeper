@@ -7,6 +7,7 @@ import WireTensioning, { WireTensionStats } from './components/WireTensioning'
 import CompactionConcrete from './components/CompactionConcrete'
 import MouldBenchCheck from './components/MouldBenchCheck'
 import SteamCuring from './components/SteamCuring'
+import SteamCubeTesting, { SteamCubeStats } from './components/SteamCubeTesting'
 import RawMaterialDashboard from './pages/sleeperGeneral/rawMaterialTesting/RawMaterialDashboard'
 
 const App = () => {
@@ -40,6 +41,15 @@ const App = () => {
   ]);
   const [selectedCompactionBatch, setSelectedCompactionBatch] = useState('605');
 
+  // Shared State for Steam Cube Testing
+  const [cubeTestRecords, setCubeTestRecords] = useState([
+    { id: 101, grade: 'M55', strength: 42.5 },
+    { id: 102, grade: 'M60', strength: 48.2 },
+    { id: 103, grade: 'M55', strength: 45.1 },
+    { id: 104, grade: 'M60', strength: 52.4 },
+    { id: 105, grade: 'M55', strength: 38.5 }, // Failed M55
+  ]);
+
   const tabs = [
     { title: 'Manual Checks', subtitle: 'Hourly inspection', alert: manualChecksAlert },
     { title: 'Moisture Analysis', subtitle: 'Shift-wise samples', alert: moistureAlert },
@@ -48,7 +58,8 @@ const App = () => {
 
     { title: 'Compaction of Concrete', subtitle: 'Vibrator Report' },
     { title: 'Mould & Bench Checking', subtitle: 'Plant Assets' },
-    { title: 'Steam Curing', subtitle: 'Temp profiles' }
+    { title: 'Steam Curing', subtitle: 'Temp profiles' },
+    { title: 'Steam Cube Testing', subtitle: 'Strength Analysis' }
   ]
 
   // Calculate Dashboard Summary Stats for Batch Weighment
@@ -496,6 +507,17 @@ const App = () => {
                   </button>
                 </div>
               </>
+            ) : activeTab === 'Steam Cube Testing' ? (
+              <>
+                <div className="dash-section-header">
+                  <h3 className="dash-section-title">
+                    <span style={{ color: 'var(--primary-color)' }}>●</span>
+                    Steam Cube Testing Statistics
+                  </h3>
+                  <button className="toggle-btn" onClick={() => setDetailView('detail_modal')}>Open Test Module</button>
+                </div>
+                <SteamCubeStats records={cubeTestRecords} />
+              </>
             ) : activeTab === 'Wire Tensioning' ? (
               <>
                 <div className="dash-section-header">
@@ -565,6 +587,10 @@ const App = () => {
                 <SteamCuring
                   onBack={() => setDetailView('dashboard')}
                   onSave={() => { }}
+                />
+              ) : activeTab === 'Steam Cube Testing' ? (
+                <SteamCubeTesting
+                  onBack={() => setDetailView('dashboard')}
                 />
               ) : null}
             </div >
