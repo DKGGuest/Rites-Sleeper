@@ -426,26 +426,35 @@ const App = () => {
                 <div className="dash-section-header">
                   <h3 className="dash-section-title">
                     <span style={{ color: 'var(--primary-color)' }}>●</span>
-                    Mould & Bench Assets
+                    Summary of Mould & Bench Checking
                   </h3>
+                  <button className="toggle-btn" onClick={() => setDetailView('detail_modal')}>Add New Entry</button>
                 </div>
-                <div className="rm-grid-cards" style={{ flexWrap: 'wrap' }}>
-                  <div className="calc-card" style={{ flex: '1 0 140px', padding: '1rem' }}>
-                    <span className="calc-label" style={{ fontSize: '0.65rem' }}>Benches Checked (Month)</span>
-                    <div className="calc-value">12 / 55 (21.8%)</div>
+                <div className="rm-grid-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                  <div className="calc-card" style={{ padding: '1rem' }}>
+                    <span className="calc-label" style={{ fontSize: 'var(--fs-xxs)' }}>Benches / Moulds (Plant)</span>
+                    <div className="calc-value" style={{ fontSize: 'var(--fs-xl)' }}>60 / 240</div>
                   </div>
-                  <div className="calc-card" style={{ flex: '1 0 140px', padding: '1rem' }}>
-                    <span className="calc-label" style={{ fontSize: '0.65rem' }}>Moulds Checked (Month)</span>
-                    <div className="calc-value">48 / 220 (21.8%)</div>
+                  <div className="calc-card" style={{ padding: '1rem' }}>
+                    <span className="calc-label" style={{ fontSize: 'var(--fs-xxs)' }}>Used for Casting (30d)</span>
+                    <div className="calc-value" style={{ fontSize: 'var(--fs-xl)', color: 'var(--rites-green)' }}>55 / 215</div>
                   </div>
-                  <div className="calc-card" style={{ flex: '1 0 140px', padding: '1rem' }}>
-                    <span className="calc-label" style={{ fontSize: '0.65rem' }}>Total Assets</span>
-                    <div className="calc-value">60 Benches</div>
+                  <div className="calc-card" style={{ padding: '1rem' }}>
+                    <span className="calc-label" style={{ fontSize: 'var(--fs-xxs)' }}>Benches Checked (Month)</span>
+                    <div className="calc-value" style={{ fontSize: 'var(--fs-xl)' }}>42 <span style={{ fontSize: '10px', color: '#64748b' }}>(76.4%)</span></div>
+                  </div>
+                  <div className="calc-card" style={{ padding: '1rem' }}>
+                    <span className="calc-label" style={{ fontSize: 'var(--fs-xxs)' }}>Moulds Checked (Month)</span>
+                    <div className="calc-value" style={{ fontSize: 'var(--fs-xl)' }}>168 <span style={{ fontSize: '10px', color: '#64748b' }}>(78.1%)</span></div>
+                  </div>
+                  <div className="calc-card" style={{ padding: '1rem' }}>
+                    <span className="calc-label" style={{ fontSize: 'var(--fs-xxs)' }}>Moulds Unfit</span>
+                    <div className="calc-value" style={{ fontSize: 'var(--fs-xl)', color: 'var(--color-danger)' }}>4</div>
                   </div>
                 </div>
                 <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-                  <button className="toggle-btn" onClick={() => setDetailView('detail_modal')} style={{ padding: '0.8rem 2rem', fontSize: '1rem' }}>
-                    Launch Checking Interface
+                  <button className="toggle-btn secondary" onClick={() => setDetailView('detail_modal')} style={{ padding: '0.8rem 2rem' }}>
+                    View Full Asset Master & Status
                   </button>
                 </div>
               </>
