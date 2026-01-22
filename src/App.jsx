@@ -3,7 +3,7 @@ import MainLayout from './components/Layout/MainLayout';
 import BatchWeighment from './components/BatchWeighment'
 import ManualChecks from './components/ManualChecks'
 import MoistureAnalysis from './components/MoistureAnalysis'
-import TensionRegister from './components/TensionRegister'
+import WireTensioning, { WireTensionStats } from './components/WireTensioning'
 import CompactionConcrete from './components/CompactionConcrete'
 import MouldBenchCheck from './components/MouldBenchCheck'
 import SteamCuring from './components/SteamCuring'
@@ -481,12 +481,41 @@ const App = () => {
                     </div>
                   </div>
                 )}
-
                 <div style={{ marginTop: '2rem', textAlign: 'center' }}>
                   <button className="toggle-btn" onClick={() => setDetailView('detail_modal')} style={{ padding: '0.8rem 2rem', fontSize: '1rem' }}>
                     Open Steam Curing Console
                   </button>
                 </div>
+              </>
+            ) : activeTab === 'Wire Tensioning' ? (
+              <>
+                <div className="dash-section-header">
+                  <h3 className="dash-section-title">
+                    <span style={{ color: 'var(--primary-color)' }}>●</span>
+                    Wire Tensioning SCADA Summary (Batch {selectedBatchNo})
+                  </h3>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <select
+                      className="dash-select"
+                      value={selectedBatchNo}
+                      onChange={(e) => setSelectedBatchNo(e.target.value)}
+                    >
+                      {batchDeclarations.map(b => (
+                        <option key={b.id} value={b.batchNo}>{b.batchNo}</option>
+                      ))}
+                    </select>
+                    <button className="toggle-btn" onClick={() => setDetailView('detail_modal')}>Add New Entry</button>
+                  </div>
+                </div>
+
+                <WireTensionStats
+                  data={[
+                    { finalLoad: 732 }, { finalLoad: 728 }, { finalLoad: 735 }, { finalLoad: 740 }, { finalLoad: 725 },
+                    { finalLoad: 731 }, { finalLoad: 733 }, { finalLoad: 729 }, { finalLoad: 734 }, { finalLoad: 730 },
+                    { finalLoad: 728 }, { finalLoad: 732 }, { finalLoad: 736 }, { finalLoad: 727 }, { finalLoad: 733 }
+                  ]}
+                  theoreticalMean={730}
+                />
               </>
             ) : (
               <div style={{ textAlign: 'center', padding: '4rem 2rem', background: '#fff', borderRadius: '12px', border: '1px dotted #cbd5e1' }}>
@@ -494,8 +523,8 @@ const App = () => {
                 <button className="toggle-btn secondary" style={{ marginTop: '1rem' }} onClick={() => setDetailView('detail_modal')}>Open {activeTab} Console</button>
               </div>
             )}
-          </div >
-        </div >
+          </div>
+        </div>
 
         {
           detailView === 'detail_modal' && (
@@ -510,18 +539,10 @@ const App = () => {
               ) : activeTab === 'Moisture Analysis' ? (
                 <MoistureAnalysis onBack={() => setDetailView('dashboard')} onSave={() => setMoistureAlert(false)} />
               ) : activeTab === 'Wire Tensioning' ? (
-                <div className="modal-overlay" onClick={() => setDetailView('dashboard')}>
-                  <div className="modal-content" onClick={e => e.stopPropagation()}>
-                    <header className="modal-header">
-                      <h2>Wire Tensioning Record</h2>
-                      <button className="close-btn" onClick={() => setDetailView('dashboard')}>×</button>
-                    </header>
-                    <div className="modal-body">
-                      <TensionRegister batches={batchDeclarations} />
-                    </div>
-                  </div>
-                </div>
-
+                <WireTensioning
+                  onBack={() => setDetailView('dashboard')}
+                  batches={batchDeclarations}
+                />
               ) : activeTab === 'Compaction of Concrete' ? (
                 <CompactionConcrete
                   onBack={() => setDetailView('dashboard')}
