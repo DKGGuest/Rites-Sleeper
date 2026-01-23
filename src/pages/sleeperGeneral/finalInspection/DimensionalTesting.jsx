@@ -11,6 +11,7 @@ const MOCK_DIMENSIONAL_DATA = [
 
 import VisualInspectionForm from './VisualInspectionForm';
 import CriticalDimensionForm from './CriticalDimensionForm';
+import NonCriticalDimensionForm from './NonCriticalDimensionForm';
 
 const DimensionalTesting = ({ type }) => {
     const [showForm, setShowForm] = useState(false);
@@ -121,9 +122,9 @@ const DimensionalTesting = ({ type }) => {
 
             {showForm && (
                 <div className="form-modal-overlay" onClick={() => setShowForm(false)}>
-                    <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: (type === 'visual' || type === 'critical') ? '1200px' : '900px' }}>
+                    <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: (type === 'visual' || type === 'critical' || type === 'noncritical') ? '1200px' : '900px' }}>
                         <div className="form-modal-header">
-                            <span className="form-modal-header-title">{currentConfig.title} - {(type === 'visual' || type === 'critical') ? 'Full Inspection Form' : 'Batch Detail'}</span>
+                            <span className="form-modal-header-title">{currentConfig.title} - {(type === 'visual' || type === 'critical' || type === 'noncritical') ? 'Full Inspection Form' : 'Batch Detail'}</span>
                             <button className="form-modal-close" onClick={() => setShowForm(false)}>×</button>
                         </div>
                         <div className="form-modal-body" style={{ background: '#f8fafc' }}>
@@ -138,6 +139,13 @@ const DimensionalTesting = ({ type }) => {
                                     batch={selectedBatch}
                                     targetPercentage={targetPct}
                                     onSave={() => { setShowForm(false); alert('Critical Dimension data saved.'); }}
+                                    onCancel={() => setShowForm(false)}
+                                />
+                            ) : type === 'noncritical' ? (
+                                <NonCriticalDimensionForm
+                                    batch={selectedBatch}
+                                    targetPercentage={targetPct}
+                                    onSave={() => { setShowForm(false); alert('Non-Critical Dimension data saved.'); }}
                                     onCancel={() => setShowForm(false)}
                                 />
                             ) : (
