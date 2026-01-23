@@ -350,118 +350,25 @@ const SampleDeclarationModal = ({ batch, isModifying, onClose, onSave }) => {
     );
 };
 
+import WaterCuredCubeForm from './WaterCuredCubeForm';
+
 const TestEntryModal = ({ batch, onClose, onSave }) => {
-    const fck = batch.grade === 'M55' ? 55 : 60;
-    const [form, setForm] = useState({
-        testDate: new Date().toISOString().split('T')[0],
-        testTime: '11:00',
-        readings: [...batch.sample1, ...batch.sample2].map(cube => ({
-            id: cube,
-            weight: '',
-            load: '',
-            strength: 0
-        }))
-    });
-
-    const handleReadingChange = (idx, field, val) => {
-        const updated = [...form.readings];
-        updated[idx][field] = val;
-
-        if (field === 'load' && val) {
-            // Area = 150x150 = 22500 mm2. Strength = Load (KN) * 1000 / 22500
-            updated[idx].strength = parseFloat((parseFloat(val) * 1000 / 22500).toFixed(2));
-        }
-        setForm({ ...form, readings: updated });
-    };
-
-    const calc = useMemo(() => {
-        const s1 = form.readings.slice(0, 3).map(r => r.strength);
-        const s2 = form.readings.slice(3, 6).map(r => r.strength);
-
-        const avg1 = s1.every(v => v > 0) ? (s1.reduce((a, b) => a + b, 0) / 3) : 0;
-        const avg2 = s2.every(v => v > 0) ? (s2.reduce((a, b) => a + b, 0) / 3) : 0;
-
-        const X = (avg1 > 0 && avg2 > 0) ? (avg1 + avg2) / 2 : 0;
-        const Y = Math.min(...form.readings.map(r => r.strength || 9999));
-
-        const cond1 = (X >= (fck + 3)) && (Y >= (fck - 3));
-        const cond2 = ((fck + 3) > X && X >= fck) || ((fck - 3) > Y && Y >= (fck - 5));
-        const cond3 = (X < fck) || (Y < (fck - 5));
-
-        const var1 = avg1 > 0 ? Math.max(...s1.map(v => Math.abs(v - avg1) / avg1 * 100)) : 0;
-        const var2 = avg2 > 0 ? Math.max(...s2.map(v => Math.abs(v - avg2) / avg2 * 100)) : 0;
-
-        return { avg1, avg2, X, Y, cond1, cond2, cond3, var1, var2 };
-    }, [form.readings, fck]);
-
-    const age = Math.floor((new Date(form.testDate) - new Date(batch.castingDate)) / (1000 * 60 * 60 * 24));
-
     return (
         <div className="form-modal-overlay" onClick={onClose}>
             <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '95vw', width: '1200px' }}>
                 <div className="form-modal-header">
-                    <span className="form-modal-header-title">Enter Final Strength Test: Batch {batch.batchNo}</span>
+                    <span className="form-modal-header-title">Water Cured Cube Testing - Batch {batch.batchNo}</span>
                     <button className="form-modal-close" onClick={onClose}>×</button>
                 </div>
                 <div className="form-modal-body" style={{ background: '#f8fafc' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '24px', background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                        <div className="input-group"><label>Batch #</label><input readOnly value={batch.batchNo} className="readOnly" /></div>
-                        <div className="input-group"><label>Grade</label><input readOnly value={batch.grade} className="readOnly" /></div>
-                        <div className="input-group"><label>Age (Days)</label><input readOnly value={age} className="readOnly" style={{ fontWeight: '700', color: age >= 15 ? '#059669' : '#dc2626' }} /></div>
-                        <div className="input-group"><label>Test Date</label><input type="date" value={form.testDate} onChange={e => setForm({ ...form, testDate: e.target.value })} /></div>
-                        <div className="input-group"><label>Test Time</label><input type="time" value={form.testTime} onChange={e => setForm({ ...form, testTime: e.target.value })} /></div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                        {[0, 1].map(sIdx => (
-                            <div key={sIdx} style={{ background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                <h4 style={{ fontSize: '13px', color: '#42818c', marginBottom: '16px', fontWeight: '700' }}>Sample {sIdx + 1}</h4>
-                                <table className="ui-table">
-                                    <thead><tr><th>Cube</th><th>Weight</th><th>Load (KN)</th><th>Str.</th></tr></thead>
-                                    <tbody>
-                                        {form.readings.slice(sIdx * 3, (sIdx + 1) * 3).map((r, i) => (
-                                            <tr key={i}>
-                                                <td style={{ fontWeight: '700', color: '#64748b' }}>{r.id}</td>
-                                                <td><input type="number" step="0.01" value={r.weight} onChange={e => handleReadingChange(sIdx * 3 + i, 'weight', e.target.value)} /></td>
-                                                <td><input type="number" step="0.1" value={r.load} onChange={e => handleReadingChange(sIdx * 3 + i, 'load', e.target.value)} /></td>
-                                                <td style={{ fontWeight: '800', color: '#13343b' }}>{r.strength || '-'}</td>
-                                            </tr>
-                                        ))}
-                                        <tr style={{ background: '#f8fafc' }}>
-                                            <td colSpan="3" style={{ textAlign: 'right', fontWeight: '600' }}>Avg / Max Var%</td>
-                                            <td style={{ fontWeight: '800', color: '#42818c' }}>{sIdx === 0 ? calc.avg1.toFixed(2) : calc.avg2.toFixed(2)} / {(sIdx === 0 ? calc.var1 : calc.var2).toFixed(1)}%</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div style={{ marginTop: '24px', background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
-                            <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                                <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '700' }}>X (MEAN OF 2 SAMPLES)</div>
-                                <div style={{ fontSize: '20px', fontWeight: '900', color: '#13343b' }}>{calc.X.toFixed(2)}</div>
-                            </div>
-                            <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                                <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '700' }}>Y (MIN OF 6 CUBES)</div>
-                                <div style={{ fontSize: '20px', fontWeight: '900', color: '#13343b' }}>{calc.Y === 9999 ? '-' : calc.Y.toFixed(2)}</div>
-                            </div>
-                            <div style={{ background: (calc.cond1 || calc.cond2) ? '#ecfdf5' : '#fef2f2', padding: '12px', borderRadius: '8px', border: `1.5px solid ${(calc.cond1 || calc.cond2) ? '#059669' : '#dc2626'}`, textAlign: 'center' }}>
-                                <div style={{ fontSize: '10px', color: (calc.cond1 || calc.cond2) ? '#059669' : '#dc2626', fontWeight: '800' }}>TEST RESULT</div>
-                                <div style={{ fontSize: '20px', fontWeight: '900', color: (calc.cond1 || calc.cond2) ? '#059669' : '#dc2626' }}>{(calc.cond1 || calc.cond2) ? 'PASS' : 'FAIL'}</div>
-                            </div>
-                            <div style={{ background: '#42818c10', padding: '12px', borderRadius: '8px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                <div style={{ fontSize: '10px', color: '#42818c', fontWeight: '700' }}>MR TEST SAMPLES</div>
-                                <div style={{ fontSize: '16px', fontWeight: '800', color: '#13343b' }}>{calc.cond1 ? '1 Sleeper' : calc.cond2 ? '2 Sleepers' : 'N/A'} per lot</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                        <button className="btn-verify" style={{ flex: 1, height: '44px' }} onClick={onSave} disabled={!calc.X}>Save Test Details</button>
-                        <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: 'none', height: '44px' }} onClick={onClose}>Cancel</button>
-                    </div>
+                    <WaterCuredCubeForm
+                        batch={batch}
+                        onSave={(data) => {
+                            console.log('Final Test Data:', data);
+                            onSave(data);
+                        }}
+                        onCancel={onClose}
+                    />
                 </div>
             </div>
         </div>
