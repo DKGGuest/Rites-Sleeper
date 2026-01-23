@@ -65,7 +65,7 @@ export const WaterCubeStats = ({ mini = false }) => {
     );
 };
 
-const WaterCubeTesting = ({ onBack }) => {
+const WaterCubeTesting = () => {
     const [activeTab, setActiveTab] = useState('pending'); // 'declaration', 'pending', 'done'
     const [showDeclareModal, setShowDeclareModal] = useState(false);
     const [selectedBatch, setSelectedBatch] = useState(null);
@@ -183,7 +183,6 @@ const WaterCubeTesting = ({ onBack }) => {
     return (
         <div className="water-cube-module cement-forms-scope">
             <header style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-                <button className="back-button" onClick={onBack} style={{ padding: '8px' }}>← Back</button>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#13343b', margin: 0 }}>Water Cured Cube Strength</h2>
                     <span style={{ fontSize: '11px', color: '#64748b' }}>Sub Card- 4 (Final Inspection)</span>

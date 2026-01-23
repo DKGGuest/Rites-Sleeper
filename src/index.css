@@ -64,6 +64,63 @@ body {
     position: relative;
 }
 
+/* --- Global Form Elements --- */
+input[type="checkbox"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 3px;
+    background-color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    flex-shrink: 0;
+    margin: 0;
+}
+
+input[type="checkbox"]:hover {
+    border-color: #42818c;
+    background-color: #f0f9fa;
+}
+
+input[type="checkbox"]:checked {
+    background-color: #42818c;
+    border-color: #42818c;
+}
+
+input[type="checkbox"]:checked::after {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 7px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    margin-bottom: 2px;
+}
+
+input[type="checkbox"]:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(66, 129, 140, 0.2);
+}
+
+.checkbox-cell {
+    width: 32px !important;
+    text-align: center;
+}
+
+.checkbox-cell input[type="checkbox"] {
+    display: block;
+    margin: 0 auto;
+}
+
 h1 {
     font-size: var(--fs-2xl);
     font-weight: 700;

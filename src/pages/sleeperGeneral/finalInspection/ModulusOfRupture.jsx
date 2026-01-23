@@ -48,7 +48,7 @@ const MOCK_MOR_SCADA_DATA = [
     }
 ];
 
-const ModulusOfRupture = ({ onBack }) => {
+const ModulusOfRupture = () => {
     const [data, setData] = useState(MOCK_MOR_SCADA_DATA);
     const [selectedEntry, setSelectedEntry] = useState(null);
     const [showVerifyModal, setShowVerifyModal] = useState(false);
@@ -143,7 +143,6 @@ const ModulusOfRupture = ({ onBack }) => {
     return (
         <div className="mor-module cement-forms-scope">
             <header style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-                <button className="back-button" onClick={onBack} style={{ padding: '8px' }}>← Back</button>
                 <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#13343b', margin: 0 }}>Modulus of Rupture (Sub Card 5)</h2>
             </header>
 

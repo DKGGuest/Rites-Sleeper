@@ -9,7 +9,7 @@ const MOCK_DIMENSIONAL_DATA = [
     { id: 5, batchNo: '607', batchTotal: 240, sleeperType: 'RT 8527', typeQty: 240, testedPct: 0, status: 'Pending', date: '-', spec: 'T-39' },
 ];
 
-const DimensionalTesting = ({ type, onBack }) => {
+const DimensionalTesting = ({ type }) => {
     const [showForm, setShowForm] = useState(false);
     const [selectedBatch, setSelectedBatch] = useState(null);
 
@@ -81,7 +81,6 @@ const DimensionalTesting = ({ type, onBack }) => {
     return (
         <div className="dimensional-testing-root cement-forms-scope">
             <header style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-                <button className="back-button" onClick={onBack} style={{ padding: '8px' }}>← Back</button>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#42818c', margin: 0 }}>{currentConfig.title}</h2>
                     <span style={{ fontSize: '11px', color: '#64748b' }}>Completion Target: {currentConfig.criteria}</span>
