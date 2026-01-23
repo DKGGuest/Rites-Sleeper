@@ -2,13 +2,13 @@
 
 .cement-forms-scope {
     /* Color Palette based on reference image */
-    --primary-color: #004085;
-    --accent-color: #007bff;
+    --primary-color: #13343b;
+    --accent-color: #13343b;
     --bg-color: #f8fafc;
     --header-bg: #fff;
     --input-bg: #f5f7fa;
     --input-border: #e2e8f0;
-    --input-focus: #3b82f6;
+    --input-focus: #13343b;
     --text-main: #334155;
     --text-label: #475569;
     --text-muted: #94a3b8;
@@ -156,7 +156,7 @@
     outline: none;
     background-color: white;
     border-color: var(--input-focus);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 2px rgba(19, 52, 59, 0.1);
     /* Smaller shadow spread */
 }
 
@@ -179,7 +179,7 @@
 }
 
 .cement-forms-scope .info-title {
-    color: #0369a1;
+    color: #13343b;
     font-size: var(--fs-xs);
     font-weight: 700;
     margin-bottom: 0.75rem;
@@ -263,7 +263,7 @@
 }
 
 .cement-forms-scope .btn-save:hover {
-    background-color: #002d5c;
+    background-color: #0d262b;
     transform: translateY(-1px);
 }
 
@@ -433,9 +433,9 @@
 }
 
 .cement-forms-scope .nav-tab.active {
-    color: #00838f;
+    color: #13343b;
     background: transparent;
-    border-bottom-color: #00838f;
+    border-bottom-color: #13343b;
 }
 
 /* Modal Overlay & Backdrop */

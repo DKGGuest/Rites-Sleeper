@@ -30,7 +30,7 @@ const TensionHistogram = ({ data, mean, stdDev }) => {
                 <rect x={getX(mean - 1 * stdDev)} y="0" width={getX(mean + 1 * stdDev) - getX(mean - 1 * stdDev)} height={height} fill="#dcfce7" fillOpacity="0.3" /> {/* Normal Zone (±1σ) */}
 
                 {/* Mean Line */}
-                <line x1={getX(mean)} y1="0" x2={getX(mean)} y2={height} stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="4" />
+                <line x1={getX(mean)} y1="0" x2={getX(mean)} y2={height} stroke="#13343b" strokeWidth="1.5" strokeDasharray="4" />
 
                 {/* Histogram Bars */}
                 {binCounts.map((count, i) => {
