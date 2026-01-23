@@ -35,7 +35,7 @@ const DimensionalTesting = ({ type }) => {
             label: 'Tested (%)',
             render: (val) => (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ flex: 1, height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden', minWidth: '60px' }}>
+                    <div style={{ flex: 1, height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
                         <div style={{ height: '100%', width: `${val}%`, background: val === 100 ? '#059669' : '#42818c' }}></div>
                     </div>
                     <span style={{ fontSize: '11px', fontWeight: '700' }}>{val}%</span>
@@ -117,7 +117,7 @@ const DimensionalTesting = ({ type }) => {
                         * Automated population via SCADA / Production Logs
                     </div>
                 </div>
-                <EnhancedDataTable columns={columns} data={MOCK_DIMENSIONAL_DATA} />
+                <EnhancedDataTable columns={columns} data={MOCK_DIMENSIONAL_DATA} selectable={false} />
             </div>
 
             {showForm && (

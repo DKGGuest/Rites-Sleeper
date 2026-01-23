@@ -210,7 +210,7 @@ const WaterCubeTesting = () => {
                             <h4 style={{ margin: 0, color: '#475569' }}>Batches Pending Sample Declaration</h4>
                             <span style={{ fontSize: '11px', color: '#94a3b8' }}>* Source: SCADA / Vendor Module</span>
                         </div>
-                        <EnhancedDataTable columns={declarationColumns} data={MOCK_MANUFACTURED_BATCHES} />
+                        <EnhancedDataTable columns={declarationColumns} data={MOCK_MANUFACTURED_BATCHES} selectable={false} />
                     </div>
                 )}
 
@@ -220,7 +220,7 @@ const WaterCubeTesting = () => {
                             <h4 style={{ margin: 0, color: '#475569' }}>Batches with Declared Samples</h4>
                             <span style={{ fontSize: '11px', color: '#94a3b8' }}>* Modify available for 24h from declaration</span>
                         </div>
-                        <EnhancedDataTable columns={pendingColumns} data={declaredBatches} />
+                        <EnhancedDataTable columns={pendingColumns} data={declaredBatches} selectable={false} />
                     </div>
                 )}
 

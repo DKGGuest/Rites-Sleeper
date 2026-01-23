@@ -387,7 +387,8 @@ h4 {
     background: #fff;
     border-radius: 12px;
     border: 1px solid var(--border-color);
-    overflow-x: auto;
+    overflow: hidden;
+    /* No scrollbars ever */
     margin-bottom: 1.5rem;
     box-shadow: var(--shadow-sm);
 }
@@ -396,6 +397,8 @@ h4 {
 .data-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: auto;
+    /* Allow dynamic sizing but we will control content */
 }
 
 .ui-table th,
@@ -408,6 +411,9 @@ h4 {
     text-transform: uppercase;
     color: var(--text-muted);
     border-bottom: 2px solid var(--border-color);
+    white-space: normal;
+    /* Force wrapping in headers */
+    word-break: break-word;
 }
 
 .ui-table td,
@@ -418,6 +424,7 @@ h4 {
     color: var(--text-main);
     word-break: break-word;
     vertical-align: middle;
+    white-space: normal;
 }
 
 /* Mobile Table Transformer */
