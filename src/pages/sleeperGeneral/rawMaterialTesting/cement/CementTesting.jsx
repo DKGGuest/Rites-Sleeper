@@ -148,7 +148,7 @@ const CementTesting = ({ onBack }) => {
                                 </div>
                             </div>
 
-                            <button className="btn-action btn-verify" onClick={() => setShowForm(true)} style={{ fontSize: '12px', padding: '6px 14px' }}>
+                            <button className="btn-action btn-verify" onClick={() => setShowForm(true)}>
                                 + Add New Test
                             </button>
                         </div>

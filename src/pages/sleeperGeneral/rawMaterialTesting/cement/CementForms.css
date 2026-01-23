@@ -2,13 +2,13 @@
 
 .cement-forms-scope {
     /* Color Palette based on reference image */
-    --primary-color: #13343b;
-    --accent-color: #13343b;
+    --primary-color: #42818c;
+    --accent-color: #42818c;
     --bg-color: #f8fafc;
     --header-bg: #fff;
     --input-bg: #f5f7fa;
     --input-border: #e2e8f0;
-    --input-focus: #13343b;
+    --input-focus: #42818c;
     --text-main: #334155;
     --text-label: #475569;
     --text-muted: #94a3b8;
@@ -244,10 +244,10 @@
 
 /* Buttons */
 .cement-forms-scope .btn-save {
-    background-color: var(--primary-color);
+    background-color: #42818c;
     color: white;
     padding: 0.4rem 1.25rem;
-    border-radius: var(--radius-sm);
+    border-radius: 20px;
     border: none;
     font-weight: 600;
     font-size: 12px;
@@ -256,15 +256,36 @@
     width: 100%;
     margin-top: 0.4rem;
     height: 30px;
-    /* Matched input height */
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .cement-forms-scope .btn-save:hover {
-    background-color: #0d262b;
+    background-color: #356972;
     transform: translateY(-1px);
+}
+
+/* Specific overrides for Record Test and Add New Test buttons */
+.cement-forms-scope .btn-verify,
+.cement-forms-scope .btn-action {
+    background-color: #42818c !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 20px !important;
+    padding: 6px 16px !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    cursor: pointer !important;
+    transition: all 0.2s !important;
+    box-shadow: 0 2px 4px rgba(66, 129, 140, 0.2) !important;
+}
+
+.cement-forms-scope .btn-verify:hover,
+.cement-forms-scope .btn-action:hover {
+    background-color: #356972 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 6px rgba(66, 129, 140, 0.3) !important;
 }
 
 /* Table styles */
