@@ -232,27 +232,61 @@ const App = () => {
 
     return (
       <div className="app-container">
-        <div className="dashboard-header" style={{ border: 'none', padding: 0, marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: 'var(--fs-2xl)', fontWeight: '700', color: '#13343b' }}>Sleeper Process Engineer – Shift</h1>
-        </div>
+        <header style={{ marginBottom: '24px' }}>
+          <h1 style={{ fontSize: 'var(--fs-2xl)', fontWeight: '700', color: '#42818c', margin: '0 0 8px 0' }}>Sleeper Process Duty – Shift</h1>
+          <p style={{ margin: 0, color: '#64748b', fontSize: 'var(--fs-sm)' }}>Real-time process monitoring and shift logs</p>
+        </header>
 
-        <div className="rm-grid-cards">
+        <div className="ie-tab-row" style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+          gap: '16px',
+          marginBottom: '32px'
+        }}>
           {tabs.map((tab) => (
             <div
               key={tab.title}
-              className={`rm-card ${activeTab === tab.title ? 'active' : ''}`}
+              className={`ie-tab-card ${activeTab === tab.title ? 'active' : ''}`}
               onClick={() => setActiveTab(tab.title)}
+              style={{
+                background: activeTab === tab.title ? '#f0f9fa' : 'white',
+                border: `1px solid ${activeTab === tab.title ? '#42818c' : '#e2e8f0'}`,
+                borderRadius: '12px',
+                padding: '16px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                position: 'relative',
+                boxShadow: activeTab === tab.title ? '0 4px 6px -1px rgba(66, 129, 140, 0.1)' : 'none'
+              }}
             >
-              <div className="rm-card-title">{tab.title}</div>
-              <span className="rm-card-subtitle">{tab.subtitle}</span>
-              <div style={{ marginTop: '0.75rem', fontSize: 'var(--fs-xxs)', fontWeight: 'bold', color: 'var(--primary-color)' }}>
-                {tab.title === 'Weight Batching' ? `● ${witnessedRecords.length} Witnessed` :
-                  tab.title === 'Moisture Analysis' ? '● 4 Logs (Shift A)' :
-                    tab.title === 'Compaction of Concrete' ? '● Live Monitoring' :
-                      tab.title === 'Wire Tensioning' ? '● Sync Active' : '● Online'}
+              <span style={{
+                fontWeight: '700',
+                fontSize: '13px',
+                color: activeTab === tab.title ? '#13343b' : '#475569'
+              }}>
+                {tab.title}
+              </span>
+              <span style={{ fontSize: '10px', color: '#64748b' }}>{tab.subtitle}</span>
+              <div style={{
+                marginTop: '4px',
+                fontSize: '9px',
+                fontWeight: '700',
+                color: '#42818c',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                <span style={{ fontSize: '12px' }}>●</span>
+                {tab.title === 'Weight Batching' ? `${witnessedRecords.length} Witnessed` :
+                  tab.title === 'Moisture Analysis' ? '4 Logs (Shift A)' :
+                    tab.title === 'Compaction of Concrete' ? 'Live Monitoring' :
+                      tab.title === 'Wire Tensioning' ? 'Sync Active' : 'Online'}
               </div>
               {tab.alert && (
-                <span className="badge-count" style={{ position: 'absolute', top: '10px', right: '10px', margin: 0 }}>!</span>
+                <span className="badge-count" style={{ position: 'absolute', top: '8px', right: '8px', margin: 0, padding: '2px 6px' }}>!</span>
               )}
             </div>
           ))}

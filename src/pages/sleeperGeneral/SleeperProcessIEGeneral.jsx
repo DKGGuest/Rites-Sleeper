@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import RawMaterialDashboard from './rawMaterialTesting/RawMaterialDashboard';
+import FinalInspectionDashboard from './finalInspection/FinalInspectionDashboard';
 
 const SleeperProcessIEGeneral = () => {
     const [activeSubView, setActiveSubView] = useState('raw-material');
@@ -57,13 +58,7 @@ const SleeperProcessIEGeneral = () => {
             <div className="sub-view-content fade-in" style={{ animation: 'fadeIn 0.4s ease' }}>
                 {activeSubView === 'raw-material' && <RawMaterialDashboard />}
 
-                {activeSubView === 'final-inspection' && (
-                    <div style={{ textAlign: 'center', padding: '100px 0', color: '#94a3b8', background: '#fff', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
-                        <div style={{ fontSize: '2rem', marginBottom: '16px' }}>🏁</div>
-                        <h3>Final Inspection Module</h3>
-                        <p>This module is currently under development.</p>
-                    </div>
-                )}
+                {activeSubView === 'final-inspection' && <FinalInspectionDashboard />}
 
                 {activeSubView === 'calibration' && (
                     <div style={{ textAlign: 'center', padding: '100px 0', color: '#94a3b8', background: '#fff', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
