@@ -3,7 +3,7 @@ import EnhancedDataTable from '../../../components/EnhancedDataTable';
 
 const MOCK_DIMENSIONAL_DATA = [
     { id: 1, batchNo: '601', batchTotal: 300, sleeperType: 'RT 8746', typeQty: 255, testedPct: 87, status: 'Pending', date: '-', spec: 'T-39' },
-    { id: 2, batchNo: '601', batchTotal: 300, sleeperType: 'RT 4865', typeQty: 45, testedPct: 100, status: 'Completed as Required', date: '2026-01-23', spec: 'T-45' },
+    { id: 2, batchNo: '601', batchTotal: 300, sleeperType: 'RT 4865', typeQty: 45, testedPct: 100, status: 'Completed', date: '2026-01-23', spec: 'T-45' },
     { id: 3, batchNo: '605', batchTotal: 160, sleeperType: 'RT 8746', typeQty: 160, testedPct: 0, status: 'Pending', date: '-', spec: 'T-39' },
     { id: 4, batchNo: '606', batchTotal: 160, sleeperType: 'RT 4865', typeQty: 160, testedPct: 5, status: 'Under Inspection', date: '-', spec: 'T-45' },
     { id: 5, batchNo: '607', batchTotal: 240, sleeperType: 'RT 8527', typeQty: 240, testedPct: 0, status: 'Pending', date: '-', spec: 'T-39' },
@@ -49,7 +49,7 @@ const DimensionalTesting = ({ type }) => {
                 const colors = {
                     'Pending': { bg: '#fff7ed', color: '#c2410c' },
                     'Under Inspection': { bg: '#eff6ff', color: '#1d4ed8' },
-                    'Completed as Required': { bg: '#ecfdf5', color: '#059669' }
+                    'Completed': { bg: '#ecfdf5', color: '#059669' }
                 };
                 const style = colors[val] || colors.Pending;
                 return (
