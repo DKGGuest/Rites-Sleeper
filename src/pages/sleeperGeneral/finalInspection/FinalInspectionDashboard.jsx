@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import WaterCubeTesting, { WaterCubeStats } from './WaterCubeTesting';
+import ModulusOfRupture from './ModulusOfRupture';
+import DimensionalTesting from './DimensionalTesting';
 
 const FinalInspectionDashboard = () => {
     const [selectedCard, setSelectedCard] = useState('water-cube');
 
     const cards = [
-        { id: 'visual', title: 'Visual Check & Measurement', subtitle: 'Dimensions & Surface' },
-        { id: 'critical', title: 'Critical Dimension', subtitle: 'Track & Gauge' },
-        { id: 'non-critical', title: 'Non-Critical Dimension', subtitle: 'Secondary checks' },
+        { id: 'visual', title: 'Visual Check & Measurement', subtitle: 'Sub Card- 1 (100%)' },
+        { id: 'critical', title: 'Critical Dimension', subtitle: 'Sub Card- 2 (Target 10-20%)' },
+        { id: 'non-critical', title: 'Non-Critical Dimension', subtitle: 'Sub Card- 3 (Target 1-5%)' },
         { id: 'water-cube', title: 'Water Cube Strength', subtitle: 'Sub Card- 4' },
-        { id: 'mor', title: 'Modulus of Rupture', subtitle: 'Load testing' },
+        { id: 'mor', title: 'Modulus of Rupture', subtitle: 'Sub Card- 5' },
         { id: 'mof', title: 'Moment of Failure', subtitle: 'Structural integrity' },
         { id: 'mor_res', title: 'Moment of Resistance', subtitle: 'Standard compliance' },
     ];
@@ -18,6 +20,14 @@ const FinalInspectionDashboard = () => {
         switch (selectedCard) {
             case 'water-cube':
                 return <WaterCubeTesting onBack={() => setSelectedCard(null)} />;
+            case 'mor':
+                return <ModulusOfRupture onBack={() => setSelectedCard(null)} />;
+            case 'visual':
+                return <DimensionalTesting type="visual" onBack={() => setSelectedCard(null)} />;
+            case 'critical':
+                return <DimensionalTesting type="critical" onBack={() => setSelectedCard(null)} />;
+            case 'non-critical':
+                return <DimensionalTesting type="noncritical" onBack={() => setSelectedCard(null)} />;
             default:
                 return (
                     <div style={{ textAlign: 'center', padding: '100px 0', color: '#94a3b8', background: '#fff', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>

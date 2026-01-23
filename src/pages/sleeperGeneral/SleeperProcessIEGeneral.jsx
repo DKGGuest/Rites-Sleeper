@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import RawMaterialDashboard from './rawMaterialTesting/RawMaterialDashboard';
 import FinalInspectionDashboard from './finalInspection/FinalInspectionDashboard';
+import IncomingVerificationDashboard from './rawMaterialVerification/IncomingVerificationDashboard';
 
 const SleeperProcessIEGeneral = () => {
-    const [activeSubView, setActiveSubView] = useState('raw-material');
+    const [activeSubView, setActiveSubView] = useState('incoming-verification');
 
     const subColumns = [
+        { id: 'incoming-verification', label: 'Incoming Verification', description: 'Verify raw material inventory' },
         { id: 'raw-material', label: 'Raw Material Testing', description: 'Monitor incoming material quality' },
         { id: 'final-inspection', label: 'Final Inspection', description: 'Finished sleeper quality checks' },
         { id: 'calibration', label: 'Calibration', description: 'Plant equipment calibration logs' }
@@ -18,10 +20,10 @@ const SleeperProcessIEGeneral = () => {
                 <p style={{ margin: 0, color: '#64748b', fontSize: 'var(--fs-sm)' }}>Quality monitoring and calibration control</p>
             </header>
 
-            {/* Sub-navigation Row (3 Columns) */}
+            {/* Sub-navigation Row (4 Columns) */}
             <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                 gap: '20px',
                 marginBottom: '32px'
             }}>
@@ -42,20 +44,22 @@ const SleeperProcessIEGeneral = () => {
                         }}
                     >
                         <h3 style={{
-                            fontSize: 'var(--fs-lg)',
+                            fontSize: 'var(--fs-md)',
                             fontWeight: '700',
                             color: activeSubView === col.id ? '#42818c' : '#475569',
-                            marginBottom: '8px'
+                            marginBottom: '4px'
                         }}>
                             {col.label}
                         </h3>
-                        <p style={{ fontSize: 'var(--fs-xxs)', color: '#64748b', margin: 0 }}>{col.description}</p>
+                        <p style={{ fontSize: '10px', color: '#64748b', margin: 0 }}>{col.description}</p>
                     </div>
                 ))}
             </div>
 
             {/* Dynamic Content Area */}
             <div className="sub-view-content fade-in" style={{ animation: 'fadeIn 0.4s ease' }}>
+                {activeSubView === 'incoming-verification' && <IncomingVerificationDashboard />}
+
                 {activeSubView === 'raw-material' && <RawMaterialDashboard />}
 
                 {activeSubView === 'final-inspection' && <FinalInspectionDashboard />}
