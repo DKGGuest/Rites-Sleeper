@@ -9,6 +9,7 @@ import MouldBenchCheck from './components/MouldBenchCheck'
 import SteamCuring from './components/SteamCuring'
 import SteamCubeTesting, { SteamCubeStats } from './components/SteamCubeTesting'
 import RawMaterialDashboard from './pages/sleeperGeneral/rawMaterialTesting/RawMaterialDashboard'
+import SleeperProcessIEGeneral from './pages/sleeperGeneral/SleeperProcessIEGeneral'
 
 const App = () => {
   const [dutyStarted, setDutyStarted] = useState(false);
@@ -16,7 +17,7 @@ const App = () => {
   const [manualChecksAlert, setManualChecksAlert] = useState(true);
   const [moistureAlert, setMoistureAlert] = useState(true);
   const [detailView, setDetailView] = useState('dashboard');
-  const [mainView, setMainView] = useState('Sleeper Process Duty');
+  const [mainView, setMainView] = useState('Sleeper process Duty');
 
   // Shared State for Batch Weighment (Process Engineer)
   const [batchDeclarations, setBatchDeclarations] = useState([
@@ -602,9 +603,9 @@ const App = () => {
 
   const renderView = () => {
     switch (mainView) {
-      case 'Raw Material Inspection':
-        return <RawMaterialDashboard />;
-      case 'Sleeper Process Duty':
+      case 'Sleeper process IE-General':
+        return <SleeperProcessIEGeneral />;
+      case 'Sleeper process Duty':
       default:
         return renderProcessEngineerDashboard();
     }
