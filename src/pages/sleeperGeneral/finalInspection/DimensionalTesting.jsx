@@ -9,6 +9,8 @@ const MOCK_DIMENSIONAL_DATA = [
     { id: 5, batchNo: '607', batchTotal: 240, sleeperType: 'RT 8527', typeQty: 240, testedPct: 0, status: 'Pending', date: '-', spec: 'T-39' },
 ];
 
+import VisualInspectionForm from './VisualInspectionForm';
+
 const DimensionalTesting = ({ type }) => {
     const [showForm, setShowForm] = useState(false);
     const [selectedBatch, setSelectedBatch] = useState(null);
@@ -118,71 +120,81 @@ const DimensionalTesting = ({ type }) => {
 
             {showForm && (
                 <div className="form-modal-overlay" onClick={() => setShowForm(false)}>
-                    <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '900px' }}>
+                    <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: type === 'visual' ? '1200px' : '900px' }}>
                         <div className="form-modal-header">
-                            <span className="form-modal-header-title">{currentConfig.title} - Batch Detail</span>
+                            <span className="form-modal-header-title">{currentConfig.title} - {type === 'visual' ? 'Full Inspection Form' : 'Batch Detail'}</span>
                             <button className="form-modal-close" onClick={() => setShowForm(false)}>×</button>
                         </div>
                         <div className="form-modal-body" style={{ background: '#f8fafc' }}>
-                            <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
-                                <div><label style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Batch Number</label><div style={{ fontWeight: '700', color: '#13343b' }}>{selectedBatch?.batchNo}</div></div>
-                                <div><label style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Sleeper Type</label><div style={{ fontWeight: '700', color: '#13343b' }}>{selectedBatch?.sleeperType}</div></div>
-                                <div><label style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Design Spec</label><div style={{ fontWeight: '700', color: '#42818c' }}>{selectedBatch?.spec}</div></div>
-                                <div><label style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Target (%)</label><div style={{ fontWeight: '700', color: '#c2410c' }}>{targetPct}</div></div>
-                            </div>
+                            {type === 'visual' ? (
+                                <VisualInspectionForm
+                                    batch={selectedBatch}
+                                    onSave={() => { setShowForm(false); alert('Visual Inspection data saved.'); }}
+                                    onCancel={() => setShowForm(false)}
+                                />
+                            ) : (
+                                <>
+                                    <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                                        <div><label style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Batch Number</label><div style={{ fontWeight: '700', color: '#13343b' }}>{selectedBatch?.batchNo}</div></div>
+                                        <div><label style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Sleeper Type</label><div style={{ fontWeight: '700', color: '#13343b' }}>{selectedBatch?.sleeperType}</div></div>
+                                        <div><label style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Design Spec</label><div style={{ fontWeight: '700', color: '#42818c' }}>{selectedBatch?.spec}</div></div>
+                                        <div><label style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Target (%)</label><div style={{ fontWeight: '700', color: '#c2410c' }}>{targetPct}</div></div>
+                                    </div>
 
-                            <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                <div style={{ marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <h5 style={{ margin: 0, color: '#475569' }}>Individual Sleeper Records</h5>
-                                    <span style={{ fontSize: '10px', fontWeight: '700', color: '#42818c' }}>{selectedBatch?.testedPct}% Complete</span>
-                                </div>
-                                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                                    <table className="ui-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Batch No</th>
-                                                <th>Sleeper No</th>
-                                                <th>Status</th>
-                                                <th>Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {sleeperNumbers.map((s, idx) => (
-                                                <tr key={idx}>
-                                                    <td>{s.batch}</td>
-                                                    <td style={{ fontWeight: '700' }}>{s.sleeperNo}</td>
-                                                    <td>
-                                                        <span style={{
-                                                            fontSize: '9px',
-                                                            fontWeight: '700',
-                                                            color: s.status === 'Tested' ? '#059669' : '#94a3b8',
-                                                            background: s.status === 'Tested' ? '#ecfdf5' : '#f1f5f9',
-                                                            padding: '2px 8px',
-                                                            borderRadius: '10px'
-                                                        }}>
-                                                            {s.status}
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <button
-                                                            className="btn-verify"
-                                                            style={{ padding: '2px 10px', fontSize: '9px' }}
-                                                            onClick={() => alert(`Opening measurements for ${s.sleeperNo}`)}
-                                                        >
-                                                            {s.status === 'Tested' ? 'View Measurements' : 'Start Test'}
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                                    <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                        <div style={{ marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <h5 style={{ margin: 0, color: '#475569' }}>Individual Sleeper Records</h5>
+                                            <span style={{ fontSize: '10px', fontWeight: '700', color: '#42818c' }}>{selectedBatch?.testedPct}% Complete</span>
+                                        </div>
+                                        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                                            <table className="ui-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Batch No</th>
+                                                        <th>Sleeper No</th>
+                                                        <th>Status</th>
+                                                        <th>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {sleeperNumbers.map((s, idx) => (
+                                                        <tr key={idx}>
+                                                            <td>{s.batch}</td>
+                                                            <td style={{ fontWeight: '700' }}>{s.sleeperNo}</td>
+                                                            <td>
+                                                                <span style={{
+                                                                    fontSize: '9px',
+                                                                    fontWeight: '700',
+                                                                    color: s.status === 'Tested' ? '#059669' : '#94a3b8',
+                                                                    background: s.status === 'Tested' ? '#ecfdf5' : '#f1f5f9',
+                                                                    padding: '2px 8px',
+                                                                    borderRadius: '10px'
+                                                                }}>
+                                                                    {s.status}
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                <button
+                                                                    className="btn-verify"
+                                                                    style={{ padding: '2px 10px', fontSize: '9px' }}
+                                                                    onClick={() => alert(`Opening measurements for ${s.sleeperNo}`)}
+                                                                >
+                                                                    {s.status === 'Tested' ? 'View Measurements' : 'Start Test'}
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
 
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                                <button className="btn-verify" style={{ flex: 1, height: '44px' }} onClick={() => setShowForm(false)}>Save Progress</button>
-                                <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#64748b', border: 'none', height: '44px' }} onClick={() => setShowForm(false)}>Close</button>
-                            </div>
+                                    <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                                        <button className="btn-verify" style={{ flex: 1, height: '44px' }} onClick={() => setShowForm(false)}>Save Progress</button>
+                                        <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#64748b', border: 'none', height: '44px' }} onClick={() => setShowForm(false)}>Close</button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
