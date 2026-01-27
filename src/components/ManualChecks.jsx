@@ -6,10 +6,11 @@ const ManualChecks = ({ onBack, onAlertChange }) => {
     const [alerts, setAlerts] = useState({ mouldPrep: true, htsWire: true, demoulding: true });
 
     useEffect(() => {
-        const currentHour = new Date().getHours();
         const checkAlert = (subModuleEntries) => {
             if (subModuleEntries.length === 0) return true;
-            return !subModuleEntries.some(e => new Date(e.timestamp).getHours() === currentHour);
+            // Check if any entry was made in the last 60 minutes
+            const oneHourAgo = new Date(Date.now() - 3600 * 1000);
+            return !subModuleEntries.some(e => new Date(e.timestamp) > oneHourAgo);
         };
         const newAlerts = {
             mouldPrep: checkAlert(entries.mouldPrep),
@@ -104,7 +105,7 @@ const ManualChecks = ({ onBack, onAlertChange }) => {
                                                 gap: '6px'
                                             }}>
                                                 <span style={{ width: '8px', height: '8px', background: '#c0152f', borderRadius: '50%' }}></span>
-                                                Update Due
+                                                No Reading in Last Hour
                                             </div>
                                         ) : (
                                             <div style={{
@@ -128,19 +129,12 @@ const ManualChecks = ({ onBack, onAlertChange }) => {
                             ))}
                         </div>
                     ) : (
-                        <div className="sub-module-container">
-                            {view === 'mould' && (
-                                <MouldPrepForm onSave={d => handleAddEntry('mouldPrep', d)} />
-                            )}
-                            {view === 'hts' && (
-                                <HTSWireForm onSave={d => handleAddEntry('htsWire', d)} />
-                            )}
-                            {view === 'demoulding' && (
-                                <DemouldingForm onSave={d => handleAddEntry('demoulding', d)} />
-                            )}
-
-                            <div className="data-table-section" style={{ marginTop: '2rem' }}>
-                                <div className="table-title-bar">Shift History: {currentModule?.label}</div>
+                        <div className="sub-module-container" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                            <div className="data-table-section">
+                                <div className="table-title-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span>Shift History: {currentModule?.label}</span>
+                                    <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>Last {entries[currentModule.key].length} readings</span>
+                                </div>
                                 <table className="ui-table">
                                     <thead>
                                         {view === 'mould' ? (
@@ -192,6 +186,19 @@ const ManualChecks = ({ onBack, onAlertChange }) => {
                                         )}
                                     </tbody>
                                 </table>
+                            </div>
+
+                            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '2rem' }}>
+                                <h3 style={{ fontSize: '1.1rem', color: '#1e293b', marginBottom: '1.25rem' }}>Add New {currentModule?.label} Entry</h3>
+                                {view === 'mould' && (
+                                    <MouldPrepForm onSave={d => handleAddEntry('mouldPrep', d)} />
+                                )}
+                                {view === 'hts' && (
+                                    <HTSWireForm onSave={d => handleAddEntry('htsWire', d)} />
+                                )}
+                                {view === 'demoulding' && (
+                                    <DemouldingForm onSave={d => handleAddEntry('demoulding', d)} />
+                                )}
                             </div>
                         </div>
                     )}

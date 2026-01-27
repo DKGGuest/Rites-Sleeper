@@ -300,7 +300,9 @@ const App = () => {
               {activeTab === 'Weight Batching' && <span className="badge-count" style={{ marginLeft: 0 }}>{witnessedRecords.length}</span>}
             </div>
             {!(activeTab === 'Wire Tensioning' || activeTab === 'Mould & Bench Checking') && (
-              <button className="toggle-btn" onClick={() => { setViewMode('entry'); setDetailView('detail_modal'); }}>New Entry</button>
+              <button className="toggle-btn" onClick={() => { setViewMode('entry'); setDetailView('detail_modal'); }}>
+                {activeTab === 'Manual Checks' ? 'Manual Record' : 'New Entry'}
+              </button>
             )}
           </div>
 
@@ -451,25 +453,39 @@ const App = () => {
                 </div>
               </>
             ) : activeTab === 'Manual Checks' ? (
-              <>
-                <h3 style={{ fontSize: '1rem', fontWeight: '500', color: '#475569', marginBottom: '1.5rem' }}>Pending Inspection Requirements</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-                  <div className="calc-card" style={{ textAlign: 'left', padding: '1.25rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <h4 style={{ margin: 0 }}>Mould Prep</h4>
-                      {manualChecksAlert && <span className="badge-count">Pending</span>}
+              <div style={{ maxWidth: '800px' }}>
+                <div className="calc-card" style={{ padding: '2rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                    <div>
+                      <h3 style={{ margin: 0, color: '#42818c', fontSize: '1.25rem', fontWeight: '700' }}>SARTHI Feedbacks Form (Responses)</h3>
+                      <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem' }}>SARTHI Feedbacks Form (Responses)</p>
                     </div>
-                    <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem' }}>Next check due in {60 - new Date().getMinutes()} mins</p>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '2rem', fontWeight: '800', color: '#166534', lineHeight: 1 }}>100%</div>
+                      <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.5rem', fontWeight: '600' }}>COMPLETION RATE</div>
+                    </div>
                   </div>
-                  <div className="calc-card" style={{ textAlign: 'left', padding: '1.25rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <h4 style={{ margin: 0 }}>HTS Wire</h4>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--color-success)', fontWeight: 'bold' }}>COMPLETED</span>
+
+                  <div style={{ display: 'flex', gap: '3rem', padding: '1.5rem 0', borderTop: '1px solid #f1f5f9' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Responses</span>
+                      <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#1e293b' }}>10</div>
                     </div>
-                    <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem' }}>Last check: 10:45 AM</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Current Section</span>
+                      <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#1e293b' }}>D3</div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Form Status</span>
+                      <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#166534' }}>Active</div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1', fontSize: '0.85rem', color: '#64748b' }}>
+                    Click on <strong>Manual Record</strong> above to log or view detailed hourly inspection cards.
                   </div>
                 </div>
-              </>
+              </div>
             ) : activeTab === 'Mould & Bench Checking' ? (
               <>
                 <div className="dash-section-header">
