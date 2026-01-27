@@ -5,8 +5,8 @@ const Sidebar = ({ activeItem, onItemClick, isOpen, expanded }) => {
         {
             label: 'Inspection Dashboard',
             items: [
-                { id: 'Sleeper process IE-General', label: 'Sleeper process IE-General', icon: '📊' },
-                { id: 'Sleeper process Duty', label: 'Sleeper process Duty', icon: '⚡' },
+                { id: 'Sleeper process IE-General', label: 'Sleeper process IE-General', icon: 'IE' },
+                { id: 'Sleeper process Duty', label: 'Sleeper process Duty', icon: 'SD' },
             ]
         }
     ];
@@ -32,7 +32,19 @@ const Sidebar = ({ activeItem, onItemClick, isOpen, expanded }) => {
                                 className={`menu-item ${activeItem === item.id ? 'active' : ''}`}
                                 style={{ display: 'flex', alignItems: 'center', gap: '16px' }}
                             >
-                                <span className="menu-icon" style={{ fontSize: '1.2rem', minWidth: '24px', textAlign: 'center' }}>
+                                <span className="menu-icon" style={{
+                                    fontSize: '0.6rem',
+                                    minWidth: '28px',
+                                    height: '28px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    background: activeItem === item.id ? '#338691' : '#f1f5f9',
+                                    color: activeItem === item.id ? 'white' : '#64748b',
+                                    borderRadius: '6px',
+                                    fontWeight: '700',
+                                    border: `1px solid ${activeItem === item.id ? '#338691' : '#e2e8f0'}`
+                                }}>
                                     {item.icon}
                                 </span>
                                 <span className="menu-label">{item.label}</span>
