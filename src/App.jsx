@@ -16,6 +16,7 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('Manual Checks');
   const [manualChecksAlert, setManualChecksAlert] = useState(true);
   const [moistureAlert, setMoistureAlert] = useState(true);
+  const [viewMode, setViewMode] = useState('list');
   const [detailView, setDetailView] = useState('dashboard');
   const [mainView, setMainView] = useState('Sleeper process Duty');
 
@@ -298,7 +299,9 @@ const App = () => {
               <h2 style={{ fontSize: 'var(--fs-xl)', fontWeight: '600', color: '#1e293b' }}>{activeTab} Record</h2>
               {activeTab === 'Weight Batching' && <span className="badge-count" style={{ marginLeft: 0 }}>{witnessedRecords.length}</span>}
             </div>
-            <button className="toggle-btn" onClick={() => setDetailView('detail_modal')}>New Entry</button>
+            {!(activeTab === 'Wire Tensioning' || activeTab === 'Mould & Bench Checking') && (
+              <button className="toggle-btn" onClick={() => { setViewMode('entry'); setDetailView('detail_modal'); }}>New Entry</button>
+            )}
           </div>
 
           <div style={{ marginTop: '3rem' }}>
@@ -474,7 +477,6 @@ const App = () => {
                     <span style={{ color: 'var(--primary-color)' }}>●</span>
                     Summary of Mould & Bench Checking
                   </h3>
-                  <button className="toggle-btn" onClick={() => setDetailView('detail_modal')}>Add New Entry</button>
                 </div>
                 <div className="rm-grid-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                   <div className="calc-card" style={{ padding: '1rem' }}>
@@ -570,7 +572,6 @@ const App = () => {
                         <option key={b.id} value={b.batchNo}>{b.batchNo}</option>
                       ))}
                     </select>
-                    <button className="toggle-btn" onClick={() => setDetailView('detail_modal')}>Add New Entry</button>
                   </div>
                 </div>
 
@@ -583,12 +584,62 @@ const App = () => {
                   theoreticalMean={730}
                 />
               </>
+            ) : activeTab === 'Moisture Analysis' ? (
+              <>
+                <div className="data-table-section" style={{ marginTop: '1rem' }}>
+                  <div className="table-title-bar">Latest Moisture Analysis Records</div>
+                  <table className="ui-table">
+                    <thead>
+                      <tr>
+                        <th>Date & Shift</th>
+                        <th>Timing</th>
+                        <th>CA1 (%)</th>
+                        <th>CA2 (%)</th>
+                        <th>FA (%)</th>
+                        <th>Total Free (Kg)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td data-label="Date & Shift"><span>2026-01-27 (Shift A)</span></td>
+                        <td data-label="Timing"><span>14:30</span></td>
+                        <td data-label="CA1"><span>1.25%</span></td>
+                        <td data-label="CA2"><span>0.85%</span></td>
+                        <td data-label="FA"><span>3.10%</span></td>
+                        <td data-label="Total Free"><span>5.20 Kg</span></td>
+                      </tr>
+                      <tr>
+                        <td data-label="Date & Shift"><span>2026-01-27 (Shift A)</span></td>
+                        <td data-label="Timing"><span>10:15</span></td>
+                        <td data-label="CA1"><span>1.20%</span></td>
+                        <td data-label="CA2"><span>0.80%</span></td>
+                        <td data-label="FA"><span>3.20%</span></td>
+                        <td data-label="Total Free"><span>5.15 Kg</span></td>
+                      </tr>
+                      <tr>
+                        <td data-label="Date & Shift"><span>2026-01-26 (Shift C)</span></td>
+                        <td data-label="Timing"><span>20:45</span></td>
+                        <td data-label="CA1"><span>1.10%</span></td>
+                        <td data-label="CA2"><span>0.90%</span></td>
+                        <td data-label="FA"><span>2.95%</span></td>
+                        <td data-label="Total Free"><span>4.95 Kg</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+                  <button className="toggle-btn" onClick={() => { setViewMode('list'); setDetailView('detail_modal'); }} style={{ padding: '0.8rem 2.5rem', fontSize: '1rem' }}>
+                    Open Moisture Analysis Console
+                  </button>
+                </div>
+              </>
             ) : (
               <div style={{ textAlign: 'center', padding: '4rem 2rem', background: '#fff', borderRadius: '12px', border: '1px dotted #cbd5e1' }}>
                 <p style={{ color: '#94a3b8' }}>Select a process card above to view real-time logs and statistics for {activeTab}.</p>
-                <button className="toggle-btn secondary" style={{ marginTop: '1rem' }} onClick={() => setDetailView('detail_modal')}>Open {activeTab} Console</button>
+                <button className="toggle-btn secondary" style={{ marginTop: '1rem' }} onClick={() => { setViewMode('list'); setDetailView('detail_modal'); }}>Open {activeTab} Console</button>
               </div>
-            )}
+            )
+            }
           </div>
         </div>
 
@@ -598,12 +649,27 @@ const App = () => {
               {activeTab === 'Weight Batching' ? (
                 <BatchWeighment
                   onBack={() => setDetailView('dashboard')}
-                  sharedState={{ batchDeclarations, setBatchDeclarations, witnessedRecords, setWitnessedRecords }}
+                  sharedState={{
+                    batchDeclarations,
+                    setBatchDeclarations,
+                    witnessedRecords,
+                    setWitnessedRecords: (record) => {
+                      if (record._delete) {
+                        setWitnessedRecords(prev => prev.filter(r => r.id !== record.id));
+                      } else {
+                        setWitnessedRecords(prev => {
+                          const exists = prev.find(r => r.id === record.id);
+                          if (exists) return prev.map(r => r.id === record.id ? record : r);
+                          return [...prev, record];
+                        });
+                      }
+                    }
+                  }}
                 />
               ) : activeTab === 'Manual Checks' ? (
                 <ManualChecks onBack={() => setDetailView('dashboard')} onAlertChange={setManualChecksAlert} />
               ) : activeTab === 'Moisture Analysis' ? (
-                <MoistureAnalysis onBack={() => setDetailView('dashboard')} onSave={() => setMoistureAlert(false)} />
+                <MoistureAnalysis onBack={() => setDetailView('dashboard')} onSave={() => setMoistureAlert(false)} initialView={viewMode} />
               ) : activeTab === 'Wire Tensioning' ? (
                 <WireTensioning
                   onBack={() => setDetailView('dashboard')}

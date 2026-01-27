@@ -3,6 +3,8 @@ import Sidebar from './Sidebar';
 
 const MainLayout = ({ children, activeItem, onItemClick }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isSidebarPinned, setIsSidebarPinned] = useState(false);
+    const [isSidebarHovered, setIsSidebarHovered] = useState(false);
 
     return (
         <div className="main-layout-root">
@@ -13,14 +15,22 @@ const MainLayout = ({ children, activeItem, onItemClick }) => {
                 />
             )}
 
-            <Sidebar
-                activeItem={activeItem}
-                onItemClick={(item) => {
-                    onItemClick(item);
-                    setIsMobileMenuOpen(false);
-                }}
-                isOpen={isMobileMenuOpen}
-            />
+            <div
+                onMouseEnter={() => setIsSidebarHovered(true)}
+                onMouseLeave={() => setIsSidebarHovered(false)}
+                onClick={() => setIsSidebarPinned(!isSidebarPinned)}
+                style={{ height: '100%', zIndex: 1001 }}
+            >
+                <Sidebar
+                    activeItem={activeItem}
+                    onItemClick={(item) => {
+                        onItemClick(item);
+                        setIsMobileMenuOpen(false);
+                    }}
+                    isOpen={isMobileMenuOpen}
+                    expanded={isSidebarPinned || isSidebarHovered}
+                />
+            </div>
 
             <div className="main-content-wrapper">
                 <header className="main-header">

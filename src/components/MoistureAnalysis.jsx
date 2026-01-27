@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 
-const MoistureAnalysis = ({ onBack, onSave }) => {
-    const [view, setView] = useState('list'); // 'list', 'entry'
+const MoistureAnalysis = ({ onBack, onSave, initialView = 'list' }) => {
+    const [view, setView] = useState(initialView); // 'list', 'entry'
     const [editRecord, setEditRecord] = useState(null);
     const [records, setRecords] = useState([
         {

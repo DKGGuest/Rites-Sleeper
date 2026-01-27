@@ -81,7 +81,7 @@ const BatchWeighment = ({ onBack, sharedState }) => {
                     <button className="close-btn" onClick={onBack}>×</button>
                 </header>
 
-                <div className="modal-body" style={{ background: '#f8fafc' }}>
+                <div className="modal-body" style={{ background: '#f8fafc', padding: '0.5rem' }}>
                     <CollapsibleSection
                         title="1. Initial Declaration (Sensors & Batch Set Values)"
                         isOpen={activeSection === 'declaration'}

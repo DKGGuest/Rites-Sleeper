@@ -51,7 +51,17 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave }) => {
         setFormData(defaultFormData);
         setEditingId(null);
         setSaving(false);
-        alert(editingId ? "Record updated successfully!" : "Entry saved successfully!");
+    };
+
+    const handleDelete = (id) => {
+        if (window.confirm("Are you sure you want to delete this record?")) {
+            // In a real app, call API. Locally, we filter the parent's state via onSave with null or similar.
+            // But App.jsx expects a record to add/update. 
+            // Let's modify the parent to handle deletion.
+            // For now, I'll update the local state if the parent supports it.
+            // Actually, I can just pass the deletion back up.
+            onSave({ id, _delete: true });
+        }
     };
 
     return (
@@ -128,17 +138,24 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave }) => {
                                     <td data-label="Cement"><span>{r.cement}</span></td>
                                     <td data-label="Water"><span>{r.water}</span></td>
                                     <td data-label="Actions">
-                                        {r.source === 'Manual Entry' || r.source === 'Manual' ? (
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            {(r.source === 'Manual Entry' || r.source === 'Manual') && (
+                                                <button
+                                                    className="toggle-btn"
+                                                    style={{ padding: '0.2rem 0.6rem', fontSize: '0.7rem' }}
+                                                    onClick={() => handleEdit(r)}
+                                                >
+                                                    Edit
+                                                </button>
+                                            )}
                                             <button
-                                                className="toggle-btn"
-                                                style={{ padding: '0.2rem 0.6rem', fontSize: '0.7rem' }}
-                                                onClick={() => handleEdit(r)}
+                                                className="toggle-btn secondary"
+                                                style={{ padding: '0.2rem 0.6rem', fontSize: '0.7rem', color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}
+                                                onClick={() => handleDelete(r.id)}
                                             >
-                                                Edit
+                                                Delete
                                             </button>
-                                        ) : (
-                                            <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontStyle: 'italic' }}>Verified</span>
-                                        )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))

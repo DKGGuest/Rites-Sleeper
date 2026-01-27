@@ -99,8 +99,8 @@ export default function ScadaTable({
                                                 key={j}
                                                 colSpan={cell.colSpan}
                                                 rowSpan={cell.rowSpan}
-                                                className="border px-3 py-2 text-center font-semibold"
-                                                style={{ background: '#f1f5f9', color: '#475569' }}
+                                                className="border font-semibold"
+                                                style={{ background: '#f1f5f9', color: '#475569', padding: '4px 2px', whiteSpace: 'nowrap', fontSize: '0.75rem' }}
                                             >
                                                 {cell.label}
                                             </th>
@@ -117,8 +117,8 @@ export default function ScadaTable({
                                     <td
                                         key={col.key}
                                         data-label={col.label}
-                                        className="border px-3 py-2 text-center"
-                                        style={{ fontSize: '0.85rem', color: '#334155' }}
+                                        className="border"
+                                        style={{ fontSize: '0.8rem', color: '#334155', padding: '4px 2px' }}
                                     >
                                         <div className="table-cell-content">
                                             {row[col.key] ?? "-"}

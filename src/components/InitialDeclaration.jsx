@@ -88,7 +88,7 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate }) => {
                     <div style={{ display: 'flex', gap: '2rem', marginTop: '0.5rem' }}>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500' }}>
                             <input type="checkbox" name="notAvailable" checked={sensors.notAvailable} onChange={handleSensorChange} />
-                            Not Available
+                            Working
                         </label>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500' }}>
                             <input type="checkbox" name="notWorking" checked={sensors.notWorking} onChange={handleSensorChange} />
@@ -119,19 +119,47 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate }) => {
                                 placeholder="e.g. 601"
                             />
                         </div>
-                        <div className="status-container">
-                            <span className="calc-label">Proportion Status</span>
-                            <span style={{
-                                padding: '0.4rem 1rem',
-                                borderRadius: '4px',
-                                fontSize: '0.8rem',
-                                fontWeight: '700',
-                                background: batch.proportionMatch === 'OK' ? '#f0fdf4' : '#fef2f2',
-                                color: batch.proportionMatch === 'OK' ? '#166534' : '#991b1b',
-                                border: `1px solid ${batch.proportionMatch === 'OK' ? '#bbf7d0' : '#fecaca'}`
-                            }}>
-                                {batch.proportionMatch}
-                            </span>
+                        <div className="status-container" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span className="calc-label" style={{ margin: 0 }}>Proportion Status</span>
+                                <span style={{
+                                    padding: '0.35rem 0',
+                                    width: '120px',
+                                    borderRadius: '50px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: '700',
+                                    background: 'transparent',
+                                    color: batch.proportionMatch === 'OK' ? 'var(--color-success)' : 'var(--color-danger)',
+                                    border: `1.5px solid ${batch.proportionMatch === 'OK' ? 'var(--color-success)' : 'var(--color-danger)'}`,
+                                    textTransform: 'uppercase',
+                                    textAlign: 'center',
+                                    display: 'inline-block'
+                                }}>
+                                    {batch.proportionMatch}
+                                </span>
+                            </div>
+                            {batches.length > 1 && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    <span className="calc-label" style={{ margin: 0, opacity: 0 }}>Action</span>
+                                    <button
+                                        onClick={() => setBatches(prev => prev.filter(b => b.id !== batch.id))}
+                                        className="toggle-btn secondary"
+                                        style={{
+                                            color: 'var(--color-danger)',
+                                            borderColor: 'var(--color-danger)',
+                                            borderWidth: '1.5px',
+                                            padding: '0.35rem 0',
+                                            width: '120px',
+                                            fontSize: '0.7rem',
+                                            fontWeight: '700',
+                                            textTransform: 'uppercase',
+                                            borderRadius: '50px'
+                                        }}
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
 

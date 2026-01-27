@@ -162,8 +162,8 @@ h4 {
 /* --- Sidebar --- */
 .sidebar,
 .sidebar-root {
-    width: 260px;
-    min-width: 260px;
+    width: 68px;
+    min-width: 68px;
     background: var(--sidebar-bg);
     border-right: 1px solid var(--border-color);
     display: flex;
@@ -172,8 +172,18 @@ h4 {
     position: sticky;
     top: 0;
     z-index: 1000;
-    transition: transform 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
+    overflow: hidden;
+}
+
+.sidebar:hover,
+.sidebar-root:hover,
+.sidebar.expanded,
+.sidebar-root.expanded {
+    width: 260px;
+    min-width: 260px;
+    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.05);
 }
 
 @media (max-width: 1024px) {
@@ -228,7 +238,7 @@ h4 {
 
 .nav-item,
 .menu-item {
-    padding: 0.75rem 1.5rem;
+    padding: 0.75rem 20px;
     color: var(--text-muted);
     font-weight: 500;
     font-size: var(--fs-sm);
@@ -237,7 +247,9 @@ h4 {
     transition: all 0.2s;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
+    min-width: 260px;
+    /* Keep content width consistent */
 }
 
 .nav-item:hover,
@@ -260,6 +272,43 @@ h4 {
     letter-spacing: 0.05em;
     padding: 1.5rem 1.5rem 0.5rem 1.5rem;
     font-weight: 700;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.sidebar:hover .menu-section-label,
+.sidebar-root:hover .menu-section-label,
+.sidebar.expanded .menu-section-label,
+.sidebar-root.expanded .menu-section-label {
+    opacity: 1;
+}
+
+.menu-label {
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.sidebar:hover .menu-label,
+.sidebar-root:hover .menu-label,
+.sidebar.expanded .menu-label,
+.sidebar-root.expanded .menu-label {
+    opacity: 1;
+}
+
+.sidebar-logo,
+.sidebar-header span {
+    white-space: nowrap;
+    transition: opacity 0.2s;
+}
+
+.sidebar-root:not(:hover):not(.expanded) .sidebar-logo {
+    opacity: 0;
+}
+
+.sidebar-root:not(:hover):not(.expanded) .sidebar-header span {
+    opacity: 0;
 }
 
 /* --- Main Content Area --- */
@@ -418,13 +467,13 @@ h4 {
 
 .ui-table td,
 .data-table td {
-    padding: 0.65rem 0.5rem;
+    padding: 0.5rem 0.25rem;
     border-bottom: 1px solid var(--border-color);
-    font-size: var(--fs-sm);
+    font-size: 0.8rem;
     color: var(--text-main);
-    word-break: break-word;
+    word-break: normal;
     vertical-align: middle;
-    white-space: normal;
+    white-space: nowrap;
 }
 
 /* Mobile Table Transformer */
@@ -524,9 +573,9 @@ h4 {
 .form-modal-container {
     background: #fff;
     width: 100%;
-    max-width: 1000px;
-    max-height: 90vh;
-    border-radius: 16px;
+    max-width: 98vw;
+    max-height: 98vh;
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -618,7 +667,7 @@ h4 {
 
 .modal-body,
 .form-modal-body {
-    padding: 1.5rem;
+    padding: 0.75rem;
     overflow-y: auto;
     flex: 1;
     -webkit-overflow-scrolling: touch;
