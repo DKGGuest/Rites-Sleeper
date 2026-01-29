@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import EnhancedDataTable from '../../../components/EnhancedDataTable';
+import EnhancedDataTable from '../../../components/common/EnhancedDataTable';
 
 const MOCK_MOR_SCADA_DATA = [
     {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import EnhancedDataTable from '../../../components/EnhancedDataTable';
+import EnhancedDataTable from '../../../components/common/EnhancedDataTable';
 import { MOCK_INVENTORY } from '../../../utils/rawMaterialMockData';
 
 const IncomingVerificationDashboard = () => {

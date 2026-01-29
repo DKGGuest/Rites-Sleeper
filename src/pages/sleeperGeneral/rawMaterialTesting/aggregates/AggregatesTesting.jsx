@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import EnhancedDataTable from '../../../../components/EnhancedDataTable';
+import EnhancedDataTable from '../../../../components/common/EnhancedDataTable';
 import CrushingImpactAbrasion10mm from './CrushingImpactAbrasion10mm';
 import CrushingImpactAbrasion20mm from './CrushingImpactAbrasion20mm';
 import CombinedFlakinessElongation from './CombinedFlakinessElongation';

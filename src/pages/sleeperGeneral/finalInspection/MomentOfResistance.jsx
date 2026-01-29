@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import EnhancedDataTable from '../../../components/EnhancedDataTable';
+import EnhancedDataTable from '../../../components/common/EnhancedDataTable';
 
 const MOCK_BATCHES = [
     { batchNo: 'B-701', sleeperType: 'RT-1234', castingDate: '2026-01-20', waterCubeStatus: 'Completed', mrSamplesNeeded: 1, mrTestType: 'Fresh', status: 'Pending Declaration' },

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import EnhancedDataTable from '../../../components/EnhancedDataTable';
+import EnhancedDataTable from '../../../components/common/EnhancedDataTable';
 
 const MOCK_DIMENSIONAL_DATA = [
     { id: 1, batchNo: '601', batchTotal: 300, sleeperType: 'RT 8746', typeQty: 255, testedPct: 87, status: 'Pending', date: '-', spec: 'T-39' },

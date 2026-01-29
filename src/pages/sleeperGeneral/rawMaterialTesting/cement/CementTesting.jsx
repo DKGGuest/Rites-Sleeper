@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import EnhancedDataTable from '../../../../components/EnhancedDataTable';
+import EnhancedDataTable from '../../../../components/common/EnhancedDataTable';
 import SpecificSurfaceForm from './SpecificSurfaceForm';
 import SettingTimeForm from './SettingTimeForm';
 import NormalConsistencyForm from './NormalConsistencyForm';

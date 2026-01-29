@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import EnhancedDataTable from '../../../../components/EnhancedDataTable';
+import EnhancedDataTable from '../../../../components/common/EnhancedDataTable';
 import { MOCK_WATER_HISTORY } from '../../../../utils/rawMaterialMockData';
 import '../cement/CementForms.css';
 
