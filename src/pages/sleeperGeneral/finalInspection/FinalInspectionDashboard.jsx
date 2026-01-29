@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import WaterCubeTesting, { WaterCubeStats } from './WaterCubeTesting';
 import ModulusOfRupture from './ModulusOfRupture';
 import DimensionalTesting from './DimensionalTesting';
+import MomentOfResistance from './MomentOfResistance';
 
 const FinalInspectionDashboard = () => {
     const [selectedCard, setSelectedCard] = useState('water-cube');
@@ -22,6 +23,8 @@ const FinalInspectionDashboard = () => {
                 return <WaterCubeTesting />;
             case 'mor':
                 return <ModulusOfRupture />;
+            case 'mor_res':
+                return <MomentOfResistance />;
             case 'visual':
                 return <DimensionalTesting type="visual" />;
             case 'critical':
