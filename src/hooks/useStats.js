@@ -110,3 +110,34 @@ export const useSteamStats = (steamRecords, selectedSteamBatch) => {
         };
     }, [steamRecords, selectedSteamBatch]);
 };
+
+export const useWireTensionStats = (tensionRecords, selectedBatch, theoreticalMean = 730) => {
+    return useMemo(() => {
+        const records = tensionRecords.filter(r => r.batchNo === selectedBatch);
+        if (!records.length) return null;
+
+        const values = records.map(r => parseFloat(r.finalLoad));
+        const count = values.length;
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        const mean = values.reduce((a, b) => a + b, 0) / count;
+        const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / count;
+        const stdDev = Math.sqrt(variance);
+
+        const pct1s = (values.filter(v => v >= mean - stdDev && v <= mean + stdDev).length / count) * 100;
+        const pct2s = (values.filter(v => (v < mean - stdDev && v >= mean - 2 * stdDev) || (v > mean + stdDev && v <= mean + 2 * stdDev)).length / count) * 100;
+        const pct3s = (values.filter(v => (v < mean - 2 * stdDev && v >= mean - 3 * stdDev) || (v > mean + 2 * stdDev && v <= mean + 3 * stdDev)).length / count) * 100;
+        const pctOOC = (values.filter(v => v < mean - 3 * stdDev || v > mean + 3 * stdDev).length / count) * 100;
+
+        return {
+            count, min, max, mean, stdDev,
+            cv: (stdDev / mean) * 100,
+            deviationFromTheo: ((mean - theoreticalMean) / theoreticalMean) * 100,
+            normalZone: pct1s,
+            warningZone: pct2s,
+            actionZone: pct3s,
+            outOfControl: pctOOC,
+            values
+        };
+    }, [tensionRecords, selectedBatch, theoreticalMean]);
+};

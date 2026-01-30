@@ -99,7 +99,13 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave }) => {
                                     <td data-label="Cement"><span>{r.cement} Kg</span></td>
                                     <td data-label="Water"><span>{r.water} L</span></td>
                                     <td data-label="Actions">
-                                        <button className="toggle-btn secondary" style={{ fontSize: '0.7rem' }}>Details</button>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            {r.source === 'Manual' ? (
+                                                <button className="btn-action" onClick={() => handleEdit(r)}>Edit</button>
+                                            ) : (
+                                                <button className="btn-action" style={{ background: '#f1f5f9', color: '#64748b' }} disabled>Verified</button>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

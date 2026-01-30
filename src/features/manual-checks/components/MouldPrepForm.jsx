@@ -9,7 +9,7 @@ import '../../../components/common/Checkbox.css';
  * - Responsive layout support (via CSS classes)
  * - Separation of concerns
  */
-const MouldPrepForm = ({ onSave }) => {
+const MouldPrepForm = ({ onSave, isLongLine, existingEntries = [], initialData, activeContainer }) => {
     const [formData, setFormData] = useState({
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
         benchNo: '',
@@ -17,6 +17,18 @@ const MouldPrepForm = ({ onSave }) => {
         oilApplied: false,
         remarks: ''
     });
+
+    React.useEffect(() => {
+        if (initialData) {
+            setFormData({
+                time: initialData.time,
+                benchNo: initialData.benchNo,
+                lumpsFree: initialData.lumpsFree,
+                oilApplied: initialData.oilApplied,
+                remarks: initialData.remarks
+            });
+        }
+    }, [initialData]);
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -27,17 +39,38 @@ const MouldPrepForm = ({ onSave }) => {
             alert('Please fill in all required fields.');
             return;
         }
+
+        // Duplicate Check (skip for current record if editing)
+        const isDuplicate = existingEntries.some(entry => entry.benchNo === formData.benchNo && entry.id !== initialData?.id);
+        if (isDuplicate) {
+            const fieldLabel = isLongLine ? 'Gang' : 'Bench';
+            const proceed = window.confirm(`${fieldLabel} No. ${formData.benchNo} has already been entered in this shift. Do you want to continue?`);
+            if (!proceed) return;
+        }
+
         onSave(formData);
         // Reset specific fields after save
         setFormData(prev => ({ ...prev, benchNo: '', remarks: '' }));
     };
 
+    const fieldLabel = isLongLine ? 'Gang' : 'Bench';
+
     return (
         <div className="form-container">
             <div className="form-section-header">
-                <h3>Mould Preparation Details</h3>
+                <h3>Mould Preparation Details ({isLongLine ? 'Long Line Plant' : 'Short Line Plant'})</h3>
             </div>
             <div className="form-grid">
+                <div className="form-field">
+                    <label>{activeContainer?.type === 'Line' ? 'Line No.' : 'Shed No.'}</label>
+                    <input
+                        type="text"
+                        readOnly
+                        value={activeContainer?.name || ''}
+                        className="readOnly"
+                        style={{ background: '#f8fafc', color: '#64748b' }}
+                    />
+                </div>
                 <div className="form-field">
                     <label htmlFor="prep-time">Time <span className="required">*</span></label>
                     <input
@@ -48,11 +81,11 @@ const MouldPrepForm = ({ onSave }) => {
                     />
                 </div>
                 <div className="form-field">
-                    <label htmlFor="bench-no">Bench No. <span className="required">*</span></label>
+                    <label htmlFor="bench-no">{fieldLabel} No. <span className="required">*</span></label>
                     <input
                         id="bench-no"
                         type="number"
-                        placeholder="Enter Bench Number"
+                        placeholder={`Enter ${fieldLabel} Number`}
                         value={formData.benchNo}
                         onChange={e => handleChange('benchNo', e.target.value)}
                     />

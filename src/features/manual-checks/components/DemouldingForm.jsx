@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../../../components/common/Checkbox.css';
 
-const DemouldingForm = ({ onSave }) => {
+const DemouldingForm = ({ onSave, isLongLine, initialData, activeContainer }) => {
     const [formData, setFormData] = useState({
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
         benchNo: '',
@@ -15,13 +15,27 @@ const DemouldingForm = ({ onSave }) => {
     });
 
     useEffect(() => {
-        if (formData.benchNo) {
+        if (initialData) {
+            setFormData({
+                time: initialData.time || '',
+                benchNo: initialData.benchNo || '',
+                sleeperType: initialData.sleeperType || '',
+                processSatisfactory: initialData.processSatisfactory || false,
+                visualCheck: initialData.visualCheck || 'Ok',
+                visualDefect: initialData.visualDefect || '',
+                dimCheck: initialData.dimCheck || 'Ok',
+                dimDefect: initialData.dimDefect || '',
+                remarks: initialData.remarks || ''
+            });
+        }
+    }, [initialData]);
+
+    useEffect(() => {
+        if (formData.benchNo && !initialData) { // Only auto-fetch if not editing
             const types = ['RT-1234', 'RT-5678', 'RT-9012'];
             setFormData(prev => ({ ...prev, sleeperType: types[parseInt(formData.benchNo) % 3] }));
-        } else {
-            setFormData(prev => ({ ...prev, sleeperType: '' }));
         }
-    }, [formData.benchNo]);
+    }, [formData.benchNo, initialData]);
 
     const handleChange = (field, value) => {
         setFormData(prev => {
@@ -42,19 +56,31 @@ const DemouldingForm = ({ onSave }) => {
         setFormData(prev => ({ ...prev, benchNo: '', visualDefect: '', dimDefect: '', remarks: '' }));
     };
 
+    const fieldLabel = isLongLine ? 'Gang' : 'Bench';
+
     return (
         <div className="form-container">
             <div className="form-section-header">
-                <h3>Demoulding of Sleepers Details</h3>
+                <h3>Demoulding of Sleepers Details ({isLongLine ? 'Long Line Plant' : 'Short Line Plant'})</h3>
             </div>
             <div className="form-grid">
+                <div className="form-field">
+                    <label>{activeContainer?.type === 'Line' ? 'Line No.' : 'Shed No.'}</label>
+                    <input
+                        type="text"
+                        readOnly
+                        value={activeContainer?.name || ''}
+                        className="readOnly"
+                        style={{ background: '#f8fafc', color: '#64748b' }}
+                    />
+                </div>
                 <div className="form-field">
                     <label htmlFor="demould-time">Time <span className="required">*</span></label>
                     <input id="demould-time" type="time" value={formData.time} onChange={e => handleChange('time', e.target.value)} />
                 </div>
                 <div className="form-field">
-                    <label htmlFor="demould-bench">Bench No. <span className="required">*</span></label>
-                    <input id="demould-bench" type="number" placeholder="Enter Bench No" value={formData.benchNo} onChange={e => handleChange('benchNo', e.target.value)} />
+                    <label htmlFor="demould-bench">{fieldLabel} No. <span className="required">*</span></label>
+                    <input id="demould-bench" type="number" placeholder={`Enter ${fieldLabel} No`} value={formData.benchNo} onChange={e => handleChange('benchNo', e.target.value)} />
                 </div>
                 <div className="form-field">
                     <label>Type of Sleeper (Auto)</label>
