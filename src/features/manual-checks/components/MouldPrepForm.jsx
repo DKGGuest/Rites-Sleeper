@@ -40,12 +40,12 @@ const MouldPrepForm = ({ onSave, isLongLine, existingEntries = [], initialData, 
             return;
         }
 
-        // Duplicate Check (skip for current record if editing)
-        const isDuplicate = existingEntries.some(entry => entry.benchNo === formData.benchNo && entry.id !== initialData?.id);
+        // Strict Duplicate Check
+        const isDuplicate = (existingEntries || []).some(entry => entry.benchNo === formData.benchNo && entry.id !== initialData?.id);
         if (isDuplicate) {
             const fieldLabel = isLongLine ? 'Gang' : 'Bench';
-            const proceed = window.confirm(`${fieldLabel} No. ${formData.benchNo} has already been entered in this shift. Do you want to continue?`);
-            if (!proceed) return;
+            alert(`${fieldLabel} No. ${formData.benchNo} has already been entered in this shift. Duplicate entries are not allowed.`);
+            return;
         }
 
         onSave(formData);

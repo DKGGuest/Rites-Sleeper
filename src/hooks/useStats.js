@@ -69,6 +69,8 @@ export const useCompactionStats = (compactionRecords, selectedCompactionBatch) =
         const aboveLSL = rpms.filter(r => r > LSL).length;
         const aboveUSL = rpms.filter(r => r > USL).length;
 
+        const tachoWorkingPct = records.reduce((acc, r) => acc + (r.workingTachos / (r.tachoCount || 4)), 0) / count * 100;
+
         return {
             count,
             minRpm,
@@ -77,6 +79,7 @@ export const useCompactionStats = (compactionRecords, selectedCompactionBatch) =
             medianRpm,
             avgDuration,
             stdDev,
+            tachoWorkingPct,
             pctWithinSpec: (withinSpec / count) * 100,
             pctAboveLSL: (aboveLSL / count) * 100,
             pctAboveUSL: (aboveUSL / count) * 100
@@ -89,24 +92,60 @@ export const useSteamStats = (steamRecords, selectedSteamBatch) => {
         const records = steamRecords.filter(r => r.batchNo === selectedSteamBatch);
         if (!records.length) return null;
 
-        const checkOutlier = (r) => {
-            let outliers = 0;
-            if (r.preDur < 2) outliers++;
-            if (r.risePeriod < 2 || r.risePeriod > 2.5) outliers++;
-            if (r.riseRate > 15) outliers++;
-            if (r.constTemp < 55 || r.constTemp > 60) outliers++;
-            if (r.constDur < 3.5 || r.constDur > 5) outliers++;
-            if (r.coolDur < 2 || r.coolDur > 3) outliers++;
-            if (r.coolRate > 15) outliers++;
-            return outliers;
-        };
+        const phases = [
+            { key: 'preDur', name: 'PreSteaming Duration', min: 2, max: null, isRate: false },
+            { key: 'risePeriod', name: 'Temp Rising Period', min: 2, max: 2.5, isRate: false },
+            { key: 'riseRate', name: 'Temp Rising Rate', min: null, max: 15, isRate: true },
+            { key: 'constTemp', name: 'Constant Temp', min: 55, max: 60, isRate: false },
+            { key: 'constDur', name: 'Constant Duration', min: 3.5, max: 5, isRate: false },
+            { key: 'coolDur', name: 'Cooling Duration', min: 2, max: 3, isRate: false },
+            { key: 'coolRate', name: 'Cooling Rate', min: null, max: 15, isRate: true }
+        ];
 
-        const totalOutliers = records.reduce((acc, r) => acc + (checkOutlier(r) > 0 ? 1 : 0), 0);
+        const stats = phases.map(phase => {
+            const values = records.map(r => r[phase.key] || 0);
+            const count = values.length;
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+            const mean = values.reduce((a, b) => a + b, 0) / count;
+            const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / count;
+            const stdDev = Math.sqrt(variance);
+
+            const outliers = records.filter(r => {
+                const val = r[phase.key];
+                if (phase.min !== null && val < phase.min) return true;
+                if (phase.max !== null && val > phase.max) return true;
+                return false;
+            }).length;
+
+            return {
+                ...phase,
+                min, max, mean, stdDev, outliers
+            };
+        });
+
+        const totalOutliers = records.filter(r => {
+            return phases.some(phase => {
+                const val = r[phase.key];
+                if (phase.min !== null && val < phase.min) return true;
+                if (phase.max !== null && val > phase.max) return true;
+                return false;
+            });
+        }).length;
 
         return {
             count: records.length,
-            outlierProcesses: totalOutliers,
-            meanConstTemp: records.reduce((a, b) => a + b.constTemp, 0) / records.length
+            stats,
+            totalOutliers,
+            records: records.map(r => ({
+                ...r,
+                isOk: !phases.some(phase => {
+                    const val = r[phase.key];
+                    if (phase.min !== null && val < phase.min) return true;
+                    if (phase.max !== null && val > phase.max) return true;
+                    return false;
+                })
+            }))
         };
     }, [steamRecords, selectedSteamBatch]);
 };

@@ -10,7 +10,7 @@ import DemouldingForm from './components/DemouldingForm';
  * 2. Placement of HTS Wire
  * 3. Demoulding of Sleepers
  */
-const ManualChecks = ({ onBack, onAlertChange, activeContainer }) => {
+const ManualChecks = ({ onBack, onAlertChange, activeContainer, initialSubModule, initialViewMode }) => {
     // Consolidated entries state
     const [entries, setEntries] = useState({
         mouldPrep: [],
@@ -18,10 +18,16 @@ const ManualChecks = ({ onBack, onAlertChange, activeContainer }) => {
         demoulding: []
     });
 
-    const [viewMode, setViewMode] = useState('landing'); // 'landing' or 'detail'
-    const [activeForm, setActiveForm] = useState(null);
+    const [viewMode, setViewMode] = useState(initialViewMode || 'landing'); // 'landing' or 'detail'
+    const [activeForm, setActiveForm] = useState(initialSubModule || null);
     const [isLongLine, setIsLongLine] = useState(false);
     const [editingEntry, setEditingEntry] = useState(null);
+
+    // Update active form if initialSubModule changes
+    useEffect(() => {
+        if (initialSubModule) setActiveForm(initialSubModule);
+        if (initialViewMode) setViewMode(initialViewMode);
+    }, [initialSubModule, initialViewMode]);
 
     // Alert Handling
     const [alerts, setAlerts] = useState({
@@ -50,17 +56,23 @@ const ManualChecks = ({ onBack, onAlertChange, activeContainer }) => {
     }, [entries, onAlertChange]);
 
     const handleSave = (subModule, data) => {
+        const enrichedData = {
+            ...data,
+            location: activeContainer?.name || 'N/A',
+            locationType: activeContainer?.type || 'Location'
+        };
+
         if (editingEntry) {
             setEntries(prev => ({
                 ...prev,
-                [subModule]: prev[subModule].map(e => e.id === editingEntry.id ? { ...data, id: editingEntry.id, timestamp: editingEntry.timestamp } : e)
+                [subModule]: prev[subModule].map(e => e.id === editingEntry.id ? { ...enrichedData, id: editingEntry.id, timestamp: editingEntry.timestamp } : e)
             }));
             setEditingEntry(null);
             alert('Record updated successfully');
         } else {
             setEntries(prev => ({
                 ...prev,
-                [subModule]: [{ ...data, id: Date.now(), timestamp: new Date().toISOString() }, ...prev[subModule]]
+                [subModule]: [{ ...enrichedData, id: Date.now(), timestamp: new Date().toISOString() }, ...prev[subModule]]
             }));
             alert('Record saved successfully');
         }
@@ -68,7 +80,7 @@ const ManualChecks = ({ onBack, onAlertChange, activeContainer }) => {
 
     const isRecordEditable = (timestamp) => {
         const diffMs = Date.now() - new Date(timestamp).getTime();
-        return diffMs < (60 * 60 * 1000); // 1 hour window
+        return diffMs < (8 * 60 * 60 * 1000); // 8 hour shift window
     };
 
     const handleEdit = (entry) => {
@@ -95,6 +107,7 @@ const ManualChecks = ({ onBack, onAlertChange, activeContainer }) => {
                     <thead>
                         <tr>
                             <th>Time</th>
+                            <th>{records[0]?.locationType || 'Location'}</th>
                             <th>{isLongLine ? 'Gang' : 'Bench'}</th>
                             {type === 'mouldPrep' && <><th>Lumps Free</th><th>Oil Applied</th></>}
                             {type === 'htsWire' && <><th>Wires</th><th>Dia</th><th>Satisfactory</th></>}
@@ -105,11 +118,12 @@ const ManualChecks = ({ onBack, onAlertChange, activeContainer }) => {
                     </thead>
                     <tbody>
                         {records.length === 0 ? (
-                            <tr><td colSpan="11" style={{ textAlign: 'center', padding: '2.5rem', color: '#94a3b8' }}>No entries recorded for this sub-module in the current shift.</td></tr>
+                            <tr><td colSpan="12" style={{ textAlign: 'center', padding: '2.5rem', color: '#94a3b8' }}>No entries recorded for this sub-module in the current shift.</td></tr>
                         ) : (
                             records.map(entry => (
                                 <tr key={entry.id}>
                                     <td data-label="Time"><span>{entry.time}</span></td>
+                                    <td data-label="Location"><span>{entry.location}</span></td>
                                     <td data-label={isLongLine ? 'Gang' : 'Bench'}><span>{entry.benchNo}</span></td>
                                     {type === 'mouldPrep' && (
                                         <>
@@ -222,6 +236,7 @@ const ManualChecks = ({ onBack, onAlertChange, activeContainer }) => {
                                     <HTSWireForm
                                         onSave={(data) => handleSave('htsWire', data)}
                                         isLongLine={isLongLine}
+                                        existingEntries={entries.htsWire}
                                         initialData={editingEntry}
                                         activeContainer={activeContainer}
                                     />
@@ -234,7 +249,9 @@ const ManualChecks = ({ onBack, onAlertChange, activeContainer }) => {
                                     <DemouldingForm
                                         onSave={(data) => handleSave('demoulding', data)}
                                         isLongLine={isLongLine}
+                                        existingEntries={entries.demoulding}
                                         initialData={editingEntry}
+                                        activeContainer={activeContainer}
                                     />
                                     {renderHistoryTable('demoulding')}
                                 </div>

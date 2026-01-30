@@ -8,6 +8,7 @@ import CollapsibleSection from '../../components/common/CollapsibleSection';
  */
 const WireTensioning = ({ onBack, batches = [], sharedState }) => {
     const { tensionRecords, setTensionRecords } = sharedState;
+    const [view, setView] = useState('list'); // 'list' or 'add'
     const [selectedBatch, setSelectedBatch] = useState(batches[0]?.batchNo || '601');
     const [wiresPerSleeper] = useState(18);
     const [editId, setEditId] = useState(null);
@@ -34,7 +35,25 @@ const WireTensioning = ({ onBack, batches = [], sharedState }) => {
         type: 'RT-1234'
     });
 
-    // Auto-fetch Sleeper Type based on Bench No (Simulated)
+    const stats = useMemo(() => {
+        if (tensionRecords.length === 0) return null;
+        const values = tensionRecords.map(r => parseFloat(r.finalLoad));
+        const count = values.length;
+        const sum = values.reduce((a, b) => a + b, 0);
+        const mean = sum / count;
+        const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / count;
+        const stdDev = Math.sqrt(variance);
+        const cv = (stdDev / mean) * 100;
+        const deviationFromTheo = ((mean - 730) / 730) * 100;
+
+        const normalZone = (values.filter(v => Math.abs(v - mean) <= stdDev).length / count) * 100;
+        const warningZone = (values.filter(v => Math.abs(v - mean) > stdDev && Math.abs(v - mean) <= 2 * stdDev).length / count) * 100;
+        const actionZone = (values.filter(v => Math.abs(v - mean) > 2 * stdDev && Math.abs(v - mean) <= 3 * stdDev).length / count) * 100;
+        const outOfControl = (values.filter(v => Math.abs(v - mean) > 3 * stdDev).length / count) * 100;
+
+        return { count, mean, stdDev, cv, deviationFromTheo, values, normalZone, warningZone, actionZone, outOfControl };
+    }, [tensionRecords]);
+
     useEffect(() => {
         if (formData.benchNo) {
             const types = ['RT-1234', 'RT-5678', 'RT-9012'];
@@ -51,10 +70,11 @@ const WireTensioning = ({ onBack, batches = [], sharedState }) => {
         const newEntry = {
             ...record,
             id: Date.now(),
+            timestamp: new Date().toISOString(),
             source: 'Scada',
             wires: wiresPerSleeper,
             loadPerWire: (parseFloat(record.finalLoad) / wiresPerSleeper).toFixed(2),
-            type: 'RT-1234', // Simulated
+            type: 'RT-1234',
             editable: false
         };
         setTensionRecords(prev => [newEntry, ...prev]);
@@ -70,6 +90,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState }) => {
         const newEntry = {
             ...formData,
             id: editId || Date.now(),
+            timestamp: new Date().toISOString(),
             source: 'Manual',
             wires: wiresPerSleeper,
             loadPerWire: (parseFloat(formData.finalLoad) / wiresPerSleeper).toFixed(2),
@@ -85,6 +106,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState }) => {
         }
 
         setFormData(prev => ({ ...prev, benchNo: '', finalLoad: '' }));
+        setView('list');
     };
 
     const handleEdit = (record) => {
@@ -96,103 +118,39 @@ const WireTensioning = ({ onBack, batches = [], sharedState }) => {
             type: record.type
         });
         setEditId(record.id);
+        setView('add');
     };
 
     return (
         <div className="modal-overlay" onClick={onBack}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1100px' }}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1200px' }}>
                 <header className="modal-header">
-                    <div>
-                        <h2>Wire Tensioning Control Console</h2>
-                        <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '4px' }}>Logged in as Sleeper Process IE</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        {view === 'add' && (
+                            <button className="back-btn" onClick={() => { setView('list'); setEditId(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--primary-color)' }}>←</button>
+                        )}
+                        <div>
+                            <h2 style={{ margin: 0 }}>Wire Tensioning Control Console</h2>
+                            <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '4px' }}>Integration of Live SCADA loads and Manual pressure logs</p>
+                        </div>
                     </div>
                     <button className="close-btn" onClick={onBack}>×</button>
                 </header>
 
                 <div className="modal-body">
-                    <div style={{ marginBottom: '2rem' }}>
-                        <CollapsibleSection title="SCADA Data Fetched (Live Monitoring)">
-                            <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Select active batch for monitoring:</span>
-                                <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
-                                    {batches.map(b => <option key={b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
-                                </select>
+                    {view === 'list' ? (
+                        <div className="list-view-container fade-in">
+                            {/* Section 1: Stats Dashboard */}
+                            <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem', border: '1px solid #e2e8f0' }}>
+                                <WireTensionStats stats={stats} />
                             </div>
-                            <div className="table-outer-wrapper">
-                                <table className="ui-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Time</th><th>Bench</th><th>Final Load (KN)</th><th>Wires</th><th>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {scadaRecords.map(record => (
-                                            <tr key={record.id}>
-                                                <td data-label="Time"><span>{record.time}</span></td>
-                                                <td data-label="Bench"><span>{record.benchNo}</span></td>
-                                                <td data-label="Load"><span>{record.finalLoad}</span></td>
-                                                <td data-label="Wires"><span>{wiresPerSleeper}</span></td>
-                                                <td data-label="Action">
-                                                    <button className="btn-action" onClick={() => handleWitness(record)} style={{ fontSize: '10px', background: '#ecfdf5', color: '#059669', border: '1px solid #05966950' }}>
-                                                        Witness
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CollapsibleSection>
 
-                        <CollapsibleSection title={editId ? "Edit Manual Entry" : "Manual Data Entry Form"}>
-                            <div className="form-grid">
-                                <div className="form-field">
-                                    <label>Time</label>
-                                    <input type="time" name="time" value={formData.time} onChange={handleFormChange} />
-                                </div>
-                                <div className="form-field">
-                                    <label>Batch No.</label>
-                                    <select name="batchNo" value={formData.batchNo} onChange={handleFormChange}>
-                                        {batches.map(b => <option key={b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
-                                    </select>
-                                </div>
-                                <div className="form-field">
-                                    <label>Bench No. <span className="required">*</span></label>
-                                    <input type="text" name="benchNo" value={formData.benchNo} onChange={handleFormChange} placeholder="e.g. 405" />
-                                </div>
-                                <div className="form-field">
-                                    <label>Type of Sleeper (Auto)</label>
-                                    <input type="text" value={formData.type} readOnly className="readOnly" style={{ background: '#f8fafc' }} />
-                                </div>
-                                <div className="form-field">
-                                    <label>No. of Wires (Auto Fill)</label>
-                                    <input type="text" value={wiresPerSleeper} readOnly className="readOnly" style={{ background: '#f8fafc' }} />
-                                </div>
-                                <div className="form-field">
-                                    <label>Final Load (KN) <span className="required">*</span></label>
-                                    <input type="number" name="finalLoad" value={formData.finalLoad} onChange={handleFormChange} placeholder="e.g. 730.0" />
-                                </div>
-                                <div className="form-field">
-                                    <label>Load Per Wire (Auto Calculate)</label>
-                                    <div className="calc-value" style={{ fontSize: '1rem', padding: '10px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', color: '#1e293b', fontWeight: 'bold' }}>
-                                        {formData.finalLoad ? (parseFloat(formData.finalLoad) / wiresPerSleeper).toFixed(2) : '0.00'} KN
-                                    </div>
-                                </div>
-                                <div className="form-field" style={{ display: 'flex', alignItems: 'flex-end', gap: '10px' }}>
-                                    <button className="toggle-btn" onClick={handleSaveManual} style={{ flex: 1, height: '42px' }}>
-                                        {editId ? 'Update Record' : 'Save Record'}
-                                    </button>
-                                    {editId && (
-                                        <button className="toggle-btn" onClick={() => {
-                                            setEditId(null);
-                                            setFormData(prev => ({ ...prev, benchNo: '', finalLoad: '' }));
-                                        }} style={{ flex: 0.5, height: '42px', background: '#94a3b8' }}>Cancel</button>
-                                    )}
-                                </div>
+                            {/* Section 2: History Log with Add Button */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b' }}>Recent Pre-Stress Records (Shift Log)</h3>
+                                <button className="toggle-btn" onClick={() => setView('add')}>+ Add New Record</button>
                             </div>
-                        </CollapsibleSection>
 
-                        <CollapsibleSection title="Shift Logs (Manual & SCADA Witnessed)">
                             <div className="table-outer-wrapper">
                                 <table className="ui-table">
                                     <thead>
@@ -201,39 +159,115 @@ const WireTensioning = ({ onBack, batches = [], sharedState }) => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {tensionRecords.map(entry => (
-                                            <tr key={entry.id}>
-                                                <td data-label="Source">
-                                                    <span style={{
-                                                        fontSize: '9px', fontWeight: '800', padding: '2px 8px', borderRadius: '4px',
-                                                        background: entry.source === 'Manual' ? '#eff6ff' : '#ecfdf5',
-                                                        color: entry.source === 'Manual' ? '#1d4ed8' : '#059669'
-                                                    }}>{entry.source}</span>
-                                                </td>
-                                                <td data-label="Time"><span>{entry.time}</span></td>
-                                                <td data-label="Batch"><span>{entry.batchNo}</span></td>
-                                                <td data-label="Bench"><span>{entry.benchNo}</span></td>
-                                                <td data-label="Type"><span>{entry.type}</span></td>
-                                                <td data-label="Wires"><span>{entry.wires}</span></td>
-                                                <td data-label="Load"><span>{entry.finalLoad} KN</span></td>
-                                                <td data-label="L/W"><span>{entry.loadPerWire}</span></td>
-                                                <td data-label="Action">
-                                                    {entry.source === 'Manual' ? (
-                                                        <button className="btn-action" onClick={() => handleEdit(entry)}>Edit</button>
-                                                    ) : (
-                                                        <span style={{ fontSize: '10px', color: '#94a3b8' }}>Scada Link</span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {tensionRecords.length === 0 && (
-                                            <tr><td colSpan="9" style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8' }}>No entries found for this shift.</td></tr>
+                                        {tensionRecords.length === 0 ? (
+                                            <tr><td colSpan="9" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>No tensioning records found for the current shift.</td></tr>
+                                        ) : (
+                                            tensionRecords.map(entry => (
+                                                <tr key={entry.id}>
+                                                    <td data-label="Source">
+                                                        <span className={`status-pill ${entry.source === 'Manual' ? 'manual' : 'witnessed'}`} style={{ fontSize: '9px' }}>{entry.source}</span>
+                                                    </td>
+                                                    <td data-label="Time"><span>{entry.time}</span></td>
+                                                    <td data-label="Batch"><span>{entry.batchNo}</span></td>
+                                                    <td data-label="Bench"><span>{entry.benchNo}</span></td>
+                                                    <td data-label="Type"><span>{entry.type}</span></td>
+                                                    <td data-label="Wires"><span>{entry.wires}</span></td>
+                                                    <td data-label="Load"><span>{entry.finalLoad} KN</span></td>
+                                                    <td data-label="L/W"><span>{entry.loadPerWire}</span></td>
+                                                    <td data-label="Action">
+                                                        {entry.source === 'Manual' ? (
+                                                            <button className="btn-action" onClick={() => handleEdit(entry)}>Edit</button>
+                                                        ) : (
+                                                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>Scada Logged</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))
                                         )}
                                     </tbody>
                                 </table>
                             </div>
-                        </CollapsibleSection>
-                    </div>
+                        </div>
+                    ) : (
+                        <div className="add-view-container fade-in">
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+
+                                {/* Form Left Side: Manual Entry & Metadata */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                    <CollapsibleSection title="01. Initial Identification" isOpen={true}>
+                                        <div className="form-grid">
+                                            <div className="form-field">
+                                                <label>Batch No.</label>
+                                                <select name="batchNo" value={formData.batchNo} onChange={handleFormChange}>
+                                                    {batches.map(b => <option key={b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="form-field">
+                                                <label>Bench No. <span className="required">*</span></label>
+                                                <input type="text" name="benchNo" value={formData.benchNo} onChange={handleFormChange} placeholder="e.g. 405" />
+                                            </div>
+                                            <div className="form-field">
+                                                <label>Sleeper Type (Auto)</label>
+                                                <input type="text" value={formData.type} readOnly className="readOnly" />
+                                            </div>
+                                            <div className="form-field">
+                                                <label>Time of Record</label>
+                                                <input type="time" name="time" value={formData.time} onChange={handleFormChange} />
+                                            </div>
+                                        </div>
+                                    </CollapsibleSection>
+
+                                    <CollapsibleSection title="02. Manual Pre-Stress Log" isOpen={true}>
+                                        <div className="form-grid">
+                                            <div className="form-field">
+                                                <label>Final Load (KN) <span className="required">*</span></label>
+                                                <input type="number" name="finalLoad" value={formData.finalLoad} onChange={handleFormChange} placeholder="e.g. 730" />
+                                            </div>
+                                            <div className="form-field">
+                                                <label>Load Per Wire (Calculated)</label>
+                                                <div className="calc-value" style={{ fontSize: '1.2rem', color: 'var(--primary-color)', fontWeight: 'bold' }}>
+                                                    {formData.finalLoad ? (parseFloat(formData.finalLoad) / wiresPerSleeper).toFixed(2) : '0.00'} <span style={{ fontSize: '0.8rem' }}>KN</span>
+                                                </div>
+                                            </div>
+                                            <div style={{ gridColumn: 'span 2', marginTop: '1rem' }}>
+                                                <button className="toggle-btn" onClick={handleSaveManual} style={{ width: '100%', padding: '12px' }}>
+                                                    {editId ? 'Apply Update' : 'Commit Manual Record'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </CollapsibleSection>
+                                </div>
+
+                                {/* Form Right Side: SCADA Witnessing */}
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    <CollapsibleSection title="03. Live SCADA Integration" isOpen={true}>
+                                        <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1rem' }}>Witness real-time data from Tensioning Jack PLC:</p>
+                                        <div className="table-outer-wrapper" style={{ maxHeight: '450px', overflowY: 'auto' }}>
+                                            <table className="ui-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>PLC Time</th><th>Bench</th><th>PLC Load</th><th>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {scadaRecords.filter(r => r.batchNo === selectedBatch).map(record => (
+                                                        <tr key={record.id}>
+                                                            <td><span>{record.time}</span></td>
+                                                            <td><strong>{record.benchNo}</strong></td>
+                                                            <td style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>{record.finalLoad} KN</td>
+                                                            <td>
+                                                                <button className="btn-action" onClick={() => handleWitness(record)} style={{ fontSize: '10px' }}>Witness</button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </CollapsibleSection>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

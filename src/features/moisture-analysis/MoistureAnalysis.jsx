@@ -33,7 +33,7 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list' }) => {
 
     const isRecordEditable = (timestamp) => {
         const diffMs = Date.now() - new Date(timestamp).getTime();
-        return diffMs < (60 * 60 * 1000); // 1 hour window
+        return diffMs < (8 * 60 * 60 * 1000); // 8 hour shift window
     };
 
     const handleSaveEntry = (newEntry) => {
@@ -74,78 +74,100 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list' }) => {
                         <div className="list-view fade-in">
                             {/* Statistics Cards */}
                             <div style={{ marginBottom: '2rem' }}>
-                                <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: '#475569', marginBottom: '1rem' }}>Average Free Moisture Content</h3>
-                                <div className="rm-grid-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                                <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: '#475569', marginBottom: '1rem' }}>Average Free Moisture Content (% Weight)</h3>
+                                <div className="rm-grid-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                     <div className="calc-card" style={{ borderLeft: '4px solid #3b82f6' }}>
-                                        <span className="mini-label">CA1 (20mm)</span>
+                                        <span className="mini-label">Avg. CA1 (20mm)</span>
                                         <div className="calc-value" style={{ color: '#3b82f6' }}>{avgCA1}%</div>
-                                        <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Coarse Aggregate 1</span>
                                     </div>
                                     <div className="calc-card" style={{ borderLeft: '4px solid #8b5cf6' }}>
-                                        <span className="mini-label">CA2 (10mm)</span>
+                                        <span className="mini-label">Avg. CA2 (10mm)</span>
                                         <div className="calc-value" style={{ color: '#8b5cf6' }}>{avgCA2}%</div>
-                                        <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Coarse Aggregate 2</span>
                                     </div>
                                     <div className="calc-card" style={{ borderLeft: '4px solid #f59e0b' }}>
-                                        <span className="mini-label">FA</span>
+                                        <span className="mini-label">Avg. FA</span>
                                         <div className="calc-value" style={{ color: '#f59e0b' }}>{avgFA}%</div>
-                                        <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Fine Aggregate</span>
                                     </div>
                                     <div className="calc-card" style={{ borderLeft: '4px solid #10b981' }}>
-                                        <span className="mini-label">TOTAL</span>
+                                        <span className="mini-label">Combined Total</span>
                                         <div className="calc-value" style={{ color: '#10b981' }}>{avgTotal} Kg</div>
-                                        <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Combined Average</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Line Chart */}
                             <div style={{ marginBottom: '2.5rem', padding: '1.5rem', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: '#475569', marginBottom: '1.5rem' }}>Free Moisture Trend (Last {records.length} Samples)</h3>
-                                <div style={{ position: 'relative', height: '200px', display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '0 1rem' }}>
-                                    {/* Y-axis labels */}
-                                    <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', fontSize: '0.65rem', color: '#94a3b8', paddingRight: '0.5rem' }}>
-                                        <span>4.0%</span>
-                                        <span>3.0%</span>
-                                        <span>2.0%</span>
-                                        <span>1.0%</span>
-                                        <span>0.0%</span>
-                                    </div>
+                                <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: '#475569', marginBottom: '1.5rem' }}>Analytical Trend: Free Moisture % Analysis</h3>
+                                <div style={{ position: 'relative', height: '180px', width: '100%', padding: '0 1rem' }}>
+                                    <svg width="100%" height="100%" viewBox="0 0 1000 200" preserveAspectRatio="none">
+                                        {/* Y-Axis Grid Lines */}
+                                        {[0, 50, 100, 150, 200].map(v => (
+                                            <line key={v} x1="0" y1={v} x2="1000" y2={v} stroke="#f1f5f9" strokeWidth="1" />
+                                        ))}
 
-                                    {/* Chart bars */}
-                                    {sortedRecords.slice(0, 8).reverse().map((r, idx) => (
-                                        <div key={r.id} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginLeft: idx === 0 ? '2rem' : 0 }}>
-                                            <div style={{ width: '100%', display: 'flex', gap: '2px', alignItems: 'flex-end', height: '160px' }}>
-                                                <div style={{ flex: 1, background: '#3b82f6', height: `${(parseFloat(r.ca1Free) / 4) * 100}%`, borderRadius: '4px 4px 0 0', minHeight: '4px' }} title={`CA1: ${r.ca1Free}%`}></div>
-                                                <div style={{ flex: 1, background: '#8b5cf6', height: `${(parseFloat(r.ca2Free) / 4) * 100}%`, borderRadius: '4px 4px 0 0', minHeight: '4px' }} title={`CA2: ${r.ca2Free}%`}></div>
-                                                <div style={{ flex: 1, background: '#f59e0b', height: `${(parseFloat(r.faFree) / 4) * 100}%`, borderRadius: '4px 4px 0 0', minHeight: '4px' }} title={`FA: ${r.faFree}%`}></div>
-                                            </div>
-                                            <span style={{ fontSize: '0.6rem', color: '#64748b', textAlign: 'center', whiteSpace: 'nowrap' }}>{r.timing}</span>
-                                        </div>
-                                    ))}
+                                        {/* Paths */}
+                                        {['ca1Free', 'ca2Free', 'faFree'].map((key, kIdx) => {
+                                            const colors = ['#3b82f6', '#8b5cf6', '#f59e0b'];
+                                            const chartData = sortedRecords.slice(0, 10).reverse();
+                                            if (chartData.length < 2) return null;
+                                            const step = 1000 / (chartData.length - 1);
+                                            const points = chartData.map((r, i) => `${i * step},${200 - (parseFloat(r[key]) / 5) * 200}`).join(' ');
+                                            return (
+                                                <g key={key}>
+                                                    <polyline
+                                                        fill="none"
+                                                        stroke={colors[kIdx]}
+                                                        strokeWidth="3"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        points={points}
+                                                        style={{ transition: 'all 0.3s ease' }}
+                                                    />
+                                                    {chartData.map((r, i) => (
+                                                        <circle
+                                                            key={i}
+                                                            cx={i * step}
+                                                            cy={200 - (parseFloat(r[key]) / 5) * 200}
+                                                            r="4"
+                                                            fill="#fff"
+                                                            stroke={colors[kIdx]}
+                                                            strokeWidth="2"
+                                                        />
+                                                    ))}
+                                                </g>
+                                            );
+                                        })}
+                                    </svg>
+
+                                    {/* X-Axis Labels */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', paddingLeft: '5px' }}>
+                                        {sortedRecords.slice(0, 10).reverse().map((r, i) => (
+                                            <span key={i} style={{ fontSize: '0.65rem', color: '#64748b' }}>{r.timing}</span>
+                                        ))}
+                                    </div>
                                 </div>
 
                                 {/* Legend */}
-                                <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', marginTop: '1.5rem', fontSize: '0.7rem' }}>
+                                <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center', marginTop: '2rem', fontSize: '0.75rem', fontWeight: '500' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <div style={{ width: '12px', height: '12px', background: '#3b82f6', borderRadius: '2px' }}></div>
+                                        <div style={{ width: '12px', height: '2px', background: '#3b82f6', border: '1px solid #3b82f6' }}></div>
                                         <span>CA1 (20mm)</span>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <div style={{ width: '12px', height: '12px', background: '#8b5cf6', borderRadius: '2px' }}></div>
+                                        <div style={{ width: '12px', height: '2px', background: '#8b5cf6', border: '1px solid #8b5cf6' }}></div>
                                         <span>CA2 (10mm)</span>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <div style={{ width: '12px', height: '12px', background: '#f59e0b', borderRadius: '2px' }}></div>
-                                        <span>FA</span>
+                                        <div style={{ width: '12px', height: '2px', background: '#f59e0b', border: '1px solid #f59e0b' }}></div>
+                                        <span>Fine Aggregate (FA)</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Add New Entry Button */}
-                            <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: '#475569', margin: 0 }}>Recent Entries</h3>
-                                <button className="toggle-btn" onClick={() => { setEditRecord(null); setView('entry'); }}>+ Add New Entry</button>
+                            <div style={{ marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#1e293b', margin: 0 }}>Moisture Analysis History</h3>
+                                <button className="toggle-btn" onClick={() => { setEditRecord(null); setView('entry'); }}>+ Add New Analysis</button>
                             </div>
 
                             {/* Recent Entries Table */}
@@ -173,7 +195,7 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list' }) => {
                                                     <td data-label="FA Free %"><span>{r.faFree}%</span></td>
                                                     <td data-label="Total" style={{ fontWeight: '700', color: 'var(--primary-color)' }}><span>{r.totalFree} Kg</span></td>
                                                     <td data-label="Action">
-                                                        {index < 2 && isRecordEditable(r.timestamp) ? (
+                                                        {index < 2 ? (
                                                             <button className="btn-action" onClick={() => handleEdit(r)}>Modify</button>
                                                         ) : (
                                                             <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Locked</span>

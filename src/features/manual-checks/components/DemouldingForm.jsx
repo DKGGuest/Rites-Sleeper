@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../../../components/common/Checkbox.css';
 
-const DemouldingForm = ({ onSave, isLongLine, initialData, activeContainer }) => {
+const DemouldingForm = ({ onSave, isLongLine, existingEntries, initialData, activeContainer }) => {
     const [formData, setFormData] = useState({
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
         benchNo: '',
@@ -52,6 +52,15 @@ const DemouldingForm = ({ onSave, isLongLine, initialData, activeContainer }) =>
             alert('Please fill in all required fields.');
             return;
         }
+
+        // Strict Duplicate Check
+        const isDuplicate = (existingEntries || []).some(entry => entry.benchNo === formData.benchNo && entry.id !== initialData?.id);
+        if (isDuplicate) {
+            const fieldLabel = isLongLine ? 'Gang' : 'Bench';
+            alert(`${fieldLabel} No. ${formData.benchNo} has already been entered in this shift. Duplicate entries are not allowed.`);
+            return;
+        }
+
         onSave(formData);
         setFormData(prev => ({ ...prev, benchNo: '', visualDefect: '', dimDefect: '', remarks: '' }));
     };
