@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import WireTensionStats from './components/WireTensionStats';
 import CollapsibleSection from '../../components/common/CollapsibleSection';
+import { useWireTensionStats } from '../../hooks/useStats';
 
 /**
  * WireTensioning Feature
@@ -8,13 +9,12 @@ import CollapsibleSection from '../../components/common/CollapsibleSection';
  */
 const WireTensioning = ({ onBack, batches = [], sharedState }) => {
     const { tensionRecords, setTensionRecords } = sharedState;
-    const [view, setView] = useState('list'); // 'list' or 'add'
     const [selectedBatch, setSelectedBatch] = useState(batches[0]?.batchNo || '601');
     const [wiresPerSleeper] = useState(18);
     const [editId, setEditId] = useState(null);
 
     // Mock SCADA records (fetch source)
-    const [scadaRecords] = useState([
+    const [scadaRecords, setScadaRecords] = useState([
         { id: 201, time: '11:05', batchNo: '601', benchNo: '411', finalLoad: 733 },
         { id: 202, time: '11:12', batchNo: '601', benchNo: '412', finalLoad: 729 },
         { id: 203, time: '11:20', batchNo: '601', benchNo: '413', finalLoad: 736 },
@@ -27,6 +27,9 @@ const WireTensioning = ({ onBack, batches = [], sharedState }) => {
         { id: 210, time: '12:12', batchNo: '601', benchNo: '420', finalLoad: 733 },
     ]);
 
+    // Calculate statistics for the selected batch
+    const wireTensionStats = useWireTensionStats(tensionRecords, selectedBatch);
+
     const [formData, setFormData] = useState({
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
         batchNo: selectedBatch,
@@ -34,25 +37,6 @@ const WireTensioning = ({ onBack, batches = [], sharedState }) => {
         finalLoad: '',
         type: 'RT-1234'
     });
-
-    const stats = useMemo(() => {
-        if (tensionRecords.length === 0) return null;
-        const values = tensionRecords.map(r => parseFloat(r.finalLoad));
-        const count = values.length;
-        const sum = values.reduce((a, b) => a + b, 0);
-        const mean = sum / count;
-        const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / count;
-        const stdDev = Math.sqrt(variance);
-        const cv = (stdDev / mean) * 100;
-        const deviationFromTheo = ((mean - 730) / 730) * 100;
-
-        const normalZone = (values.filter(v => Math.abs(v - mean) <= stdDev).length / count) * 100;
-        const warningZone = (values.filter(v => Math.abs(v - mean) > stdDev && Math.abs(v - mean) <= 2 * stdDev).length / count) * 100;
-        const actionZone = (values.filter(v => Math.abs(v - mean) > 2 * stdDev && Math.abs(v - mean) <= 3 * stdDev).length / count) * 100;
-        const outOfControl = (values.filter(v => Math.abs(v - mean) > 3 * stdDev).length / count) * 100;
-
-        return { count, mean, stdDev, cv, deviationFromTheo, values, normalZone, warningZone, actionZone, outOfControl };
-    }, [tensionRecords]);
 
     useEffect(() => {
         if (formData.benchNo) {
@@ -78,7 +62,8 @@ const WireTensioning = ({ onBack, batches = [], sharedState }) => {
             editable: false
         };
         setTensionRecords(prev => [newEntry, ...prev]);
-        alert(`Record for Bench ${record.benchNo} witnessed and added to logs.`);
+        setScadaRecords(prev => prev.filter(r => r.id !== record.id));
+        alert(`Record for Bench ${record.benchNo} witnessed.`);
     };
 
     const handleSaveManual = () => {
@@ -105,8 +90,12 @@ const WireTensioning = ({ onBack, batches = [], sharedState }) => {
             setTensionRecords(prev => [newEntry, ...prev]);
         }
 
-        setFormData(prev => ({ ...prev, benchNo: '', finalLoad: '' }));
-        setView('list');
+        setFormData(prev => ({
+            ...prev,
+            benchNo: '',
+            finalLoad: '',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+        }));
     };
 
     const handleEdit = (record) => {
@@ -118,68 +107,91 @@ const WireTensioning = ({ onBack, batches = [], sharedState }) => {
             type: record.type
         });
         setEditId(record.id);
-        setView('add');
+        const manualSection = document.getElementById('manual-entry-section');
+        if (manualSection) manualSection.scrollIntoView({ behavior: 'smooth' });
     };
 
     return (
         <div className="modal-overlay" onClick={onBack}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1200px' }}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1600px', width: '98%', height: '90vh', display: 'flex', flexDirection: 'column' }}>
                 <header className="modal-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        {view === 'add' && (
-                            <button className="back-btn" onClick={() => { setView('list'); setEditId(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--primary-color)' }}>←</button>
-                        )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                         <div>
                             <h2 style={{ margin: 0 }}>Wire Tensioning Control Console</h2>
-                            <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '4px' }}>Integration of Live SCADA loads and Manual pressure logs</p>
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Precision Load Integration & Assurance</p>
+                        </div>
+                        <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Select Batch:</span>
+                            <select
+                                className="dash-select"
+                                style={{ margin: 0, width: '100px' }}
+                                value={selectedBatch}
+                                onChange={(e) => {
+                                    setSelectedBatch(e.target.value);
+                                    setFormData(prev => ({ ...prev, batchNo: e.target.value }));
+                                }}
+                            >
+                                {batches.map(b => <option key={b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
+                            </select>
                         </div>
                     </div>
                     <button className="close-btn" onClick={onBack}>×</button>
                 </header>
 
-                <div className="modal-body">
-                    {view === 'list' ? (
-                        <div className="list-view-container fade-in">
-                            {/* Section 1: Stats Dashboard */}
-                            <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem', border: '1px solid #e2e8f0' }}>
-                                <WireTensionStats stats={stats} />
-                            </div>
+                <div className="modal-body" style={{ flexGrow: 1, overflowY: 'auto', padding: '1.5rem' }}>
 
-                            {/* Section 2: History Log with Add Button */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b' }}>Recent Pre-Stress Records (Shift Log)</h3>
-                                <button className="toggle-btn" onClick={() => setView('add')}>+ Add New Record</button>
+                    {/* Initial Information Section - Sleek Dashboard Card Style */}
+                    <div style={{ marginBottom: '1.5rem', background: '#f1f5f9', borderRadius: '12px', padding: '1.5rem', border: '1px solid #e2e8f0', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1.5rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Batch Number</span>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>{selectedBatch}</div>
                             </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Sleeper Type</span>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>RT-1234</div>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Total Benches</span>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>12</div>
+                                    <span style={{ fontSize: '1rem', fontWeight: '600', color: '#64748b' }}>Nos</span>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Target Load</span>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>730 KN</div>
+                            </div>
+                        </div>
+                    </div>
 
+                    <CollapsibleSection title="Statistical Analysis" defaultOpen={true}>
+                        <WireTensionStats stats={wireTensionStats} />
+                    </CollapsibleSection>
+
+                    <CollapsibleSection title="SCADA Data Fetched & Manual Entry" defaultOpen={true} id="manual-entry-section">
+                        <div className="table-outer-wrapper" style={{ marginBottom: '2rem' }}>
+                            <div style={{ background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '8px 8px 0 0', borderBottom: '2px solid #e2e8f0' }}>
+                                <h4 style={{ margin: 0, fontSize: '0.85rem', color: '#475569', fontWeight: '700' }}>SCADA Records (Pending Witness)</h4>
+                            </div>
                             <div className="table-outer-wrapper">
                                 <table className="ui-table">
                                     <thead>
                                         <tr>
-                                            <th>Source</th><th>Time</th><th>Batch</th><th>Bench</th><th>Type</th><th>Wires</th><th>Final Load</th><th>Load/Wire</th><th>Action</th>
+                                            <th>PLC Time</th><th>Bench</th><th>PLC Load (KN)</th><th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {tensionRecords.length === 0 ? (
-                                            <tr><td colSpan="9" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>No tensioning records found for the current shift.</td></tr>
+                                        {scadaRecords.filter(r => r.batchNo === selectedBatch).length === 0 ? (
+                                            <tr><td colSpan="4" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No pending SCADA records for this batch.</td></tr>
                                         ) : (
-                                            tensionRecords.map(entry => (
-                                                <tr key={entry.id}>
-                                                    <td data-label="Source">
-                                                        <span className={`status-pill ${entry.source === 'Manual' ? 'manual' : 'witnessed'}`} style={{ fontSize: '9px' }}>{entry.source}</span>
-                                                    </td>
-                                                    <td data-label="Time"><span>{entry.time}</span></td>
-                                                    <td data-label="Batch"><span>{entry.batchNo}</span></td>
-                                                    <td data-label="Bench"><span>{entry.benchNo}</span></td>
-                                                    <td data-label="Type"><span>{entry.type}</span></td>
-                                                    <td data-label="Wires"><span>{entry.wires}</span></td>
-                                                    <td data-label="Load"><span>{entry.finalLoad} KN</span></td>
-                                                    <td data-label="L/W"><span>{entry.loadPerWire}</span></td>
+                                            scadaRecords.filter(r => r.batchNo === selectedBatch).slice(0, 10).map(record => (
+                                                <tr key={record.id}>
+                                                    <td data-label="Time"><span>{record.time}</span></td>
+                                                    <td data-label="Bench"><strong>{record.benchNo}</strong></td>
+                                                    <td data-label="Load" style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>{record.finalLoad} KN</td>
                                                     <td data-label="Action">
-                                                        {entry.source === 'Manual' ? (
-                                                            <button className="btn-action" onClick={() => handleEdit(entry)}>Edit</button>
-                                                        ) : (
-                                                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>Scada Logged</span>
-                                                        )}
+                                                        <button className="btn-action" onClick={() => handleWitness(record)}>Witness</button>
                                                     </td>
                                                 </tr>
                                             ))
@@ -188,86 +200,75 @@ const WireTensioning = ({ onBack, batches = [], sharedState }) => {
                                 </table>
                             </div>
                         </div>
-                    ) : (
-                        <div className="add-view-container fade-in">
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
 
-                                {/* Form Left Side: Manual Entry & Metadata */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                    <CollapsibleSection title="01. Initial Identification" isOpen={true}>
-                                        <div className="form-grid">
-                                            <div className="form-field">
-                                                <label>Batch No.</label>
-                                                <select name="batchNo" value={formData.batchNo} onChange={handleFormChange}>
-                                                    {batches.map(b => <option key={b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
-                                                </select>
-                                            </div>
-                                            <div className="form-field">
-                                                <label>Bench No. <span className="required">*</span></label>
-                                                <input type="text" name="benchNo" value={formData.benchNo} onChange={handleFormChange} placeholder="e.g. 405" />
-                                            </div>
-                                            <div className="form-field">
-                                                <label>Sleeper Type (Auto)</label>
-                                                <input type="text" value={formData.type} readOnly className="readOnly" />
-                                            </div>
-                                            <div className="form-field">
-                                                <label>Time of Record</label>
-                                                <input type="time" name="time" value={formData.time} onChange={handleFormChange} />
-                                            </div>
-                                        </div>
-                                    </CollapsibleSection>
-
-                                    <CollapsibleSection title="02. Manual Pre-Stress Log" isOpen={true}>
-                                        <div className="form-grid">
-                                            <div className="form-field">
-                                                <label>Final Load (KN) <span className="required">*</span></label>
-                                                <input type="number" name="finalLoad" value={formData.finalLoad} onChange={handleFormChange} placeholder="e.g. 730" />
-                                            </div>
-                                            <div className="form-field">
-                                                <label>Load Per Wire (Calculated)</label>
-                                                <div className="calc-value" style={{ fontSize: '1.2rem', color: 'var(--primary-color)', fontWeight: 'bold' }}>
-                                                    {formData.finalLoad ? (parseFloat(formData.finalLoad) / wiresPerSleeper).toFixed(2) : '0.00'} <span style={{ fontSize: '0.8rem' }}>KN</span>
-                                                </div>
-                                            </div>
-                                            <div style={{ gridColumn: 'span 2', marginTop: '1rem' }}>
-                                                <button className="toggle-btn" onClick={handleSaveManual} style={{ width: '100%', padding: '12px' }}>
-                                                    {editId ? 'Apply Update' : 'Commit Manual Record'}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </CollapsibleSection>
+                        <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem', border: '1px solid #e2e8f0' }}>
+                            <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b' }}>Add Manual Pressure Log</h4>
+                            <div className="form-grid">
+                                <div className="form-field">
+                                    <label>Bench No. <span className="required">*</span></label>
+                                    <input type="text" name="benchNo" value={formData.benchNo} onChange={handleFormChange} placeholder="e.g. 405" />
                                 </div>
-
-                                {/* Form Right Side: SCADA Witnessing */}
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <CollapsibleSection title="03. Live SCADA Integration" isOpen={true}>
-                                        <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1rem' }}>Witness real-time data from Tensioning Jack PLC:</p>
-                                        <div className="table-outer-wrapper" style={{ maxHeight: '450px', overflowY: 'auto' }}>
-                                            <table className="ui-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>PLC Time</th><th>Bench</th><th>PLC Load</th><th>Action</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {scadaRecords.filter(r => r.batchNo === selectedBatch).map(record => (
-                                                        <tr key={record.id}>
-                                                            <td><span>{record.time}</span></td>
-                                                            <td><strong>{record.benchNo}</strong></td>
-                                                            <td style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>{record.finalLoad} KN</td>
-                                                            <td>
-                                                                <button className="btn-action" onClick={() => handleWitness(record)} style={{ fontSize: '10px' }}>Witness</button>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </CollapsibleSection>
+                                <div className="form-field">
+                                    <label>Final Load (KN) <span className="required">*</span></label>
+                                    <input type="number" name="finalLoad" value={formData.finalLoad} onChange={handleFormChange} placeholder="e.g. 730" />
+                                </div>
+                                <div className="form-field">
+                                    <label>Time</label>
+                                    <input type="time" name="time" value={formData.time} onChange={handleFormChange} />
+                                </div>
+                                <div className="form-field">
+                                    <label>Sleeper Type</label>
+                                    <input type="text" value={formData.type} readOnly className="readOnly" style={{ background: '#f1f5f9' }} />
+                                </div>
+                                <div className="form-actions-center" style={{ gridColumn: 'span 2', marginTop: '1rem' }}>
+                                    <button className="toggle-btn" onClick={handleSaveManual}>
+                                        {editId ? 'Update Record' : 'Save Manual Record'}
+                                    </button>
+                                    {editId && (
+                                        <button className="toggle-btn secondary" onClick={() => { setEditId(null); setFormData(prev => ({ ...prev, benchNo: '', finalLoad: '' })); }} style={{ marginLeft: '1rem' }}>Cancel</button>
+                                    )}
                                 </div>
                             </div>
                         </div>
-                    )}
+
+                        <div className="table-outer-wrapper">
+                            <div style={{ background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '8px 8px 0 0', borderBottom: '2px solid #e2e8f0' }}>
+                                <h4 style={{ margin: 0, fontSize: '0.85rem', color: '#475569', fontWeight: '700' }}>Witnessed & Manual Records</h4>
+                            </div>
+                            <table className="ui-table">
+                                <thead>
+                                    <tr>
+                                        <th>Source</th><th>Time</th><th>Batch</th><th>Bench</th><th>Load (KN)</th><th>Load/Wire</th><th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {tensionRecords.length === 0 ? (
+                                        <tr><td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>No records logged yet.</td></tr>
+                                    ) : (
+                                        tensionRecords.map(entry => (
+                                            <tr key={entry.id}>
+                                                <td data-label="Source">
+                                                    <span className={`status-pill ${entry.source === 'Manual' ? 'manual' : 'witnessed'}`}>{entry.source}</span>
+                                                </td>
+                                                <td data-label="Time">{entry.time}</td>
+                                                <td data-label="Batch">{entry.batchNo}</td>
+                                                <td data-label="Bench">{entry.benchNo}</td>
+                                                <td data-label="Load">{entry.finalLoad} KN</td>
+                                                <td data-label="L/W">{entry.loadPerWire}</td>
+                                                <td data-label="Action">
+                                                    {entry.source === 'Manual' ? (
+                                                        <button className="btn-action" onClick={() => handleEdit(entry)}>Edit</button>
+                                                    ) : (
+                                                        <span style={{ fontSize: '10px', color: '#94a3b8' }}>Locked</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CollapsibleSection>
                 </div>
             </div>
         </div>

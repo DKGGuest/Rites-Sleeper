@@ -5,42 +5,20 @@ import MoistureEntryForm from './components/MoistureEntryForm';
  * MoistureAnalysis Component
  * Displays moisture analysis statistics, trend chart, and recent entries.
  */
-const MoistureAnalysis = ({ onBack, onSave, initialView = 'list' }) => {
+const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], setRecords }) => {
     const [view, setView] = useState(initialView);
     const [editRecord, setEditRecord] = useState(null);
-    const [records, setRecords] = useState([
-        {
-            id: 1, date: '2026-01-30', shift: 'A', timing: '08:30',
-            ca1Free: '1.20', ca2Free: '0.80', faFree: '3.20', totalFree: '5.20',
-            timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString()
-        },
-        {
-            id: 2, date: '2026-01-30', shift: 'A', timing: '07:15',
-            ca1Free: '1.10', ca2Free: '0.95', faFree: '2.90', totalFree: '4.95',
-            timestamp: new Date(Date.now() - 90 * 60 * 1000).toISOString()
-        },
-        {
-            id: 3, date: '2026-01-29', shift: 'C', timing: '20:15',
-            ca1Free: '1.35', ca2Free: '0.75', faFree: '3.40', totalFree: '5.50',
-            timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString()
-        },
-        {
-            id: 4, date: '2026-01-29', shift: 'B', timing: '14:00',
-            ca1Free: '1.25', ca2Free: '0.85', faFree: '3.10', totalFree: '5.20',
-            timestamp: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString()
-        },
-    ]);
 
     const isRecordEditable = (timestamp) => {
         const diffMs = Date.now() - new Date(timestamp).getTime();
-        return diffMs < (8 * 60 * 60 * 1000); // 8 hour shift window
+        return diffMs < (1 * 60 * 60 * 1000); // 1 hour window
     };
 
     const handleSaveEntry = (newEntry) => {
         if (editRecord) {
             setRecords(prev => prev.map(r => r.id === editRecord.id ? { ...newEntry, id: r.id, timestamp: r.timestamp } : r));
         } else {
-            setRecords(prev => [{ ...newEntry, id: Date.now(), timestamp: new Date().toISOString() }, ...prev]);
+            setRecords(prev => [{ ...newEntry, id: Date.now(), timestamp: new Date().toISOString() }, ...prev].slice(0, 10)); // Keep only 10
         }
         setView('list');
         setEditRecord(null);
@@ -53,23 +31,26 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list' }) => {
     };
 
     // Calculate statistics
-    const avgCA1 = (records.reduce((sum, r) => sum + parseFloat(r.ca1Free), 0) / records.length).toFixed(2);
-    const avgCA2 = (records.reduce((sum, r) => sum + parseFloat(r.ca2Free), 0) / records.length).toFixed(2);
-    const avgFA = (records.reduce((sum, r) => sum + parseFloat(r.faFree), 0) / records.length).toFixed(2);
-    const avgTotal = (records.reduce((sum, r) => sum + parseFloat(r.totalFree), 0) / records.length).toFixed(2);
+    const avgCA1 = records.length > 0 ? (records.reduce((sum, r) => sum + parseFloat(r.ca1Free), 0) / records.length).toFixed(2) : '0.00';
+    const avgCA2 = records.length > 0 ? (records.reduce((sum, r) => sum + parseFloat(r.ca2Free), 0) / records.length).toFixed(2) : '0.00';
+    const avgFA = records.length > 0 ? (records.reduce((sum, r) => sum + parseFloat(r.faFree), 0) / records.length).toFixed(2) : '0.00';
+    const avgTotal = records.length > 0 ? (records.reduce((sum, r) => sum + parseFloat(r.totalFree), 0) / records.length).toFixed(2) : '0.00';
 
     // Sort records by timestamp (latest first)
     const sortedRecords = [...records].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
     return (
         <div className="modal-overlay" onClick={onBack}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1200px' }}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1600px', width: '98%', height: '90vh', display: 'flex', flexDirection: 'column' }}>
                 <header className="modal-header">
-                    <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Moisture Analysis Dashboard</h2>
-                    <button className="close-btn" onClick={onBack} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+                    <div>
+                        <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Moisture Analysis Dashboard</h2>
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Precision Lab Verification</p>
+                    </div>
+                    <button className="close-btn" onClick={onBack}>×</button>
                 </header>
 
-                <div className="modal-body">
+                <div className="modal-body" style={{ padding: '1.5rem' }}>
                     {view === 'list' ? (
                         <div className="list-view fade-in">
                             {/* Statistics Cards */}
@@ -100,12 +81,9 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list' }) => {
                                 <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: '#475569', marginBottom: '1.5rem' }}>Analytical Trend: Free Moisture % Analysis</h3>
                                 <div style={{ position: 'relative', height: '180px', width: '100%', padding: '0 1rem' }}>
                                     <svg width="100%" height="100%" viewBox="0 0 1000 200" preserveAspectRatio="none">
-                                        {/* Y-Axis Grid Lines */}
                                         {[0, 50, 100, 150, 200].map(v => (
                                             <line key={v} x1="0" y1={v} x2="1000" y2={v} stroke="#f1f5f9" strokeWidth="1" />
                                         ))}
-
-                                        {/* Paths */}
                                         {['ca1Free', 'ca2Free', 'faFree'].map((key, kIdx) => {
                                             const colors = ['#3b82f6', '#8b5cf6', '#f59e0b'];
                                             const chartData = sortedRecords.slice(0, 10).reverse();
@@ -114,88 +92,51 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list' }) => {
                                             const points = chartData.map((r, i) => `${i * step},${200 - (parseFloat(r[key]) / 5) * 200}`).join(' ');
                                             return (
                                                 <g key={key}>
-                                                    <polyline
-                                                        fill="none"
-                                                        stroke={colors[kIdx]}
-                                                        strokeWidth="3"
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        points={points}
-                                                        style={{ transition: 'all 0.3s ease' }}
-                                                    />
+                                                    <polyline fill="none" stroke={colors[kIdx]} strokeWidth="3" strokeLinecap="round" points={points} style={{ transition: 'all 0.3s ease' }} />
                                                     {chartData.map((r, i) => (
-                                                        <circle
-                                                            key={i}
-                                                            cx={i * step}
-                                                            cy={200 - (parseFloat(r[key]) / 5) * 200}
-                                                            r="4"
-                                                            fill="#fff"
-                                                            stroke={colors[kIdx]}
-                                                            strokeWidth="2"
-                                                        />
+                                                        <circle key={i} cx={i * step} cy={200 - (parseFloat(r[key]) / 5) * 200} r="4" fill="#fff" stroke={colors[kIdx]} strokeWidth="2" />
                                                     ))}
                                                 </g>
                                             );
                                         })}
                                     </svg>
-
-                                    {/* X-Axis Labels */}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', paddingLeft: '5px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
                                         {sortedRecords.slice(0, 10).reverse().map((r, i) => (
                                             <span key={i} style={{ fontSize: '0.65rem', color: '#64748b' }}>{r.timing}</span>
                                         ))}
                                     </div>
                                 </div>
-
-                                {/* Legend */}
                                 <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center', marginTop: '2rem', fontSize: '0.75rem', fontWeight: '500' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <div style={{ width: '12px', height: '2px', background: '#3b82f6', border: '1px solid #3b82f6' }}></div>
-                                        <span>CA1 (20mm)</span>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <div style={{ width: '12px', height: '2px', background: '#8b5cf6', border: '1px solid #8b5cf6' }}></div>
-                                        <span>CA2 (10mm)</span>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <div style={{ width: '12px', height: '2px', background: '#f59e0b', border: '1px solid #f59e0b' }}></div>
-                                        <span>Fine Aggregate (FA)</span>
-                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><div style={{ width: '12px', height: '2px', background: '#3b82f6' }}></div><span>CA1</span></div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><div style={{ width: '12px', height: '2px', background: '#8b5cf6' }}></div><span>CA2</span></div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><div style={{ width: '12px', height: '2px', background: '#f59e0b' }}></div><span>FA</span></div>
                                 </div>
                             </div>
 
-                            {/* Add New Entry Button */}
                             <div style={{ marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#1e293b', margin: 0 }}>Moisture Analysis History</h3>
                                 <button className="toggle-btn" onClick={() => { setEditRecord(null); setView('entry'); }}>+ Add New Analysis</button>
                             </div>
 
-                            {/* Recent Entries Table */}
                             <div className="data-table-section">
                                 <div className="table-outer-wrapper">
                                     <table className="ui-table">
                                         <thead>
                                             <tr>
-                                                <th>Date & Shift</th>
-                                                <th>Timing</th>
-                                                <th>CA1 Free %</th>
-                                                <th>CA2 Free %</th>
-                                                <th>FA Free %</th>
-                                                <th>Total (Kg)</th>
-                                                <th>Action</th>
+                                                <th>Date & Shift</th><th>Timing</th><th>CA1 %</th><th>CA2 %</th><th>FA %</th><th>Total (Kg)</th><th>Action</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {sortedRecords.map((r, index) => (
+                                            {sortedRecords.map((r) => (
                                                 <tr key={r.id}>
-                                                    <td data-label="Date & Shift"><span>{r.date} (Shift {r.shift})</span></td>
-                                                    <td data-label="Timing"><span>{r.timing}</span></td>
-                                                    <td data-label="CA1 Free %"><span>{r.ca1Free}%</span></td>
-                                                    <td data-label="CA2 Free %"><span>{r.ca2Free}%</span></td>
-                                                    <td data-label="FA Free %"><span>{r.faFree}%</span></td>
-                                                    <td data-label="Total" style={{ fontWeight: '700', color: 'var(--primary-color)' }}><span>{r.totalFree} Kg</span></td>
-                                                    <td data-label="Action">
-                                                        {index < 2 ? (
+                                                    <td>{r.date} ({r.shift})</td>
+                                                    <td>{r.timing}</td>
+                                                    <td>{r.ca1Free}%</td>
+                                                    <td>{r.ca2Free}%</td>
+                                                    <td>{r.faFree}%</td>
+                                                    <td style={{ fontWeight: '700', color: 'var(--primary-color)' }}>{r.totalFree} Kg</td>
+                                                    <td>
+                                                        {isRecordEditable(r.timestamp) ? (
                                                             <button className="btn-action" onClick={() => handleEdit(r)}>Modify</button>
                                                         ) : (
                                                             <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Locked</span>

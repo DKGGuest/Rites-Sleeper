@@ -155,7 +155,6 @@ h4 {
     display: flex;
     min-height: 100vh;
     width: 100%;
-    overflow-x: hidden;
     position: relative;
 }
 
@@ -169,10 +168,11 @@ h4 {
     display: flex;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
     position: sticky;
     top: 0;
     z-index: 1000;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
     overflow: hidden;
 }
@@ -183,7 +183,7 @@ h4 {
 .sidebar-root.expanded {
     width: 260px;
     min-width: 260px;
-    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.05);
+    box-shadow: 4px 0 25px rgba(0, 0, 0, 0.08);
 }
 
 @media (max-width: 1024px) {
@@ -191,14 +191,18 @@ h4 {
     .sidebar,
     .sidebar-root {
         position: fixed;
+        top: 0;
+        bottom: 0;
         left: 0;
+        height: 100dvh;
         transform: translateX(-100%);
+        z-index: 1000;
     }
 
     .sidebar.open,
     .sidebar-root.open {
         transform: translateX(0);
-        box-shadow: 10px 0 20px rgba(0, 0, 0, 0.1);
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.2);
     }
 }
 
@@ -339,8 +343,8 @@ h4 {
 .app-container {
     padding: 1.5rem;
     width: 100%;
-    max-width: 1440px;
-    margin: 0 auto;
+    max-width: 100%;
+    margin: 0;
     box-sizing: border-box;
     overflow-x: hidden;
 }
@@ -432,12 +436,11 @@ h4 {
 /* --- Tables & Lists --- */
 .data-table-section,
 .table-outer-wrapper {
-    width: 100%;
+    width: 100% !important;
     background: #fff;
     border-radius: 12px;
     border: 1px solid var(--border-color);
-    overflow: hidden;
-    /* No scrollbars ever */
+    overflow-x: auto;
     margin-bottom: 1.5rem;
     box-shadow: var(--shadow-sm);
 }

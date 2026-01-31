@@ -165,3 +165,19 @@
         /* Allow items to wrap and take up space */
     }
 }
+
+/* Responsive Table Wrapper */
+.table-outer-wrapper,
+.data-table-section,
+.log-list {
+    overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure inside cards it works too */
+.calc-card .table-outer-wrapper,
+.calc-card .data-table-section,
+.calc-card .log-list {
+    overflow-x: auto;
+}

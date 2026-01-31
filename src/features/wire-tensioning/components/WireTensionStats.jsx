@@ -67,21 +67,21 @@ const WireTensionStats = ({ stats, theoreticalMean = 730 }) => {
             <div className="dash-section-header" style={{ marginBottom: '1rem' }}>
                 <h4 style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '700' }}>Theoretical Pre-Stress Summary</h4>
             </div>
-            <div className="rm-grid-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
-                <div className="calc-card"><span className="calc-label">Min Theoretical</span><div className="calc-value">{(theoreticalMean - 5).toFixed(1)} KN</div></div>
-                <div className="calc-card"><span className="calc-label">Max Theoretical</span><div className="calc-value">{(theoreticalMean + 5).toFixed(1)} KN</div></div>
-                <div className="calc-card"><span className="calc-label">Mean Theoretical</span><div className="calc-value">{theoreticalMean.toFixed(1)} KN</div></div>
-                <div className="calc-card"><span className="calc-label">Load Deviation</span><div className="calc-value" style={{ color: Math.abs(stats.deviationFromTheo) > 2 ? '#ef4444' : '#22c55e' }}>{stats.deviationFromTheo.toFixed(2)}%</div></div>
+            <div className="rm-grid-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                <div className="calc-card"><span className="calc-label" style={{ whiteSpace: 'normal', display: 'block' }}>Min Theoretical</span><div className="calc-value">{(theoreticalMean - 5).toFixed(1)} KN</div></div>
+                <div className="calc-card"><span className="calc-label" style={{ whiteSpace: 'normal', display: 'block' }}>Max Theoretical</span><div className="calc-value">{(theoreticalMean + 5).toFixed(1)} KN</div></div>
+                <div className="calc-card"><span className="calc-label" style={{ whiteSpace: 'normal', display: 'block' }}>Mean Theoretical</span><div className="calc-value">{theoreticalMean.toFixed(1)} KN</div></div>
+                <div className="calc-card"><span className="calc-label" style={{ whiteSpace: 'normal', display: 'block' }}>Load Deviation</span><div className="calc-value" style={{ color: Math.abs(stats.deviationFromTheo) > 2 ? '#ef4444' : '#22c55e' }}>{stats.deviationFromTheo.toFixed(2)}%</div></div>
             </div>
 
             <div className="dash-section-header" style={{ marginBottom: '1rem' }}>
                 <h4 style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '700' }}>Process Control Analysis (Shift Data)</h4>
             </div>
-            <div className="rm-grid-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
-                <div className="calc-card"><span className="calc-label">Avg Final Load</span><div className="calc-value">{stats.mean.toFixed(1)} KN</div></div>
-                <div className="calc-card"><span className="calc-label">Std Dev (σ)</span><div className="calc-value">{stats.stdDev.toFixed(2)}</div></div>
-                <div className="calc-card"><span className="calc-label">CV (%)</span><div className="calc-value">{stats.cv.toFixed(2)}%</div></div>
-                <div className="calc-card"><span className="calc-label">Sample Count</span><div className="calc-value">{stats.count}</div></div>
+            <div className="rm-grid-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                <div className="calc-card"><span className="calc-label" style={{ whiteSpace: 'normal', display: 'block' }}>Avg Final Load</span><div className="calc-value">{stats.mean.toFixed(1)} KN</div></div>
+                <div className="calc-card"><span className="calc-label" style={{ whiteSpace: 'normal', display: 'block' }}>Std Dev (σ)</span><div className="calc-value">{stats.stdDev.toFixed(2)}</div></div>
+                <div className="calc-card"><span className="calc-label" style={{ whiteSpace: 'normal', display: 'block' }}>CV (%)</span><div className="calc-value">{stats.cv.toFixed(2)}%</div></div>
+                <div className="calc-card"><span className="calc-label" style={{ whiteSpace: 'normal', display: 'block' }}>Sample Count</span><div className="calc-value">{stats.count}</div></div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem', alignItems: 'start' }}>

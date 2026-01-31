@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Sidebar = ({ activeItem, onItemClick, isOpen, expanded }) => {
+const Sidebar = ({ activeItem, onItemClick, isOpen, expanded, onMouseEnter, onMouseLeave, onClick }) => {
     const menuSections = [
         {
             label: 'Inspection Dashboard',
@@ -12,7 +12,12 @@ const Sidebar = ({ activeItem, onItemClick, isOpen, expanded }) => {
     ];
 
     return (
-        <aside className={`sidebar-root ${isOpen ? 'open' : ''} ${expanded ? 'expanded' : ''}`}>
+        <aside
+            className={`sidebar-root ${isOpen ? 'open' : ''} ${expanded ? 'expanded' : ''}`}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
+            onClick={onClick}
+        >
             <div className="sidebar-header">
                 <h2 className="sidebar-logo">SARTHI</h2>
                 <span style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '4px', display: 'block' }}>Rites Ltd.</span>

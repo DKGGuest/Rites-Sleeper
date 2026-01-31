@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ScadaTable from "../../../components/common/ScadaTable.jsx";
 import { apiService } from '../../../services/api';
 
 /**
  * WeightBatching Component
  * Displays live SCADA data for batching and allows witnessing of records.
+ * Updated to use parent-provided batch selection for consistency.
  */
-const WeightBatching = ({ onWitness, batches = [] }) => {
-    const defaultBatch = batches.length > 0 ? batches[0].batchNo : '601';
-    const [selectedBatch, setSelectedBatch] = useState(defaultBatch);
+const WeightBatching = ({ onWitness, batches = [], selectedBatchNo }) => {
+    // If selectedBatchNo is provided by parent (header), use it. otherwise local fallback.
+    const [localBatch, setLocalBatch] = useState(batches[0]?.batchNo || '601');
+    const activeBatch = selectedBatchNo || localBatch;
 
     const columns = [
         { label: "S.No", key: "sno", rowSpan: 2 },
@@ -90,7 +92,9 @@ const WeightBatching = ({ onWitness, batches = [] }) => {
                 fa: record.sand_actual,
                 cement: record.cement_actual,
                 water: record.water_actual,
-                admixture: record.admix_actual
+                admixture: record.admix_actual,
+                time: record.time,
+                date: record.date
             })}
         >
             Witness
@@ -99,19 +103,21 @@ const WeightBatching = ({ onWitness, batches = [] }) => {
 
     return (
         <div className="scada-monitoring">
-            <div className="filter-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <label style={{ fontWeight: '600', color: '#64748b' }}>Current Batch Selection:</label>
-                    <select
-                        value={selectedBatch}
-                        onChange={(e) => setSelectedBatch(e.target.value)}
-                        style={{ padding: '0.4rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none' }}
-                    >
-                        {batches.map(b => <option key={b.id} value={b.batchNo}>{b.batchNo}</option>)}
-                    </select>
-                </div>
-                <div className="status-indicator" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#059669', fontSize: '0.8rem', fontWeight: '600' }}>
-                    <span style={{ width: '8px', height: '8px', background: '#059669', borderRadius: '50%' }}></span>
+            <div className="filter-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+                {!selectedBatchNo && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <label style={{ fontWeight: '600', color: '#64748b' }}>Select Batch:</label>
+                        <select
+                            value={activeBatch}
+                            onChange={(e) => setLocalBatch(e.target.value)}
+                            style={{ padding: '0.4rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none' }}
+                        >
+                            {batches.map(b => <option key={b.id} value={b.batchNo}>{b.batchNo}</option>)}
+                        </select>
+                    </div>
+                )}
+                <div className="status-indicator" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#3b82f6', fontSize: '0.8rem', fontWeight: '600', marginLeft: selectedBatchNo ? '0' : 'auto' }}>
+                    <span className="pulse-dot" style={{ width: '8px', height: '8px', background: '#3b82f6', borderRadius: '50%' }}></span>
                     Synchronizing with Plant SCADA...
                 </div>
             </div>
@@ -121,7 +127,7 @@ const WeightBatching = ({ onWitness, batches = [] }) => {
                     columns={columns}
                     fetchData={fetchScadaData}
                     pageSize={10}
-                    batchId={selectedBatch}
+                    batchId={activeBatch}
                 />
             </div>
         </div>

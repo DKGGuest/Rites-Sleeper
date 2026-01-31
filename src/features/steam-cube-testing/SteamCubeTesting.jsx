@@ -67,21 +67,21 @@ export const SteamCubeStats = ({ records }) => {
     );
 };
 
-const SteamCubeTesting = ({ onBack }) => {
-    const [activeTab, setActiveTab] = useState('declared');
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [showTestDetailsModal, setShowTestDetailsModal] = useState(null); // Sample being tested
-    const [editingSample, setEditingSample] = useState(null); // Sample being edited
-
-    // Mock initial data
+const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedRecords: propSetTestedRecords }) => {
+    // Mock initial data for samples
     const [samples, setSamples] = useState([
         { id: 1, batchNo: 610, chamberNo: 1, benchNo: 401, sequence: 'A', cubeNo: '401A', castDate: '2026-01-29', lbcTime: '10:30', grade: 'M55', benchesInChamber: '401, 402', sleeperType: 'RT-1' },
         { id: 2, batchNo: 611, chamberNo: 2, benchNo: 405, sequence: 'H', cubeNo: '405H', castDate: '2026-01-30', lbcTime: '09:15', grade: 'M60', benchesInChamber: '405, 406, 407, 408', sleeperType: 'RT-2' }
     ]);
 
-    const [testedRecords, setTestedRecords] = useState([
+    const [localTestedRecords, setLocalTestedRecords] = useState([
         { id: 101, batchNo: 608, chamberNo: 3, benchesInChamber: '301, 302', cubeNo: '301B', grade: 'M55', strength: '42.5', testDate: '2026-01-30', testTime: '11:00', weight: '8.1', load: '956', timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString() }
     ]);
+
+    const testedRecords = propTestedRecords || localTestedRecords;
+    const setTestedRecords = propSetTestedRecords || setLocalTestedRecords;
+
+    const [selectedBatch, setSelectedBatch] = useState('All');
 
     // Form States
     const [sampleForm, setSampleForm] = useState({
@@ -92,16 +92,9 @@ const SteamCubeTesting = ({ onBack }) => {
         testDate: new Date().toISOString().split('T')[0], testTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }), weight: '', load: '', strength: ''
     });
 
-    // Auto calculate age
-    const ageHrs = useMemo(() => {
-        if (!showTestDetailsModal) return 0;
-        const castDateTime = new Date(`${showTestDetailsModal.castDate}T${showTestDetailsModal.lbcTime}`);
-        const testDateTime = new Date(`${testForm.testDate}T${testForm.testTime}`);
-        const diffMs = testDateTime - castDateTime;
-        return (diffMs / (1000 * 60 * 60)).toFixed(1);
-    }, [showTestDetailsModal, testForm.testDate, testForm.testTime]);
+    const [selectedSampleForTest, setSelectedSampleForTest] = useState(null);
+    const [editingRecordId, setEditingRecordId] = useState(null);
 
-    // Auto calculate strength if load is entered (Standard 150mm cube implies Area = 22500 mm2)
     useEffect(() => {
         if (testForm.load && !isNaN(testForm.load)) {
             const strength = (parseFloat(testForm.load) * 1000 / 22500).toFixed(2);
@@ -109,245 +102,208 @@ const SteamCubeTesting = ({ onBack }) => {
         }
     }, [testForm.load]);
 
-    const handleAddOrUpdateSample = () => {
+    const handleDeclareSample = () => {
+        if (!sampleForm.batchNo || !sampleForm.benchNo) {
+            alert('Required fields missing');
+            return;
+        }
         const cubeNo = `${sampleForm.benchNo}${sampleForm.sequence}`;
         const newSample = {
             ...sampleForm,
-            id: editingSample ? editingSample.id : Date.now(),
+            id: Date.now(),
             cubeNo
         };
-
-        if (editingSample) {
-            setSamples(prev => prev.map(s => s.id === editingSample.id ? newSample : s));
-            setEditingSample(null);
-        } else {
-            setSamples(prev => [...prev, newSample]);
-        }
-
+        setSamples(prev => [...prev, newSample]);
         setSampleForm({ batchNo: '', chamberNo: '', benchNo: '', sequence: 'A', castDate: new Date().toISOString().split('T')[0], lbcTime: '', grade: 'M55', benchesInChamber: '', sleeperType: 'RT-1' });
-        setShowAddModal(false);
-    };
-
-    const handleDeleteSample = (id) => {
-        if (window.confirm('Are you sure you want to delete this sample?')) {
-            setSamples(prev => prev.filter(s => s.id !== id));
-        }
     };
 
     const handleSaveTestResult = () => {
+        if (!selectedSampleForTest || !testForm.load) {
+            alert('Please select a sample and enter test data');
+            return;
+        }
+
         const newRecord = {
-            ...showTestDetailsModal,
+            ...selectedSampleForTest,
             ...testForm,
-            ageHrs,
-            id: Date.now(),
-            timestamp: new Date().toISOString()
+            id: editingRecordId || Date.now(),
+            timestamp: new Date().toISOString(),
+            source: 'Manual'
         };
 
-        setTestedRecords(prev => [newRecord, ...prev]);
-        setSamples(prev => prev.filter(s => s.id !== showTestDetailsModal.id));
-        setShowTestDetailsModal(null);
-        setTestForm({ testDate: new Date().toISOString().split('T')[0], testTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }), weight: '', load: '', strength: '' });
-        setActiveTab('tested');
-    };
+        if (editingRecordId) {
+            setTestedRecords(prev => prev.map(r => r.id === editingRecordId ? newRecord : r));
+            setEditingRecordId(null);
+        } else {
+            setTestedRecords(prev => [newRecord, ...prev]);
+            setSamples(prev => prev.filter(s => s.id !== selectedSampleForTest.id));
+        }
 
-    const getTestResult = (grade, strength) => {
-        const threshold = grade === 'M55' ? 40 : 50;
-        return parseFloat(strength) >= threshold ? 'OK' : 'Not OK';
+        setSelectedSampleForTest(null);
+        setTestForm({ testDate: new Date().toISOString().split('T')[0], testTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }), weight: '', load: '', strength: '' });
     };
 
     const isRecordEditable = (timestamp) => {
         const diffMs = Date.now() - new Date(timestamp).getTime();
-        return diffMs < (60 * 60 * 1000); // 1 hour
+        return diffMs < (8 * 60 * 60 * 1000); // 8 hours
     };
+
+    const handleEditResult = (record) => {
+        setEditingRecordId(record.id);
+        setSelectedSampleForTest(record);
+        setTestForm({
+            testDate: record.testDate,
+            testTime: record.testTime,
+            weight: record.weight,
+            load: record.load,
+            strength: record.strength
+        });
+        const manualSection = document.getElementById('manual-entry-section');
+        if (manualSection) manualSection.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    const batches = ['All', ...new Set(samples.map(s => s.batchNo.toString()))];
 
     return (
         <div className="modal-overlay" onClick={onBack}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1200px', width: '95%', height: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1600px', width: '98%', height: '90vh', display: 'flex', flexDirection: 'column' }}>
                 <header className="modal-header">
-                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                         <div>
-                            <h2 style={{ margin: 0 }}>Steam Cube Testing</h2>
+                            <h2 style={{ margin: 0 }}>Steam Cube Testing Console</h2>
                             <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Transfer Strength Verification</p>
                         </div>
-                        <nav className="modal-tabs" style={{ border: 'none', margin: 0 }}>
-                            <button className={`modal-tab-btn ${activeTab === 'declared' ? 'active' : ''}`} onClick={() => setActiveTab('declared')}>Test Sample Declared</button>
-                            <button className={`modal-tab-btn ${activeTab === 'tested' ? 'active' : ''}`} onClick={() => setActiveTab('tested')}>Recent Testing Results</button>
-                        </nav>
+                        <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Select Batch:</span>
+                            <select
+                                className="dash-select"
+                                style={{ margin: 0, width: '100px' }}
+                                value={selectedBatch}
+                                onChange={(e) => setSelectedBatch(e.target.value)}
+                            >
+                                {batches.map(b => <option key={b} value={b}>{b}</option>)}
+                            </select>
+                        </div>
                     </div>
                     <button className="close-btn" onClick={onBack}>×</button>
                 </header>
 
                 <div className="modal-body" style={{ flexGrow: 1, overflowY: 'auto', padding: '1.5rem' }}>
 
-                    <SteamCubeStats records={testedRecords} />
-
-                    {activeTab === 'declared' && (
-                        <div className="fade-in">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Declared Samples List</h3>
-                                <button className="toggle-btn" onClick={() => setShowAddModal(true)}>+ Add Test Sample</button>
-                            </div>
-
-                            <div className="table-outer-wrapper">
-                                <table className="ui-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Batch No</th>
-                                            <th>Chamber No</th>
-                                            <th>Cube No</th>
-                                            <th>Date of Casting</th>
-                                            <th>Type & Grade</th>
-                                            <th>Benches in Chamber</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {samples.map(s => (
-                                            <tr key={s.id}>
-                                                <td data-label="Batch">{s.batchNo}</td>
-                                                <td data-label="Chamber">{s.chamberNo}</td>
-                                                <td data-label="Cube No."><strong>{s.cubeNo}</strong></td>
-                                                <td data-label="Casting Date">{s.castDate}</td>
-                                                <td data-label="Type/Grade">{s.sleeperType} / {s.grade}</td>
-                                                <td data-label="Benches">{s.benchesInChamber}</td>
-                                                <td data-label="Actions">
-                                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                                        <button className="btn-action" onClick={() => { setEditingSample(s); setSampleForm(s); setShowAddModal(true); }}>Edit</button>
-                                                        <button className="btn-action" style={{ background: '#fee2e2', color: '#dc2626' }} onClick={() => handleDeleteSample(s.id)}>Delete</button>
-                                                        <button className="btn-action" style={{ background: '#dcfce7', color: '#166534' }} onClick={() => setShowTestDetailsModal(s)}>Enter Results</button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                    <CollapsibleSection title="SCADA Data Fetched (Pending Samples)" defaultOpen={true}>
+                        <div style={{ marginBottom: '2rem', background: '#f8fafc', padding: '1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                            <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem' }}>Declare New Sample</h4>
+                            <div className="form-grid">
+                                <div className="form-field"><label>Batch Number</label><input type="number" value={sampleForm.batchNo} onChange={e => setSampleForm({ ...sampleForm, batchNo: e.target.value })} /></div>
+                                <div className="form-field"><label>Bench Number</label><input type="number" value={sampleForm.benchNo} onChange={e => setSampleForm({ ...sampleForm, benchNo: e.target.value })} /></div>
+                                <div className="form-field">
+                                    <label>Sleeper Sequence</label>
+                                    <select value={sampleForm.sequence} onChange={e => setSampleForm({ ...sampleForm, sequence: e.target.value })}>
+                                        {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(s => <option key={s} value={s}>{s}</option>)}
+                                    </select>
+                                </div>
+                                <div className="form-field">
+                                    <label>Concrete Grade</label>
+                                    <select value={sampleForm.grade} onChange={e => setSampleForm({ ...sampleForm, grade: e.target.value })}>
+                                        <option value="M55">M55</option>
+                                        <option value="M60">M60</option>
+                                    </select>
+                                </div>
+                                <div className="form-actions-center" style={{ gridColumn: 'span 2', marginTop: '0.5rem' }}>
+                                    <button className="toggle-btn" onClick={handleDeclareSample}>Declare Sample</button>
+                                </div>
                             </div>
                         </div>
-                    )}
 
-                    {activeTab === 'tested' && (
-                        <div className="fade-in">
-                            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Successfully Tested Samples</h3>
-                            <div className="table-outer-wrapper">
-                                <table className="ui-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Batch</th>
-                                            <th>Chamber</th>
-                                            <th>Benches</th>
-                                            <th>Cube No</th>
-                                            <th>Grade</th>
-                                            <th>Strength</th>
-                                            <th>Result</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {testedRecords.map(t => (
+                        <div className="table-outer-wrapper">
+                            <table className="ui-table">
+                                <thead>
+                                    <tr>
+                                        <th>Cube No</th><th>Batch</th><th>Chamber</th><th>Casting Date</th><th>Grade</th><th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {samples.filter(s => selectedBatch === 'All' || s.batchNo.toString() === selectedBatch).length === 0 ? (
+                                        <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No pending samples declared.</td></tr>
+                                    ) : (
+                                        samples.filter(s => selectedBatch === 'All' || s.batchNo.toString() === selectedBatch).map(s => (
+                                            <tr key={s.id}>
+                                                <td data-label="Cube"><strong>{s.cubeNo}</strong></td>
+                                                <td data-label="Batch">{s.batchNo}</td>
+                                                <td data-label="Chamber">{s.chamberNo}</td>
+                                                <td data-label="Date">{s.castDate}</td>
+                                                <td data-label="Grade">{s.grade}</td>
+                                                <td data-label="Action">
+                                                    <button className="btn-action" onClick={() => setSelectedSampleForTest(s)}>Test Sample</button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CollapsibleSection>
+
+                    <CollapsibleSection title="Scada Witness / Manual Data Entry" defaultOpen={true} id="manual-entry-section">
+                        {!selectedSampleForTest ? (
+                            <div style={{ textAlign: 'center', padding: '2rem', background: '#f8fafc', borderRadius: '12px', color: '#64748b', marginBottom: '2rem' }}>
+                                Select a sample from the list above to enter results.
+                            </div>
+                        ) : (
+                            <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '2rem' }} className="fade-in">
+                                <h4 style={{ margin: '0 0 1rem 0' }}>Results for Cube: {selectedSampleForTest.cubeNo}</h4>
+                                <div className="form-grid">
+                                    <div className="form-field"><label>Weight (Kgs)</label><input type="number" step="0.001" value={testForm.weight} onChange={e => setTestForm({ ...testForm, weight: e.target.value })} /></div>
+                                    <div className="form-field"><label>Load (KN)</label><input type="number" step="0.1" value={testForm.load} onChange={e => setTestForm({ ...testForm, load: e.target.value })} /></div>
+                                    <div className="form-field"><label>Strength (N/mm²)</label><input type="number" step="0.01" value={testForm.strength} onChange={e => setTestForm({ ...testForm, strength: e.target.value })} /></div>
+                                    <div className="form-field"><label>Test Time</label><input type="time" value={testForm.testTime} onChange={e => setTestForm({ ...testForm, testTime: e.target.value })} /></div>
+                                    <div className="form-actions-center" style={{ gridColumn: 'span 2', marginTop: '1rem' }}>
+                                        <button className="toggle-btn" onClick={handleSaveTestResult}>{editingRecordId ? 'Update Result' : 'Save Test Result'}</button>
+                                        <button className="toggle-btn secondary" onClick={() => setSelectedSampleForTest(null)} style={{ marginLeft: '1rem' }}>Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="table-outer-wrapper">
+                            <table className="ui-table">
+                                <thead>
+                                    <tr>
+                                        <th>Cube No</th><th>Batch</th><th>Grade</th><th>Load</th><th>Strength</th><th>Result</th><th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {testedRecords.length === 0 ? (
+                                        <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No tested results yet.</td></tr>
+                                    ) : (
+                                        testedRecords.map(t => (
                                             <tr key={t.id}>
+                                                <td data-label="Cube"><strong>{t.cubeNo}</strong></td>
                                                 <td data-label="Batch">{t.batchNo}</td>
-                                                <td data-label="Chamber">{t.chamberNo}</td>
-                                                <td data-label="Benches">{t.benchesInChamber}</td>
-                                                <td data-label="Cube No.">{t.cubeNo}</td>
                                                 <td data-label="Grade">{t.grade}</td>
-                                                <td data-label="Strength"><strong>{t.strength} N/mm²</strong></td>
+                                                <td data-label="Load">{t.load} KN</td>
+                                                <td data-label="Strength">{t.strength} N/mm²</td>
                                                 <td data-label="Result">
-                                                    <span className={`status-pill ${getTestResult(t.grade, t.strength) === 'OK' ? 'witnessed' : 'manual'}`}>
-                                                        {getTestResult(t.grade, t.strength)}
+                                                    <span className={`status-pill ${parseFloat(t.strength) >= (t.grade === 'M55' ? 40 : 50) ? 'witnessed' : 'manual'}`}>
+                                                        {parseFloat(t.strength) >= (t.grade === 'M55' ? 40 : 50) ? 'OK' : 'NOT OK'}
                                                     </span>
                                                 </td>
                                                 <td data-label="Action">
                                                     {isRecordEditable(t.timestamp) ? (
-                                                        <button className="btn-action" onClick={() => {
-                                                            // Logic to move back to declared or direct edit
-                                                            alert('Edit functionality (within 1h window) active');
-                                                        }}>Edit</button>
+                                                        <button className="btn-action" onClick={() => handleEditResult(t)}>Edit</button>
                                                     ) : <span style={{ fontSize: '10px', color: '#94a3b8' }}>Locked</span>}
                                                 </td>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
-                    )}
+                    </CollapsibleSection>
                 </div>
-
-                {/* Add/Edit Sample Modal */}
-                {showAddModal && (
-                    <div className="modal-overlay" style={{ background: 'rgba(0,0,0,0.4)', zIndex: 1100 }}>
-                        <div className="modal-content" style={{ maxWidth: '600px' }}>
-                            <header className="modal-header">
-                                <h3>{editingSample ? 'Edit Test Sample' : 'Declare New Test Sample'}</h3>
-                                <button className="close-btn" onClick={() => { setShowAddModal(false); setEditingSample(null); }}>×</button>
-                            </header>
-                            <div className="modal-body">
-                                <div className="form-grid">
-                                    <div className="form-field"><label>Batch Number</label><input type="number" value={sampleForm.batchNo} onChange={e => setSampleForm({ ...sampleForm, batchNo: e.target.value })} /></div>
-                                    <div className="form-field"><label>Chamber Number</label><input type="number" value={sampleForm.chamberNo} onChange={e => setSampleForm({ ...sampleForm, chamberNo: e.target.value })} /></div>
-                                    <div className="form-field"><label>Bench Number</label><input type="number" value={sampleForm.benchNo} onChange={e => setSampleForm({ ...sampleForm, benchNo: e.target.value })} /></div>
-                                    <div className="form-field">
-                                        <label>Sleeper Sequence</label>
-                                        <select value={sampleForm.sequence} onChange={e => setSampleForm({ ...sampleForm, sequence: e.target.value })}>
-                                            {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(s => <option key={s} value={s}>{s}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="form-field">
-                                        <label>Concrete Grade</label>
-                                        <select value={sampleForm.grade} onChange={e => setSampleForm({ ...sampleForm, grade: e.target.value })}>
-                                            <option value="M55">M55</option>
-                                            <option value="M60">M60</option>
-                                        </select>
-                                    </div>
-                                    <div className="form-field"><label>Date of Casting</label><input type="date" value={sampleForm.castDate} onChange={e => setSampleForm({ ...sampleForm, castDate: e.target.value })} /></div>
-                                    <div className="form-field"><label>LBC Time</label><input type="time" value={sampleForm.lbcTime} onChange={e => setSampleForm({ ...sampleForm, lbcTime: e.target.value })} /></div>
-                                    <div className="form-field" style={{ gridColumn: 'span 2' }}>
-                                        <label>Benches in Chamber (Comma separated)</label>
-                                        <input type="text" placeholder="e.g. 401, 402, 403" value={sampleForm.benchesInChamber} onChange={e => setSampleForm({ ...sampleForm, benchesInChamber: e.target.value })} />
-                                    </div>
-                                </div>
-                                <div className="form-actions-center" style={{ marginTop: '1.5rem' }}>
-                                    <button className="toggle-btn" onClick={handleAddOrUpdateSample}>{editingSample ? 'Update Sample' : 'Declare Sample'}</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Enter Test Details Modal */}
-                {showTestDetailsModal && (
-                    <div className="modal-overlay" style={{ background: 'rgba(0,0,0,0.4)', zIndex: 1100 }}>
-                        <div className="modal-content" style={{ maxWidth: '800px' }}>
-                            <header className="modal-header">
-                                <h3>Enter Test Details: Cube {showTestDetailsModal.cubeNo}</h3>
-                                <button className="close-btn" onClick={() => setShowTestDetailsModal(null)}>×</button>
-                            </header>
-                            <div className="modal-body">
-                                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
-                                    <div><span className="mini-label">Batch</span><div>{showTestDetailsModal.batchNo}</div></div>
-                                    <div><span className="mini-label">Grade</span><div>{showTestDetailsModal.grade}</div></div>
-                                    <div><span className="mini-label">Cast Date</span><div>{showTestDetailsModal.castDate}</div></div>
-                                    <div><span className="mini-label">LBC Time</span><div>{showTestDetailsModal.lbcTime}</div></div>
-                                </div>
-                                <div className="form-grid">
-                                    <div className="form-field"><label>Date of Testing</label><input type="date" value={testForm.testDate} onChange={e => setTestForm({ ...testForm, testDate: e.target.value })} /></div>
-                                    <div className="form-field"><label>Time of Testing</label><input type="time" value={testForm.testTime} onChange={e => setTestForm({ ...testForm, testTime: e.target.value })} /></div>
-                                    <div className="form-field"><label>Age (Hrs)</label><input type="text" value={ageHrs} readOnly style={{ background: '#f1f5f9' }} /></div>
-                                    <div className="form-field"><label>Weight (Kgs)</label><input type="number" step="0.001" value={testForm.weight} onChange={e => setTestForm({ ...testForm, weight: e.target.value })} /></div>
-                                    <div className="form-field"><label>Load (KN)</label><input type="number" step="0.1" value={testForm.load} onChange={e => setTestForm({ ...testForm, load: e.target.value })} /></div>
-                                    <div className="form-field"><label>Strength (N/mm²)</label><input type="number" step="0.01" value={testForm.strength} onChange={e => setTestForm({ ...testForm, strength: e.target.value })} /></div>
-                                </div>
-                                <div className="form-actions-center" style={{ marginTop: '1.5rem' }}>
-                                    <button className="toggle-btn" style={{ minWidth: '200px' }} onClick={handleSaveTestResult}>Save Testing Result</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );
 };
 
 export default SteamCubeTesting;
-

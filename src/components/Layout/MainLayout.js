@@ -15,22 +15,18 @@ const MainLayout = ({ children, activeItem, onItemClick }) => {
                 />
             )}
 
-            <div
+            <Sidebar
+                activeItem={activeItem}
+                onItemClick={(item) => {
+                    onItemClick(item);
+                    setIsMobileMenuOpen(false);
+                }}
+                isOpen={isMobileMenuOpen}
+                expanded={isSidebarPinned || isSidebarHovered}
                 onMouseEnter={() => setIsSidebarHovered(true)}
                 onMouseLeave={() => setIsSidebarHovered(false)}
                 onClick={() => setIsSidebarPinned(!isSidebarPinned)}
-                style={{ height: '100%', zIndex: 1001 }}
-            >
-                <Sidebar
-                    activeItem={activeItem}
-                    onItemClick={(item) => {
-                        onItemClick(item);
-                        setIsMobileMenuOpen(false);
-                    }}
-                    isOpen={isMobileMenuOpen}
-                    expanded={isSidebarPinned || isSidebarHovered}
-                />
-            </div>
+            />
 
             <div className="main-content-wrapper">
                 <header className="main-header">

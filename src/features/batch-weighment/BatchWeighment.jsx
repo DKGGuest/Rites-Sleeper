@@ -7,19 +7,20 @@ import CollapsibleSection from '../../components/common/CollapsibleSection';
 
 /**
  * BatchWeighment Feature Module
- * Orchestrates the 3-step weighment verification process:
- * 1. Initial configuration and sensor setup.
- * 2. Automated SCADA monitoring and witnessing.
- * 3. Manual entry and full history logging.
+ * Standardized to match Compaction module design pattern.
  */
-const BatchWeighment = ({ onBack, sharedState }) => {
+const BatchWeighment = ({ onBack, sharedState, activeContainer }) => {
     const { batchDeclarations, setBatchDeclarations, witnessedRecords, setWitnessedRecords } = sharedState;
-    const [activeSection, setActiveSection] = useState('declaration');
+    const [selectedBatchNo, setSelectedBatchNo] = useState(batchDeclarations[0]?.batchNo || '601');
 
     useEffect(() => {
         const loadHistory = async () => {
-            const history = await apiService.getWitnessedRecords();
-            if (history?.length > 0) setWitnessedRecords(history);
+            try {
+                const history = await apiService.getWitnessedRecords();
+                if (history?.length > 0) setWitnessedRecords(history);
+            } catch (e) {
+                console.warn("History fetch failed, using local state.");
+            }
         };
         loadHistory();
     }, [setWitnessedRecords]);
@@ -33,43 +34,58 @@ const BatchWeighment = ({ onBack, sharedState }) => {
 
         setWitnessedRecords(prev => {
             const exists = prev.find(r => r.id === record.id);
-            return exists ? prev.map(r => r.id === record.id ? record : r) : [...prev, record];
+            return exists ? prev.map(r => r.id === record.id ? record : r) : [record, ...prev];
         });
     };
 
     return (
         <div className="modal-overlay" onClick={onBack}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1200px' }}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1600px', width: '98%', height: '90vh', display: 'flex', flexDirection: 'column' }}>
                 <header className="modal-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Batch Weighment System</h2>
-                        <span className="badge-count" style={{ background: 'var(--primary-color)', color: '#fff', padding: '0.2rem 0.6rem', borderRadius: '50px', fontSize: '0.7rem' }}>
-                            {witnessedRecords.length} Verified
-                        </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                        <div>
+                            <h2 style={{ margin: 0 }}>Batch Weighment Control Console</h2>
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>SCADA Sync & Quality Assurance</p>
+                        </div>
+                        <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Active Batch:</span>
+                            <select
+                                className="dash-select"
+                                style={{ margin: 0, width: '100px' }}
+                                value={selectedBatchNo}
+                                onChange={(e) => setSelectedBatchNo(e.target.value)}
+                            >
+                                {batchDeclarations.map(b => <option key={b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
+                            </select>
+                        </div>
                     </div>
                     <button className="close-btn" onClick={onBack}>×</button>
                 </header>
 
-                <div className="modal-body" style={{ background: '#f8fafc' }}>
-                    <CollapsibleSection title="I. Initial Declaration & Sensor Setup">
+                <div className="modal-body" style={{ flexGrow: 1, overflowY: 'auto', padding: '1.5rem' }}>
+
+                    <CollapsibleSection title="Initial Information (Batch Targets)" defaultOpen={false}>
                         <InitialDeclaration
                             batches={batchDeclarations}
                             onBatchUpdate={setBatchDeclarations}
                         />
                     </CollapsibleSection>
 
-                    <CollapsibleSection title="II. Real-time SCADA Monitoring" defaultOpen={false}>
+                    <CollapsibleSection title="SCADA Data Fetched" defaultOpen={true}>
                         <WeightBatching
                             onWitness={handleSaveWitness}
                             batches={batchDeclarations}
+                            selectedBatchNo={selectedBatchNo} // Pass selection for filtering
                         />
                     </CollapsibleSection>
 
-                    <CollapsibleSection title="III. Duty Master Log & Verification" defaultOpen={false}>
+                    <CollapsibleSection title="Scada Witness / Manual Data Entry" defaultOpen={true}>
                         <ManualDataEntry
                             batches={batchDeclarations}
                             witnessedRecords={witnessedRecords}
                             onSave={handleSaveWitness}
+                            activeContainer={activeContainer}
+                        // No hideHistory or onlyHistory means it shows both integrated
                         />
                     </CollapsibleSection>
                 </div>

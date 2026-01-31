@@ -105,7 +105,7 @@ const CompactionConcrete = ({ onBack, onSave }) => {
 
     return (
         <div className="modal-overlay" onClick={onBack}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1200px', width: '95%', height: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1600px', width: '98%', height: '90vh', display: 'flex', flexDirection: 'column' }}>
                 <header className="modal-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                         <div>
@@ -128,6 +128,31 @@ const CompactionConcrete = ({ onBack, onSave }) => {
                 </header>
 
                 <div className="modal-body" style={{ flexGrow: 1, overflowY: 'auto', padding: '1.5rem' }}>
+
+                    {/* Initial Information Section - Sleek Dashboard Card Style */}
+                    <div style={{ marginBottom: '1.5rem', background: '#f1f5f9', borderRadius: '12px', padding: '1.5rem', border: '1px solid #e2e8f0', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1.5rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Batch Number</span>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>{selectedBatch}</div>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Sleeper Type</span>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>RT-8746</div>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Total In Batch</span>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>120</div>
+                                    <span style={{ fontSize: '1rem', fontWeight: '600', color: '#64748b' }}>Nos</span>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Status</span>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#10b981' }}>Active</div>
+                            </div>
+                        </div>
+                    </div>
 
                     <CollapsibleSection title="SCADA Data Fetched" defaultOpen={true}>
                         <div className="table-outer-wrapper">
