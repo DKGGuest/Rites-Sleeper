@@ -3,6 +3,7 @@ import WaterCubeTesting, { WaterCubeStats } from './WaterCubeTesting';
 import ModulusOfRupture from './ModulusOfRupture';
 import DimensionalTesting from './DimensionalTesting';
 import MomentOfResistance from './MomentOfResistance';
+import MomentOfFailure from './MomentOfFailure';
 
 const FinalInspectionDashboard = () => {
     const [selectedCard, setSelectedCard] = useState('water-cube');
@@ -13,7 +14,7 @@ const FinalInspectionDashboard = () => {
         { id: 'non-critical', title: 'Non-Critical Dimension', subtitle: 'Sub Card- 3 (Target 1-5%)' },
         { id: 'water-cube', title: 'Water Cube Strength', subtitle: 'Sub Card- 4' },
         { id: 'mor', title: 'Modulus of Rupture', subtitle: 'Sub Card- 5' },
-        { id: 'mof', title: 'Moment of Failure', subtitle: 'Structural integrity' },
+        { id: 'mof', title: 'Moment of Failure', subtitle: 'Sub Card- 5' },
         { id: 'mor_res', title: 'Moment of Resistance', subtitle: 'Standard compliance' },
     ];
 
@@ -23,6 +24,8 @@ const FinalInspectionDashboard = () => {
                 return <WaterCubeTesting />;
             case 'mor':
                 return <ModulusOfRupture />;
+            case 'mof':
+                return <MomentOfFailure />;
             case 'mor_res':
                 return <MomentOfResistance />;
             case 'visual':
