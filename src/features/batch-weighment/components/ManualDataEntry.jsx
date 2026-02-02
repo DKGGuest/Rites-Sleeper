@@ -65,7 +65,7 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
     const isRecordEditable = (timestamp) => {
         if (!timestamp) return true;
         const diffMs = Date.now() - new Date(timestamp).getTime();
-        return diffMs < (8 * 60 * 60 * 1000); // 8-hour shift window
+        return diffMs < (12 * 60 * 60 * 1000); // 12-hour shift window
     };
 
     return (

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import CollapsibleSection from '../../components/common/CollapsibleSection';
 
 const CompactionConcrete = ({ onBack, onSave }) => {
+    const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard', 'stats', 'witnessed', 'scada', 'form'
     const [selectedBatch, setSelectedBatch] = useState('615');
 
     // Mock SCADA Data
@@ -15,7 +16,7 @@ const CompactionConcrete = ({ onBack, onSave }) => {
 
     // Data List (Witnessed + Manual)
     const [entries, setEntries] = useState([
-        { id: 1, date: '2026-01-30', time: '09:45', batchNo: '614', benchNo: '10', tachoCount: 4, workingTachos: 4, minRpm: 8800, maxRpm: 9200, duration: 45, source: 'Manual' }
+        { id: 1, date: '2026-02-02', time: '09:45', batchNo: '614', benchNo: '10', tachoCount: 4, workingTachos: 4, minRpm: 8800, maxRpm: 9200, duration: 45, source: 'Manual' }
     ]);
 
     const [manualForm, setManualForm] = useState({
@@ -24,10 +25,11 @@ const CompactionConcrete = ({ onBack, onSave }) => {
         batchNo: '', benchNo: '', tachoCount: 4, workingTachos: 4, minRpm: '', maxRpm: '', duration: ''
     });
 
+    const [editingId, setEditingId] = useState(null);
+
     const batches = [...new Set(scadaRecords.map(r => r.batchNo))];
 
     const handleWitness = (record) => {
-        // Find min/max from vibrators
         const rpms = [record.v1_rpm, record.v2_rpm, record.v3_rpm, record.v4_rpm];
         const newEntry = {
             id: Date.now(),
@@ -40,26 +42,21 @@ const CompactionConcrete = ({ onBack, onSave }) => {
             minRpm: Math.min(...rpms),
             maxRpm: Math.max(...rpms),
             duration: record.duration,
-            source: 'Scada Witnessed',
+            source: 'Scada',
             originalScadaId: record.id
         };
         setEntries(prev => [newEntry, ...prev]);
         setScadaRecords(prev => prev.filter(r => r.id !== record.id));
+        alert('Record witnessed.');
     };
 
-    const [editingId, setEditingId] = useState(null);
-
-    const isRecordEditable = (timestamp) => {
-        if (!timestamp) return true;
-        const diffMs = Date.now() - new Date(timestamp).getTime();
-        return diffMs < (8 * 60 * 60 * 1000); // 8 hour shift window
+    const handleDelete = (id) => {
+        if (window.confirm('Are you sure you want to delete this record?')) {
+            setEntries(prev => prev.filter(e => e.id !== id));
+        }
     };
 
     const handleEdit = (entry) => {
-        if (entry.source !== 'Manual') {
-            alert('Only manual entries can be modified.');
-            return;
-        }
         setEditingId(entry.id);
         setManualForm({
             date: entry.date,
@@ -72,180 +69,181 @@ const CompactionConcrete = ({ onBack, onSave }) => {
             maxRpm: entry.maxRpm,
             duration: entry.duration
         });
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setViewMode('form');
     };
 
     const handleSaveManual = () => {
         if (!manualForm.batchNo || !manualForm.benchNo) {
-            alert('Please fill at least Batch and Bench numbers');
+            alert('Batch and Bench required');
             return;
         }
-
+        const newEntry = {
+            ...manualForm,
+            id: editingId || Date.now(),
+            timestamp: new Date().toISOString(),
+            source: 'Manual'
+        };
         if (editingId) {
-            setEntries(prev => prev.map(e => e.id === editingId ? { ...manualForm, id: editingId, source: 'Manual', timestamp: new Date().toISOString() } : e));
+            setEntries(prev => prev.map(e => e.id === editingId ? newEntry : e));
             setEditingId(null);
-            alert('Manual entry updated.');
         } else {
-            const newEntry = {
-                ...manualForm,
-                id: Date.now(),
-                timestamp: new Date().toISOString(),
-                source: 'Manual'
-            };
             setEntries(prev => [newEntry, ...prev]);
         }
-
         setManualForm({
             ...manualForm,
             batchNo: '', benchNo: '', minRpm: '', maxRpm: '', duration: '',
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
         });
+        alert('Manual entry saved.');
         if (onSave) onSave();
     };
 
+    const renderDashboard = () => (
+        <div style={{ padding: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '2rem' }}>
+                <button className="toggle-btn" onClick={() => setViewMode('form')}>+ Add New Entry</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+                <div className="dashboard-card hover-lift" onClick={() => setViewMode('stats')} style={{ background: '#fff', padding: '2.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', cursor: 'pointer', textAlign: 'center' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📉</div>
+                    <h3 style={{ color: '#1e293b' }}>Statistics</h3>
+                    <p style={{ color: '#64748b', fontSize: '0.85rem' }}>View vibration RPM consistency and cycle times.</p>
+                </div>
+                <div className="dashboard-card hover-lift" onClick={() => setViewMode('witnessed')} style={{ background: '#fff', padding: '2.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', cursor: 'pointer', textAlign: 'center' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📝</div>
+                    <h3 style={{ color: '#1e293b' }}>Witnessed Logs</h3>
+                    <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Manage all compaction and vibration records.</p>
+                </div>
+                <div className="dashboard-card hover-lift" onClick={() => setViewMode('scada')} style={{ background: '#fff', padding: '2.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', cursor: 'pointer', textAlign: 'center' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚡</div>
+                    <h3 style={{ color: '#1e293b' }}>Scada Data</h3>
+                    <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Raw vibrator RPM data from the PLC system.</p>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderForm = () => (
+        <div className="fade-in">
+            <div style={{ marginBottom: '1.5rem' }}><button className="back-btn" onClick={() => setViewMode('witnessed')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontWeight: 'bold' }}>← Back to Logs</button></div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b' }}>1. Initial Declaration</h4>
+                    <div className="form-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+                        <div className="form-field"><label>Batch No.</label><input value={selectedBatch} readOnly style={{ background: '#f8fafc' }} /></div>
+                        <div className="form-field"><label>Sleeper Type</label><input value="RT-8746" readOnly style={{ background: '#f8fafc' }} /></div>
+                        <div className="form-field"><label>Total in Batch</label><input value="120" readOnly style={{ background: '#f8fafc' }} /></div>
+                        <div className="form-field"><label>Date</label><input type="date" value={manualForm.date} readOnly style={{ background: '#f8fafc' }} /></div>
+                    </div>
+                </div>
+                <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b' }}>2. Scada Fetched Values</h4>
+                    <table className="ui-table">
+                        <thead><tr><th>Time</th><th>Bench</th><th>V1-V4 RPM</th><th>Dur.</th><th>Action</th></tr></thead>
+                        <tbody>
+                            {scadaRecords.filter(r => r.batchNo === selectedBatch).length === 0 ? (
+                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8' }}>No pending SCADA data.</td></tr>
+                            ) : (
+                                scadaRecords.filter(r => r.batchNo === selectedBatch).map(r => (
+                                    <tr key={r.id}>
+                                        <td>{r.time}</td><td><strong>{r.benchNo}</strong></td><td>{r.v1_rpm}-{r.v4_rpm}</td><td>{r.duration}s</td>
+                                        <td><button className="btn-action" onClick={() => handleWitness(r)}>Witness</button></td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+                <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b' }}>3. Manual Entry Form</h4>
+                    <div className="form-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                        <div className="form-field"><label>Bench No.</label><input value={manualForm.benchNo} onChange={e => setManualForm({ ...manualForm, benchNo: e.target.value })} /></div>
+                        <div className="form-field"><label>Min RPM</label><input value={manualForm.minRpm} onChange={e => setManualForm({ ...manualForm, minRpm: e.target.value })} /></div>
+                        <div className="form-field"><label>Max RPM</label><input value={manualForm.maxRpm} onChange={e => setManualForm({ ...manualForm, maxRpm: e.target.value })} /></div>
+                    </div>
+                    <div style={{ marginTop: '1rem', textAlign: 'center' }}><button className="toggle-btn" onClick={handleSaveManual}>{editingId ? 'Update Record' : 'Save Manual Record'}</button></div>
+                </div>
+                <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b' }}>4. Current Witness Logs</h4>
+                    <table className="ui-table">
+                        <thead><tr><th>Source</th><th>Time</th><th>Bench</th><th>RPM Range</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            {entries.slice(0, 5).map(e => (
+                                <tr key={e.id}>
+                                    <td><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
+                                    <td>{e.time}</td><td>{e.benchNo}</td><td>{e.minRpm}-{e.maxRpm}</td>
+                                    <td>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            {e.source === 'Manual' && <button className="btn-action" onClick={() => handleEdit(e)}>Edit</button>}
+                                            <button className="btn-action" style={{ background: '#fee2e2', color: '#ef4444', border: 'none' }} onClick={() => handleDelete(e.id)}>Delete</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+
     return (
         <div className="modal-overlay" onClick={onBack}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1600px', width: '98%', height: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1600px', width: '95%', height: '90vh', display: 'flex', flexDirection: 'column' }}>
                 <header className="modal-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                        <div>
-                            <h2 style={{ margin: 0 }}>Compaction of Concrete (Vibrator Report)</h2>
-                            <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Concrete Compaction Monitoring & Assurance</p>
-                        </div>
-                        <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Select Batch:</span>
-                            <select
-                                className="dash-select"
-                                style={{ margin: 0, width: '100px' }}
-                                value={selectedBatch}
-                                onChange={(e) => setSelectedBatch(e.target.value)}
-                            >
-                                {batches.map(b => <option key={b} value={b}>{b}</option>)}
-                            </select>
-                        </div>
-                    </div>
+                    <div><h2 style={{ margin: 0 }}>Compaction & Vibration Console</h2><p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Concrete Compaction Monitoring & Assurance</p></div>
                     <button className="close-btn" onClick={onBack}>×</button>
                 </header>
-
-                <div className="modal-body" style={{ flexGrow: 1, overflowY: 'auto', padding: '1.5rem' }}>
-
-                    {/* Initial Information Section - Sleek Dashboard Card Style */}
-                    <div style={{ marginBottom: '1.5rem', background: '#f1f5f9', borderRadius: '12px', padding: '1.5rem', border: '1px solid #e2e8f0', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1.5rem' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Batch Number</span>
-                                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>{selectedBatch}</div>
+                <div className="modal-body" style={{ flexGrow: 1, overflowY: 'auto', padding: '1.5rem', background: '#f8fafc' }}>
+                    {viewMode !== 'dashboard' && <button className="back-btn" onClick={() => setViewMode('dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', fontWeight: 'bold', marginBottom: '1.5rem' }}>← Main Menu</button>}
+                    {viewMode === 'dashboard' && renderDashboard()}
+                    {viewMode === 'form' && renderForm()}
+                    {viewMode === 'stats' && <div className="fade-in"><h3>Compaction Performance Statistics</h3><div style={{ padding: '3rem', textAlign: 'center', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>📊 Vibration consistency metrics and RPM distribution...</div></div>}
+                    {viewMode === 'witnessed' && (
+                        <div className="fade-in">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h3 style={{ margin: 0 }}>Witnessed Compaction Logs</h3>
+                                <button className="toggle-btn" onClick={() => setViewMode('form')}>+ Add New Entry</button>
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Sleeper Type</span>
-                                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>RT-8746</div>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Total In Batch</span>
-                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                                    <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>120</div>
-                                    <span style={{ fontSize: '1rem', fontWeight: '600', color: '#64748b' }}>Nos</span>
-                                </div>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Status</span>
-                                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#10b981' }}>Active</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <CollapsibleSection title="SCADA Data Fetched" defaultOpen={true}>
-                        <div className="table-outer-wrapper">
-                            <table className="ui-table">
-                                <thead>
-                                    <tr>
-                                        <th>Time</th>
-                                        <th>Bench No</th>
-                                        <th>V1 RPM</th>
-                                        <th>V2 RPM</th>
-                                        <th>V3 RPM</th>
-                                        <th>V4 RPM</th>
-                                        <th>Duration (s)</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {scadaRecords.filter(r => r.batchNo === selectedBatch).length === 0 ? (
-                                        <tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No pending SCADA records for this batch.</td></tr>
-                                    ) : (
-                                        scadaRecords.filter(r => r.batchNo === selectedBatch).slice(0, 10).map(record => (
-                                            <tr key={record.id}>
-                                                <td data-label="Time"><strong>{record.time}</strong></td>
-                                                <td data-label="Bench">{record.benchNo}</td>
-                                                <td data-label="V1">{record.v1_rpm}</td>
-                                                <td data-label="V2">{record.v2_rpm}</td>
-                                                <td data-label="V3">{record.v3_rpm}</td>
-                                                <td data-label="V4">{record.v4_rpm}</td>
-                                                <td data-label="Sec">{record.duration}s</td>
-                                                <td data-label="Action">
-                                                    <button className="btn-action" onClick={() => handleWitness(record)}>Witness</button>
+                            <div className="table-outer-wrapper" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                <table className="ui-table">
+                                    <thead><tr><th>Source</th><th>Time</th><th>Batch</th><th>Bench</th><th>RPM Range</th><th>Duration</th><th>Actions</th></tr></thead>
+                                    <tbody>
+                                        {entries.map(e => (
+                                            <tr key={e.id}>
+                                                <td><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
+                                                <td>{e.time}</td><td>{e.batchNo}</td><td>{e.benchNo}</td><td>{e.minRpm}-{e.maxRpm}</td><td>{e.duration}s</td>
+                                                <td>
+                                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                                        {e.source === 'Manual' && <button className="btn-action" onClick={() => handleEdit(e)}>Edit</button>}
+                                                        <button className="btn-action" style={{ background: '#fee2e2', color: '#ef4444', border: 'none' }} onClick={() => handleDelete(e.id)}>Delete</button>
+                                                    </div>
                                                 </td>
                                             </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </CollapsibleSection>
-
-                    <CollapsibleSection title="Scada Witness / Manual Data Entry" defaultOpen={true}>
-                        <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem', border: '1px solid #e2e8f0' }}>
-                            <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b' }}>Add Manual Observation</h4>
-                            <div className="form-grid">
-                                <div className="form-field"><label>Date of Casting</label><input type="date" value={manualForm.date} onChange={e => setManualForm({ ...manualForm, date: e.target.value })} /></div>
-                                <div className="form-field"><label>Time</label><input type="time" value={manualForm.time} onChange={e => setManualForm({ ...manualForm, time: e.target.value })} /></div>
-                                <div className="form-field"><label>Batch No.</label><input type="number" value={manualForm.batchNo} onChange={e => setManualForm({ ...manualForm, batchNo: e.target.value })} /></div>
-                                <div className="form-field"><label>Bench No.</label><input type="text" value={manualForm.benchNo} onChange={e => setManualForm({ ...manualForm, benchNo: e.target.value })} /></div>
-                                <div className="form-field"><label>No. of Tachometer</label><input type="number" value={manualForm.tachoCount} onChange={e => setManualForm({ ...manualForm, tachoCount: e.target.value })} /></div>
-                                <div className="form-field"><label>No. of Tachometer working</label><input type="number" value={manualForm.workingTachos} onChange={e => setManualForm({ ...manualForm, workingTachos: e.target.value })} /></div>
-                                <div className="form-field"><label>Min RPM</label><input type="number" value={manualForm.minRpm} onChange={e => setManualForm({ ...manualForm, minRpm: e.target.value })} /></div>
-                                <div className="form-field"><label>Max RPM</label><input type="number" value={manualForm.maxRpm} onChange={e => setManualForm({ ...manualForm, maxRpm: e.target.value })} /></div>
-                                <div className="form-field"><label>Avg. Duration (s)</label><input type="number" value={manualForm.duration} onChange={e => setManualForm({ ...manualForm, duration: e.target.value })} /></div>
-                                <div className="form-actions-center" style={{ gridColumn: 'span 2', marginTop: '1rem' }}>
-                                    <button className="toggle-btn" onClick={handleSaveManual}>Save Record</button>
-                                </div>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-
-                        <div className="table-outer-wrapper">
-                            <table className="ui-table">
-                                <thead>
-                                    <tr>
-                                        <th>Source</th><th>Time</th><th>Batch</th><th>Bench</th><th>Tacho (W/T)</th><th>RPM (Min/Max)</th><th>Dur.</th><th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {entries.map(entry => (
-                                        <tr key={entry.id}>
-                                            <td data-label="Source">
-                                                <span className={`status-pill ${entry.source === 'Manual' ? 'manual' : 'witnessed'}`}>
-                                                    {entry.source}
-                                                </span>
-                                            </td>
-                                            <td data-label="Time">{entry.time}</td>
-                                            <td data-label="Batch">{entry.batchNo}</td>
-                                            <td data-label="Bench">{entry.benchNo}</td>
-                                            <td data-label="Tacho">{entry.workingTachos}/{entry.tachoCount}</td>
-                                            <td data-label="RPM">{entry.minRpm} - {entry.maxRpm}</td>
-                                            <td data-label="Duration">{entry.duration}s</td>
-                                            <td data-label="Action">
-                                                {entry.source === 'Manual' && isRecordEditable(entry.timestamp) ? (
-                                                    <button className="btn-action" onClick={() => handleEdit(entry)}>Edit</button>
-                                                ) : (
-                                                    <span style={{ fontSize: '10px', color: '#94a3b8' }}>Locked</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                    )}
+                    {viewMode === 'scada' && (
+                        <div className="fade-in">
+                            <h3>Raw SCADA Vibrator Feed</h3>
+                            <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                <table className="ui-table">
+                                    <thead><tr><th>Time</th><th>Batch</th><th>Bench</th><th>V1 RPM</th><th>V2 RPM</th><th>V3 RPM</th><th>V4 RPM</th><th>Dur</th><th>Action</th></tr></thead>
+                                    <tbody>
+                                        {scadaRecords.map(r => (
+                                            <tr key={r.id}>
+                                                <td>{r.time}</td><td>{r.batchNo}</td><td><strong>{r.benchNo}</strong></td><td>{r.v1_rpm}</td><td>{r.v2_rpm}</td><td>{r.v3_rpm}</td><td>{r.v4_rpm}</td><td>{r.duration}s</td>
+                                                <td><button className="btn-action" onClick={() => handleWitness(r)}>Witness</button></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </CollapsibleSection>
+                    )}
                 </div>
             </div>
         </div>

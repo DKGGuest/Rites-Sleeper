@@ -125,7 +125,16 @@ const MouldBenchCheck = ({ onBack }) => {
                                     value={formState.batchNo}
                                     onChange={(e) => handleFormChange('batchNo', e.target.value)}
                                     placeholder="Enter..."
-                                    style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b', background: 'transparent', border: 'none', borderBottom: '1px dashed #cbd5e1', padding: '0', width: '100%', outline: 'none' }}
+                                    style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1e293b', background: 'transparent', border: 'none', borderBottom: '1px dashed #cbd5e1', padding: '0', width: '100%', outline: 'none' }}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Date of Casting</span>
+                                <input
+                                    type="date"
+                                    value={formState.dateOfCasting}
+                                    onChange={(e) => handleFormChange('dateOfCasting', e.target.value)}
+                                    style={{ fontSize: '1.1rem', fontWeight: '700', color: '#1e293b', background: 'transparent', border: 'none', borderBottom: '1px dashed #cbd5e1', padding: '0', width: '100%', outline: 'none' }}
                                 />
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -133,7 +142,7 @@ const MouldBenchCheck = ({ onBack }) => {
                                 <select
                                     value={formState.sleeperType}
                                     onChange={(e) => handleFormChange('sleeperType', e.target.value)}
-                                    style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b', background: 'transparent', border: 'none', borderBottom: '1px dashed #cbd5e1', padding: '0', width: '100%', outline: 'none', appearance: 'none' }}
+                                    style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1e293b', background: 'transparent', border: 'none', borderBottom: '1px dashed #cbd5e1', padding: '0', width: '100%', outline: 'none', appearance: 'none' }}
                                 >
                                     <option value="" style={{ fontSize: '1rem' }}>Select...</option>
                                     <option value="RT-1234" style={{ fontSize: '1rem' }}>RT-1234</option>
@@ -142,21 +151,17 @@ const MouldBenchCheck = ({ onBack }) => {
                                 </select>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Total In Batch</span>
+                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Total Sleepers Casted</span>
                                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                                     <input
                                         type="number"
                                         value={formState.totalSleepers}
                                         onChange={(e) => handleFormChange('totalSleepers', e.target.value)}
                                         placeholder="0"
-                                        style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b', background: 'transparent', border: 'none', borderBottom: '1px dashed #cbd5e1', padding: '0', maxWidth: '80px', outline: 'none' }}
+                                        style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1e293b', background: 'transparent', border: 'none', borderBottom: '1px dashed #cbd5e1', padding: '0', maxWidth: '80px', outline: 'none' }}
                                     />
                                     <span style={{ fontSize: '1rem', fontWeight: '600', color: '#64748b' }}>Nos</span>
                                 </div>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Target Req.</span>
-                                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>100%</div>
                             </div>
                         </div>
 

@@ -88,12 +88,39 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate }) => {
             <div className="form-grid" style={{ marginBottom: '2rem' }}>
                 <div className="form-field">
                     <label>Sensor System Health</label>
-                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.25rem' }}>
-                        <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <input type="checkbox" name="notAvailable" checked={sensors.notAvailable} onChange={handleSensorChange} /> Working
+                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                        <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                            <input
+                                type="radio"
+                                name="sensorStatus"
+                                value="working"
+                                checked={!sensors.notAvailable && !sensors.notWorking}
+                                onChange={() => setSensors(prev => ({ ...prev, notAvailable: false, notWorking: false }))}
+                                style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0 }}
+                            />
+                            <span style={{ color: '#059669', fontWeight: '600' }}>Working</span>
                         </label>
-                        <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <input type="checkbox" name="notWorking" checked={sensors.notWorking} onChange={handleSensorChange} /> Defective
+                        <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                            <input
+                                type="radio"
+                                name="sensorStatus"
+                                value="defect"
+                                checked={sensors.notWorking}
+                                onChange={() => setSensors(prev => ({ ...prev, notAvailable: false, notWorking: true }))}
+                                style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0 }}
+                            />
+                            <span style={{ color: '#d97706', fontWeight: '600' }}>Not Working</span>
+                        </label>
+                        <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                            <input
+                                type="radio"
+                                name="sensorStatus"
+                                value="na"
+                                checked={sensors.notAvailable}
+                                onChange={() => setSensors(prev => ({ ...prev, notAvailable: true, notWorking: false }))}
+                                style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0 }}
+                            />
+                            <span style={{ color: '#64748b', fontWeight: '600' }}>Sensor Not Available</span>
                         </label>
                     </div>
                 </div>

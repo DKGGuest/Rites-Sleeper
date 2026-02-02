@@ -150,7 +150,8 @@ const SleeperProcessDuty = () => {
         { title: 'Compaction of Concrete (Vibrator Report)', subtitle: 'Vibrator Report' },
         { title: 'Steam Curing', subtitle: 'Temp profiles' },
         { title: 'Mould & Bench Checking', subtitle: 'Plant Assets' },
-        { title: 'Steam Cube Testing', subtitle: 'Strength Analysis' }
+        { title: 'Steam Cube Testing', subtitle: 'Strength Analysis' },
+        { title: 'Raw Material Inventory', subtitle: 'Stock Levels' }
     ];
 
     const handleAddContainer = () => {
@@ -370,34 +371,15 @@ const SleeperProcessDuty = () => {
                     )}
 
                     {activeTab === 'Moisture Analysis' && (
-                        <div style={{ width: '100%' }}>
-                            <div className="dash-section-header" style={{ marginBottom: '1.5rem' }}>
-                                <h3 className="dash-section-title"><span style={{ color: '#3b82f6' }}>●</span> Moisture Analysis Summary (Recent 10 Samples)</h3>
-                                <button className="toggle-btn" onClick={() => { setViewMode('entry'); setDetailView('detail_modal'); }}>Open Moisture Console</button>
-                            </div>
-
-                            <div className="data-table-section">
-                                <table className="ui-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Date & Shift</th><th>Timing</th><th>CA1 %</th><th>CA2 %</th><th>FA %</th><th>Total (Kg)</th><th>Source</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {moistureRecords.slice(0, 10).map(r => (
-                                            <tr key={r.id}>
-                                                <td>{r.date} ({r.shift})</td>
-                                                <td>{r.timing}</td>
-                                                <td>{r.ca1Free}%</td>
-                                                <td>{r.ca2Free}%</td>
-                                                <td>{r.faFree}%</td>
-                                                <td style={{ fontWeight: 'bold' }}>{r.totalFree} Kg</td>
-                                                <td><span className="status-pill witnessed">Lab</span></td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                        <div style={{ width: '100%', marginTop: '-1.5rem' }}>
+                            <MoistureAnalysis
+                                displayMode="inline"
+                                onBack={() => { }}
+                                onSave={() => setMoistureAlert(false)}
+                                initialView="list"
+                                records={moistureRecords}
+                                setRecords={setMoistureRecords}
+                            />
                         </div>
                     )}
 
@@ -857,6 +839,39 @@ const SleeperProcessDuty = () => {
                         </div>
                     )}
 
+
+                    {activeTab === 'Raw Material Inventory' && (
+                        <div style={{ width: '100%' }}>
+                            <div className="dash-section-header" style={{ marginBottom: '1.5rem' }}>
+                                <h3 className="dash-section-title"><span style={{ color: '#8b5cf6' }}>●</span> Raw Material Inventory</h3>
+                                <button className="toggle-btn" onClick={() => { setViewMode('entry'); setDetailView('detail_modal'); }}>Open Inventory Console</button>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                                <div className="calc-card" style={{ borderLeft: '4px solid #8b5cf6', padding: '1.5rem' }}>
+                                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>Cement (OPC-53)</div>
+                                    <div style={{ fontSize: '1.8rem', fontWeight: '700', color: '#1e293b' }}>120.5 MT</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.5rem' }}>Enough for 3 days</div>
+                                </div>
+                                <div className="calc-card" style={{ borderLeft: '4px solid #3b82f6', padding: '1.5rem' }}>
+                                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>20mm Aggregate</div>
+                                    <div style={{ fontSize: '1.8rem', fontWeight: '700', color: '#1e293b' }}>450.0 MT</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.5rem' }}>Full Capacity</div>
+                                </div>
+                                <div className="calc-card" style={{ borderLeft: '4px solid #3b82f6', padding: '1.5rem' }}>
+                                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>10mm Aggregate</div>
+                                    <div style={{ fontSize: '1.8rem', fontWeight: '700', color: '#1e293b' }}>320.3 MT</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.5rem' }}>Low Stock Alert</div>
+                                </div>
+                                <div className="calc-card" style={{ borderLeft: '4px solid #f59e0b', padding: '1.5rem' }}>
+                                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>Admixture</div>
+                                    <div style={{ fontSize: '1.8rem', fontWeight: '700', color: '#1e293b' }}>2,400 L</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.5rem' }}>OK</div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {activeTab === 'Manual Checks' && (
                         <div style={{ width: '100%' }}>
                             <div className="dash-section-header" style={{ marginBottom: '1.5rem' }}>
@@ -998,6 +1013,14 @@ const SleeperProcessDuty = () => {
                                 testedRecords={testedRecords}
                                 setTestedRecords={setTestedRecords}
                             />
+                        ) : activeTab === 'Raw Material Inventory' ? (
+                            <div className="section-card">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                    <h2>Raw Material Inventory</h2>
+                                    <button className="toggle-btn secondary" onClick={() => setDetailView('dashboard')}>Close</button>
+                                </div>
+                                <p style={{ color: '#64748b' }}>Detailed inventory management module coming soon.</p>
+                            </div>
                         ) : null}
                     </div>
                 )

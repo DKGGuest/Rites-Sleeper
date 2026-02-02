@@ -2,35 +2,27 @@ import React, { useState, useMemo, useEffect } from 'react';
 import CollapsibleSection from '../../components/common/CollapsibleSection';
 
 const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: propSetSteamRecords }) => {
-    // Detailed local fallback if not passed from parent
+    const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard', 'stats', 'witnessed', 'scada', 'form'
     const [localSteamRecords, setLocalSteamRecords] = useState([
-        { id: 101, source: 'Manual', date: '2026-01-29', batchNo: '609', chamberNo: '5', benches: '301, 302', minConstTemp: 57, maxConstTemp: 59, timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() }
+        { id: 101, source: 'Manual', date: '2026-02-02', batchNo: '609', chamberNo: '5', benches: '301, 302', minConstTemp: 57, maxConstTemp: 59, timestamp: new Date().toISOString() }
     ]);
     const entries = propSteamRecords || localSteamRecords;
     const setEntries = propSetSteamRecords || setLocalSteamRecords;
 
-    // Detailed mock SCADA cycles
     const [scadaCycles, setScadaCycles] = useState([
         {
-            id: 1, batchNo: '610', chamberNo: '1', date: '2026-01-30', benches: '401, 402', grade: 'M55',
+            id: 1, batchNo: '610', chamberNo: '1', date: '2026-02-02', benches: '401, 402', grade: 'M55',
             pre: { start: '08:00', end: '10:15', dur: 2.25 },
             rise: { start: '10:15', end: '12:30', startTemp: 28, endTemp: 58, dur: 2.25, rate: 13.3 },
             const: { start: '12:30', end: '16:30', tempRange: '58-60', dur: 4.0 },
             cool: { start: '16:30', end: '19:00', startTemp: 58, endTemp: 30, dur: 2.5, rate: 11.2 },
             final: { start: '19:00', end: '20:30', dur: 1.5 }
-        },
-        {
-            id: 2, batchNo: '611', chamberNo: '2', date: '2026-01-30', benches: '405, 406', grade: 'M60',
-            pre: { start: '09:00', end: '11:30', dur: 2.5 },
-            rise: { start: '11:30', end: '13:45', startTemp: 30, endTemp: 60, dur: 2.25, rate: 13.3 },
-            const: { start: '13:45', end: '18:15', tempRange: '60-61', dur: 4.5 },
-            cool: { start: '18:15', end: '20:45', startTemp: 60, endTemp: 32, dur: 2.5, rate: 11.2 },
-            final: { start: '20:45', end: '22:00', dur: 1.25 }
         }
     ]);
 
     const [selectedBatch, setSelectedBatch] = useState('610');
     const [selectedChamber, setSelectedChamber] = useState('1');
+    const [editingId, setEditingId] = useState(null);
 
     const [manualForm, setManualForm] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -41,40 +33,33 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
         return scadaCycles.find(c => c.batchNo === selectedBatch && c.chamberNo === selectedChamber);
     }, [selectedBatch, selectedChamber, scadaCycles]);
 
-    const handleWitness = () => {
-        if (!activeRecord) return;
-
-        const tempRangeSplit = activeRecord.const.tempRange.split('-').map(Number);
+    const handleWitness = (record) => {
+        const cycle = record || activeRecord;
+        if (!cycle) return;
+        const tempRangeSplit = cycle.const.tempRange.split('-').map(Number);
         const newEntry = {
             id: Date.now(),
-            source: 'Scada Witnessed',
-            date: activeRecord.date,
-            batchNo: activeRecord.batchNo,
-            chamberNo: activeRecord.chamberNo,
-            benches: activeRecord.benches,
+            source: 'Scada',
+            date: cycle.date,
+            batchNo: cycle.batchNo,
+            chamberNo: cycle.chamberNo,
+            benches: cycle.benches,
             minConstTemp: tempRangeSplit[0],
             maxConstTemp: tempRangeSplit[1] || tempRangeSplit[0],
             timestamp: new Date().toISOString()
         };
-
         setEntries(prev => [newEntry, ...prev]);
-        setScadaCycles(prev => prev.filter(c => c.id !== activeRecord.id));
-        alert(`Record witnessed.`);
+        setScadaCycles(prev => prev.filter(c => c.id !== cycle.id));
+        alert(`Cycle witnessed.`);
     };
 
-    const [editingId, setEditingId] = useState(null);
-
-    const isRecordEditable = (timestamp) => {
-        if (!timestamp) return true;
-        const diffMs = Date.now() - new Date(timestamp).getTime();
-        return diffMs < (8 * 60 * 60 * 1000);
+    const handleDelete = (id) => {
+        if (window.confirm('Are you sure you want to delete this record?')) {
+            setEntries(prev => prev.filter(e => e.id !== id));
+        }
     };
 
     const handleEdit = (entry) => {
-        if (entry.source !== 'Manual') {
-            alert('Only manual entries can be modified.');
-            return;
-        }
         setEditingId(entry.id);
         setManualForm({
             date: entry.date,
@@ -84,164 +69,175 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
             minConstTemp: entry.minConstTemp,
             maxConstTemp: entry.maxConstTemp
         });
-        const manualSection = document.getElementById('manual-entry-section');
-        if (manualSection) manualSection.scrollIntoView({ behavior: 'smooth' });
+        setViewMode('form');
     };
 
     const handleSaveManual = () => {
         if (!manualForm.batchNo || !manualForm.chamberNo) {
-            alert('Please fill at least Batch and Chamber numbers');
+            alert('Batch and Chamber numbers required');
             return;
         }
-
+        const newEntry = {
+            ...manualForm,
+            id: editingId || Date.now(),
+            timestamp: new Date().toISOString(),
+            source: 'Manual'
+        };
         if (editingId) {
-            setEntries(prev => prev.map(e => e.id === editingId ? { ...manualForm, id: editingId, source: 'Manual', timestamp: new Date().toISOString() } : e));
+            setEntries(prev => prev.map(e => e.id === editingId ? newEntry : e));
             setEditingId(null);
-            alert('Manual entry updated.');
         } else {
-            const newEntry = {
-                ...manualForm,
-                id: Date.now(),
-                timestamp: new Date().toISOString(),
-                source: 'Manual'
-            };
             setEntries(prev => [newEntry, ...prev]);
         }
-
         setManualForm({
             date: new Date().toISOString().split('T')[0],
             batchNo: '', chamberNo: '', benches: '', minConstTemp: '', maxConstTemp: ''
         });
+        alert('Manual entry saved.');
     };
 
-    const batches = [...new Set(scadaCycles.map(c => c.batchNo))];
-    const chambers = [...new Set(scadaCycles.filter(c => c.batchNo === selectedBatch).map(c => c.chamberNo))];
+    const renderDashboard = () => (
+        <div style={{ padding: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '2rem' }}>
+                <button className="toggle-btn" onClick={() => setViewMode('form')}>+ Add New Entry</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+                <div className="dashboard-card hover-lift" onClick={() => setViewMode('stats')} style={{ background: '#fff', padding: '2.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', cursor: 'pointer', textAlign: 'center' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🌡️</div>
+                    <h3 style={{ color: '#1e293b' }}>Statistics</h3>
+                    <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Cycle duration and temperature variations.</p>
+                </div>
+                <div className="dashboard-card hover-lift" onClick={() => setViewMode('witnessed')} style={{ background: '#fff', padding: '2.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', cursor: 'pointer', textAlign: 'center' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
+                    <h3 style={{ color: '#1e293b' }}>Witnessed Logs</h3>
+                    <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Manage all heat treatment records.</p>
+                </div>
+                <div className="dashboard-card hover-lift" onClick={() => setViewMode('scada')} style={{ background: '#fff', padding: '2.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', cursor: 'pointer', textAlign: 'center' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⛓️</div>
+                    <h3 style={{ color: '#1e293b' }}>Scada Data</h3>
+                    <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Raw SCADA cycles for all chambers.</p>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderForm = () => (
+        <div className="fade-in">
+            <div style={{ marginBottom: '1.5rem' }}><button className="back-btn" onClick={() => setViewMode('witnessed')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontWeight: 'bold' }}>← Back to Logs</button></div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b' }}>1. Initial Declaration</h4>
+                    <div className="form-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+                        <div className="form-field"><label>Batch</label><input value={selectedBatch} readOnly style={{ background: '#f8fafc' }} /></div>
+                        <div className="form-field"><label>Chamber</label><input value={selectedChamber} readOnly style={{ background: '#f8fafc' }} /></div>
+                        <div className="form-field"><label>Grade</label><input value="M60" readOnly style={{ background: '#f8fafc' }} /></div>
+                        <div className="form-field"><label>Date</label><input type="date" value={manualForm.date} readOnly style={{ background: '#f8fafc' }} /></div>
+                    </div>
+                </div>
+                <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b' }}>2. Scada Fetched Values</h4>
+                    {activeRecord ? (
+                        <table className="ui-table">
+                            <thead><tr><th>Phase</th><th>Start</th><th>End</th><th>Parameters</th><th>Action</th></tr></thead>
+                            <tbody>
+                                <tr><td>Rising</td><td>{activeRecord.rise.start}</td><td>{activeRecord.rise.end}</td><td>{activeRecord.rise.rate}°C/h</td><td rowSpan="3"><button className="btn-action" onClick={() => handleWitness(activeRecord)}>Witness Cycle</button></td></tr>
+                                <tr><td>Constant</td><td>{activeRecord.const.start}</td><td>{activeRecord.const.end}</td><td>{activeRecord.const.tempRange}°C</td></tr>
+                                <tr><td>Cooling</td><td>{activeRecord.cool.start}</td><td>{activeRecord.cool.end}</td><td>{activeRecord.cool.rate}°C/h</td></tr>
+                            </tbody>
+                        </table>
+                    ) : <p style={{ textAlign: 'center', color: '#94a3b8' }}>No pending SCADA data.</p>}
+                </div>
+                <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b' }}>3. Manual Entry Form</h4>
+                    <div className="form-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                        <div className="form-field"><label>Batch No.</label><input type="number" value={manualForm.batchNo} onChange={e => setManualForm({ ...manualForm, batchNo: e.target.value })} /></div>
+                        <div className="form-field"><label>Chamber</label><input type="number" value={manualForm.chamberNo} onChange={e => setManualForm({ ...manualForm, chamberNo: e.target.value })} /></div>
+                        <div className="form-field"><label>Max Temp</label><input type="number" value={manualForm.maxConstTemp} onChange={e => setManualForm({ ...manualForm, maxConstTemp: e.target.value })} /></div>
+                    </div>
+                    <div style={{ marginTop: '1rem', textAlign: 'center' }}><button className="toggle-btn" onClick={handleSaveManual}>{editingId ? 'Update Record' : 'Save Manual Record'}</button></div>
+                </div>
+                <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b' }}>4. Current Witness Logs</h4>
+                    <table className="ui-table">
+                        <thead><tr><th>Source</th><th>Batch</th><th>Chamber</th><th>Temp Range</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            {entries.slice(0, 5).map(e => (
+                                <tr key={e.id}>
+                                    <td><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
+                                    <td>{e.batchNo}</td><td>{e.chamberNo}</td><td>{e.minConstTemp}-{e.maxConstTemp}°C</td>
+                                    <td>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            {e.source === 'Manual' && <button className="btn-action" onClick={() => handleEdit(e)}>Edit</button>}
+                                            <button className="btn-action" style={{ background: '#fee2e2', color: '#ef4444', border: 'none' }} onClick={() => handleDelete(e.id)}>Delete</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
 
     return (
         <div className="modal-overlay" onClick={onBack}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1600px', width: '98%', height: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1600px', width: '95%', height: '90vh', display: 'flex', flexDirection: 'column' }}>
                 <header className="modal-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                        <div>
-                            <h2 style={{ margin: 0 }}>Steam Curing Console</h2>
-                            <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Heat Treatment Cycle Assurance</p>
-                        </div>
-                        <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Batch:</span>
-                                <select className="dash-select" style={{ margin: 0, width: '90px' }} value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
-                                    {batches.map(b => <option key={b} value={b}>{b}</option>)}
-                                </select>
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Chamber:</span>
-                                <select className="dash-select" style={{ margin: 0, width: '80px' }} value={selectedChamber} onChange={e => setSelectedChamber(e.target.value)}>
-                                    {chambers.map(ch => <option key={ch} value={ch}>{ch}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
+                    <div><h2 style={{ margin: 0 }}>Steam Curing Console</h2><p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Heat Treatment Cycle Assurance</p></div>
                     <button className="close-btn" onClick={onBack}>×</button>
                 </header>
-
-                <div className="modal-body" style={{ flexGrow: 1, overflowY: 'auto', padding: '1.5rem' }}>
-
-                    {/* Initial Information Section - Sleek Dashboard Card Style */}
-                    <div style={{ marginBottom: '1.5rem', background: '#f1f5f9', borderRadius: '12px', padding: '1.5rem', border: '1px solid #e2e8f0', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1.5rem' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Batch Number</span>
-                                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>{selectedBatch}</div>
+                <div className="modal-body" style={{ flexGrow: 1, overflowY: 'auto', padding: '1.5rem', background: '#f8fafc' }}>
+                    {viewMode !== 'dashboard' && <button className="back-btn" onClick={() => setViewMode('dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', fontWeight: 'bold', marginBottom: '1.5rem' }}>← Main Menu</button>}
+                    {viewMode === 'dashboard' && renderDashboard()}
+                    {viewMode === 'form' && renderForm()}
+                    {viewMode === 'stats' && <div className="fade-in"><h3>Steam Curing Performance Statistics</h3><div style={{ padding: '3rem', textAlign: 'center', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>📉 Curing temperature profiles and efficiency metrics...</div></div>}
+                    {viewMode === 'witnessed' && (
+                        <div className="fade-in">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h3 style={{ margin: 0 }}>Witnessed Curing Logs</h3>
+                                <button className="toggle-btn" onClick={() => setViewMode('form')}>+ Add New Entry</button>
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Chamber No</span>
-                                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>{selectedChamber}</div>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Total Benches</span>
-                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                                    <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>2</div>
-                                    <span style={{ fontSize: '1rem', fontWeight: '600', color: '#64748b' }}>Nos</span>
-                                </div>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>Cycle Status</span>
-                                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#3b82f6' }}>In Progress</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <CollapsibleSection title="SCADA Data Fetched" defaultOpen={true}>
-                        {!activeRecord ? (
-                            <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b', background: '#f8fafc', borderRadius: '12px' }}>
-                                No pending SCADA records for the selected selection.
-                            </div>
-                        ) : (
-                            <div className="fade-in">
-                                <div className="table-outer-wrapper">
-                                    <table className="ui-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Phase</th><th>Start</th><th>End</th><th>Parameters</th><th>Duration</th>
+                            <div className="table-outer-wrapper" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                <table className="ui-table">
+                                    <thead><tr><th>Source</th><th>Date</th><th>Batch</th><th>Chamber</th><th>Benches</th><th>Temp Range</th><th>Actions</th></tr></thead>
+                                    <tbody>
+                                        {entries.map(e => (
+                                            <tr key={e.id}>
+                                                <td><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
+                                                <td>{e.date}</td><td>{e.batchNo}</td><td>{e.chamberNo}</td><td>{e.benches}</td><td>{e.minConstTemp}-{e.maxConstTemp}°C</td>
+                                                <td>
+                                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                                        {e.source === 'Manual' && <button className="btn-action" onClick={() => handleEdit(e)}>Edit</button>}
+                                                        <button className="btn-action" style={{ background: '#fee2e2', color: '#ef4444', border: 'none' }} onClick={() => handleDelete(e.id)}>Delete</button>
+                                                    </div>
+                                                </td>
                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr style={{ background: '#f0f9ff' }}><td><strong>Pre-Steaming</strong></td><td>{activeRecord.pre.start}</td><td>{activeRecord.pre.end}</td><td>-</td><td>{activeRecord.pre.dur}h</td></tr>
-                                            <tr><td><strong>Temp Rising</strong></td><td>{activeRecord.rise.start} ({activeRecord.rise.startTemp}°C)</td><td>{activeRecord.rise.end} ({activeRecord.rise.endTemp}°C)</td><td>{activeRecord.rise.rate}°C/h</td><td>{activeRecord.rise.dur}h</td></tr>
-                                            <tr style={{ background: '#fffbeb' }}><td><strong>Constant Temp</strong></td><td>{activeRecord.const.start}</td><td>{activeRecord.const.end}</td><td>{activeRecord.const.tempRange}°C</td><td>{activeRecord.const.dur}h</td></tr>
-                                            <tr><td><strong>Cooling Period</strong></td><td>{activeRecord.cool.start} ({activeRecord.cool.startTemp}°C)</td><td>{activeRecord.cool.end} ({activeRecord.cool.endTemp}°C)</td><td>{activeRecord.cool.rate}°C/h</td><td>{activeRecord.cool.dur}h</td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem' }}>
-                                    <button className="toggle-btn" onClick={handleWitness}>Witness SCADA Cycle</button>
-                                </div>
-                            </div>
-                        )}
-                    </CollapsibleSection>
-
-                    <CollapsibleSection title="Scada Witness / Manual Data Entry" defaultOpen={true} id="manual-entry-section">
-                        <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem', border: '1px solid #e2e8f0' }}>
-                            <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b' }}>Add Manual Steam Log</h4>
-                            <div className="form-grid">
-                                <div className="form-field"><label>Batch No.</label><input type="number" value={manualForm.batchNo} onChange={e => setManualForm({ ...manualForm, batchNo: e.target.value })} /></div>
-                                <div className="form-field"><label>Chamber No.</label><input type="number" value={manualForm.chamberNo} onChange={e => setManualForm({ ...manualForm, chamberNo: e.target.value })} /></div>
-                                <div className="form-field"><label>Bench No.</label><input type="text" value={manualForm.benches} onChange={e => setManualForm({ ...manualForm, benches: e.target.value })} /></div>
-                                <div className="form-field"><label>Min Temp (°C)</label><input type="number" value={manualForm.minConstTemp} onChange={e => setManualForm({ ...manualForm, minConstTemp: e.target.value })} /></div>
-                                <div className="form-field"><label>Max Temp (°C)</label><input type="number" value={manualForm.maxConstTemp} onChange={e => setManualForm({ ...manualForm, maxConstTemp: e.target.value })} /></div>
-                                <div className="form-actions-center" style={{ gridColumn: 'span 2', marginTop: '1rem' }}>
-                                    <button className="toggle-btn" onClick={handleSaveManual}>{editingId ? 'Update Record' : 'Save Manual Record'}</button>
-                                    {editingId && <button className="toggle-btn secondary" onClick={() => setEditingId(null)} style={{ marginLeft: '1rem' }}>Cancel</button>}
-                                </div>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-
-                        <div className="table-outer-wrapper">
-                            <table className="ui-table">
-                                <thead>
-                                    <tr>
-                                        <th>Source</th><th>Batch</th><th>Chamber</th><th>Benches</th><th>Temp Range</th><th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {entries.map(e => (
-                                        <tr key={e.id}>
-                                            <td data-label="Source"><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
-                                            <td data-label="Batch">{e.batchNo}</td>
-                                            <td data-label="Chamber">{e.chamberNo}</td>
-                                            <td data-label="Benches">{e.benches}</td>
-                                            <td data-label="Temp">{e.minConstTemp}°C - {e.maxConstTemp}°C</td>
-                                            <td data-label="Action">
-                                                {e.source === 'Manual' && isRecordEditable(e.timestamp) ? (
-                                                    <button className="btn-action" onClick={() => handleEdit(e)}>Edit</button>
-                                                ) : <span style={{ fontSize: '10px', color: '#94a3b8' }}>Locked</span>}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                    )}
+                    {viewMode === 'scada' && (
+                        <div className="fade-in">
+                            <h3>Raw SCADA Cycles (Full)</h3>
+                            {scadaCycles.map(c => (
+                                <div key={c.id} style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '1rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <strong>Batch {c.batchNo} | Chamber {c.chamberNo}</strong>
+                                        <button className="btn-action" onClick={() => handleWitness(c)}>Witness Cycle</button>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginTop: '1rem' }}>
+                                        <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Pre-Steam</label><div>{c.pre.dur}h</div></div>
+                                        <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Rising</label><div>{c.rise.rate}°C/h</div></div>
+                                        <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Constant</label><div>{c.const.tempRange}°C</div></div>
+                                        <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Cooling</label><div>{c.cool.rate}°C/h</div></div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                    </CollapsibleSection>
+                    )}
                 </div>
             </div>
         </div>

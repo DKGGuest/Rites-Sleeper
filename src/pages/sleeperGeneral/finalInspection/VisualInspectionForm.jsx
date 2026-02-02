@@ -14,12 +14,8 @@ const VisualInspectionForm = ({ batch, onSave, onCancel }) => {
 
     const sections = [
         { id: 'visual', label: 'Visual Checking', section: 'Section 1' },
-        { id: 'endDamage', label: 'Visual Checking (End Damage)', section: 'Section 1' },
-        { id: 'railSeatPRK', label: 'Rail Seat (PRK Side)', section: 'Section 2' },
-        { id: 'railSeatRT', label: 'Rail Seat (RT Side)', section: 'Section 2' },
-        { id: 'outerGauge', label: 'Outer Gauge', section: 'Section 3' },
-        { id: 'ftc', label: 'FTC', section: 'Section 4' },
-        { id: 'dowel', label: 'Dowel', section: 'Section 1' }
+        { id: 'dimension', label: 'Dimension Checking', section: 'Section 2' },
+        { id: 'ftc', label: 'FTC', section: 'Section 3' },
     ];
 
     const [sectionStates, setSectionStates] = useState(
@@ -85,8 +81,37 @@ const VisualInspectionForm = ({ batch, onSave, onCancel }) => {
         }
     };
 
+    const getRejectionOptions = (sectionId) => {
+        if (sectionId === 'visual') return ['Rail Seat Damage (LT)', 'Rail Seat Damage (RT)'];
+        if (sectionId === 'dimension') return ['Outer Gauge', 'Rail Seat (LT)', 'Rail Seat (RT)'];
+        return null;
+    };
+
     return (
         <div className="visual-inspection-form">
+            {/* Initial Information Card */}
+            <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', background: '#f8fafc' }}>
+                <h4 style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px', textTransform: 'uppercase' }}>Initial Information</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                    <div>
+                        <label style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Batch Number</label>
+                        <div style={{ fontWeight: '700', color: '#13343b', fontSize: '1.1rem' }}>{batch.batchNo}</div>
+                    </div>
+                    <div>
+                        <label style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Date of Casting</label>
+                        <div style={{ fontWeight: '700', color: '#13343b', fontSize: '1.1rem' }}>{batch.date || '2026-01-30'}</div>
+                    </div>
+                    <div>
+                        <label style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Sleeper Type</label>
+                        <div style={{ fontWeight: '700', color: '#13343b', fontSize: '1.1rem' }}>{batch.sleeperType}</div>
+                    </div>
+                    <div>
+                        <label style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Total Sleepers Casted</label>
+                        <div style={{ fontWeight: '700', color: '#13343b', fontSize: '1.1rem' }}>{batch.batchTotal}</div>
+                    </div>
+                </div>
+            </div>
+
             {/* Top Sleeper Status Grid */}
             <div style={{ background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
                 <h4 style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px', textTransform: 'uppercase' }}>Sleeper Batch Status Map ({batch.sleeperType})</h4>
@@ -166,6 +191,30 @@ const VisualInspectionForm = ({ batch, onSave, onCancel }) => {
                                             </div>
                                         </div>
 
+                                        {sectionStates[s.id].result === 'all-rejected' && (
+                                            <div style={{ marginTop: '12px', background: '#fee2e2', padding: '12px', borderRadius: '8px', border: '1px solid #fecaca', animation: 'fadeIn 0.2s' }}>
+                                                <label style={{ fontSize: '11px', fontWeight: '700', color: '#b91c1c', display: 'block', marginBottom: '6px' }}>Reason for rejecting ALL sleepers:</label>
+                                                {getRejectionOptions(s.id) ? (
+                                                    <select
+                                                        style={{ width: '100%', padding: '6px', fontSize: '11px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                                                        value={sectionStates[s.id].globalRemark || ''}
+                                                        onChange={(e) => handleSectionChange(s.id, 'globalRemark', e.target.value)}
+                                                    >
+                                                        <option value="">Select Reason...</option>
+                                                        {getRejectionOptions(s.id).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                    </select>
+                                                ) : (
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Enter reason..."
+                                                        style={{ width: '100%', padding: '6px', fontSize: '11px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                                                        value={sectionStates[s.id].globalRemark || ''}
+                                                        onChange={(e) => handleSectionChange(s.id, 'globalRemark', e.target.value)}
+                                                    />
+                                                )}
+                                            </div>
+                                        )}
+
                                         {sectionStates[s.id].result === 'partial-ok' && (
                                             <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', animation: 'fadeIn 0.2s' }}>
                                                 <div style={{ marginBottom: '8px', color: '#42818c', fontWeight: '700', fontSize: '11px' }}>Select Rejected Sleepers:</div>
@@ -203,16 +252,30 @@ const VisualInspectionForm = ({ batch, onSave, onCancel }) => {
                                                         {sectionStates[s.id].failedSleepers.map(fid => (
                                                             <div key={fid} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                                                                 <span style={{ fontSize: '10px', fontWeight: '700', width: '60px' }}>#{fid.split('/')[1]}</span>
-                                                                <input
-                                                                    type="text"
-                                                                    placeholder="Reason for rejection..."
-                                                                    style={{ flex: 1, padding: '4px 8px', fontSize: '11px' }}
-                                                                    value={sectionStates[s.id].remarks[fid] || ''}
-                                                                    onChange={(e) => {
-                                                                        const newRemarks = { ...sectionStates[s.id].remarks, [fid]: e.target.value };
-                                                                        handleSectionChange(s.id, 'remarks', newRemarks);
-                                                                    }}
-                                                                />
+                                                                {getRejectionOptions(s.id) ? (
+                                                                    <select
+                                                                        style={{ flex: 1, padding: '4px 8px', fontSize: '11px' }}
+                                                                        value={sectionStates[s.id].remarks[fid] || ''}
+                                                                        onChange={(e) => {
+                                                                            const newRemarks = { ...sectionStates[s.id].remarks, [fid]: e.target.value };
+                                                                            handleSectionChange(s.id, 'remarks', newRemarks);
+                                                                        }}
+                                                                    >
+                                                                        <option value="">Select Reason...</option>
+                                                                        {getRejectionOptions(s.id).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                                    </select>
+                                                                ) : (
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Reason for rejection..."
+                                                                        style={{ flex: 1, padding: '4px 8px', fontSize: '11px' }}
+                                                                        value={sectionStates[s.id].remarks[fid] || ''}
+                                                                        onChange={(e) => {
+                                                                            const newRemarks = { ...sectionStates[s.id].remarks, [fid]: e.target.value };
+                                                                            handleSectionChange(s.id, 'remarks', newRemarks);
+                                                                        }}
+                                                                    />
+                                                                )}
                                                             </div>
                                                         ))}
                                                     </div>

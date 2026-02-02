@@ -9,7 +9,7 @@ import '../../../components/common/Checkbox.css';
  * - Responsive layout support (via CSS classes)
  * - Separation of concerns
  */
-const MouldPrepForm = ({ onSave, isLongLine, existingEntries = [], initialData, activeContainer }) => {
+const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initialData, activeContainer }) => {
     const [formData, setFormData] = useState({
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
         benchNo: '',
@@ -122,8 +122,9 @@ const MouldPrepForm = ({ onSave, isLongLine, existingEntries = [], initialData, 
                     />
                 </div>
             </div>
-            <div className="form-actions-center">
+            <div className="form-actions-center" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                 <button className="toggle-btn" onClick={handleSave}>Save Entry</button>
+                <button className="toggle-btn" style={{ background: '#f1f5f9', color: '#64748b' }} onClick={onCancel}>Cancel</button>
             </div>
         </div>
     );

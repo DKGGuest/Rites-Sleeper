@@ -10,74 +10,84 @@ const CriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage }) =>
 
     const [selectedSleepers, setSelectedSleepers] = useState([]);
 
-    const sections = [
-        { id: 'toeGapPrkInner', label: 'Toe Gap - PRK Side - Inner', section: 'Section 1' },
-        { id: 'toeGapPrkOuter', label: 'Toe Gap - PRK Side - Outer', section: 'Section 1' },
-        { id: 'toeGapRtInner', label: 'Toe Gap - RT Side - Inner', section: 'Section 1' },
-        { id: 'toeGapRtOuter', label: 'Toe Gap - RT Side - Outer', section: 'Section 1' },
-        { id: 'slopePrk', label: 'Slope - PRK Side', section: 'Section 2' },
-        { id: 'slopeRt', label: 'Slope - RT Side', section: 'Section 2' },
-        { id: 'windGaugePrk', label: 'Wind Gauge - PRK Side', section: 'Section 3' },
-        { id: 'windGaugeRt', label: 'Wind Gauge - RT Side', section: 'Section 3' }
-    ];
-
-    const [sectionStates, setSectionStates] = useState(
-        sections.reduce((acc, s) => ({
-            ...acc,
-            [s.id]: {
-                allChecked: false,
-                result: 'all-ok', // 'all-ok', 'partial-ok', 'all-rejected'
-                failedSleepers: [],
-                remarks: {}
-            }
-        }), {})
-    );
-
     const toggleSleeperSelection = (id) => {
         setSelectedSleepers(prev =>
             prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
         );
     };
 
-    const handleSectionChange = (sectionId, field, value) => {
-        setSectionStates(prev => ({
+    const parametersToCheck = [
+        'ToeGap',
+        'Slope Gauge',
+        'WindGauge'
+    ];
+
+    const [checklistState, setChecklistState] = useState(
+        parametersToCheck.reduce((acc, p) => ({ ...acc, [p]: false }), {})
+    );
+
+    const [overallResult, setOverallResult] = useState(null); // 'ok', 'partial-ok', 'all-rejected'
+    const [rejectionDetails, setRejectionDetails] = useState({}); // { sleeperId: { mainReason: '', subReason: '' } }
+
+    const isChecklistComplete = parametersToCheck.every(p => checklistState[p]);
+
+    const handleChecklistChange = (param) => {
+        setChecklistState(prev => ({ ...prev, [param]: !prev[param] }));
+    };
+
+    const handleResultChange = (result) => {
+        if (!isChecklistComplete) return;
+        setOverallResult(result);
+        if (result === 'ok') {
+            setRejectionDetails({});
+        } else if (result === 'all-rejected') {
+            // Auto-populate all selected sleepers as rejected? Or let user handle it?
+            // User says "Table will come up to select Rejected sleepers".
+            // If All Rejected, logically all should be in the rejection list.
+            const allRejected = {};
+            selectedSleepers.forEach(id => {
+                allRejected[id] = { mainReason: '', subReason: '' };
+            });
+            setRejectionDetails(allRejected);
+        } else {
+            // Partial: clear rejections or keep existing? Keep existing to avoid data loss on toggle
+        }
+    };
+
+    const handleRejectionChange = (sleeperId, field, value) => {
+        setRejectionDetails(prev => ({
             ...prev,
-            [sectionId]: {
-                ...prev[sectionId],
+            [sleeperId]: {
+                ...prev[sleeperId],
                 [field]: value
             }
         }));
     };
 
-    const getSleeperStatus = (sleeperId) => {
-        if (!selectedSleepers.includes(sleeperId)) return 'pending-select';
-
-        let isRejected = false;
-        let isAllSectionsChecked = true;
-
-        sections.forEach(s => {
-            const state = sectionStates[s.id];
-            if (!state.allChecked) isAllSectionsChecked = false;
-            if (state.result === 'all-rejected') isRejected = true;
-            if (state.result === 'partial-ok' && state.failedSleepers.includes(sleeperId)) isRejected = true;
+    const toggleRejection = (sleeperId) => {
+        setRejectionDetails(prev => {
+            if (prev[sleeperId]) {
+                const newState = { ...prev };
+                delete newState[sleeperId];
+                return newState;
+            } else {
+                return { ...prev, [sleeperId]: { mainReason: '', subReason: '' } };
+            }
         });
-
-        if (isRejected) return 'rejected';
-        if (isAllSectionsChecked) return 'passed';
-        return 'pending-check';
     };
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'passed': return '#22c55e'; // Green
-            case 'rejected': return '#ef4444'; // Red
-            case 'pending-check': return '#f59e0b'; // Yellow
-            case 'pending-select': return '#f1f5f9'; // Grey/Light
-            default: return '#f1f5f9';
+    const getSubReasons = (mainReason) => {
+        switch (mainReason) {
+            case 'ToeGap':
+                return ['ToeGap(LT) - Inner', 'ToeGap (LT) - Outer', 'ToeGap (RT)-Inner', 'ToeGap (RT) - Outer'];
+            case 'Slope Gauge':
+                return ['Slope Gauge (LT)', 'Slope Gauge (RT)'];
+            case 'WindGauge':
+                return ['Wind Gauge (LT)', 'Wind Gauge (RT)'];
+            default:
+                return [];
         }
     };
-
-    const selectionPercentage = ((selectedSleepers.length / allSleepersPool.length) * 100).toFixed(1);
 
     return (
         <div className="critical-dimension-form" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '10px' }}>
@@ -92,169 +102,184 @@ const CriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage }) =>
                 </button>
             </div>
 
-            {/* Initial Information Section - Standardized Sleek Card */}
-            <div style={{ marginBottom: '1.5rem', background: '#f1f5f9', borderRadius: '12px', padding: '1.5rem', border: '1px solid #e2e8f0', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1.5rem' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '800', color: '#64748b', letterSpacing: '0.5px' }}>Batch Number</span>
-                        <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>{batch.batchNo}</div>
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
+                {/* Section 1: Initial Information */}
+                <div style={{ marginBottom: '1.5rem', background: '#f1f5f9', borderRadius: '12px', padding: '1.5rem', border: '1px solid #e2e8f0' }}>
+                    <h4 style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px', textTransform: 'uppercase' }}>1. Initial Declaration</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1.5rem' }}>
+                        <div><div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748b' }}>BATCH NUMBER</div><div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1e293b' }}>{batch.batchNo}</div></div>
+                        <div><div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748b' }}>SLEEPER TYPE</div><div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1e293b' }}>{batch.sleeperType}</div></div>
+                        <div><div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748b' }}>TOTAL IN BATCH</div><div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1e293b' }}>{batch.typeQty || 255}</div></div>
+                        <div><div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748b' }}>TARGET REQ.</div><div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1e293b' }}>{targetPercentage}</div></div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '800', color: '#64748b', letterSpacing: '0.5px' }}>Sleeper Type</span>
-                        <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>{batch.sleeperType || 'RT 8746'}</div>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '800', color: '#64748b', letterSpacing: '0.5px' }}>Total In Batch</span>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                            <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>{batch.typeQty || 255}</div>
-                            <span style={{ fontSize: '1rem', fontWeight: '600', color: '#64748b' }}>Nos</span>
+                </div>
+
+                {/* Section 2: Available Sleepers */}
+                <div style={{ background: '#f1f5f9', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+                    <h4 style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px', textTransform: 'uppercase' }}>2. Available Sleepers (Select for Testing)</h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: '700', color: '#15803d' }}>
+                            Selected: {selectedSleepers.length} / {allSleepersPool.length}
                         </div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: '800', color: '#64748b', letterSpacing: '0.5px' }}>Target Req.</span>
-                        <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>{targetPercentage}</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(50px, 1fr))', gap: '6px', maxHeight: '150px', overflowY: 'auto', padding: '2px' }}>
+                        {allSleepersPool.map(s => {
+                            const isSelected = selectedSleepers.includes(s.id);
+                            return (
+                                <div
+                                    key={s.id}
+                                    onClick={() => toggleSleeperSelection(s.id)}
+                                    style={{
+                                        padding: '6px 0',
+                                        textAlign: 'center',
+                                        borderRadius: '4px',
+                                        fontSize: '10px',
+                                        fontWeight: '700',
+                                        cursor: 'pointer',
+                                        background: isSelected ? '#15803d' : '#d1d5db',
+                                        color: isSelected ? '#fff' : '#374151',
+                                        border: '1px solid',
+                                        borderColor: isSelected ? '#14532d' : '#9ca3af',
+                                    }}
+                                >
+                                    {s.id.split('/')[1]}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
-            </div>
 
-            {/* Selection Pool */}
-            <div style={{ background: '#f1f5f9', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <h4 style={{ fontSize: '11px', color: '#64748b', margin: 0, fontWeight: '800', textTransform: 'uppercase' }}>Available Sleepers (Click to select for testing)</h4>
-                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#15803d' }}>
-                        Selected: {selectedSleepers.length} / {allSleepersPool.length} ({selectionPercentage}%)
+                {/* Section 3: Critical Parameters Checklist */}
+                <div style={{ background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+                    <h4 style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px', textTransform: 'uppercase' }}>3. Critical Parameters to be Checked</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                        {parametersToCheck.map(param => (
+                            <label key={param} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', border: checklistState[param] ? '1px solid #10b981' : '1px solid #e2e8f0' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={checklistState[param]}
+                                    onChange={() => handleChecklistChange(param)}
+                                    style={{ width: '16px', height: '16px', accentColor: '#10b981' }}
+                                />
+                                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>{param}</span>
+                            </label>
+                        ))}
                     </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(50px, 1fr))', gap: '6px', maxHeight: '150px', overflowY: 'auto', padding: '2px' }}>
-                    {allSleepersPool.map(s => {
-                        const isSelected = selectedSleepers.includes(s.id);
-                        return (
-                            <div
-                                key={s.id}
-                                onClick={() => toggleSleeperSelection(s.id)}
+
+                {/* Section 4: Result of Checking */}
+                <div style={{ background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', opacity: isChecklistComplete ? 1 : 0.6, pointerEvents: isChecklistComplete ? 'auto' : 'none' }}>
+                    <h4 style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px', textTransform: 'uppercase' }}>4. Result of Checking</h4>
+
+                    <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+                        {[
+                            { id: 'ok', label: 'All OK', color: '#10b981' },
+                            { id: 'partial-ok', label: 'Partially OK', color: '#f59e0b' },
+                            { id: 'all-rejected', label: 'All Rejected', color: '#ef4444' }
+                        ].map(opt => (
+                            <button
+                                key={opt.id}
+                                onClick={() => handleResultChange(opt.id)}
                                 style={{
-                                    padding: '6px 0',
-                                    textAlign: 'center',
-                                    borderRadius: '4px',
-                                    fontSize: '10px',
+                                    flex: 1,
+                                    padding: '12px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    background: overallResult === opt.id ? opt.color : '#f1f5f9',
+                                    color: overallResult === opt.id ? '#fff' : '#64748b',
                                     fontWeight: '700',
                                     cursor: 'pointer',
-                                    background: isSelected ? '#15803d' : '#d1d5db', // Green or Grey
-                                    color: isSelected ? '#fff' : '#374151',
-                                    border: '1px solid',
-                                    borderColor: isSelected ? '#14532d' : '#9ca3af',
-                                    boxShadow: '0 1px 1px rgba(0,0,0,0.05)',
-                                    transition: 'all 0.1s'
+                                    transition: 'all 0.2s'
                                 }}
                             >
-                                {s.id.split('/')[1]}
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {/* Inspection Table */}
-            <div style={{ flex: 1, overflowY: 'auto', background: '#fce7d240', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <table className="ui-table" style={{ fontSize: '12px', width: '100%', borderCollapse: 'collapse' }}>
-                    <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
-                        <tr style={{ background: '#eaddd0', color: '#4b5563', textTransform: 'uppercase', fontSize: '10px' }}>
-                            <th style={{ padding: '12px', textAlign: 'left', fontWeight: '800', width: '35%' }}>Critical Parameter</th>
-                            <th style={{ padding: '12px', textAlign: 'left', fontWeight: '800', width: '15%' }}>Source</th>
-                            <th style={{ padding: '12px', textAlign: 'left', fontWeight: '800' }}>Inspection Results (For selected {selectedSleepers.length} sleepers)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {sections.map((s, idx) => (
-                            <tr key={s.id} style={{ borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#fff' : '#f9fafb' }}>
-                                <td style={{ padding: '12px', fontWeight: '700', color: '#1e293b' }}>{s.label}</td>
-                                <td style={{ padding: '12px', color: '#64748b' }}>{s.section}</td>
-                                <td style={{ padding: '12px' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '11px' }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={sectionStates[s.id].allChecked}
-                                                    onChange={(e) => handleSectionChange(s.id, 'allChecked', e.target.checked)}
-                                                    style={{ width: '14px', height: '14px', accentColor: '#0f172a' }}
-                                                />
-                                                Checked
-                                            </label>
-
-                                            <div style={{ display: 'flex', gap: '1px', background: '#94a3b8', padding: '1px', borderRadius: '4px', overflow: 'hidden' }}>
-                                                {[
-                                                    { id: 'all-ok', label: 'All OK' },
-                                                    { id: 'partial-ok', label: 'Partial OK' },
-                                                    { id: 'all-rejected', label: 'Rejected' }
-                                                ].map(opt => {
-                                                    const isActive = sectionStates[s.id].result === opt.id;
-                                                    let activeBg = '#115e59'; // Default Dark Green
-                                                    if (opt.id === 'all-rejected') activeBg = '#b91c1c'; // Red for Rejected
-
-                                                    return (
-                                                        <button
-                                                            key={opt.id}
-                                                            onClick={() => handleSectionChange(s.id, 'result', opt.id)}
-                                                            style={{
-                                                                padding: '4px 12px',
-                                                                fontSize: '10px',
-                                                                border: 'none',
-                                                                background: isActive ? '#0f3d3e' : '#cbd5e1', // Dark Green active, Grey inactive
-                                                                color: isActive ? '#fff' : '#1e293b',
-                                                                cursor: 'pointer',
-                                                                fontWeight: '700',
-                                                                flex: 1
-                                                            }}
-                                                        >
-                                                            {opt.label}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-
-                                        {sectionStates[s.id].result === 'partial-ok' && (
-                                            <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '6px', padding: '8px', animation: 'fadeIn 0.2s' }}>
-                                                <span style={{ fontSize: '10px', fontWeight: '700', color: '#be123c', display: 'block', marginBottom: '6px' }}>Select Failed Sleepers:</span>
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                                    {selectedSleepers.map(sid => {
-                                                        const isFailed = sectionStates[s.id].failedSleepers.includes(sid);
-                                                        return (
-                                                            <div
-                                                                key={sid}
-                                                                onClick={() => {
-                                                                    const failed = sectionStates[s.id].failedSleepers;
-                                                                    const newVal = failed.includes(sid)
-                                                                        ? failed.filter(fid => fid !== sid)
-                                                                        : [...failed, sid];
-                                                                    handleSectionChange(s.id, 'failedSleepers', newVal);
-                                                                }}
-                                                                style={{
-                                                                    padding: '2px 8px',
-                                                                    borderRadius: '4px',
-                                                                    fontSize: '10px',
-                                                                    cursor: 'pointer',
-                                                                    border: '1px solid',
-                                                                    borderColor: isFailed ? '#be123c' : '#cbd5e1',
-                                                                    background: isFailed ? '#fecdd3' : '#fff',
-                                                                    color: isFailed ? '#881337' : '#64748b',
-                                                                    fontWeight: '700'
-                                                                }}
-                                                            >
-                                                                {sid.split('/')[1]}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </td>
-                            </tr>
+                                {opt.label}
+                            </button>
                         ))}
-                    </tbody>
-                </table>
+                    </div>
+
+                    {(overallResult === 'partial-ok' || overallResult === 'all-rejected') && (
+                        <div className="rejection-table-section" style={{ animation: 'fadeIn 0.3s' }}>
+                            <h5 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#ef4444', marginBottom: '1rem' }}>
+                                Details of Rejected Sleepers
+                                {overallResult === 'partial-ok' && <span style={{ fontSize: '0.75rem', fontWeight: '400', color: '#64748b', marginLeft: '8px' }}>(Select sleepers to mark as rejected)</span>}
+                            </h5>
+
+                            {overallResult === 'partial-ok' && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+                                    {selectedSleepers.map(sid => {
+                                        const isRejected = !!rejectionDetails[sid];
+                                        return (
+                                            <button
+                                                key={sid}
+                                                onClick={() => toggleRejection(sid)}
+                                                style={{
+                                                    padding: '4px 10px',
+                                                    borderRadius: '20px',
+                                                    border: '1px solid',
+                                                    borderColor: isRejected ? '#ef4444' : '#cbd5e1',
+                                                    background: isRejected ? '#fecaca' : '#fff',
+                                                    color: isRejected ? '#991b1b' : '#64748b',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: '700',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                {sid.split('/')[1]}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            <table className="ui-table" style={{ width: '100%' }}>
+                                <thead>
+                                    <tr>
+                                        <th style={{ width: '15%' }}>Sleeper No</th>
+                                        <th style={{ width: '30%' }}>Main Reason</th>
+                                        <th style={{ width: '40%' }}>Sub Reason</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {Object.keys(rejectionDetails).map(sid => (
+                                        <tr key={sid}>
+                                            <td style={{ fontWeight: '700' }}>{sid.split('/')[1]}</td>
+                                            <td>
+                                                <select
+                                                    value={rejectionDetails[sid].mainReason}
+                                                    onChange={(e) => handleRejectionChange(sid, 'mainReason', e.target.value)}
+                                                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                                                >
+                                                    <option value="">Select...</option>
+                                                    {parametersToCheck.map(p => <option key={p} value={p}>{p}</option>)}
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select
+                                                    value={rejectionDetails[sid].subReason}
+                                                    onChange={(e) => handleRejectionChange(sid, 'subReason', e.target.value)}
+                                                    disabled={!rejectionDetails[sid].mainReason}
+                                                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                                                >
+                                                    <option value="">Select...</option>
+                                                    {getSubReasons(rejectionDetails[sid].mainReason).map(sub => (
+                                                        <option key={sub} value={sub}>{sub}</option>
+                                                    ))}
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {Object.keys(rejectionDetails).length === 0 && (
+                                        <tr>
+                                            <td colSpan="3" style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem' }}>
+                                                {overallResult === 'partial-ok' ? 'Select sleepers above to add rejection details.' : 'No rejected sleepers.'}
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Footer */}

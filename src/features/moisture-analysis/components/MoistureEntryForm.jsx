@@ -1,4 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
+const MIX_DESIGNS = [
+    { id: 'MIX-01', name: 'M60 - Standard Sleeper (Approved)', cement: '175.5', ca1: '436.2', ca2: '178.6', fa: '207.1', water: '37.0', ac: '4.69', wc: '0.211' },
+    { id: 'MIX-02', name: 'M55 - Special Project (Approved)', cement: '170.0', ca1: '440.0', ca2: '180.0', fa: '210.0', water: '38.0', ac: '4.88', wc: '0.223' },
+];
 
 /**
  * MoistureEntryForm Component
@@ -15,13 +19,16 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
         shift: initialData?.shift || 'A',
         timing: initialData?.timing || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
         batchNo: initialData?.batchNo || '',
-        // Batch Wt. Dry (from batch declaration)
-        batchDryCA1: initialData?.batchDryCA1 || '436.2',
-        batchDryCA2: initialData?.batchDryCA2 || '178.6',
-        batchDryFA: initialData?.batchDryFA || '207.1',
-        batchDryWater: initialData?.batchDryWater || '37.0',
+        mixDesignId: initialData?.mixDesignId || '',
+        // Batch Wt. Dry (Target/Approved from Mix Design)
+        batchDryCA1: initialData?.batchDryCA1 || '',
+        batchDryCA2: initialData?.batchDryCA2 || '',
+        batchDryFA: initialData?.batchDryFA || '',
+        batchDryWater: initialData?.batchDryWater || '',
         batchDryAdmix: initialData?.batchDryAdmix || '1.44',
-        batchDryCement: initialData?.batchDryCement || '175.5'
+        batchDryCement: initialData?.batchDryCement || '',
+        designAC: initialData?.designAC || '',
+        designWC: initialData?.designWC || ''
     });
 
     // Aggregate Data for CA1, CA2, FA
@@ -32,6 +39,23 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
     });
 
     const handleCommonChange = (field, val) => {
+        if (field === 'mixDesignId') {
+            const mix = MIX_DESIGNS.find(m => m.id === val);
+            if (mix) {
+                setCommonData(prev => ({
+                    ...prev,
+                    mixDesignId: val,
+                    batchDryCA1: mix.ca1,
+                    batchDryCA2: mix.ca2,
+                    batchDryFA: mix.fa,
+                    batchDryWater: mix.water,
+                    batchDryCement: mix.cement,
+                    designAC: mix.ac,
+                    designWC: mix.wc
+                }));
+                return;
+            }
+        }
         setCommonData(prev => ({ ...prev, [field]: val }));
     };
 
@@ -154,14 +178,14 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
             <div style={{ marginBottom: '2rem', padding: '1.5rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                 <h4 style={{ fontSize: '0.9rem', fontWeight: '600', color: '#475569', marginBottom: '1rem' }}>Common Form Section</h4>
 
-                <div className="form-grid">
+                <div className="form-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
                     <div className="form-field">
                         <label>Date</label>
-                        <input type="date" value={commonData.date} onChange={e => handleCommonChange('date', e.target.value)} readOnly style={{ background: '#f1f5f9' }} />
+                        <input type="date" value={commonData.date} onChange={e => handleCommonChange('date', e.target.value)} readOnly style={{ background: '#f1f5f9', padding: '6px' }} />
                     </div>
                     <div className="form-field">
                         <label>Shift</label>
-                        <select value={commonData.shift} onChange={e => handleCommonChange('shift', e.target.value)} style={{ background: '#f1f5f9' }} disabled>
+                        <select value={commonData.shift} onChange={e => handleCommonChange('shift', e.target.value)} style={{ background: '#f1f5f9', padding: '6px' }} disabled>
                             <option value="A">A</option>
                             <option value="B">B</option>
                             <option value="C">C</option>
@@ -169,71 +193,99 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                     </div>
                     <div className="form-field">
                         <label>Time <span className="required">*</span></label>
-                        <input type="time" value={commonData.timing} onChange={e => handleCommonChange('timing', e.target.value)} />
+                        <input type="time" value={commonData.timing} onChange={e => handleCommonChange('timing', e.target.value)} style={{ padding: '6px' }} />
                     </div>
                     <div className="form-field">
                         <label>Batch No. <span className="required">*</span></label>
-                        <input type="text" value={commonData.batchNo} onChange={e => handleCommonChange('batchNo', e.target.value)} placeholder="Enter Batch Number" />
+                        <input type="text" value={commonData.batchNo} onChange={e => handleCommonChange('batchNo', e.target.value)} placeholder="Enter Batch Number" style={{ padding: '6px' }} />
                     </div>
                 </div>
 
-                <h5 style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b', marginTop: '1.5rem', marginBottom: '0.75rem' }}>Batch Wt. Dry (Kgs) - From Batch Declaration</h5>
-                <div className="form-grid">
+                <div className="form-grid" style={{ marginTop: '1rem' }}>
+                    <div className="form-field" style={{ gridColumn: 'span 2' }}>
+                        <label>Approved Mix Design <span className="required">*</span></label>
+                        <select
+                            value={commonData.mixDesignId}
+                            onChange={e => handleCommonChange('mixDesignId', e.target.value)}
+                            style={{ border: '2px solid #8b5cf6', background: '#fefaff' }}
+                        >
+                            <option value="">-- Select Approved Mix Design --</option>
+                            {MIX_DESIGNS.map(m => (
+                                <option key={m.id} value={m.id}>{m.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    {commonData.mixDesignId && (
+                        <>
+                            <div className="calc-card" style={{ height: 'fit-content', padding: '8px 12px' }}>
+                                <span className="mini-label">Design A/C</span>
+                                <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#8b5cf6' }}>{commonData.designAC}</div>
+                            </div>
+                            <div className="calc-card" style={{ height: 'fit-content', padding: '8px 12px' }}>
+                                <span className="mini-label">Design W/C</span>
+                                <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#8b5cf6' }}>{commonData.designWC}</div>
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                <h5 style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b', marginTop: '1.5rem', marginBottom: '0.75rem' }}>Batch Wt. Dry (Kgs) - Populated from Mix Design</h5>
+                <div className="form-grid" style={{ gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
                     <div className="form-field">
-                        <label>CA1</label>
-                        <input type="number" step="0.01" value={commonData.batchDryCA1} onChange={e => handleCommonChange('batchDryCA1', e.target.value)} />
+                        <label style={{ fontSize: '10px' }}>CA1</label>
+                        <input style={{ padding: '6px' }} type="number" step="0.01" value={commonData.batchDryCA1} onChange={e => handleCommonChange('batchDryCA1', e.target.value)} />
                     </div>
                     <div className="form-field">
-                        <label>CA2</label>
-                        <input type="number" step="0.01" value={commonData.batchDryCA2} onChange={e => handleCommonChange('batchDryCA2', e.target.value)} />
+                        <label style={{ fontSize: '10px' }}>CA2</label>
+                        <input style={{ padding: '6px' }} type="number" step="0.01" value={commonData.batchDryCA2} onChange={e => handleCommonChange('batchDryCA2', e.target.value)} />
                     </div>
                     <div className="form-field">
-                        <label>FA</label>
-                        <input type="number" step="0.01" value={commonData.batchDryFA} onChange={e => handleCommonChange('batchDryFA', e.target.value)} />
+                        <label style={{ fontSize: '10px' }}>FA</label>
+                        <input style={{ padding: '6px' }} type="number" step="0.01" value={commonData.batchDryFA} onChange={e => handleCommonChange('batchDryFA', e.target.value)} />
                     </div>
                     <div className="form-field">
-                        <label>Water</label>
-                        <input type="number" step="0.01" value={commonData.batchDryWater} onChange={e => handleCommonChange('batchDryWater', e.target.value)} />
+                        <label style={{ fontSize: '10px' }}>Water</label>
+                        <input style={{ padding: '6px' }} type="number" step="0.01" value={commonData.batchDryWater} onChange={e => handleCommonChange('batchDryWater', e.target.value)} />
                     </div>
                     <div className="form-field">
-                        <label>Admix</label>
-                        <input type="number" step="0.01" value={commonData.batchDryAdmix} onChange={e => handleCommonChange('batchDryAdmix', e.target.value)} />
+                        <label style={{ fontSize: '10px' }}>Admix</label>
+                        <input style={{ padding: '6px' }} type="number" step="0.01" value={commonData.batchDryAdmix} onChange={e => handleCommonChange('batchDryAdmix', e.target.value)} />
                     </div>
                     <div className="form-field">
-                        <label>Cement</label>
-                        <input type="number" step="0.01" value={commonData.batchDryCement} onChange={e => handleCommonChange('batchDryCement', e.target.value)} />
+                        <label style={{ fontSize: '10px' }}>Cement</label>
+                        <input style={{ padding: '6px' }} type="number" step="0.01" value={commonData.batchDryCement} onChange={e => handleCommonChange('batchDryCement', e.target.value)} />
                     </div>
                 </div>
 
                 {/* Auto-calculated fields */}
-                <div style={{ marginTop: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
-                    <div className="calc-card">
-                        <span className="mini-label">Wt. Adopted (CA1)</span>
-                        <div className="calc-value" style={{ fontSize: '1rem' }}>{ca1Calc.wtAdopted} Kg</div>
+                <div style={{ marginTop: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px' }}>
+                    <div className="calc-card" style={{ padding: '8px' }}>
+                        <span className="mini-label" style={{ fontSize: '9px' }}>Wt. Adopt. (CA1)</span>
+                        <div className="calc-value" style={{ fontSize: '0.9rem' }}>{ca1Calc.wtAdopted}</div>
                     </div>
-                    <div className="calc-card">
-                        <span className="mini-label">Wt. Adopted (CA2)</span>
-                        <div className="calc-value" style={{ fontSize: '1rem' }}>{ca2Calc.wtAdopted} Kg</div>
+                    <div className="calc-card" style={{ padding: '8px' }}>
+                        <span className="mini-label" style={{ fontSize: '9px' }}>Wt. Adopt. (CA2)</span>
+                        <div className="calc-value" style={{ fontSize: '0.9rem' }}>{ca2Calc.wtAdopted}</div>
                     </div>
-                    <div className="calc-card">
-                        <span className="mini-label">Wt. Adopted (FA)</span>
-                        <div className="calc-value" style={{ fontSize: '1rem' }}>{faCalc.wtAdopted} Kg</div>
+                    <div className="calc-card" style={{ padding: '8px' }}>
+                        <span className="mini-label" style={{ fontSize: '9px' }}>Wt. Adopt. (FA)</span>
+                        <div className="calc-value" style={{ fontSize: '0.9rem' }}>{faCalc.wtAdopted}</div>
                     </div>
-                    <div className="calc-card" style={{ borderLeft: '3px solid #10b981' }}>
-                        <span className="mini-label">Total Free Moisture (Wt.)</span>
-                        <div className="calc-value" style={{ fontSize: '1rem', color: '#10b981' }}>{totalFreeMoisture} Kg</div>
+                    <div className="calc-card" style={{ borderLeft: '3px solid #10b981', padding: '8px' }}>
+                        <span className="mini-label" style={{ fontSize: '9px' }}>Free Moist. (Wt.)</span>
+                        <div className="calc-value" style={{ fontSize: '0.9rem', color: '#10b981' }}>{totalFreeMoisture}</div>
                     </div>
-                    <div className="calc-card">
-                        <span className="mini-label">Adjusted Water</span>
-                        <div className="calc-value" style={{ fontSize: '1rem' }}>{adjustedWater} Kg</div>
+                    <div className="calc-card" style={{ padding: '8px' }}>
+                        <span className="mini-label" style={{ fontSize: '9px' }}>Adj. Water</span>
+                        <div className="calc-value" style={{ fontSize: '0.9rem' }}>{adjustedWater}</div>
                     </div>
-                    <div className="calc-card">
-                        <span className="mini-label">W/C Ratio</span>
-                        <div className="calc-value" style={{ fontSize: '1rem', color: parseFloat(wcRatio) > 0.4 ? '#ef4444' : '#059669' }}>{wcRatio}</div>
+                    <div className="calc-card" style={{ padding: '8px' }}>
+                        <span className="mini-label" style={{ fontSize: '9px' }}>W/C Ratio</span>
+                        <div className="calc-value" style={{ fontSize: '0.9rem', color: parseFloat(wcRatio) > 0.4 ? '#ef4444' : '#059669' }}>{wcRatio}</div>
                     </div>
-                    <div className="calc-card">
-                        <span className="mini-label">A/C Ratio</span>
-                        <div className="calc-value" style={{ fontSize: '1rem' }}>{acRatio}</div>
+                    <div className="calc-card" style={{ padding: '8px' }}>
+                        <span className="mini-label" style={{ fontSize: '9px' }}>A/C Ratio</span>
+                        <div className="calc-value" style={{ fontSize: '0.9rem' }}>{acRatio}</div>
                     </div>
                 </div>
             </div>
@@ -257,25 +309,27 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                     {activeSection === 'ca1' ? 'CA1 (20mm) Details' : activeSection === 'ca2' ? 'CA2 (10mm) Details' : 'FA (Fine Aggregate) Details'}
                 </h4>
 
-                <div className="form-grid">
+                <div className="form-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
                     <div className="form-field">
-                        <label>Wt. of Wet Sample (Gms) <span className="required">*</span></label>
+                        <label>Wet Sample (Gms) <span className="required">*</span></label>
                         <input
                             type="number"
                             step="0.01"
                             value={aggData[activeSection].wetSample}
                             onChange={e => handleAggChange(activeSection, 'wetSample', e.target.value)}
-                            placeholder="Enter wet sample weight"
+                            placeholder="Gms"
+                            style={{ padding: '6px' }}
                         />
                     </div>
                     <div className="form-field">
-                        <label>Wt. of Dried Sample (Gms) <span className="required">*</span></label>
+                        <label>Dried Sample (Gms) <span className="required">*</span></label>
                         <input
                             type="number"
                             step="0.01"
                             value={aggData[activeSection].driedSample}
                             onChange={e => handleAggChange(activeSection, 'driedSample', e.target.value)}
-                            placeholder="Enter dried sample weight"
+                            placeholder="Gms"
+                            style={{ padding: '6px' }}
                         />
                     </div>
                     <div className="form-field">
@@ -285,7 +339,8 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                             step="0.01"
                             value={aggData[activeSection].absorption}
                             onChange={e => handleAggChange(activeSection, 'absorption', e.target.value)}
-                            placeholder="Enter absorption %"
+                            placeholder="%"
+                            style={{ padding: '6px' }}
                         />
                     </div>
                 </div>
