@@ -14,7 +14,7 @@ const FinalInspectionDashboard = () => {
         { id: 'non-critical', title: 'Non-Critical Dimension', subtitle: 'Sub Card- 3 (Target 1-5%)' },
         { id: 'water-cube', title: 'Water Cube Strength', subtitle: 'Sub Card- 4' },
         { id: 'mor', title: 'Modulus of Rupture', subtitle: 'Sub Card- 5' },
-        { id: 'mof', title: 'Moment of Failure', subtitle: 'Sub Card- 5' },
+        { id: 'mof', title: 'Modulus of Failure', subtitle: 'Structural Integrity' },
         { id: 'mor_res', title: 'Moment of Resistance', subtitle: 'Standard compliance' },
     ];
 
