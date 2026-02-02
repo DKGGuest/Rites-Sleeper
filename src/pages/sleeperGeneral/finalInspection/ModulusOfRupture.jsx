@@ -191,16 +191,27 @@ const ModulusOfRupture = () => {
                 <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>Quality monitoring for flexural strength</p>
             </header>
 
-            <div className="nav-tabs" style={{ marginBottom: '24px', borderBottom: '1px solid #e2e8f0' }}>
-                <button className={`nav-tab ${viewMode === 'statistics' ? 'active' : ''}`} onClick={() => setViewMode('statistics')}>Statistics</button>
-                <button className={`nav-tab ${viewMode === 'declared' ? 'active' : ''}`} onClick={() => setViewMode('declared')}>Samples Declared</button>
-                <button className={`nav-tab ${viewMode === 'tested' ? 'active' : ''}`} onClick={() => setViewMode('tested')}>Samples Tested</button>
+            <div className="nav-tabs" style={{
+                marginBottom: '24px',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px'
+            }}>
+                <button className={`nav-tab ${viewMode === 'statistics' ? 'active' : ''}`} style={{ flex: '1 1 auto', minWidth: '120px' }} onClick={() => setViewMode('statistics')}>Statistics</button>
+                <button className={`nav-tab ${viewMode === 'declared' ? 'active' : ''}`} style={{ flex: '1 1 auto', minWidth: '120px' }} onClick={() => setViewMode('declared')}>Samples Declared</button>
+                <button className={`nav-tab ${viewMode === 'tested' ? 'active' : ''}`} style={{ flex: '1 1 auto', minWidth: '120px' }} onClick={() => setViewMode('tested')}>Samples Tested</button>
             </div>
 
             <div className="tab-content">
                 {viewMode === 'statistics' && (
                     <div className="fade-in">
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                            gap: '12px',
+                            marginBottom: '32px'
+                        }}>
                             <StatCard label="Total MOR Samples" value={stats.totalSampling} />
                             <StatCard label="Total MOR Tests" value={stats.totalTests} />
                             <StatCard label="Avg. MOR Value" value={stats.avgStrength} unit="N/mm²" />

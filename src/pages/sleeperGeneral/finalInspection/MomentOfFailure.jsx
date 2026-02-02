@@ -193,10 +193,16 @@ const MomentOfFailure = () => {
                 </div>
             </header>
 
-            <div className="nav-tabs" style={{ marginBottom: '24px', borderBottom: '1px solid #e2e8f0' }}>
-                <button className={`nav-tab ${viewMode === 'statistics' ? 'active' : ''}`} onClick={() => setViewMode('statistics')}>Statistics Dashboard</button>
-                <button className={`nav-tab ${viewMode === 'declared' ? 'active' : ''}`} onClick={() => setViewMode('declared')}>Sample Declared for Testing</button>
-                <button className={`nav-tab ${viewMode === 'tested' ? 'active' : ''}`} onClick={() => setViewMode('tested')}>Sample Tested</button>
+            <div className="nav-tabs" style={{
+                marginBottom: '24px',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px'
+            }}>
+                <button className={`nav-tab ${viewMode === 'statistics' ? 'active' : ''}`} style={{ flex: '1 1 auto', minWidth: '120px' }} onClick={() => setViewMode('statistics')}>Statistics</button>
+                <button className={`nav-tab ${viewMode === 'declared' ? 'active' : ''}`} style={{ flex: '1 1 auto', minWidth: '120px' }} onClick={() => setViewMode('declared')}>Samples Declared</button>
+                <button className={`nav-tab ${viewMode === 'tested' ? 'active' : ''}`} style={{ flex: '1 1 auto', minWidth: '120px' }} onClick={() => setViewMode('tested')}>Samples Tested</button>
             </div>
 
             <div className="tab-content" style={{ animation: 'fadeIn 0.3s ease' }}>
@@ -223,7 +229,12 @@ const MomentOfFailure = () => {
                                 </button>
                             ))}
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                            gap: '12px',
+                            marginBottom: '24px'
+                        }}>
                             <StatCard label="Total MF Sampling" value={stats.totalSampling} />
                             <StatCard label="Total MF Tests" value={stats.totalTests} />
                             <StatCard label="Average MF Value" value={stats.avgStrength} unit="N/mm²" />
@@ -236,7 +247,7 @@ const MomentOfFailure = () => {
                             <StatCard label="Sleepers Since Last Test" value={stats.sleepersSinceLastTest} color="#6366f1" />
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
                             <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', minHeight: '300px' }}>
                                 <h4 style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#1e293b' }}>MF Strength Distribution (Simulated)</h4>
                                 <div style={{ height: '200px', display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '0 10px' }}>
@@ -252,13 +263,15 @@ const MomentOfFailure = () => {
                             </div>
                             <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', minHeight: '300px' }}>
                                 <h4 style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#1e293b' }}>Pass Rate Trend (Last 7 Days)</h4>
-                                <svg width="100%" height="200" viewBox="0 0 400 200">
-                                    <path d="M0,150 L60,140 L120,160 L180,130 L240,145 L300,120 L360,110" fill="none" stroke="#42818c" strokeWidth="3" />
-                                    <circle cx="0" cy="150" r="4" fill="#42818c" /><circle cx="60" cy="140" r="4" fill="#42818c" />
-                                    <circle cx="120" cy="160" r="4" fill="#42818c" /><circle cx="180" cy="130" r="4" fill="#42818c" />
-                                    <circle cx="240" cy="145" r="4" fill="#42818c" /><circle cx="300" cy="120" r="4" fill="#42818c" />
-                                    <circle cx="360" cy="110" r="4" fill="#42818c" />
-                                </svg>
+                                <div style={{ height: '200px', width: '100%', overflow: 'hidden' }}>
+                                    <svg width="100%" height="200" viewBox="0 0 400 200" preserveAspectRatio="none">
+                                        <path d="M0,150 L60,140 L120,160 L180,130 L240,145 L300,120 L360,110" fill="none" stroke="#42818c" strokeWidth="3" />
+                                        <circle cx="0" cy="150" r="4" fill="#42818c" /><circle cx="60" cy="140" r="4" fill="#42818c" />
+                                        <circle cx="120" cy="160" r="4" fill="#42818c" /><circle cx="180" cy="130" r="4" fill="#42818c" />
+                                        <circle cx="240" cy="145" r="4" fill="#42818c" /><circle cx="300" cy="120" r="4" fill="#42818c" />
+                                        <circle cx="360" cy="110" r="4" fill="#42818c" />
+                                    </svg>
+                                </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', fontSize: '9px', color: '#94a3b8' }}>
                                     <span>Jan 27</span><span>Jan 28</span><span>Jan 29</span><span>Jan 30</span><span>Jan 31</span><span>Feb 01</span><span>Feb 02</span>
                                 </div>
