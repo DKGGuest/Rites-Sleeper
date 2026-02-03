@@ -90,9 +90,15 @@ const BatchWeighment = ({ onBack, sharedState, activeContainer, displayMode = 'm
         }
     };
 
+    const [formSections, setFormSections] = useState({ declaration: true, scada: true, manual: true });
+
+    const toggleSection = (section) => {
+        setFormSections(prev => ({ ...prev, [section]: !prev[section] }));
+    };
+
     const renderForm = () => (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setShowForm(false)}>
-            <div className="fade-in" style={{ width: '100%', maxWidth: '820px', maxHeight: '92vh', background: '#fff', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setShowForm(false)}>
+            <div className="fade-in" style={{ width: '100%', maxWidth: '1250px', maxHeight: '92vh', background: '#fff', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
 
                 {/* Header - Cream Background */}
                 <div style={{ background: '#FFF8E7', padding: '1rem 1.5rem', borderBottom: '1px solid #F3E8FF', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -104,30 +110,64 @@ const BatchWeighment = ({ onBack, sharedState, activeContainer, displayMode = 'm
                 </div>
 
                 {/* Scrollable Body */}
-                <div style={{ padding: '1.5rem', overflowY: 'auto', flexGrow: 1 }}>
+                <div style={{ padding: '1.5rem', overflowY: 'auto', flexGrow: 1, overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', scrollBehavior: 'smooth' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        <div style={{ background: '#eff6ff', padding: '1.5rem', borderRadius: '8px', border: '1px solid #dbeafe', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                            <div style={{ paddingBottom: '1rem', marginBottom: '1.25rem', borderBottom: '1px solid #dbeafe', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <span style={{ background: '#3b82f6', color: '#fff', fontSize: '0.75rem', fontWeight: '800', width: '24px', height: '24px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>1</span>
-                                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e3a8a', fontWeight: '800' }}>Initial Declaration</h3>
+
+                        {/* Section 1: Initial Declaration */}
+                        <div style={{ background: '#eff6ff', borderRadius: '8px', border: '1px solid #dbeafe', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                            <div
+                                onClick={() => toggleSection('declaration')}
+                                style={{ padding: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: formSections.declaration ? 'transparent' : '#eff6ff' }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <span style={{ background: '#3b82f6', color: '#fff', fontSize: '0.75rem', fontWeight: '800', width: '24px', height: '24px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>1</span>
+                                    <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e3a8a', fontWeight: '800' }}>Initial Declaration</h3>
+                                </div>
+                                <span style={{ transition: 'transform 0.2s', transform: formSections.declaration ? 'rotate(180deg)' : 'rotate(0deg)', color: '#3b82f6' }}>▼</span>
                             </div>
-                            <InitialDeclaration batches={batchDeclarations} onBatchUpdate={setBatchDeclarations} />
+                            {formSections.declaration && (
+                                <div style={{ padding: '0 1.5rem 1.5rem 1.5rem', borderTop: '1px solid #dbeafe', paddingTop: '1.5rem' }}>
+                                    <InitialDeclaration batches={batchDeclarations} onBatchUpdate={setBatchDeclarations} />
+                                </div>
+                            )}
                         </div>
 
-                        <div style={{ background: '#fffbeb', padding: '1.5rem', borderRadius: '8px', border: '1px solid #fef3c7', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                            <div style={{ paddingBottom: '1rem', marginBottom: '1.25rem', borderBottom: '1px solid #fcd34d', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <span style={{ background: '#d97706', color: '#fff', fontSize: '0.75rem', fontWeight: '800', width: '24px', height: '24px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>2</span>
-                                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#78350f', fontWeight: '800' }}>SCADA Data Fetched</h3>
+                        {/* Section 2: SCADA Data */}
+                        <div style={{ background: '#fffbeb', borderRadius: '8px', border: '1px solid #fef3c7', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                            <div
+                                onClick={() => toggleSection('scada')}
+                                style={{ padding: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <span style={{ background: '#d97706', color: '#fff', fontSize: '0.75rem', fontWeight: '800', width: '24px', height: '24px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>2</span>
+                                    <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#78350f', fontWeight: '800' }}>SCADA Data Fetched</h3>
+                                </div>
+                                <span style={{ transition: 'transform 0.2s', transform: formSections.scada ? 'rotate(180deg)' : 'rotate(0deg)', color: '#d97706' }}>▼</span>
                             </div>
-                            <WeightBatching onWitness={handleSaveWitness} batches={batchDeclarations} selectedBatchNo={selectedBatchNo} />
+                            {formSections.scada && (
+                                <div style={{ padding: '0 1.5rem 1.5rem 1.5rem', borderTop: '1px solid #fcd34d', paddingTop: '1.5rem' }}>
+                                    <WeightBatching onWitness={handleSaveWitness} batches={batchDeclarations} selectedBatchNo={selectedBatchNo} />
+                                </div>
+                            )}
                         </div>
 
-                        <div style={{ background: '#f0fdf4', padding: '1.5rem', borderRadius: '8px', border: '1px solid #dcfce7', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                            <div style={{ paddingBottom: '1rem', marginBottom: '1.25rem', borderBottom: '1px solid #86efac', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <span style={{ background: '#10b981', color: '#fff', fontSize: '0.75rem', fontWeight: '800', width: '24px', height: '24px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</span>
-                                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#064e3b', fontWeight: '800' }}>Manual Verification</h3>
+                        {/* Section 3: Manual Verification */}
+                        <div style={{ background: '#f0fdf4', borderRadius: '8px', border: '1px solid #dcfce7', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                            <div
+                                onClick={() => toggleSection('manual')}
+                                style={{ padding: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <span style={{ background: '#10b981', color: '#fff', fontSize: '0.75rem', fontWeight: '800', width: '24px', height: '24px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</span>
+                                    <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#064e3b', fontWeight: '800' }}>Manual Verification</h3>
+                                </div>
+                                <span style={{ transition: 'transform 0.2s', transform: formSections.manual ? 'rotate(180deg)' : 'rotate(0deg)', color: '#10b981' }}>▼</span>
                             </div>
-                            <ManualDataEntry batches={batchDeclarations} witnessedRecords={witnessedRecords} onSave={handleSaveWitness} activeContainer={activeContainer} onDelete={handleDelete} />
+                            {formSections.manual && (
+                                <div style={{ padding: '0 1.5rem 1.5rem 1.5rem', borderTop: '1px solid #86efac', paddingTop: '1.5rem' }}>
+                                    <ManualDataEntry batches={batchDeclarations} witnessedRecords={witnessedRecords} onSave={handleSaveWitness} activeContainer={activeContainer} onDelete={handleDelete} />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

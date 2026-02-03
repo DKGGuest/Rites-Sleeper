@@ -147,60 +147,7 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
                 </div>
             )}
 
-            {!hideHistory && (
-                <div className="data-table-section">
-                    <div className="table-outer-wrapper">
-                        <table className="ui-table">
-                            <thead>
-                                <tr>
-                                    <th>Shed / Line No.</th>
-                                    <th>Source of Data</th>
-                                    <th>Time stamp</th>
-                                    <th>Batch No.</th>
-                                    <th>CA1 - Actual Wt.</th>
-                                    <th>CA2 - Actual Wt.</th>
-                                    <th>FA - Actual Wt.</th>
-                                    <th>Cement - Actual Wt.</th>
-                                    <th>Water (L) - Actual</th>
-                                    <th>Admix - Actual Wt.</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {witnessedRecords.length === 0 ? (
-                                    <tr><td colSpan="11" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No verified records found.</td></tr>
-                                ) : (
-                                    witnessedRecords.map(r => (
-                                        <tr key={r.id}>
-                                            <td>{r.location || 'N/A'}</td>
-                                            <td data-label="Source"><span className={`status-pill ${r.source === 'Manual' ? 'manual' : 'witnessed'}`}>{r.source}</span></td>
-                                            <td data-label="Timestamp"><span>{r.time}</span></td>
-                                            <td data-label="Batch"><span>{r.batchNo}</span></td>
-                                            <td>{r.ca1 || '0'}</td>
-                                            <td>{r.ca2 || '0'}</td>
-                                            <td>{r.fa || '0'}</td>
-                                            <td>{r.cement}</td>
-                                            <td>{r.water}</td>
-                                            <td>{r.admixture || '0'}</td>
-                                            <td data-label="Actions">
-                                                <div style={{ display: 'flex', gap: '8px' }}>
-                                                    {r.source === 'Manual' && isRecordEditable(r.timestamp) ? (
-                                                        <button className="btn-action" onClick={() => handleEdit(r)}>Edit</button>
-                                                    ) : (
-                                                        <span style={{ fontSize: '10px', color: '#94a3b8' }}>
-                                                            {r.source === 'Manual' ? 'Locked' : 'Verified'}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
+            {/* Table removed as per request */}
         </div>
     );
 };

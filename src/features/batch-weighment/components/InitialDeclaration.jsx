@@ -75,7 +75,13 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate }) => {
     };
 
     useEffect(() => {
-        onBatchUpdate(batches);
+        const handler = setTimeout(() => {
+            onBatchUpdate(batches);
+        }, 500);
+
+        return () => {
+            clearTimeout(handler);
+        };
     }, [batches, onBatchUpdate]);
 
     return (

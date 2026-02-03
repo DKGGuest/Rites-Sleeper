@@ -678,6 +678,7 @@ h4 {
     overflow-y: auto;
     flex: 1;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
 
 /* --- Forms --- */

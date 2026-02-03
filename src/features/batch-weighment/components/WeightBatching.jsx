@@ -128,6 +128,7 @@ const WeightBatching = ({ onWitness, batches = [], selectedBatchNo }) => {
                     fetchData={fetchScadaData}
                     pageSize={10}
                     batchId={activeBatch}
+                    height="400px"
                 />
             </div>
         </div>
