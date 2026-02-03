@@ -15,7 +15,8 @@ import './MouldBenchCheck.css';
 const SummaryCard = ({ title, count, label, color, background, border, subtext, percentage }) => (
     <div className="calc-card hover-lift" style={{
         borderTop: `3px solid ${border}`,
-        '--hover-border': border
+        '--hover-border': border,
+        flex: 1
     }}>
         <div className="card-main">
             <span className="mini-label">{title}</span>
@@ -40,16 +41,16 @@ const AssetSummary = ({ allAssets, records }) => {
     const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
     const firstOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const recentRecords = records.filter(r => new Date(r.dateOfChecking) >= thirtyDaysAgo);
-    const mtdRecords = records.filter(r => new Date(r.dateOfChecking) >= firstOfCurrentMonth);
+    const recentRecords = records.filter(r => new Date(r.dateOfChecking || r.checkDate) >= thirtyDaysAgo);
+    const mtdRecords = records.filter(r => new Date(r.dateOfChecking || r.checkDate) >= firstOfCurrentMonth);
 
-    const uniqueBenchesUsed = new Set(recentRecords.filter(r => r.type === 'Bench').map(r => r.assetNo)).size;
-    const uniqueMouldsUsed = new Set(recentRecords.filter(r => r.type === 'Mould').map(r => r.assetNo)).size;
+    const uniqueBenchesUsed = new Set(recentRecords.filter(r => r.type === 'Bench').map(r => r.assetNo || r.name)).size;
+    const uniqueMouldsUsed = new Set(recentRecords.filter(r => r.type === 'Mould').map(r => r.assetNo || r.name)).size;
 
-    const checkedBenchesMTD = new Set(mtdRecords.filter(r => r.type === 'Bench').map(r => r.assetNo)).size;
-    const checkedMouldsMTD = new Set(mtdRecords.filter(r => r.type === 'Mould').map(r => r.assetNo)).size;
+    const checkedBenchesMTD = new Set(mtdRecords.filter(r => r.type === 'Bench').map(r => r.assetNo || r.name)).size;
+    const checkedMouldsMTD = new Set(mtdRecords.filter(r => r.type === 'Mould').map(r => r.assetNo || r.name)).size;
 
-    const nonFitMoulds = records.filter(r => r.type === 'Mould' && r.overallResult === 'FAIL').length;
+    const nonFitMoulds = records.filter(r => r.type === 'Mould' && (r.overallResult === 'FAIL' || r.result === 'FAIL' || r.dimensionalCheck === 'Minor Issue')).length;
 
     const metrics = [
         { title: 'Total Benches', count: benches, subtext: 'In Plant', color: '#3b82f6' },
@@ -122,11 +123,17 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
         setIsFormOpen(true);
     };
 
+    const isWithinHour = (timestamp) => {
+        if (!timestamp) return false;
+        const diff = Date.now() - new Date(timestamp).getTime();
+        return diff < (60 * 60 * 1000);
+    };
+
     const renderLogs = () => (
         <div className="table-outer-wrapper fade-in">
-            <div className="content-title-row">
-                <h4>History of Checking Done</h4>
-                <button className="toggle-btn mini" onClick={handleAddNew}>+ Add New Check</button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', padding: '0.5rem' }}>
+                <h4 style={{ margin: 0, fontWeight: '800', color: '#1e293b' }}>History of Checks</h4>
+                <button className="toggle-btn" onClick={handleAddNew} style={{ padding: '10px 24px', borderRadius: '8px', fontSize: '13px', fontWeight: '800' }}>+ Add New Entry</button>
             </div>
             <div className="table-responsive">
                 <table className="ui-table">
@@ -147,17 +154,25 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
                         ) : (
                             records.map(record => (
                                 <tr key={record.id} className="table-row-hover">
-                                    <td><span className="fw-700">{record.dateOfChecking}</span> <span className="text-muted">{record.checkTime}</span></td>
-                                    <td><strong>{record.assetNo}</strong></td>
+                                    <td><span className="fw-700">{record.dateOfChecking || record.checkDate}</span> <span className="text-muted">{record.checkTime}</span></td>
+                                    <td><strong>{record.assetNo || record.name}</strong></td>
                                     <td><span className={`status-pill ${record.type === 'Bench' ? 'witnessed' : 'manual'}`}>{record.type}</span></td>
-                                    <td className={record.visualResult === 'ok' ? 'text-success' : 'text-danger'}>{record.type === 'Bench' ? record.visualResult.toUpperCase() : 'N/A'}</td>
-                                    <td className={record.dimensionResult === 'ok' ? 'text-success' : 'text-danger'}>{record.type === 'Mould' ? record.dimensionResult.toUpperCase() : 'N/A'}</td>
-                                    <td><span className={`fw-800 ${record.overallResult === 'OK' ? 'text-success' : 'text-danger'}`}>{record.overallResult}</span></td>
+                                    <td className={(record.visualResult || record.visualCheck) === 'ok' || (record.visualResult || record.visualCheck) === 'OK' ? 'text-success' : 'text-danger'}>
+                                        {record.type === 'Bench' ? (record.visualResult || record.visualCheck || 'N/A').toUpperCase() : 'N/A'}
+                                    </td>
+                                    <td className={(record.dimensionResult || record.dimensionalCheck) === 'ok' || (record.dimensionResult || record.dimensionalCheck) === 'OK' ? 'text-success' : 'text-danger'}>
+                                        {record.type === 'Mould' ? (record.dimensionResult || record.dimensionalCheck || 'N/A').toUpperCase() : 'N/A'}
+                                    </td>
+                                    <td><span className={`fw-800 ${(record.overallResult || record.result) === 'OK' ? 'text-success' : 'text-danger'}`}>{record.overallResult || record.result}</span></td>
                                     <td className="text-center">
-                                        <div className="btn-group-center">
-                                            <button className="btn-action mini" onClick={() => { setEditingEntry(record); setIsFormOpen(true); }}>Modify</button>
-                                            <button className="btn-action mini danger" onClick={() => setRecords(prev => prev.filter(r => r.id !== record.id))}>Delete</button>
-                                        </div>
+                                        {isWithinHour(record.timestamp) ? (
+                                            <div className="btn-group-center">
+                                                <button className="btn-action mini" onClick={() => { setEditingEntry(record); setIsFormOpen(true); }}>Modify</button>
+                                                <button className="btn-action mini danger" onClick={() => setRecords(prev => prev.filter(r => r.id !== record.id))}>Delete</button>
+                                            </div>
+                                        ) : (
+                                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>Locked</span>
+                                        )}
                                     </td>
                                 </tr>
                             ))
@@ -167,6 +182,18 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
             </div>
         </div>
     );
+
+    // --- Mock Data for All Assets ---
+    const mockAssets = Array.from({ length: 15 }, (_, i) => ({
+        id: `mock-${i}`,
+        assetNo: `${i % 2 === 0 ? 'B' : 'M'}-${300 + i}`,
+        name: `${i % 2 === 0 ? 'Bench' : 'Mould'} ${300 + i}`,
+        type: i % 2 === 0 ? 'Bench' : 'Mould',
+        lastCasting: new Date(Date.now() - Math.random() * 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        lastChecking: new Date(Date.now() - Math.random() * 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    }));
+
+    const displayAssets = (allAssets && allAssets.length > 0) ? allAssets : mockAssets;
 
     const renderAllAssets = () => (
         <div className="table-outer-wrapper fade-in">
@@ -179,18 +206,15 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
                         <tr>
                             <th>Asset No.</th>
                             <th>Type</th>
-                            <th>Last Casting</th>
-                            <th>Last Checking</th>
-                            <th>Days Since Casting</th>
-                            <th>Days Since Checking</th>
+                            <th>Last Date of Casting</th>
+                            <th>Last Date of Bench / Mould Checking</th>
                             <th>Status</th>
-                            <th>Last Result</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {allAssets.map(asset => {
-                            const daysSinceCasting = Math.floor((Date.now() - new Date(asset.lastCasting).getTime()) / (1000 * 60 * 60 * 24));
-                            const daysSinceChecking = Math.floor((Date.now() - new Date(asset.lastChecking).getTime()) / (1000 * 60 * 60 * 24));
+                        {displayAssets.map(asset => {
+                            const daysSinceCasting = asset.lastCasting ? Math.floor((Date.now() - new Date(asset.lastCasting).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+                            const daysSinceChecking = asset.lastChecking ? Math.floor((Date.now() - new Date(asset.lastChecking).getTime()) / (1000 * 60 * 60 * 24)) : 0;
 
                             let status = "Checking Done";
                             let statusColor = "#10b981";
@@ -205,18 +229,15 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
 
                             return (
                                 <tr key={asset.id} className="table-row-hover">
-                                    <td><strong>{asset.name}</strong></td>
+                                    <td><strong>{asset.assetNo || asset.name}</strong></td>
                                     <td><span className={`status-pill ${asset.type === 'Bench' ? 'witnessed' : 'manual'}`}>{asset.type}</span></td>
-                                    <td>{asset.lastCasting}</td>
-                                    <td>{asset.lastChecking}</td>
-                                    <td>{daysSinceCasting}d</td>
-                                    <td>{daysSinceChecking}d</td>
+                                    <td>{asset.lastCasting || '-'}</td>
+                                    <td>{asset.lastChecking || '-'}</td>
                                     <td>
                                         <span className="status-badge" style={{ color: statusColor, background: `${statusColor}10` }}>
                                             {status.toUpperCase()}
                                         </span>
                                     </td>
-                                    <td><span className="text-success fw-700">OK</span></td>
                                 </tr>
                             );
                         })}
@@ -362,16 +383,16 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
     const dashboardContent = (
         <div className="mould-bench-dashboard-grid">
             {[
-                { id: 'summary', title: 'Analytics', color: '#42818c', count: allAssets.length, label: 'Plant Summary' },
-                { id: 'checked', title: 'Inspections', color: '#10b981', count: records.length, label: 'New Entry / Logs' },
-                { id: 'allAssets', title: 'Inventory', color: '#3b82f6', count: allAssets.length, label: 'Master Assets' }
+                { id: 'summary', title: 'Summary', color: '#42818c', count: displayAssets?.length || 0, label: '' },
+                { id: 'checked', title: 'Bench & Mould Checked', color: '#10b981', count: records.length, label: 'Add / View Logs' },
+                { id: 'allAssets', title: 'All Bench & Mould', color: '#3b82f6', count: displayAssets?.length || 0, label: 'Master Assets' }
             ].map(mod => (
                 <div
                     key={mod.id}
                     className={`asset-card ${activeModule === mod.id ? 'active' : ''}`}
                     onClick={() => {
-                        if (mod.id === 'checked') handleAddNew();
-                        else setActiveModule(mod.id);
+                        setActiveModule(mod.id);
+                        if (isFormOpen) setIsFormOpen(false);
                     }}
                     style={{
                         borderColor: activeModule === mod.id ? mod.color : '#e2e8f0',
@@ -395,7 +416,7 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
             {isFormOpen ? renderForm() : (
                 <>
                     {dashboardContent}
-                    {activeModule === 'summary' && <AssetSummary allAssets={allAssets} records={records} />}
+                    {activeModule === 'summary' && <AssetSummary allAssets={displayAssets} records={records} />}
                     {activeModule === 'checked' && renderLogs()}
                     {activeModule === 'allAssets' && renderAllAssets()}
                 </>

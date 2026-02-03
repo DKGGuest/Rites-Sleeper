@@ -65,6 +65,12 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
         batchNo: '', chamberNo: '', benches: '', minConstTemp: '', maxConstTemp: ''
     });
 
+    const isTempInvalid = (val) => {
+        if (val === '' || val === null || val === undefined) return false;
+        const num = parseFloat(val);
+        return !isNaN(num) && (num < 55 || num > 60);
+    };
+
     const tabs = [
         { id: 'stats', label: 'Statistics', short: 'ANALYSIS', color: '#f59e0b', desc: 'Efficiency metrics' },
         { id: 'witnessed', label: 'Witnessed Logs', short: 'HISTORY', color: '#10b981', desc: `${entries.length} Verified Records` },
@@ -218,8 +224,46 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                             <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem' }}>
                                 <div className="form-field"><label style={{ fontSize: '10px' }}>Batch No.</label><input style={{ padding: '6px' }} type="number" min="0" value={manualForm.batchNo} onChange={e => setManualForm({ ...manualForm, batchNo: e.target.value })} /></div>
                                 <div className="form-field"><label style={{ fontSize: '10px' }}>Chamber</label><input style={{ padding: '6px' }} type="number" min="0" value={manualForm.chamberNo} onChange={e => setManualForm({ ...manualForm, chamberNo: e.target.value })} /></div>
-                                <div className="form-field"><label style={{ fontSize: '10px' }}>Min Temp</label><input style={{ padding: '6px' }} type="number" value={manualForm.minConstTemp} onChange={e => setManualForm({ ...manualForm, minConstTemp: e.target.value })} /></div>
-                                <div className="form-field"><label style={{ fontSize: '10px' }}>Max Temp</label><input style={{ padding: '6px' }} type="number" value={manualForm.maxConstTemp} onChange={e => setManualForm({ ...manualForm, maxConstTemp: e.target.value })} /></div>
+                                <div className="form-field">
+                                    <label style={{ fontSize: '10px' }}>Min Temp</label>
+                                    <input
+                                        style={{
+                                            padding: '6px',
+                                            backgroundColor: isTempInvalid(manualForm.minConstTemp) ? '#ffe4e6' : '#ffffff', // Red-100/200ish
+                                            borderColor: isTempInvalid(manualForm.minConstTemp) ? '#ef4444' : '#cbd5e1', // Red-500
+                                            borderWidth: isTempInvalid(manualForm.minConstTemp) ? '2px' : '1px',
+                                            borderStyle: 'solid',
+                                            color: isTempInvalid(manualForm.minConstTemp) ? '#991b1b' : '#1e293b',
+                                            boxShadow: isTempInvalid(manualForm.minConstTemp) ? '0 0 0 1px #ef4444' : 'none',
+                                            transition: 'all 0.2s',
+                                            fontWeight: isTempInvalid(manualForm.minConstTemp) ? '700' : '400'
+                                        }}
+                                        type="number"
+                                        value={manualForm.minConstTemp}
+                                        onChange={e => setManualForm({ ...manualForm, minConstTemp: e.target.value })}
+                                    />
+                                    {isTempInvalid(manualForm.minConstTemp) && <div style={{ fontSize: '10px', color: '#dc2626', fontWeight: '800', marginTop: '4px' }}>⚠ Must be 55-60°C</div>}
+                                </div>
+                                <div className="form-field">
+                                    <label style={{ fontSize: '10px' }}>Max Temp</label>
+                                    <input
+                                        style={{
+                                            padding: '6px',
+                                            backgroundColor: isTempInvalid(manualForm.maxConstTemp) ? '#ffe4e6' : '#ffffff',
+                                            borderColor: isTempInvalid(manualForm.maxConstTemp) ? '#ef4444' : '#cbd5e1',
+                                            borderWidth: isTempInvalid(manualForm.maxConstTemp) ? '2px' : '1px',
+                                            borderStyle: 'solid',
+                                            color: isTempInvalid(manualForm.maxConstTemp) ? '#991b1b' : '#1e293b',
+                                            boxShadow: isTempInvalid(manualForm.maxConstTemp) ? '0 0 0 1px #ef4444' : 'none',
+                                            transition: 'all 0.2s',
+                                            fontWeight: isTempInvalid(manualForm.maxConstTemp) ? '700' : '400'
+                                        }}
+                                        type="number"
+                                        value={manualForm.maxConstTemp}
+                                        onChange={e => setManualForm({ ...manualForm, maxConstTemp: e.target.value })}
+                                    />
+                                    {isTempInvalid(manualForm.maxConstTemp) && <div style={{ fontSize: '10px', color: '#dc2626', fontWeight: '800', marginTop: '4px' }}>⚠ Must be 55-60°C</div>}
+                                </div>
                             </div>
                             <div style={{ marginTop: '1rem', textAlign: 'center' }}><button className="toggle-btn" onClick={handleSaveManual}>{editingId ? 'Update Record' : 'Save Manual Record'}</button></div>
                         </div>

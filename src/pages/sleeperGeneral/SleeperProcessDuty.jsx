@@ -117,9 +117,9 @@ const SleeperProcessDuty = () => {
 
     // Mould & Bench Checking Data
     const [benchMouldCheckRecords, setBenchMouldCheckRecords] = useState([
-        { id: 1, type: 'Bench', name: 'Bench 210-A', checkDate: '2026-01-30', checkTime: '10:30', visualCheck: 'OK', dimensionalCheck: 'OK', result: 'OK', timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString() },
-        { id: 2, type: 'Bench', name: 'Twin Bench-210', checkDate: '2026-01-30', checkTime: '11:15', visualCheck: 'OK', dimensionalCheck: 'OK', result: 'OK', timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString() },
-        { id: 3, type: 'Mould', name: 'Mould M-205', checkDate: '2026-01-29', checkTime: '14:20', visualCheck: 'OK', dimensionalCheck: 'Minor Issue', result: 'OK', timestamp: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString() }
+        { id: 1, type: 'Bench', assetNo: '210-A', dateOfChecking: '2026-01-30', checkTime: '10:30', visualResult: 'ok', dimensionResult: 'ok', overallResult: 'OK', timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(), lastCasting: '2026-01-25', sleeperType: 'RT-1234' },
+        { id: 2, type: 'Bench', assetNo: '210', dateOfChecking: '2026-01-30', checkTime: '11:15', visualResult: 'ok', dimensionResult: 'ok', overallResult: 'OK', timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(), lastCasting: '2026-01-29', sleeperType: 'RT-1234' },
+        { id: 3, type: 'Mould', assetNo: 'M-205', dateOfChecking: '2026-01-29', checkTime: '14:20', visualResult: 'ok', dimensionResult: 'not-ok', overallResult: 'FAIL', timestamp: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(), lastCasting: '2026-01-29', sleeperType: 'RT-1234' }
     ]);
 
     const [allBenchesMoulds, setAllBenchesMoulds] = useState([

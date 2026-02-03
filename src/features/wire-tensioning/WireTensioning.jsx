@@ -173,7 +173,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                 {[
                     { id: 'stats', label: 'Statistics', color: '#3b82f6', desc: 'View tensioning distribution and variations.' },
-                    { id: 'witnessed', label: 'Witnessed Logs', color: '#10b981', desc: 'Manage witnessed and manual records.' },
+                    { id: 'witnessed', label: 'Current Witness Logs', color: '#10b981', desc: 'Manage witnessed and manual records.' },
                     { id: 'scada', label: 'Scada Data', color: '#f59e0b', desc: 'Raw data from PLC tensioning system.' }
                 ].map(tab => (
                     <TensionSubCard
@@ -284,36 +284,6 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                             </div>
                         </div>
 
-                        {/* 4. Current Witness Logs (Slate) */}
-                        <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                            <div style={{ paddingBottom: '1rem', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <span style={{ background: '#64748b', color: '#fff', fontSize: '0.75rem', fontWeight: '800', width: '24px', height: '24px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>4</span>
-                                <h4 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b', fontWeight: '800' }}>Current Witness Logs</h4>
-                            </div>
-                            <table className="ui-table" style={{ background: '#fff', borderRadius: '12px' }}>
-                                <thead><tr><th>Source</th><th>Time</th><th>Bench</th><th>Load (KN)</th><th>Action</th></tr></thead>
-                                <tbody>
-                                    {tensionRecords.filter(r => r.batchNo === selectedBatch).length === 0 ? (
-                                        <tr><td colSpan="5" style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8' }}>No logs for this shift.</td></tr>
-                                    ) : (
-                                        tensionRecords.filter(r => r.batchNo === selectedBatch).slice(0, 5).map(r => (
-                                            <tr key={r.id}>
-                                                <td><span className={`status-pill ${r.source === 'Manual' ? 'manual' : 'witnessed'}`}>{r.source}</span></td>
-                                                <td>{r.time}</td>
-                                                <td>{r.benchNo}</td>
-                                                <td>{r.finalLoad} KN</td>
-                                                <td>
-                                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                                        {r.source === 'Manual' && <button className="btn-action" onClick={() => handleEdit(r)}>Edit</button>}
-                                                        <button className="btn-action" style={{ background: '#fee2e2', color: '#ef4444', border: 'none' }} onClick={() => handleDelete(r.id)}>Delete</button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -322,7 +292,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
 
     const tabs = [
         { id: 'stats', label: 'Statistics', color: '#3b82f6' },
-        { id: 'witnessed', label: 'Witnessed Logs', color: '#10b981' },
+        { id: 'witnessed', label: 'Current Witness Logs', color: '#10b981' },
         { id: 'scada', label: 'Scada Data', color: '#f59e0b' }
     ];
 
@@ -363,8 +333,9 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                         </div>
                     )}
 
-                    {(viewMode === 'witnessed' || viewMode === 'dashboard') && (
+                    {viewMode === 'witnessed' && (
                         <div className="fade-in">
+                            <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b', fontWeight: '800' }}>Current Witness Logs</h4>
                             <div className="table-outer-wrapper" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                                 <table className="ui-table">
                                     <thead><tr><th>Source</th><th>Time</th><th>Batch</th><th>Bench</th><th>Load (KN)</th><th>Load/Wire</th><th>Actions</th></tr></thead>
@@ -458,7 +429,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                     {viewMode === 'witnessed' && (
                         <div className="fade-in">
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                <h3 style={{ margin: 0 }}>Witnessed Logs (Full)</h3>
+                                <h3 style={{ margin: 0 }}>Current Witness Logs</h3>
                                 <button className="toggle-btn" onClick={() => setViewMode('form')}>+ Add New Entry</button>
                             </div>
                             <div className="table-outer-wrapper" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
