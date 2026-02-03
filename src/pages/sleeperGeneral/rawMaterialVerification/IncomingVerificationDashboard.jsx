@@ -7,6 +7,7 @@ const IncomingVerificationDashboard = () => {
     const [viewModal, setViewModal] = useState(false);
     const [selectedEntry, setSelectedEntry] = useState(null);
     const [inventory, setInventory] = useState(MOCK_INVENTORY);
+    const [statusFilter, setStatusFilter] = useState('Unverified'); // 'Unverified', 'Verified', 'Rejected'
 
     const materials = [
         { id: 'CEMENT', title: 'Cement', unit: 'MT' },
@@ -35,17 +36,35 @@ const IncomingVerificationDashboard = () => {
             verifiedAt: `${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
         };
 
+        updateInventoryStatus(verificationInfo);
+        alert('Inventory entry verified successfully.');
+    };
+
+    const handleReject = () => {
+        if (!selectedEntry) return;
+
+        const now = new Date();
+        const rejectionInfo = {
+            status: 'Rejected',
+            verifiedBy: 'Inspecting Engineer (IE)',
+            verifiedAt: `${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+        };
+
+        updateInventoryStatus(rejectionInfo);
+        alert('Inventory entry rejected.');
+    };
+
+    const updateInventoryStatus = (info) => {
         const updatedInventory = {
             ...inventory,
             [selectedMaterial]: inventory[selectedMaterial].map(item =>
-                item.id === selectedEntry.id ? { ...item, ...verificationInfo } : item
+                item.id === selectedEntry.id ? { ...item, ...info } : item
             )
         };
 
         setInventory(updatedInventory);
-        setSelectedEntry({ ...selectedEntry, ...verificationInfo });
+        setSelectedEntry({ ...selectedEntry, ...info });
         setViewModal(false);
-        alert('Inventory entry verified successfully and locked.');
     };
 
     const columns = [
@@ -63,11 +82,11 @@ const IncomingVerificationDashboard = () => {
                     borderRadius: '20px',
                     fontSize: '11px',
                     fontWeight: '700',
-                    background: val === 'Verified' ? '#ecfdf5' : '#fff7ed',
-                    color: val === 'Verified' ? '#059669' : '#c2410c',
-                    border: `1px solid ${val === 'Verified' ? '#10b98133' : '#f9731633'}`
+                    background: val === 'Verified' ? '#ecfdf5' : val === 'Rejected' ? '#fef2f2' : '#fff7ed',
+                    color: val === 'Verified' ? '#059669' : val === 'Rejected' ? '#ef4444' : '#c2410c',
+                    border: `1px solid ${val === 'Verified' ? '#10b98133' : val === 'Rejected' ? '#f8717133' : '#f9731633'}`
                 }}>
-                    {val}
+                    {val === 'Unverified' ? 'Pending Verification' : val}
                 </span>
             )
         },
@@ -86,141 +105,173 @@ const IncomingVerificationDashboard = () => {
         }
     ];
 
-    if (selectedMaterial) {
-        return (
-            <div className="verification-list-view cement-forms-scope">
-                <header style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-                    <button className="back-button" onClick={() => setSelectedMaterial(null)} style={{ padding: '8px' }}>← Back</button>
-                    <div>
-                        <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1e293b', margin: 0 }}>
-                            {materials.find(m => m.id === selectedMaterial).title} Verification
-                        </h2>
-                        <span style={{ fontSize: '12px', color: '#64748b' }}>Verification of incoming material consignments</span>
-                    </div>
-                </header>
-
-                <div style={{ background: 'white', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                    <EnhancedDataTable columns={columns} data={inventory[selectedMaterial] || []} />
-                </div>
-
-                {viewModal && selectedEntry && (
-                    <div className="form-modal-overlay" onClick={() => setViewModal(false)}>
-                        <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
-                            <div className="form-modal-header">
-                                <span className="form-modal-header-title">Incoming Verification: {selectedEntry.id}</span>
-                                <button className="form-modal-close" onClick={() => setViewModal(false)}>X</button>
-                            </div>
-                            <div className="form-modal-body">
-                                <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
-                                    <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#42818c' }}>Consignment Details</h4>
-                                    <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                                        <div><label style={{ fontSize: '11px', color: '#64748b' }}>Vendor</label><div style={{ fontWeight: '600' }}>{selectedEntry.vendor}</div></div>
-                                        <div><label style={{ fontSize: '11px', color: '#64748b' }}>Consignment No</label><div style={{ fontWeight: '600' }}>{selectedEntry.consignmentNo}</div></div>
-                                        <div><label style={{ fontSize: '11px', color: '#64748b' }}>Quantity</label><div style={{ fontWeight: '600' }}>{selectedEntry.qty}</div></div>
-                                        <div><label style={{ fontSize: '11px', color: '#64748b' }}>Received Date</label><div style={{ fontWeight: '600' }}>{selectedEntry.receivedDate}</div></div>
-                                        {selectedEntry.lotNo && <div><label style={{ fontSize: '11px', color: '#64748b' }}>Lot No</label><div style={{ fontWeight: '600' }}>{selectedEntry.lotNo}</div></div>}
-                                        {selectedEntry.coilNo && <div><label style={{ fontSize: '11px', color: '#64748b' }}>Coil No</label><div style={{ fontWeight: '600' }}>{selectedEntry.coilNo}</div></div>}
-                                    </div>
-                                </div>
-
-                                {selectedEntry.status === 'Verified' && (
-                                    <div style={{ background: '#ecfdf5', padding: '16px', borderRadius: '12px', border: '1px solid #10b98133', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#059669' }}>OK</div>
-                                        <div>
-                                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#059669' }}>VERIFIED & LOCKED</div>
-                                            <div style={{ fontSize: '10px', color: '#065f46' }}>By {selectedEntry.verifiedBy} on {selectedEntry.verifiedAt}</div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div style={{ display: 'flex', gap: '12px' }}>
-                                    {selectedEntry.status === 'Unverified' ? (
-                                        <button className="btn-verify" style={{ flex: 1, height: '44px' }} onClick={handleVerify}>Verify & Lock Entry</button>
-                                    ) : (
-                                        <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#94a3b8', border: 'none', cursor: 'not-allowed', height: '44px' }} disabled>Already Verified</button>
-                                    )}
-                                    <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: 'none', height: '44px' }} onClick={() => setViewModal(false)}>Close</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    }
+    const currentData = selectedMaterial ? (inventory[selectedMaterial] || []).filter(item => item.status === statusFilter) : [];
 
     return (
-        <div className="verification-dashboard">
+        <div className="verification-dashboard cement-forms-scope">
             <header style={{ marginBottom: '24px' }}>
                 <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#13343b', margin: 0 }}>Incoming Raw Material Verification</h2>
                 <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>Verify vendor-entered inventory certificates to make materials eligible for production.</p>
             </header>
 
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                gap: '20px'
+            {/* Horizontal Cards Layout */}
+            <div className="ie-tab-row" style={{
+                display: 'flex',
+                overflowX: 'auto',
+                gap: '16px',
+                paddingBottom: '16px',
+                marginBottom: '24px'
             }}>
                 {materials.map(mat => {
                     const stats = getStats(mat.id);
+                    const isActive = selectedMaterial === mat.id;
                     return (
                         <div
                             key={mat.id}
-                            onClick={() => setSelectedMaterial(mat.id)}
-                            style={{
-                                background: 'white',
-                                border: '1px solid #e2e8f0',
-                                borderRadius: '16px',
-                                padding: '24px',
-                                cursor: 'pointer',
-                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                position: 'relative',
-                                overflow: 'hidden'
+                            className={`ie-tab-card ${isActive ? 'active' : ''}`}
+                            onClick={() => {
+                                setSelectedMaterial(mat.id);
+                                setStatusFilter('Unverified'); // Reset filter on switch
                             }}
-                            className="hover-card"
+                            style={{
+                                minWidth: '220px',
+                                flex: '0 0 auto',
+                                background: isActive ? 'var(--primary-50)' : 'white',
+                                border: `1px solid ${isActive ? 'var(--rites-green)' : '#e2e8f0'}`,
+                                borderRadius: '12px',
+                                padding: '16px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px'
+                            }}
                         >
-                            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '4px', background: stats.pending > 0 ? '#f59e0b' : '#059669' }}></div>
-
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-                                <div>
-                                    <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#334155', margin: 0 }}>{mat.title}</h3>
-                                    <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase' }}>Consignments</span>
-                                </div>
-                                <div style={{
-                                    background: stats.pending > 0 ? '#fff7ed' : '#ecfdf5',
-                                    color: stats.pending > 0 ? '#c2410c' : '#059669',
-                                    padding: '4px 12px',
-                                    borderRadius: '20px',
-                                    fontSize: '11px',
-                                    fontWeight: '700'
-                                }}>
-                                    {stats.pending > 0 ? `${stats.pending} Pending` : 'All Verified'}
-                                </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span className="ie-tab-title" style={{ fontWeight: '700', fontSize: '14px', color: isActive ? 'var(--rites-dark)' : 'var(--neutral-700)' }}>{mat.title}</span>
+                                {stats.pending > 0 && (
+                                    <span style={{ fontSize: '10px', background: '#fff7ed', color: '#c2410c', padding: '2px 8px', borderRadius: '10px', fontWeight: '700' }}>
+                                        {stats.pending} Pending
+                                    </span>
+                                )}
                             </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '12px' }}>
-                                    <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '4px' }}>INV BALANCE</div>
-                                    <div style={{ fontSize: '18px', fontWeight: '800', color: '#13343b' }}>{stats.balance}</div>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <button className="btn-verify" style={{ height: '36px', padding: '0 16px', fontSize: '11px' }}>
-                                        Open List
-                                    </button>
-                                </div>
+                            <div style={{ fontSize: '11px', color: '#64748b' }}>
+                                Total Balance: <span style={{ fontWeight: '700', color: '#334155' }}>{stats.balance}</span>
                             </div>
                         </div>
                     );
                 })}
             </div>
 
-            <style>{`
-                .hover-card:hover {
-                    transform: translateY(-4px);
-                    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-                    border-color: #42818c66;
-                }
-            `}</style>
+            {/* Main Content Area */}
+            {selectedMaterial ? (
+                <div style={{ background: 'white', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                        <div>
+                            <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b', margin: 0 }}>
+                                {materials.find(m => m.id === selectedMaterial).title} Consignments
+                            </h3>
+                            <span style={{ fontSize: '12px', color: '#64748b' }}>Manage verification status for incoming stock</span>
+                        </div>
+
+                        {/* Status Tabs */}
+                        <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px', gap: '4px' }}>
+                            {['Unverified', 'Verified', 'Rejected'].map(status => (
+                                <button
+                                    key={status}
+                                    onClick={() => setStatusFilter(status)}
+                                    style={{
+                                        padding: '6px 16px',
+                                        fontSize: '12px',
+                                        fontWeight: '600',
+                                        borderRadius: '6px',
+                                        border: 'none',
+                                        background: statusFilter === status ? 'white' : 'transparent',
+                                        color: statusFilter === status ? '#0f766e' : '#64748b',
+                                        boxShadow: statusFilter === status ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {status === 'Unverified' ? 'Pending' : status}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <EnhancedDataTable
+                        columns={columns}
+                        data={currentData}
+                        emptyMessage={`No ${statusFilter === 'Unverified' ? 'pending' : statusFilter.toLowerCase()} records found for ${materials.find(m => m.id === selectedMaterial).title}.`}
+                    />
+                </div>
+            ) : (
+                <div style={{ padding: '40px', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #cbd5e1' }}>
+                    <p style={{ color: '#64748b', fontWeight: '500' }}>Select a raw material card above to view inventory.</p>
+                </div>
+            )}
+
+            {viewModal && selectedEntry && (
+                <div className="form-modal-overlay" onClick={() => setViewModal(false)}>
+                    <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+                        <div className="form-modal-header">
+                            <span className="form-modal-header-title">Incoming Verification: {selectedEntry.id}</span>
+                            <button className="form-modal-close" onClick={() => setViewModal(false)}>X</button>
+                        </div>
+                        <div className="form-modal-body">
+                            <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
+                                <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#42818c' }}>Consignment Details</h4>
+                                <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                                    <div><label style={{ fontSize: '11px', color: '#64748b' }}>Vendor</label><div style={{ fontWeight: '600' }}>{selectedEntry.vendor}</div></div>
+                                    <div><label style={{ fontSize: '11px', color: '#64748b' }}>Consignment No</label><div style={{ fontWeight: '600' }}>{selectedEntry.consignmentNo}</div></div>
+                                    <div><label style={{ fontSize: '11px', color: '#64748b' }}>Quantity</label><div style={{ fontWeight: '600' }}>{selectedEntry.qty}</div></div>
+                                    <div><label style={{ fontSize: '11px', color: '#64748b' }}>Received Date</label><div style={{ fontWeight: '600' }}>{selectedEntry.receivedDate}</div></div>
+                                    {selectedEntry.lotNo && <div><label style={{ fontSize: '11px', color: '#64748b' }}>Lot No</label><div style={{ fontWeight: '600' }}>{selectedEntry.lotNo}</div></div>}
+                                    {selectedEntry.coilNo && <div><label style={{ fontSize: '11px', color: '#64748b' }}>Coil No</label><div style={{ fontWeight: '600' }}>{selectedEntry.coilNo}</div></div>}
+                                </div>
+                            </div>
+
+                            {selectedEntry.status !== 'Unverified' && (
+                                <div style={{
+                                    background: selectedEntry.status === 'Verified' ? '#ecfdf5' : '#fef2f2',
+                                    padding: '16px',
+                                    borderRadius: '12px',
+                                    border: `1px solid ${selectedEntry.status === 'Verified' ? '#10b98133' : '#f8717133'}`,
+                                    marginBottom: '24px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '12px'
+                                }}>
+                                    <div style={{ fontSize: '1.2rem', fontWeight: '800', color: selectedEntry.status === 'Verified' ? '#059669' : '#ef4444' }}>
+                                        {selectedEntry.status === 'Verified' ? 'OK' : 'X'}
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '12px', fontWeight: '700', color: selectedEntry.status === 'Verified' ? '#059669' : '#ef4444', textTransform: 'uppercase' }}>
+                                            {selectedEntry.status}
+                                        </div>
+                                        <div style={{ fontSize: '10px', color: selectedEntry.status === 'Verified' ? '#065f46' : '#991b1b' }}>
+                                            By {selectedEntry.verifiedBy} on {selectedEntry.verifiedAt}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                {selectedEntry.status === 'Unverified' ? (
+                                    <>
+                                        <button className="btn-verify" style={{ flex: 1, height: '44px', background: '#059669' }} onClick={handleVerify}>Verify</button>
+                                        <button className="btn-verify" style={{ flex: 1, height: '44px', background: '#dc2626' }} onClick={handleReject}>Reject</button>
+                                    </>
+                                ) : (
+                                    <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#94a3b8', border: 'none', cursor: 'not-allowed', height: '44px' }} disabled>Action Completed</button>
+                                )}
+                                <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: 'none', height: '44px' }} onClick={() => setViewModal(false)}>Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

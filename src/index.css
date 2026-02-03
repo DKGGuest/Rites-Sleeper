@@ -580,8 +580,8 @@ h4 {
 .form-modal-container {
     background: #fff;
     width: 100%;
-    max-width: 98vw;
-    max-height: 98vh;
+    max-width: 600px;
+    max-height: 90vh;
     border-radius: 8px;
     display: flex;
     flex-direction: column;
