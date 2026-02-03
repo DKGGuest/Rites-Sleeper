@@ -31,8 +31,21 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
             cement: record.cement, water: record.water, admixture: record.admixture
         });
         setEditingId(record.id);
-        const manualSection = document.getElementById('manual-entry-section');
-        if (manualSection) manualSection.scrollIntoView({ behavior: 'smooth' });
+
+        // Scroll to form and add visual highlight
+        setTimeout(() => {
+            const manualSection = document.getElementById('manual-entry-section');
+            if (manualSection) {
+                manualSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Add temporary highlight
+                manualSection.style.border = '3px solid #fbbf24';
+                manualSection.style.borderRadius = '12px';
+                setTimeout(() => {
+                    manualSection.style.border = '';
+                    manualSection.style.borderRadius = '';
+                }, 2000);
+            }
+        }, 100);
     };
 
     const handleSave = async () => {
@@ -72,7 +85,14 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
         <div className="manual-batch-controls" id="manual-entry-section">
             {!onlyHistory && (
                 <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem', border: '1px solid #e2e8f0' }}>
-                    <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b' }}>{editingId ? 'Edit Manual Batch Result' : 'Add Manual Batch Result'}</h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: editingId ? '1rem' : 0 }}>
+                        <h4 style={{ margin: 0, color: '#1e293b' }}>{editingId ? 'Edit Manual Batch Result' : 'Add Manual Batch Result'}</h4>
+                        {editingId && (
+                            <span style={{ fontSize: '0.75rem', color: '#d97706', background: '#fef3c7', padding: '4px 12px', borderRadius: '6px', fontWeight: '700' }}>
+                                Editing Record ID: {editingId}
+                            </span>
+                        )}
+                    </div>
                     <div className="form-grid">
                         <div className="form-field">
                             <label>Shed / Line No.</label>

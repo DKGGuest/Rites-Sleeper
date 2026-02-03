@@ -84,7 +84,7 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries, initialDat
                 </div>
                 <div className="form-field">
                     <label htmlFor="hts-bench">{fieldLabel} No. <span className="required">*</span></label>
-                    <input id="hts-bench" type="number" placeholder={`Enter ${fieldLabel} No`} value={formData.benchNo} onChange={e => handleChange('benchNo', e.target.value)} />
+                    <input id="hts-bench" type="number" min="0" placeholder={`Enter ${fieldLabel} No`} value={formData.benchNo} onChange={e => handleChange('benchNo', e.target.value)} />
                 </div>
                 <div className="form-field">
                     <label>Type of Sleeper (Auto)</label>
@@ -92,7 +92,7 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries, initialDat
                 </div>
                 <div className="form-field">
                     <label htmlFor="wires-used">No. of Wires Used <span className="required">*</span></label>
-                    <input id="wires-used" type="number" placeholder="Integer" value={formData.wiresUsed} onChange={e => handleChange('wiresUsed', e.target.value)} />
+                    <input id="wires-used" type="number" min="0" placeholder="Integer" value={formData.wiresUsed} onChange={e => handleChange('wiresUsed', e.target.value)} />
                 </div>
                 <div className="form-field">
                     <label htmlFor="wire-dia">HTS Wire Dia (mm) <span className="required">*</span></label>
@@ -143,7 +143,6 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries, initialDat
             </div>
             <div className="form-actions-center" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                 <button className="toggle-btn" onClick={handleSave}>Save Entry</button>
-                <button className="toggle-btn" style={{ background: '#f1f5f9', color: '#64748b' }} onClick={onCancel}>Cancel</button>
             </div>
         </div>
     );

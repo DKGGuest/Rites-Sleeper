@@ -89,7 +89,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries, initial
                 </div>
                 <div className="form-field">
                     <label htmlFor="demould-bench">{fieldLabel} No. <span className="required">*</span></label>
-                    <input id="demould-bench" type="number" placeholder={`Enter ${fieldLabel} No`} value={formData.benchNo} onChange={e => handleChange('benchNo', e.target.value)} />
+                    <input id="demould-bench" type="number" min="0" placeholder={`Enter ${fieldLabel} No`} value={formData.benchNo} onChange={e => handleChange('benchNo', e.target.value)} />
                 </div>
                 <div className="form-field">
                     <label>Type of Sleeper (Auto)</label>
@@ -149,7 +149,6 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries, initial
             </div>
             <div className="form-actions-center" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                 <button className="toggle-btn" onClick={handleSave}>Save Entry</button>
-                <button className="toggle-btn" style={{ background: '#f1f5f9', color: '#64748b' }} onClick={onCancel}>Cancel</button>
             </div>
         </div>
     );

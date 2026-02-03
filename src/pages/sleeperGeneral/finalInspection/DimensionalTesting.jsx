@@ -125,7 +125,7 @@ const DimensionalTesting = ({ type }) => {
                     <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: (type === 'visual' || type === 'critical' || type === 'noncritical') ? '1200px' : '900px' }}>
                         <div className="form-modal-header">
                             <span className="form-modal-header-title">{currentConfig.title} - {(type === 'visual' || type === 'critical' || type === 'noncritical') ? 'Full Inspection Form' : 'Batch Detail'}</span>
-                            <button className="form-modal-close" onClick={() => setShowForm(false)}>×</button>
+                            <button className="form-modal-close" onClick={() => setShowForm(false)}>X</button>
                         </div>
                         <div className="form-modal-body" style={{ background: '#f8fafc' }}>
                             {type === 'visual' ? (

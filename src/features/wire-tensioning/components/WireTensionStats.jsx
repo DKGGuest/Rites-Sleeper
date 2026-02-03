@@ -53,45 +53,44 @@ export const TensionHistogram = ({ data, mean, stdDev }) => {
 };
 
 const WireTensionStats = ({ stats, theoreticalMean = 730 }) => {
-    if (!stats) return <div style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8' }}>Awaiting data for analysis...</div>;
+    if (!stats) return <div style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8', fontSize: '0.8rem' }}>Awaiting SCADA data for batch analysis...</div>;
 
     const zones = [
-        { label: 'Normal Zone (±1σ)', value: stats.normalZone, color: '#22c55e', bg: '#f0fdf4' },
-        { label: 'Warning Zone (±2σ)', value: stats.warningZone, color: '#eab308', bg: '#fffbeb' },
-        { label: 'Action Zone (±3σ)', value: stats.actionZone, color: '#f97316', bg: '#fff7ed' },
-        { label: 'Out of Control (>±3σ)', value: stats.outOfControl, color: '#ef4444', bg: '#fef2f2' },
+        { label: 'Normal (±1σ)', value: stats.normalZone, color: '#22c55e', bg: '#f0fdf4' },
+        { label: 'Warning (±2σ)', value: stats.warningZone, color: '#eab308', bg: '#fffbeb' },
+        { label: 'Action (±3σ)', value: stats.actionZone, color: '#f97316', bg: '#fff7ed' },
+        { label: 'Outlier (>±3σ)', value: stats.outOfControl, color: '#ef4444', bg: '#fef2f2' },
     ];
 
     return (
-        <div className="calculation-summary">
-            <div className="dash-section-header" style={{ marginBottom: '1rem' }}>
-                <h4 style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '700' }}>Theoretical Pre-Stress Summary</h4>
-            </div>
-            <div className="rm-grid-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-                <div className="calc-card"><span className="calc-label" style={{ whiteSpace: 'normal', display: 'block' }}>Min Theoretical</span><div className="calc-value">{(theoreticalMean - 5).toFixed(1)} KN</div></div>
-                <div className="calc-card"><span className="calc-label" style={{ whiteSpace: 'normal', display: 'block' }}>Max Theoretical</span><div className="calc-value">{(theoreticalMean + 5).toFixed(1)} KN</div></div>
-                <div className="calc-card"><span className="calc-label" style={{ whiteSpace: 'normal', display: 'block' }}>Mean Theoretical</span><div className="calc-value">{theoreticalMean.toFixed(1)} KN</div></div>
-                <div className="calc-card"><span className="calc-label" style={{ whiteSpace: 'normal', display: 'block' }}>Load Deviation</span><div className="calc-value" style={{ color: Math.abs(stats.deviationFromTheo) > 2 ? '#ef4444' : '#22c55e' }}>{stats.deviationFromTheo.toFixed(2)}%</div></div>
-            </div>
-
-            <div className="dash-section-header" style={{ marginBottom: '1rem' }}>
-                <h4 style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '700' }}>Process Control Analysis (Shift Data)</h4>
-            </div>
-            <div className="rm-grid-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-                <div className="calc-card"><span className="calc-label" style={{ whiteSpace: 'normal', display: 'block' }}>Avg Final Load</span><div className="calc-value">{stats.mean.toFixed(1)} KN</div></div>
-                <div className="calc-card"><span className="calc-label" style={{ whiteSpace: 'normal', display: 'block' }}>Std Dev (σ)</span><div className="calc-value">{stats.stdDev.toFixed(2)}</div></div>
-                <div className="calc-card"><span className="calc-label" style={{ whiteSpace: 'normal', display: 'block' }}>CV (%)</span><div className="calc-value">{stats.cv.toFixed(2)}%</div></div>
-                <div className="calc-card"><span className="calc-label" style={{ whiteSpace: 'normal', display: 'block' }}>Sample Count</span><div className="calc-value">{stats.count}</div></div>
+        <div className="calculation-summary fade-in">
+            <div style={{ marginBottom: '1.5rem' }}>
+                <h4 style={{ fontSize: '0.8125rem', color: '#444', fontWeight: '800', textTransform: 'uppercase', marginBottom: '0.75rem', letterSpacing: '0.5px' }}>Theoretical Benchmarking</h4>
+                <div className="rm-grid-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem' }}>
+                    <div className="calc-card hover-lift" style={{ padding: '0.75rem' }}><span className="mini-label" style={{ fontSize: '0.6rem' }}>Target Mean</span><div className="calc-value" style={{ fontSize: '1.15rem' }}>{theoreticalMean.toFixed(1)} KN</div></div>
+                    <div className="calc-card hover-lift" style={{ padding: '0.75rem' }}><span className="mini-label" style={{ fontSize: '0.6rem' }}>Load Deviation</span><div className="calc-value" style={{ fontSize: '1.15rem', color: Math.abs(stats.deviationFromTheo) > 2 ? '#ef4444' : '#10b981' }}>{stats.deviationFromTheo.toFixed(2)}%</div></div>
+                    <div className="calc-card hover-lift" style={{ padding: '0.75rem' }}><span className="mini-label" style={{ fontSize: '0.6rem' }}>Theoretical Range</span><div className="calc-value" style={{ fontSize: '0.8125rem', fontWeight: '700', color: '#64748b' }}>{(theoreticalMean - 5).toFixed(1)} - {(theoreticalMean + 5).toFixed(1)}</div></div>
+                </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem', alignItems: 'start' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+                <h4 style={{ fontSize: '0.8125rem', color: '#444', fontWeight: '800', textTransform: 'uppercase', marginBottom: '0.75rem', letterSpacing: '0.5px' }}>Process Control (Live Analysis)</h4>
+                <div className="rm-grid-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem' }}>
+                    <div className="calc-card hover-lift" style={{ padding: '0.75rem' }}><span className="mini-label" style={{ fontSize: '0.6rem' }}>Actual Mean</span><div className="calc-value" style={{ fontSize: '1.15rem' }}>{stats.mean.toFixed(1)} KN</div></div>
+                    <div className="calc-card hover-lift" style={{ padding: '0.75rem' }}><span className="mini-label" style={{ fontSize: '0.6rem' }}>Std Dev (σ)</span><div className="calc-value" style={{ fontSize: '1.15rem' }}>{stats.stdDev.toFixed(2)}</div></div>
+                    <div className="calc-card hover-lift" style={{ padding: '0.75rem' }}><span className="mini-label" style={{ fontSize: '0.6rem' }}>Coeff Var (%)</span><div className="calc-value" style={{ fontSize: '1.15rem' }}>{stats.cv.toFixed(2)}%</div></div>
+                    <div className="calc-card hover-lift" style={{ padding: '0.75rem' }}><span className="mini-label" style={{ fontSize: '0.6rem' }}>Sample Size</span><div className="calc-value" style={{ fontSize: '1.15rem' }}>{stats.count}</div></div>
+                </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
                 <TensionHistogram data={stats.values} mean={stats.mean} stdDev={stats.stdDev} />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    <h5 style={{ fontSize: '11px', color: '#64748b', marginBottom: '5px', fontWeight: '700', textTransform: 'uppercase' }}>Sigma Distribution</h5>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <h5 style={{ fontSize: '0.65rem', color: '#64748b', marginBottom: '0.5rem', fontWeight: '800', textTransform: 'uppercase' }}>Sigma Distribution Profile</h5>
                     {zones.map(zone => (
-                        <div key={zone.label} style={{ background: zone.bg, padding: '12px', borderRadius: '8px', border: `1px solid ${zone.color}20`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600' }}>{zone.label}</span>
-                            <span style={{ fontSize: '14px', color: zone.color, fontWeight: '800' }}>{zone.value.toFixed(1)}%</span>
+                        <div key={zone.label} style={{ background: zone.bg, padding: '0.75rem 1rem', borderRadius: '10px', border: `1px solid ${zone.color}20`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s ease' }}>
+                            <span style={{ fontSize: '0.65rem', color: '#475569', fontWeight: '700' }}>{zone.label}</span>
+                            <span style={{ fontSize: '1rem', color: zone.color, fontWeight: '900' }}>{zone.value.toFixed(1)}%</span>
                         </div>
                     ))}
                 </div>

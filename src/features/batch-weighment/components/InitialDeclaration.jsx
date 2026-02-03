@@ -7,8 +7,7 @@ import { apiService } from '../../../services/api';
  */
 const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate }) => {
     const [sensors, setSensors] = useState({
-        notAvailable: false,
-        notWorking: false,
+        sensorStatus: 'working', // 'working', 'notAvailable', 'notWorking'
         sandType: 'M-Sand'
     });
 
@@ -16,10 +15,10 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate }) => {
     const [saving, setSaving] = useState(false);
 
     const handleSensorChange = (e) => {
-        const { name, value, type, checked } = e.target;
+        const { name, value, type } = e.target;
         setSensors(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : value
+            [name]: value
         }));
     };
 
@@ -87,40 +86,40 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate }) => {
 
             <div className="form-grid" style={{ marginBottom: '2rem' }}>
                 <div className="form-field">
-                    <label>Sensor System Health</label>
-                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                        <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <label>Moisture Sensor Status</label>
+                    <div style={{ display: 'flex', gap: '2rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                        <label className="radio-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                             <input
                                 type="radio"
                                 name="sensorStatus"
                                 value="working"
-                                checked={!sensors.notAvailable && !sensors.notWorking}
-                                onChange={() => setSensors(prev => ({ ...prev, notAvailable: false, notWorking: false }))}
+                                checked={sensors.sensorStatus === 'working'}
+                                onChange={handleSensorChange}
                                 style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0 }}
                             />
                             <span style={{ color: '#059669', fontWeight: '600' }}>Working</span>
                         </label>
-                        <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                        <label className="radio-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                             <input
                                 type="radio"
                                 name="sensorStatus"
-                                value="defect"
-                                checked={sensors.notWorking}
-                                onChange={() => setSensors(prev => ({ ...prev, notAvailable: false, notWorking: true }))}
+                                value="notAvailable"
+                                checked={sensors.sensorStatus === 'notAvailable'}
+                                onChange={handleSensorChange}
+                                style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0 }}
+                            />
+                            <span style={{ color: '#64748b', fontWeight: '600' }}>Not Available</span>
+                        </label>
+                        <label className="radio-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                            <input
+                                type="radio"
+                                name="sensorStatus"
+                                value="notWorking"
+                                checked={sensors.sensorStatus === 'notWorking'}
+                                onChange={handleSensorChange}
                                 style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0 }}
                             />
                             <span style={{ color: '#d97706', fontWeight: '600' }}>Not Working</span>
-                        </label>
-                        <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                            <input
-                                type="radio"
-                                name="sensorStatus"
-                                value="na"
-                                checked={sensors.notAvailable}
-                                onChange={() => setSensors(prev => ({ ...prev, notAvailable: true, notWorking: false }))}
-                                style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0 }}
-                            />
-                            <span style={{ color: '#64748b', fontWeight: '600' }}>Sensor Not Available</span>
                         </label>
                     </div>
                 </div>
@@ -138,7 +137,7 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate }) => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                         <div className="form-field" style={{ minWidth: '150px' }}>
                             <label>Batch No. <span className="required">*</span></label>
-                            <input type="number" value={batch.batchNo} onChange={(e) => handleBatchChange(batch.id, 'batchNo', null, e.target.value)} placeholder="e.g. 601" />
+                            <input type="number" min="0" value={batch.batchNo} onChange={(e) => handleBatchChange(batch.id, 'batchNo', null, e.target.value)} placeholder="e.g. 601" />
                         </div>
                         <div style={{ display: 'flex', gap: '1rem' }}>
                             <div style={{ textAlign: 'center' }}>
@@ -155,29 +154,50 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate }) => {
                         </div>
                     </div>
 
+                    <div style={{ marginBottom: '1.5rem', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px', fontSize: '0.8rem', color: '#64748b', border: '1px solid #e2e8f0' }}>
+                        <strong>Calculation Source:</strong> {sensors.sensorStatus === 'working' ? 'Online Moisture Sensor (Live)' : 'Latest Moisture Analysis Lab Report'}
+                    </div>
+
                     <div className="calculated-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem' }}>
-                        {Object.keys(batch.setValues).map(ing => (
-                            <div key={ing} className="calc-card" style={{ padding: '0.75rem' }}>
-                                <span className="calc-label" style={{ textTransform: 'uppercase' }}>{ing}</span>
-                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                                    <div style={{ flex: 1 }}>
-                                        <div className="mini-label">SET</div>
-                                        <input type="number" step="0.1" value={batch.setValues[ing]} onChange={e => handleBatchChange(batch.id, 'setValues', ing, e.target.value)} />
+                        {Object.keys(batch.setValues).map(ing => {
+                            const setVal = batch.setValues[ing];
+                            const adjVal = batch.adjustedWeights[ing];
+                            const deviation = adjVal > 0 ? (Math.abs(setVal - adjVal) / adjVal * 100) : 0;
+                            const isError = deviation > 1;
+
+                            return (
+                                <div key={ing} className="calc-card" style={{ padding: '0.75rem', border: isError ? '1px solid #fee2e2' : '1px solid #e2e8f0', background: isError ? '#fff5f5' : '#fff' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                        <span className="calc-label" style={{ textTransform: 'uppercase' }}>{ing}</span>
+                                        {isError && <span style={{ fontSize: '0.6rem', color: '#ef4444', fontWeight: '800' }}>MISMATCH ({deviation.toFixed(1)}%)</span>}
                                     </div>
-                                    <div style={{ flex: 1 }}>
-                                        <div className="mini-label">ADJ</div>
-                                        <div className="calc-value" style={{ height: '32px', display: 'flex', alignItems: 'center' }}>{batch.adjustedWeights[ing]}</div>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <div className="mini-label">SET (Manual)</div>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.1"
+                                                value={batch.setValues[ing]}
+                                                onChange={e => handleBatchChange(batch.id, 'setValues', ing, e.target.value)}
+                                                style={{ borderColor: isError ? '#ef4444' : '#cbd5e1' }}
+                                            />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <div className="mini-label">ADJ (Ref)</div>
+                                            <div className="calc-value" style={{ height: '32px', display: 'flex', alignItems: 'center', border: '1px solid #e2e8f0', padding: '0 8px', borderRadius: '6px', background: '#f8fafc' }}>{batch.adjustedWeights[ing]}</div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             ))}
 
-            <div className="form-actions-center" style={{ marginTop: '2.5rem' }}>
-                <button className="toggle-btn secondary" onClick={addBatch}>+ New Batch Class</button>
-                <button className="toggle-btn" onClick={handleSaveDeclaration} disabled={saving}>{saving ? 'Saving...' : 'Deploy Configuration'}</button>
+            <div className="form-actions-center" style={{ marginTop: '2.5rem', flexWrap: 'wrap', gap: '12px' }}>
+                <button className="toggle-btn secondary" style={{ flex: '1 1 180px' }} onClick={addBatch}>+ New Batch Class</button>
+                <button className="toggle-btn" style={{ flex: '1 1 180px' }} onClick={handleSaveDeclaration} disabled={saving}>{saving ? 'Saving...' : 'Deploy Configuration'}</button>
             </div>
         </div>
     );

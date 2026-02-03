@@ -92,7 +92,7 @@ const VisualInspectionForm = ({ batch, onSave, onCancel }) => {
             {/* Initial Information Card */}
             <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', background: '#f8fafc' }}>
                 <h4 style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px', textTransform: 'uppercase' }}>Initial Information</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px' }}>
                     <div>
                         <label style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Batch Number</label>
                         <div style={{ fontWeight: '700', color: '#13343b', fontSize: '1.1rem' }}>{batch.batchNo}</div>
@@ -155,8 +155,8 @@ const VisualInspectionForm = ({ batch, onSave, onCancel }) => {
                                 <td style={{ color: '#64748b' }}>{s.section}</td>
                                 <td>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px', whiteSpace: 'nowrap' }}>
                                                 <input
                                                     type="checkbox"
                                                     checked={sectionStates[s.id].allChecked}
@@ -191,7 +191,7 @@ const VisualInspectionForm = ({ batch, onSave, onCancel }) => {
                                             </div>
                                         </div>
 
-                                        {sectionStates[s.id].result === 'all-rejected' && (
+                                        {s.id !== 'ftc' && sectionStates[s.id].result === 'all-rejected' && (
                                             <div style={{ marginTop: '12px', background: '#fee2e2', padding: '12px', borderRadius: '8px', border: '1px solid #fecaca', animation: 'fadeIn 0.2s' }}>
                                                 <label style={{ fontSize: '11px', fontWeight: '700', color: '#b91c1c', display: 'block', marginBottom: '6px' }}>Reason for rejecting ALL sleepers:</label>
                                                 {getRejectionOptions(s.id) ? (
@@ -246,7 +246,7 @@ const VisualInspectionForm = ({ batch, onSave, onCancel }) => {
                                                     ))}
                                                 </div>
 
-                                                {sectionStates[s.id].failedSleepers.length > 0 && (
+                                                {s.id !== 'ftc' && sectionStates[s.id].failedSleepers.length > 0 && (
                                                     <div style={{ marginTop: '12px' }}>
                                                         <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px', fontWeight: '600' }}>Rejection Remarks:</div>
                                                         {sectionStates[s.id].failedSleepers.map(fid => (
@@ -290,9 +290,9 @@ const VisualInspectionForm = ({ batch, onSave, onCancel }) => {
                 </table>
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                <button className="btn-verify" style={{ flex: 1, height: '44px' }} onClick={onSave}>Save Visual Inspection Results</button>
-                <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#64748b', border: 'none', height: '44px' }} onClick={onCancel}>Cancel</button>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px', flexWrap: 'wrap' }}>
+                <button className="btn-verify" style={{ flex: '1 1 200px', height: '44px' }} onClick={onSave}>Save Visual Inspection Results</button>
+                <button className="btn-save" style={{ flex: '1 1 200px', background: '#f1f5f9', color: '#64748b', border: 'none', height: '44px' }} onClick={onCancel}>Cancel</button>
             </div>
         </div>
     );

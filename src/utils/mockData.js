@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Call Desk Module Mock Data
  * Comprehensive mock data for demonstration and testing
  */
@@ -554,137 +554,137 @@ export const MOCK_CALL_HISTORY = {
 
   // Verified & Open Calls History
   'CALL-2025-VO-001': [
-    { timestamp: '2025-01-20T09:00:00', action: '📝 Call Submitted', user: 'Vendor - Global Materials Corp', remarks: 'Fresh call submission for ERC - Raw Material inspection' },
-    { timestamp: '2025-01-20T14:30:00', action: '✅ Call Verified & Registered', user: 'Call Desk Officer - Ramesh Kumar', remarks: 'All documents verified and call registered in system' }
+    { timestamp: '2025-01-20T09:00:00', action: '“ Call Submitted', user: 'Vendor - Global Materials Corp', remarks: 'Fresh call submission for ERC - Raw Material inspection' },
+    { timestamp: '2025-01-20T14:30:00', action: '… Call Verified & Registered', user: 'Call Desk Officer - Ramesh Kumar', remarks: 'All documents verified and call registered in system' }
   ],
   'CALL-2025-VO-002': [
-    { timestamp: '2025-01-19T10:30:00', action: '📝 Call Submitted', user: 'Vendor - Premium Materials Inc', remarks: 'Fresh call submission for Sleeper - Process inspection' },
-    { timestamp: '2025-01-19T15:00:00', action: '✅ Call Verified & Registered', user: 'Call Desk Officer - Priya Sharma', remarks: 'Documents verified, awaiting IE assignment' }
+    { timestamp: '2025-01-19T10:30:00', action: '“ Call Submitted', user: 'Vendor - Premium Materials Inc', remarks: 'Fresh call submission for Sleeper - Process inspection' },
+    { timestamp: '2025-01-19T15:00:00', action: '… Call Verified & Registered', user: 'Call Desk Officer - Priya Sharma', remarks: 'Documents verified, awaiting IE assignment' }
   ],
   'CALL-2025-VO-003': [
-    { timestamp: '2025-01-18T11:15:00', action: '📝 Call Submitted', user: 'Vendor - Steel Forge India Ltd', remarks: 'Fresh call submission for GRSP - Final inspection' },
-    { timestamp: '2025-01-18T16:00:00', action: '✅ Call Verified & Registered', user: 'Call Desk Officer - Amit Patel', remarks: 'All documents verified' },
-    { timestamp: '2025-01-19T09:30:00', action: '👤 IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Rajesh Verma' }
+    { timestamp: '2025-01-18T11:15:00', action: '“ Call Submitted', user: 'Vendor - Steel Forge India Ltd', remarks: 'Fresh call submission for GRSP - Final inspection' },
+    { timestamp: '2025-01-18T16:00:00', action: '… Call Verified & Registered', user: 'Call Desk Officer - Amit Patel', remarks: 'All documents verified' },
+    { timestamp: '2025-01-19T09:30:00', action: '‘¤ IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Rajesh Verma' }
   ],
   'CALL-2025-VO-004': [
-    { timestamp: '2025-01-17T12:00:00', action: '📝 Call Submitted', user: 'Vendor - Quality Forge Pvt Ltd', remarks: 'Fresh call submission for ERC - Process inspection' },
-    { timestamp: '2025-01-17T17:00:00', action: '✅ Call Verified & Registered', user: 'Call Desk Officer - Sneha Reddy', remarks: 'Documents verified' },
-    { timestamp: '2025-01-18T10:00:00', action: '👤 IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Priya Menon' },
-    { timestamp: '2025-01-19T08:30:00', action: '🔍 Inspection Started', user: 'IE - Priya Menon', remarks: 'Inspection commenced at vendor site' }
+    { timestamp: '2025-01-17T12:00:00', action: '“ Call Submitted', user: 'Vendor - Quality Forge Pvt Ltd', remarks: 'Fresh call submission for ERC - Process inspection' },
+    { timestamp: '2025-01-17T17:00:00', action: '… Call Verified & Registered', user: 'Call Desk Officer - Sneha Reddy', remarks: 'Documents verified' },
+    { timestamp: '2025-01-18T10:00:00', action: '‘¤ IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Priya Menon' },
+    { timestamp: '2025-01-19T08:30:00', action: '” Inspection Started', user: 'IE - Priya Menon', remarks: 'Inspection commenced at vendor site' }
   ],
   'CALL-2025-VO-005': [
-    { timestamp: '2025-01-16T13:30:00', action: '📝 Call Submitted', user: 'Vendor - Precision Parts Co', remarks: 'Fresh call submission for Sleeper - Final inspection' },
-    { timestamp: '2025-01-16T18:00:00', action: '✅ Call Verified & Registered', user: 'Call Desk Officer - Ramesh Kumar', remarks: 'All documents verified' },
-    { timestamp: '2025-01-17T09:00:00', action: '👤 IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Anil Sharma' },
-    { timestamp: '2025-01-18T07:30:00', action: '🔍 Inspection Started', user: 'IE - Anil Sharma', remarks: 'Inspection commenced' },
-    { timestamp: '2025-01-19T16:00:00', action: '📄 Inspection Completed', user: 'IE - Anil Sharma', remarks: 'Inspection completed, IC pending' }
+    { timestamp: '2025-01-16T13:30:00', action: '“ Call Submitted', user: 'Vendor - Precision Parts Co', remarks: 'Fresh call submission for Sleeper - Final inspection' },
+    { timestamp: '2025-01-16T18:00:00', action: '… Call Verified & Registered', user: 'Call Desk Officer - Ramesh Kumar', remarks: 'All documents verified' },
+    { timestamp: '2025-01-17T09:00:00', action: '‘¤ IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Anil Sharma' },
+    { timestamp: '2025-01-18T07:30:00', action: '” Inspection Started', user: 'IE - Anil Sharma', remarks: 'Inspection commenced' },
+    { timestamp: '2025-01-19T16:00:00', action: '“„ Inspection Completed', user: 'IE - Anil Sharma', remarks: 'Inspection completed, IC pending' }
   ],
   'CALL-2025-VO-006': [
-    { timestamp: '2025-01-15T14:00:00', action: '📝 Call Submitted', user: 'Vendor - Advanced Metallurgy Works', remarks: 'Fresh call submission for GRSP - Raw Material inspection' },
-    { timestamp: '2025-01-15T19:00:00', action: '✅ Call Verified & Registered', user: 'Call Desk Officer - Priya Sharma', remarks: 'Documents verified' },
-    { timestamp: '2025-01-16T10:30:00', action: '👤 IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Vikram Singh' },
-    { timestamp: '2025-01-17T08:00:00', action: '🔍 Inspection Started', user: 'IE - Vikram Singh', remarks: 'Inspection commenced' },
-    { timestamp: '2025-01-18T15:30:00', action: '📄 Inspection Completed', user: 'IE - Vikram Singh', remarks: 'Inspection completed successfully' },
-    { timestamp: '2025-01-19T11:00:00', action: '📋 IC Generated', user: 'IE - Vikram Singh', remarks: 'Inspection Certificate generated, billing pending' }
+    { timestamp: '2025-01-15T14:00:00', action: '“ Call Submitted', user: 'Vendor - Advanced Metallurgy Works', remarks: 'Fresh call submission for GRSP - Raw Material inspection' },
+    { timestamp: '2025-01-15T19:00:00', action: '… Call Verified & Registered', user: 'Call Desk Officer - Priya Sharma', remarks: 'Documents verified' },
+    { timestamp: '2025-01-16T10:30:00', action: '‘¤ IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Vikram Singh' },
+    { timestamp: '2025-01-17T08:00:00', action: '” Inspection Started', user: 'IE - Vikram Singh', remarks: 'Inspection commenced' },
+    { timestamp: '2025-01-18T15:30:00', action: '“„ Inspection Completed', user: 'IE - Vikram Singh', remarks: 'Inspection completed successfully' },
+    { timestamp: '2025-01-19T11:00:00', action: '“‹ IC Generated', user: 'IE - Vikram Singh', remarks: 'Inspection Certificate generated, billing pending' }
   ],
   'CALL-2025-VO-007': [
-    { timestamp: '2025-01-14T15:30:00', action: '📝 Call Submitted', user: 'Vendor - Industrial Components Ltd', remarks: 'Fresh call submission for ERC - Final inspection' },
-    { timestamp: '2025-01-14T20:00:00', action: '✅ Call Verified & Registered', user: 'Call Desk Officer - Amit Patel', remarks: 'All documents verified' },
-    { timestamp: '2025-01-15T11:00:00', action: '👤 IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Meera Nair' },
-    { timestamp: '2025-01-16T09:00:00', action: '🔍 Inspection Started', user: 'IE - Meera Nair', remarks: 'Inspection commenced at vendor facility' },
-    { timestamp: '2025-01-17T14:00:00', action: '📄 Inspection Completed', user: 'IE - Meera Nair', remarks: 'Inspection completed' },
-    { timestamp: '2025-01-18T10:30:00', action: '📋 IC Generated', user: 'IE - Meera Nair', remarks: 'IC generated' },
-    { timestamp: '2025-01-19T12:00:00', action: '💰 Billing Completed', user: 'Accounts - Ravi Kumar', remarks: 'Invoice generated and sent to vendor' }
+    { timestamp: '2025-01-14T15:30:00', action: '“ Call Submitted', user: 'Vendor - Industrial Components Ltd', remarks: 'Fresh call submission for ERC - Final inspection' },
+    { timestamp: '2025-01-14T20:00:00', action: '… Call Verified & Registered', user: 'Call Desk Officer - Amit Patel', remarks: 'All documents verified' },
+    { timestamp: '2025-01-15T11:00:00', action: '‘¤ IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Meera Nair' },
+    { timestamp: '2025-01-16T09:00:00', action: '” Inspection Started', user: 'IE - Meera Nair', remarks: 'Inspection commenced at vendor facility' },
+    { timestamp: '2025-01-17T14:00:00', action: '“„ Inspection Completed', user: 'IE - Meera Nair', remarks: 'Inspection completed' },
+    { timestamp: '2025-01-18T10:30:00', action: '“‹ IC Generated', user: 'IE - Meera Nair', remarks: 'IC generated' },
+    { timestamp: '2025-01-19T12:00:00', action: '’° Billing Completed', user: 'Accounts - Ravi Kumar', remarks: 'Invoice generated and sent to vendor' }
   ],
   'CALL-2025-VO-008': [
-    { timestamp: '2025-01-13T16:00:00', action: '📝 Call Submitted', user: 'Vendor - Supreme Steel Industries', remarks: 'Fresh call submission for Sleeper - Process inspection' },
-    { timestamp: '2025-01-13T21:00:00', action: '✅ Call Verified & Registered', user: 'Call Desk Officer - Sneha Reddy', remarks: 'Documents verified' },
-    { timestamp: '2025-01-14T12:00:00', action: '👤 IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Karthik Reddy' },
-    { timestamp: '2025-01-15T08:30:00', action: '🔍 Inspection Started', user: 'IE - Karthik Reddy', remarks: 'Inspection commenced' },
-    { timestamp: '2025-01-16T16:00:00', action: '📄 Inspection Completed', user: 'IE - Karthik Reddy', remarks: 'Inspection completed successfully' },
-    { timestamp: '2025-01-17T11:30:00', action: '📋 IC Generated', user: 'IE - Karthik Reddy', remarks: 'IC generated' },
-    { timestamp: '2025-01-18T13:00:00', action: '💰 Billing Completed', user: 'Accounts - Ravi Kumar', remarks: 'Invoice generated' },
-    { timestamp: '2025-01-19T14:00:00', action: '🚚 Dispatch Clearance Issued', user: 'Call Desk Officer - Ramesh Kumar', remarks: 'Dispatch clearance issued to vendor' }
+    { timestamp: '2025-01-13T16:00:00', action: '“ Call Submitted', user: 'Vendor - Supreme Steel Industries', remarks: 'Fresh call submission for Sleeper - Process inspection' },
+    { timestamp: '2025-01-13T21:00:00', action: '… Call Verified & Registered', user: 'Call Desk Officer - Sneha Reddy', remarks: 'Documents verified' },
+    { timestamp: '2025-01-14T12:00:00', action: '‘¤ IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Karthik Reddy' },
+    { timestamp: '2025-01-15T08:30:00', action: '” Inspection Started', user: 'IE - Karthik Reddy', remarks: 'Inspection commenced' },
+    { timestamp: '2025-01-16T16:00:00', action: '“„ Inspection Completed', user: 'IE - Karthik Reddy', remarks: 'Inspection completed successfully' },
+    { timestamp: '2025-01-17T11:30:00', action: '“‹ IC Generated', user: 'IE - Karthik Reddy', remarks: 'IC generated' },
+    { timestamp: '2025-01-18T13:00:00', action: '’° Billing Completed', user: 'Accounts - Ravi Kumar', remarks: 'Invoice generated' },
+    { timestamp: '2025-01-19T14:00:00', action: 'šš Dispatch Clearance Issued', user: 'Call Desk Officer - Ramesh Kumar', remarks: 'Dispatch clearance issued to vendor' }
   ],
 
   // Disposed Calls History
   'CALL-2025-D-001': [
-    { timestamp: '2025-01-05T09:00:00', action: '📝 Call Submitted', user: 'Vendor - Global Materials Corp', remarks: 'Fresh call submission for ERC - Raw Material inspection' },
-    { timestamp: '2025-01-05T14:00:00', action: '✅ Call Verified & Registered', user: 'Call Desk Officer - Ramesh Kumar', remarks: 'All documents verified and call registered' },
-    { timestamp: '2025-01-06T10:00:00', action: '👤 IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Rajesh Kumar' },
-    { timestamp: '2025-01-08T08:30:00', action: '🔍 Inspection Started', user: 'IE - Rajesh Kumar', remarks: 'Inspection commenced at Mumbai Plant - Unit 1' },
-    { timestamp: '2025-01-10T16:00:00', action: '📄 Inspection Completed', user: 'IE - Rajesh Kumar', remarks: 'Inspection completed, all parameters within specification' },
-    { timestamp: '2025-01-12T11:00:00', action: '📋 IC Generated', user: 'IE - Rajesh Kumar', remarks: 'Inspection Certificate IC-2025-001 generated' },
-    { timestamp: '2025-01-15T14:30:00', action: '💰 Billing Completed', user: 'Accounts - Ravi Kumar', remarks: 'Invoice INV-2025-001 generated and sent to vendor' },
-    { timestamp: '2025-01-18T10:00:00', action: '🚚 Dispatch Clearance Issued', user: 'Call Desk Officer - Ramesh Kumar', remarks: 'Dispatch clearance issued to vendor' },
-    { timestamp: '2025-01-20T17:00:00', action: '✅ Call Completed & Disposed', user: 'System - Auto Disposal', remarks: 'Inspection completed successfully - Call moved to disposed archive' }
+    { timestamp: '2025-01-05T09:00:00', action: '“ Call Submitted', user: 'Vendor - Global Materials Corp', remarks: 'Fresh call submission for ERC - Raw Material inspection' },
+    { timestamp: '2025-01-05T14:00:00', action: '… Call Verified & Registered', user: 'Call Desk Officer - Ramesh Kumar', remarks: 'All documents verified and call registered' },
+    { timestamp: '2025-01-06T10:00:00', action: '‘¤ IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Rajesh Kumar' },
+    { timestamp: '2025-01-08T08:30:00', action: '” Inspection Started', user: 'IE - Rajesh Kumar', remarks: 'Inspection commenced at Mumbai Plant - Unit 1' },
+    { timestamp: '2025-01-10T16:00:00', action: '“„ Inspection Completed', user: 'IE - Rajesh Kumar', remarks: 'Inspection completed, all parameters within specification' },
+    { timestamp: '2025-01-12T11:00:00', action: '“‹ IC Generated', user: 'IE - Rajesh Kumar', remarks: 'Inspection Certificate IC-2025-001 generated' },
+    { timestamp: '2025-01-15T14:30:00', action: '’° Billing Completed', user: 'Accounts - Ravi Kumar', remarks: 'Invoice INV-2025-001 generated and sent to vendor' },
+    { timestamp: '2025-01-18T10:00:00', action: 'šš Dispatch Clearance Issued', user: 'Call Desk Officer - Ramesh Kumar', remarks: 'Dispatch clearance issued to vendor' },
+    { timestamp: '2025-01-20T17:00:00', action: '… Call Completed & Disposed', user: 'System - Auto Disposal', remarks: 'Inspection completed successfully - Call moved to disposed archive' }
   ],
   'CALL-2025-D-002': [
-    { timestamp: '2025-01-06T10:30:00', action: '📝 Call Submitted', user: 'Vendor - Premium Materials Inc', remarks: 'Fresh call submission for Sleeper - Process inspection' },
-    { timestamp: '2025-01-06T15:00:00', action: '✅ Call Verified & Registered', user: 'Call Desk Officer - Priya Sharma', remarks: 'Documents verified and call registered' },
-    { timestamp: '2025-01-07T11:00:00', action: '👤 IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Anil Sharma' },
-    { timestamp: '2025-01-09T09:00:00', action: '🔍 Inspection Scheduled', user: 'IE - Anil Sharma', remarks: 'Inspection scheduled for 2025-01-16' },
-    { timestamp: '2025-01-15T14:00:00', action: '📞 Vendor Communication', user: 'Vendor - Premium Materials Inc', remarks: 'Vendor requested call withdrawal due to production delay' },
-    { timestamp: '2025-01-16T10:00:00', action: '📝 Withdrawal Request Received', user: 'Call Desk Officer - Priya Sharma', remarks: 'Formal withdrawal request received from vendor' },
-    { timestamp: '2025-01-17T15:00:00', action: '✅ Withdrawal Approved', user: 'Admin - Suresh Kumar', remarks: 'Withdrawal request approved - no charges applicable' },
-    { timestamp: '2025-01-18T11:00:00', action: '🔙 Call Withdrawn & Disposed', user: 'Call Desk Officer - Priya Sharma', remarks: 'Vendor requested withdrawal due to production delay - Call moved to disposed archive' }
+    { timestamp: '2025-01-06T10:30:00', action: '“ Call Submitted', user: 'Vendor - Premium Materials Inc', remarks: 'Fresh call submission for Sleeper - Process inspection' },
+    { timestamp: '2025-01-06T15:00:00', action: '… Call Verified & Registered', user: 'Call Desk Officer - Priya Sharma', remarks: 'Documents verified and call registered' },
+    { timestamp: '2025-01-07T11:00:00', action: '‘¤ IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Anil Sharma' },
+    { timestamp: '2025-01-09T09:00:00', action: '” Inspection Scheduled', user: 'IE - Anil Sharma', remarks: 'Inspection scheduled for 2025-01-16' },
+    { timestamp: '2025-01-15T14:00:00', action: '“ž Vendor Communication', user: 'Vendor - Premium Materials Inc', remarks: 'Vendor requested call withdrawal due to production delay' },
+    { timestamp: '2025-01-16T10:00:00', action: '“ Withdrawal Request Received', user: 'Call Desk Officer - Priya Sharma', remarks: 'Formal withdrawal request received from vendor' },
+    { timestamp: '2025-01-17T15:00:00', action: '… Withdrawal Approved', user: 'Admin - Suresh Kumar', remarks: 'Withdrawal request approved - no charges applicable' },
+    { timestamp: '2025-01-18T11:00:00', action: '”™ Call Withdrawn & Disposed', user: 'Call Desk Officer - Priya Sharma', remarks: 'Vendor requested withdrawal due to production delay - Call moved to disposed archive' }
   ],
   'CALL-2025-D-003': [
-    { timestamp: '2025-01-07T11:15:00', action: '📝 Call Submitted', user: 'Vendor - Steel Forge India Ltd', remarks: 'Fresh call submission for GRSP - Final inspection' },
-    { timestamp: '2025-01-07T16:00:00', action: '✅ Call Verified & Registered', user: 'Call Desk Officer - Amit Patel', remarks: 'All documents verified' },
-    { timestamp: '2025-01-08T10:30:00', action: '👤 IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Priya Sharma' },
-    { timestamp: '2025-01-10T08:00:00', action: '🔍 Inspection Scheduled', user: 'IE - Priya Sharma', remarks: 'Inspection scheduled for 2025-01-17 at Bangalore Production Unit' },
-    { timestamp: '2025-01-17T08:30:00', action: '⚠️ Material Not Ready', user: 'IE - Priya Sharma', remarks: 'Vendor failed to provide material on scheduled date - 1st instance' },
-    { timestamp: '2025-01-17T14:00:00', action: '🔄 Inspection Rescheduled', user: 'IE - Priya Sharma', remarks: 'Inspection rescheduled to 2025-01-18' },
-    { timestamp: '2025-01-18T08:30:00', action: '⚠️ Material Not Ready', user: 'IE - Priya Sharma', remarks: 'Vendor failed to provide material again - 2nd instance' },
-    { timestamp: '2025-01-18T15:00:00', action: '🔄 Final Reschedule', user: 'IE - Priya Sharma', remarks: 'Final reschedule to 2025-01-19 - warned vendor about cancellation' },
-    { timestamp: '2025-01-19T08:30:00', action: '⚠️ Material Not Ready', user: 'IE - Priya Sharma', remarks: 'Vendor failed to provide material for 3rd time' },
-    { timestamp: '2025-01-19T11:00:00', action: '📝 Cancellation Recommended', user: 'IE - Priya Sharma', remarks: 'Recommended call cancellation with charges due to repeated non-compliance' },
-    { timestamp: '2025-01-19T14:00:00', action: '❌ Call Cancelled (Chargeable) & Disposed', user: 'Admin - Suresh Kumar', remarks: 'Vendor failed to provide material on scheduled date (3rd instance) - Cancellation charges applicable - Call moved to disposed archive' }
+    { timestamp: '2025-01-07T11:15:00', action: '“ Call Submitted', user: 'Vendor - Steel Forge India Ltd', remarks: 'Fresh call submission for GRSP - Final inspection' },
+    { timestamp: '2025-01-07T16:00:00', action: '… Call Verified & Registered', user: 'Call Desk Officer - Amit Patel', remarks: 'All documents verified' },
+    { timestamp: '2025-01-08T10:30:00', action: '‘¤ IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Priya Sharma' },
+    { timestamp: '2025-01-10T08:00:00', action: '” Inspection Scheduled', user: 'IE - Priya Sharma', remarks: 'Inspection scheduled for 2025-01-17 at Bangalore Production Unit' },
+    { timestamp: '2025-01-17T08:30:00', action: 'âš ï¸ Material Not Ready', user: 'IE - Priya Sharma', remarks: 'Vendor failed to provide material on scheduled date - 1st instance' },
+    { timestamp: '2025-01-17T14:00:00', action: '”„ Inspection Rescheduled', user: 'IE - Priya Sharma', remarks: 'Inspection rescheduled to 2025-01-18' },
+    { timestamp: '2025-01-18T08:30:00', action: 'âš ï¸ Material Not Ready', user: 'IE - Priya Sharma', remarks: 'Vendor failed to provide material again - 2nd instance' },
+    { timestamp: '2025-01-18T15:00:00', action: '”„ Final Reschedule', user: 'IE - Priya Sharma', remarks: 'Final reschedule to 2025-01-19 - warned vendor about cancellation' },
+    { timestamp: '2025-01-19T08:30:00', action: 'âš ï¸ Material Not Ready', user: 'IE - Priya Sharma', remarks: 'Vendor failed to provide material for 3rd time' },
+    { timestamp: '2025-01-19T11:00:00', action: '“ Cancellation Recommended', user: 'IE - Priya Sharma', remarks: 'Recommended call cancellation with charges due to repeated non-compliance' },
+    { timestamp: '2025-01-19T14:00:00', action: 'âŒ Call Cancelled (Chargeable) & Disposed', user: 'Admin - Suresh Kumar', remarks: 'Vendor failed to provide material on scheduled date (3rd instance) - Cancellation charges applicable - Call moved to disposed archive' }
   ],
   'CALL-2025-D-004': [
-    { timestamp: '2025-01-08T09:45:00', action: '📝 Call Submitted', user: 'Vendor - Quality Forge Pvt Ltd', remarks: 'Fresh call submission for ERC - Process inspection' },
-    { timestamp: '2025-01-08T14:00:00', action: '✅ Call Verified & Registered', user: 'Call Desk Officer - Sneha Reddy', remarks: 'Documents verified and call registered' },
-    { timestamp: '2025-01-09T10:00:00', action: '👤 IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Amit Patel' },
-    { timestamp: '2025-01-11T08:30:00', action: '🔍 Inspection Started', user: 'IE - Amit Patel', remarks: 'Inspection commenced at Chennai Forge Works' },
-    { timestamp: '2025-01-13T15:00:00', action: '📄 Inspection Completed', user: 'IE - Amit Patel', remarks: 'Inspection completed, material meets all specifications' },
-    { timestamp: '2025-01-15T10:30:00', action: '📋 IC Generated', user: 'IE - Amit Patel', remarks: 'Inspection Certificate IC-2025-004 generated' },
-    { timestamp: '2025-01-17T13:00:00', action: '💰 Billing Completed', user: 'Accounts - Ravi Kumar', remarks: 'Invoice INV-2025-004 generated' },
-    { timestamp: '2025-01-20T11:00:00', action: '🚚 Dispatch Clearance Issued', user: 'Call Desk Officer - Sneha Reddy', remarks: 'Dispatch clearance issued' },
-    { timestamp: '2025-01-22T16:30:00', action: '✅ Call Completed & Disposed', user: 'System - Auto Disposal', remarks: 'Inspection completed successfully - Call moved to disposed archive' }
+    { timestamp: '2025-01-08T09:45:00', action: '“ Call Submitted', user: 'Vendor - Quality Forge Pvt Ltd', remarks: 'Fresh call submission for ERC - Process inspection' },
+    { timestamp: '2025-01-08T14:00:00', action: '… Call Verified & Registered', user: 'Call Desk Officer - Sneha Reddy', remarks: 'Documents verified and call registered' },
+    { timestamp: '2025-01-09T10:00:00', action: '‘¤ IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Amit Patel' },
+    { timestamp: '2025-01-11T08:30:00', action: '” Inspection Started', user: 'IE - Amit Patel', remarks: 'Inspection commenced at Chennai Forge Works' },
+    { timestamp: '2025-01-13T15:00:00', action: '“„ Inspection Completed', user: 'IE - Amit Patel', remarks: 'Inspection completed, material meets all specifications' },
+    { timestamp: '2025-01-15T10:30:00', action: '“‹ IC Generated', user: 'IE - Amit Patel', remarks: 'Inspection Certificate IC-2025-004 generated' },
+    { timestamp: '2025-01-17T13:00:00', action: '’° Billing Completed', user: 'Accounts - Ravi Kumar', remarks: 'Invoice INV-2025-004 generated' },
+    { timestamp: '2025-01-20T11:00:00', action: 'šš Dispatch Clearance Issued', user: 'Call Desk Officer - Sneha Reddy', remarks: 'Dispatch clearance issued' },
+    { timestamp: '2025-01-22T16:30:00', action: '… Call Completed & Disposed', user: 'System - Auto Disposal', remarks: 'Inspection completed successfully - Call moved to disposed archive' }
   ],
   'CALL-2025-D-005': [
-    { timestamp: '2025-01-09T13:20:00', action: '📝 Call Submitted', user: 'Vendor - Precision Parts Co', remarks: 'Fresh call submission for Sleeper - Raw Material inspection' },
-    { timestamp: '2025-01-09T16:00:00', action: '✅ Call Verified & Registered', user: 'Call Desk Officer - Ramesh Kumar', remarks: 'All documents verified' },
-    { timestamp: '2025-01-10T11:00:00', action: '👤 IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Vikram Singh' },
-    { timestamp: '2025-01-12T09:00:00', action: '🔍 Inspection Scheduled', user: 'IE - Vikram Singh', remarks: 'Inspection scheduled for 2025-01-19' },
-    { timestamp: '2025-01-15T10:00:00', action: '📞 Railway Communication', user: 'Railway Admin - DRM Office', remarks: 'PO cancellation notice received from railway administration' },
-    { timestamp: '2025-01-15T14:30:00', action: '📝 PO Cancellation Verified', user: 'Call Desk Officer - Ramesh Kumar', remarks: 'Verified PO cancellation order from railway administration' },
-    { timestamp: '2025-01-16T11:00:00', action: '📧 Vendor Notified', user: 'Call Desk Officer - Ramesh Kumar', remarks: 'Vendor notified about PO cancellation and call cancellation' },
-    { timestamp: '2025-01-17T10:00:00', action: '❌ Call Cancelled (Non-Chargeable) & Disposed', user: 'Admin - Suresh Kumar', remarks: 'PO cancelled by railway administration - No charges applicable to vendor - Call moved to disposed archive' }
+    { timestamp: '2025-01-09T13:20:00', action: '“ Call Submitted', user: 'Vendor - Precision Parts Co', remarks: 'Fresh call submission for Sleeper - Raw Material inspection' },
+    { timestamp: '2025-01-09T16:00:00', action: '… Call Verified & Registered', user: 'Call Desk Officer - Ramesh Kumar', remarks: 'All documents verified' },
+    { timestamp: '2025-01-10T11:00:00', action: '‘¤ IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Vikram Singh' },
+    { timestamp: '2025-01-12T09:00:00', action: '” Inspection Scheduled', user: 'IE - Vikram Singh', remarks: 'Inspection scheduled for 2025-01-19' },
+    { timestamp: '2025-01-15T10:00:00', action: '“ž Railway Communication', user: 'Railway Admin - DRM Office', remarks: 'PO cancellation notice received from railway administration' },
+    { timestamp: '2025-01-15T14:30:00', action: '“ PO Cancellation Verified', user: 'Call Desk Officer - Ramesh Kumar', remarks: 'Verified PO cancellation order from railway administration' },
+    { timestamp: '2025-01-16T11:00:00', action: '“§ Vendor Notified', user: 'Call Desk Officer - Ramesh Kumar', remarks: 'Vendor notified about PO cancellation and call cancellation' },
+    { timestamp: '2025-01-17T10:00:00', action: 'âŒ Call Cancelled (Non-Chargeable) & Disposed', user: 'Admin - Suresh Kumar', remarks: 'PO cancelled by railway administration - No charges applicable to vendor - Call moved to disposed archive' }
   ],
   'CALL-2025-D-006': [
-    { timestamp: '2025-01-10T10:00:00', action: '📝 Call Submitted', user: 'Vendor - Advanced Metallurgy Works', remarks: 'Fresh call submission for ERC - Final inspection' },
-    { timestamp: '2025-01-10T15:00:00', action: '✅ Call Verified & Registered', user: 'Call Desk Officer - Priya Sharma', remarks: 'Documents verified and call registered' },
-    { timestamp: '2025-01-11T10:30:00', action: '👤 IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Vikram Singh' },
-    { timestamp: '2025-01-13T08:00:00', action: '🔍 Inspection Started', user: 'IE - Vikram Singh', remarks: 'Inspection commenced at Kolkata Manufacturing Hub' },
-    { timestamp: '2025-01-15T14:00:00', action: '⚠️ Quality Issues Identified', user: 'IE - Vikram Singh', remarks: 'Critical quality parameters not meeting specification - dimensional deviations observed' },
-    { timestamp: '2025-01-16T10:00:00', action: '🔬 Detailed Testing', user: 'IE - Vikram Singh', remarks: 'Conducted detailed testing and measurements - confirmed non-compliance' },
-    { timestamp: '2025-01-17T11:30:00', action: '📝 Rejection Report Prepared', user: 'IE - Vikram Singh', remarks: 'Prepared detailed rejection report with test results and photographs' },
-    { timestamp: '2025-01-18T09:00:00', action: '📧 Vendor Notified', user: 'IE - Vikram Singh', remarks: 'Vendor notified about material rejection with detailed report' },
-    { timestamp: '2025-01-19T14:00:00', action: '✅ Rejection Confirmed', user: 'Admin - Suresh Kumar', remarks: 'Rejection confirmed after review of IE report' },
-    { timestamp: '2025-01-21T13:00:00', action: '🚫 Call Rejected & Disposed', user: 'Call Desk Officer - Priya Sharma', remarks: 'Material failed critical quality parameters - rejected by IE - Call moved to disposed archive' }
+    { timestamp: '2025-01-10T10:00:00', action: '“ Call Submitted', user: 'Vendor - Advanced Metallurgy Works', remarks: 'Fresh call submission for ERC - Final inspection' },
+    { timestamp: '2025-01-10T15:00:00', action: '… Call Verified & Registered', user: 'Call Desk Officer - Priya Sharma', remarks: 'Documents verified and call registered' },
+    { timestamp: '2025-01-11T10:30:00', action: '‘¤ IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Vikram Singh' },
+    { timestamp: '2025-01-13T08:00:00', action: '” Inspection Started', user: 'IE - Vikram Singh', remarks: 'Inspection commenced at Kolkata Manufacturing Hub' },
+    { timestamp: '2025-01-15T14:00:00', action: 'âš ï¸ Quality Issues Identified', user: 'IE - Vikram Singh', remarks: 'Critical quality parameters not meeting specification - dimensional deviations observed' },
+    { timestamp: '2025-01-16T10:00:00', action: '”¬ Detailed Testing', user: 'IE - Vikram Singh', remarks: 'Conducted detailed testing and measurements - confirmed non-compliance' },
+    { timestamp: '2025-01-17T11:30:00', action: '“ Rejection Report Prepared', user: 'IE - Vikram Singh', remarks: 'Prepared detailed rejection report with test results and photographs' },
+    { timestamp: '2025-01-18T09:00:00', action: '“§ Vendor Notified', user: 'IE - Vikram Singh', remarks: 'Vendor notified about material rejection with detailed report' },
+    { timestamp: '2025-01-19T14:00:00', action: '… Rejection Confirmed', user: 'Admin - Suresh Kumar', remarks: 'Rejection confirmed after review of IE report' },
+    { timestamp: '2025-01-21T13:00:00', action: 'š« Call Rejected & Disposed', user: 'Call Desk Officer - Priya Sharma', remarks: 'Material failed critical quality parameters - rejected by IE - Call moved to disposed archive' }
   ],
   'CALL-2025-D-007': [
-    { timestamp: '2025-01-11T11:30:00', action: '📝 Call Submitted', user: 'Vendor - Global Materials Corp', remarks: 'Fresh call submission for GRSP - Process inspection' },
-    { timestamp: '2025-01-11T16:00:00', action: '✅ Call Verified & Registered', user: 'Call Desk Officer - Amit Patel', remarks: 'All documents verified' },
-    { timestamp: '2025-01-12T10:00:00', action: '👤 IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Rajesh Kumar' },
-    { timestamp: '2025-01-14T08:30:00', action: '🔍 Inspection Started', user: 'IE - Rajesh Kumar', remarks: 'Inspection commenced at Mumbai Plant - Unit 2' },
-    { timestamp: '2025-01-16T15:00:00', action: '📄 Inspection Completed', user: 'IE - Rajesh Kumar', remarks: 'Inspection completed successfully, all tests passed' },
-    { timestamp: '2025-01-18T11:00:00', action: '📋 IC Generated', user: 'IE - Rajesh Kumar', remarks: 'Inspection Certificate IC-2025-007 generated' },
-    { timestamp: '2025-01-20T13:30:00', action: '💰 Billing Completed', user: 'Accounts - Ravi Kumar', remarks: 'Invoice INV-2025-007 generated and sent' },
-    { timestamp: '2025-01-22T10:00:00', action: '🚚 Dispatch Clearance Issued', user: 'Call Desk Officer - Amit Patel', remarks: 'Dispatch clearance issued to vendor' },
-    { timestamp: '2025-01-23T15:00:00', action: '✅ Call Completed & Disposed', user: 'System - Auto Disposal', remarks: 'Inspection completed successfully - Call moved to disposed archive' }
+    { timestamp: '2025-01-11T11:30:00', action: '“ Call Submitted', user: 'Vendor - Global Materials Corp', remarks: 'Fresh call submission for GRSP - Process inspection' },
+    { timestamp: '2025-01-11T16:00:00', action: '… Call Verified & Registered', user: 'Call Desk Officer - Amit Patel', remarks: 'All documents verified' },
+    { timestamp: '2025-01-12T10:00:00', action: '‘¤ IE Assigned', user: 'Admin - Suresh Kumar', remarks: 'Assigned to IE - Rajesh Kumar' },
+    { timestamp: '2025-01-14T08:30:00', action: '” Inspection Started', user: 'IE - Rajesh Kumar', remarks: 'Inspection commenced at Mumbai Plant - Unit 2' },
+    { timestamp: '2025-01-16T15:00:00', action: '“„ Inspection Completed', user: 'IE - Rajesh Kumar', remarks: 'Inspection completed successfully, all tests passed' },
+    { timestamp: '2025-01-18T11:00:00', action: '“‹ IC Generated', user: 'IE - Rajesh Kumar', remarks: 'Inspection Certificate IC-2025-007 generated' },
+    { timestamp: '2025-01-20T13:30:00', action: '’° Billing Completed', user: 'Accounts - Ravi Kumar', remarks: 'Invoice INV-2025-007 generated and sent' },
+    { timestamp: '2025-01-22T10:00:00', action: 'šš Dispatch Clearance Issued', user: 'Call Desk Officer - Amit Patel', remarks: 'Dispatch clearance issued to vendor' },
+    { timestamp: '2025-01-23T15:00:00', action: '… Call Completed & Disposed', user: 'System - Auto Disposal', remarks: 'Inspection completed successfully - Call moved to disposed archive' }
   ]
 };
 

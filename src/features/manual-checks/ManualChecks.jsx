@@ -2,30 +2,80 @@ import React, { useState, useEffect } from 'react';
 import MouldPrepForm from './components/MouldPrepForm';
 import HTSWireForm from './components/HTSWireForm';
 import DemouldingForm from './components/DemouldingForm';
+import './ManualChecks.css';
 
 /**
  * ManualChecks Feature Module
- * Refactored to 3-Card Dashboard -> List -> Form flow.
+ * Refactored for:
+ * 1. Compact typography (smaller font sizes)
+ * 2. Dynamic interactive design (hover effects, transitions)
+ * 3. Clean architecture
  */
-const ManualChecks = ({ onBack, onAlertChange, activeContainer, initialSubModule, initialViewMode, sharedState }) => {
-    // Shared state from parent
+
+const SubCard = ({ id, title, color, count, isActive, onClick, onAdd, alert }) => {
+    const label = id === 'mouldPrep' ? 'IN-PROGRESS' : id === 'htsWire' ? 'LOGS' : 'RESULTS';
+    const category = id === 'mouldPrep' ? 'PREP' : id === 'htsWire' ? 'PLACEMENT' : 'QUALITY';
+
+    return (
+        <div
+            onClick={onClick}
+            className={`manual-sub-card ${isActive ? 'active' : ''}`}
+            style={{
+                borderColor: isActive ? color : '#e2e8f0',
+                borderTopColor: color,
+                boxShadow: isActive ? `0 4px 12px ${color}20` : 'none',
+                position: 'relative'
+            }}
+        >
+            {alert && (
+                <div style={{
+                    position: 'absolute',
+                    top: '-8px',
+                    right: '-8px',
+                    background: '#ef4444',
+                    color: '#fff',
+                    fontSize: '10px',
+                    fontWeight: '900',
+                    padding: '2px 8px',
+                    borderRadius: '10px',
+                    boxShadow: '0 2px 4px rgba(239, 68, 68, 0.4)',
+                    zIndex: 10
+                }}>
+                    No Reading (1h)
+                </div>
+            )}
+            <div className="sub-card-header">
+                <span className="sub-card-mini-label" style={{ color: isActive ? color : '#64748b' }}>{label}</span>
+                <button
+                    onClick={(e) => { e.stopPropagation(); onAdd(id); }}
+                    className="add-btn-mini"
+                    style={{ background: color }}
+                >
+                    +
+                </button>
+            </div>
+            <span className="sub-card-title">{title}</span>
+            <div className="sub-card-footer">
+                <div className="log-count-indicator">
+                    <div className="status-dot" style={{ background: color, opacity: isActive ? 1 : 0.5 }}></div>
+                    <span className="log-count-text" style={{ color: isActive ? color : '#94a3b8' }}><strong>{count}</strong> {category} READINGS</span>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMode, sharedState, initialEditData, isInline = false }) => {
     const { entries, setEntries } = sharedState;
+    const [viewMode, setViewMode] = useState(initialViewMode === 'form' ? 'form' : 'dashboard');
+    const [activeModule, setActiveModule] = useState(initialSubModule || 'mouldPrep');
+    const [editingEntry, setEditingEntry] = useState(initialEditData || null);
 
-    // View Modes: 'dashboard', 'list', 'form'
-    const [viewMode, setViewMode] = useState(initialSubModule ? 'list' : 'dashboard');
-    const [activeModule, setActiveModule] = useState(initialSubModule || null); // 'mouldPrep', 'htsWire', 'demoulding'
-    const [editingEntry, setEditingEntry] = useState(null);
-
-    // Logic for Long Line vs Stress Bench
     const isLongLine = activeContainer?.type === 'Line';
     const fieldLabel = isLongLine ? 'Gang' : 'Bench';
 
-    // Update active form if initialSubModule changes
     useEffect(() => {
-        if (initialSubModule) {
-            setActiveModule(initialSubModule);
-            setViewMode('list');
-        }
+        if (initialSubModule) setActiveModule(initialSubModule);
     }, [initialSubModule]);
 
     const handleSave = (subModule, data) => {
@@ -34,53 +84,28 @@ const ManualChecks = ({ onBack, onAlertChange, activeContainer, initialSubModule
             location: activeContainer?.name || 'N/A',
             locationType: activeContainer?.type || 'Location'
         };
-
         if (editingEntry) {
             setEntries(prev => ({
                 ...prev,
                 [subModule]: prev[subModule].map(e => e.id === editingEntry.id ? { ...enrichedData, id: editingEntry.id, timestamp: editingEntry.timestamp } : e)
             }));
-            setEditingEntry(null);
-            setViewMode('list'); // Return to list after save
-            alert('Record updated successfully');
         } else {
             setEntries(prev => ({
                 ...prev,
                 [subModule]: [{ ...enrichedData, id: Date.now(), timestamp: new Date().toISOString() }, ...prev[subModule]]
             }));
-            setViewMode('list'); // Return to list after save
-            alert('Record saved successfully');
         }
-    };
-
-    const isRecordEditable = (timestamp) => {
-        const diffMs = Date.now() - new Date(timestamp).getTime();
-        return diffMs < (12 * 60 * 60 * 1000); // 12 hour shift window
-    };
-
-    const handleEdit = (entry) => {
-        setEditingEntry(entry);
-        setViewMode('form');
+        setEditingEntry(null);
+        setViewMode('dashboard');
     };
 
     const handleDelete = (subModule, entryId) => {
-        if (window.confirm('Are you sure you want to delete this record?')) {
+        if (window.confirm('Delete this record?')) {
             setEntries(prev => ({
                 ...prev,
                 [subModule]: prev[subModule].filter(e => e.id !== entryId)
             }));
-            alert('Record deleted successfully');
         }
-    };
-
-    const handleCardClick = (moduleName) => {
-        setActiveModule(moduleName);
-        setViewMode('list');
-    };
-
-    const handleAddNew = () => {
-        setEditingEntry(null);
-        setViewMode('form');
     };
 
     const getModuleTitle = (mod) => {
@@ -92,225 +117,55 @@ const ManualChecks = ({ onBack, onAlertChange, activeContainer, initialSubModule
         }
     };
 
-    const renderDashboard = () => (
-        <div style={{ padding: '1rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
-                {/* Mould Prep Card */}
-                <div
-                    className="dashboard-card hover-lift"
-                    onClick={() => handleCardClick('mouldPrep')}
-                    style={{ background: '#fff', padding: '2rem', borderRadius: '16px', border: '1px solid #e2e8f0', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}
-                >
-                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🧹</div>
-                    <h3 style={{ color: '#1e293b', marginBottom: '0.5rem' }}>Mould Preparation</h3>
-                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Log cleaning, oiling, and preparation status.</p>
-                    <div style={{ fontWeight: '700', color: '#3b82f6' }}>
-                        {entries.mouldPrep?.length || 0} Entries Today
-                    </div>
-                </div>
-
-                {/* HTS Wire Card */}
-                <div
-                    className="dashboard-card hover-lift"
-                    onClick={() => handleCardClick('htsWire')}
-                    style={{ background: '#fff', padding: '2rem', borderRadius: '16px', border: '1px solid #e2e8f0', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}
-                >
-                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🧵</div>
-                    <h3 style={{ color: '#1e293b', marginBottom: '0.5rem' }}>HTS Wire Placement</h3>
-                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Record wire usage and placement checks.</p>
-                    <div style={{ fontWeight: '700', color: '#8b5cf6' }}>
-                        {entries.htsWire?.length || 0} Entries Today
-                    </div>
-                </div>
-
-                {/* Demoulding Card */}
-                <div
-                    className="dashboard-card hover-lift"
-                    onClick={() => handleCardClick('demoulding')}
-                    style={{ background: '#fff', padding: '2rem', borderRadius: '16px', border: '1px solid #e2e8f0', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}
-                >
-                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏗️</div>
-                    <h3 style={{ color: '#1e293b', marginBottom: '0.5rem' }}>Demoulding Inspection</h3>
-                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Post-curing visual and lifting checks.</p>
-                    <div style={{ fontWeight: '700', color: '#10b981' }}>
-                        {entries.demoulding?.length || 0} Entries Today
-                    </div>
-                </div>
-            </div>
-
-            {/* Recent Shift Activity Section */}
-            <div style={{ marginTop: '3rem' }}>
-                <h3 style={{ color: '#1e293b', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '1.25rem' }}>📋</span> Recent Shift Activity
-                </h3>
-                <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                    <table className="ui-table">
-                        <thead style={{ background: '#f8fafc' }}>
-                            <tr>
-                                <th style={{ textAlign: 'left' }}>Time</th>
-                                <th style={{ textAlign: 'left' }}>Module</th>
-                                <th style={{ textAlign: 'left' }}>Location ({fieldLabel})</th>
-                                <th style={{ textAlign: 'left' }}>Result / Status</th>
-                                <th style={{ textAlign: 'center' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {Object.keys(entries).every(k => entries[k].length === 0) ? (
-                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>No activity recorded yet in this shift.</td></tr>
-                            ) : (
-                                Object.keys(entries).flatMap(k => entries[k].map(e => ({ ...e, module: k }))).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10).map(entry => (
-                                    <tr key={entry.id}>
-                                        <td>{entry.time}</td>
-                                        <td style={{ fontWeight: '600', color: '#42818c' }}>{getModuleTitle(entry.module)}</td>
-                                        <td><strong>{entry.benchNo}</strong></td>
-                                        <td>
-                                            {entry.module === 'mouldPrep' && (
-                                                <span style={{ color: entry.lumpsFree && entry.oilApplied ? '#10b981' : '#ef4444', fontWeight: '700' }}>
-                                                    {entry.lumpsFree && entry.oilApplied ? 'Ready' : 'Incomplete'}
-                                                </span>
-                                            )}
-                                            {entry.module === 'htsWire' && (
-                                                <span style={{ color: entry.satisfactory ? '#10b981' : '#ef4444', fontWeight: '700' }}>
-                                                    {entry.satisfactory ? 'Pass' : 'Fail'} ({entry.wiresUsed} wires)
-                                                </span>
-                                            )}
-                                            {entry.module === 'demoulding' && (
-                                                <span className={`status-pill ${entry.processSatisfactory ? 'witnessed' : 'manual'}`}>
-                                                    {entry.processSatisfactory ? 'Pass' : 'Fail'}
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td>
-                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                                {isRecordEditable(entry.timestamp) ? (
-                                                    <>
-                                                        <button className="btn-action" onClick={() => { setActiveModule(entry.module); handleEdit(entry); }}>Edit</button>
-                                                        <button className="btn-action" style={{ background: '#fee2e2', color: '#ef4444', border: '1px solid #fecaca' }} onClick={() => handleDelete(entry.module, entry.id)}>Delete</button>
-                                                    </>
-                                                ) : <span style={{ fontSize: '10px', color: '#94a3b8' }}>Locked</span>}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    );
-
-    const renderModuleView = () => {
-        const records = entries[activeModule] || [];
-        const isFormOpen = viewMode === 'form';
-
+    const renderLogs = (mod) => {
+        const records = entries[mod] || [];
         return (
-            <div className="fade-in">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <button onClick={() => setViewMode('dashboard')} style={{ background: '#fff', border: '1px solid #cbd5e1', cursor: 'pointer', padding: '6px 10px', borderRadius: '6px', color: '#64748b', fontWeight: 'bold' }}>← BACK</button>
-                        <h3 style={{ margin: 0, color: '#1e293b' }}>{getModuleTitle(activeModule)} Console</h3>
-                    </div>
-                    {!isFormOpen && (
-                        <button className="toggle-btn" onClick={handleAddNew}>
-                            + Add New Entry
-                        </button>
-                    )}
+            <div className="table-outer-wrapper fade-in">
+                <div className="content-title-row">
+                    <h4>{getModuleTitle(mod)} History</h4>
                 </div>
-
-                {/* Integrated Form Section */}
-                {isFormOpen && (
-                    <div style={{ background: '#f8fafc', padding: '2rem', borderRadius: '16px', border: '2px solid #3b82f6', maxWidth: '1000px', margin: '0 auto 2rem auto', boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.1)' }}>
-                        <h3 style={{ marginTop: 0, marginBottom: '2rem', color: '#3b82f6', textAlign: 'center' }}>
-                            {editingEntry ? 'Edit' : 'Add New'} {getModuleTitle(activeModule)} Record
-                        </h3>
-
-                        {activeModule === 'mouldPrep' && (
-                            <MouldPrepForm
-                                onSave={(data) => handleSave('mouldPrep', data)}
-                                onCancel={() => setViewMode('list')}
-                                isLongLine={isLongLine}
-                                existingEntries={entries.mouldPrep}
-                                initialData={editingEntry}
-                                activeContainer={activeContainer}
-                            />
-                        )}
-
-                        {activeModule === 'htsWire' && (
-                            <HTSWireForm
-                                onSave={(data) => handleSave('htsWire', data)}
-                                onCancel={() => setViewMode('list')}
-                                isLongLine={isLongLine}
-                                existingEntries={entries.htsWire}
-                                initialData={editingEntry}
-                                activeContainer={activeContainer}
-                            />
-                        )}
-
-                        {activeModule === 'demoulding' && (
-                            <DemouldingForm
-                                onSave={(data) => handleSave('demoulding', data)}
-                                onCancel={() => setViewMode('list')}
-                                isLongLine={isLongLine}
-                                existingEntries={entries.demoulding}
-                                initialData={editingEntry}
-                                activeContainer={activeContainer}
-                            />
-                        )}
-                    </div>
-                )}
-
-                {/* Logs Table Section */}
-                <div className="table-outer-wrapper" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <h4 style={{ margin: 0, color: '#475569' }}>Current Shift Logs</h4>
-                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>Total: {records.length} Entries</span>
-                    </div>
+                <div className="table-responsive">
                     <table className="ui-table">
                         <thead>
                             <tr>
                                 <th>Time</th>
                                 <th>{fieldLabel} No.</th>
-                                {activeModule === 'mouldPrep' && <><th>Lumps Free</th><th>Oil Applied</th></>}
-                                {activeModule === 'htsWire' && <><th>Wires</th><th>Satisfactory</th></>}
-                                {activeModule === 'demoulding' && <><th>Visual</th><th>Result</th></>}
-                                <th style={{ textAlign: 'center' }}>Actions</th>
+                                {mod === 'mouldPrep' && <><th>Lumps Free</th><th>Oil Applied</th></>}
+                                {mod === 'htsWire' && <><th>Wires</th><th>Satisfactory</th></>}
+                                {mod === 'demoulding' && <><th>Visual</th><th>Result</th></>}
+                                <th className="text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {records.length === 0 ? (
-                                <tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No entries found for this shift.</td></tr>
+                                <tr><td colSpan="6" className="empty-msg">No logs found.</td></tr>
                             ) : (
                                 records.map(entry => (
-                                    <tr key={entry.id}>
+                                    <tr key={entry.id} className="table-row-hover">
                                         <td>{entry.time}</td>
                                         <td><strong>{entry.benchNo}</strong></td>
-                                        {activeModule === 'mouldPrep' && (
+                                        {mod === 'mouldPrep' && (
                                             <>
-                                                <td>{entry.lumpsFree ? '✅' : '❌'}</td>
-                                                <td>{entry.oilApplied ? '✅' : '❌'}</td>
+                                                <td className={entry.lumpsFree ? 'text-success' : 'text-danger'}>{entry.lumpsFree ? 'OK' : 'ISSUE'}</td>
+                                                <td className={entry.oilApplied ? 'text-success' : 'text-danger'}>{entry.oilApplied ? 'OK' : 'ISSUE'}</td>
                                             </>
                                         )}
-                                        {activeModule === 'htsWire' && (
+                                        {mod === 'htsWire' && (
                                             <>
                                                 <td>{entry.wiresUsed}</td>
                                                 <td>{entry.satisfactory ? 'Yes' : 'No'}</td>
                                             </>
                                         )}
-                                        {activeModule === 'demoulding' && (
+                                        {mod === 'demoulding' && (
                                             <>
                                                 <td>{entry.visualCheck}</td>
                                                 <td><span className={`status-pill ${entry.processSatisfactory ? 'witnessed' : 'manual'}`}>{entry.processSatisfactory ? 'Pass' : 'Fail'}</span></td>
                                             </>
                                         )}
-                                        <td>
-                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                                {isRecordEditable(entry.timestamp) ? (
-                                                    <>{/* isRecordEditable is defined at line 56 */}
-                                                        <button className="btn-action" onClick={() => handleEdit(entry)}>Edit</button>
-                                                        <button className="btn-action" style={{ background: '#fee2e2', color: '#ef4444', border: '1px solid #fecaca' }} onClick={() => handleDelete(activeModule, entry.id)}>Delete</button>
-                                                    </>
-                                                ) : <span style={{ fontSize: '10px', color: '#94a3b8' }}>Locked</span>}
+                                        <td className="text-center">
+                                            <div className="btn-group-center">
+                                                <button className="btn-action mini" onClick={() => { setEditingEntry(entry); setViewMode('form'); }}>Modify</button>
+                                                <button className="btn-action mini danger" onClick={() => handleDelete(mod, entry.id)}>Delete</button>
                                             </div>
                                         </td>
                                     </tr>
@@ -323,22 +178,100 @@ const ManualChecks = ({ onBack, onAlertChange, activeContainer, initialSubModule
         );
     };
 
+    const content = (
+        <div className="manual-checks-container">
+            {viewMode === 'dashboard' ? (
+                <>
+                    <div className="sub-cards-grid">
+                        {[
+                            { id: 'mouldPrep', title: 'Mould Preparation', color: '#3b82f6' },
+                            { id: 'htsWire', title: 'HTS Wire Placement', color: '#f59e0b' },
+                            { id: 'demoulding', title: 'Demoulding Inspection', color: '#10b981' }
+                        ].map(mod => {
+                            const lastHour = new Date(Date.now() - 60 * 60 * 1000);
+                            const records = entries[mod.id] || [];
+                            const hasRecentReading = records.some(e => new Date(e.timestamp) > lastHour);
+                            const showAlert = !hasRecentReading;
+
+                            return (
+                                <SubCard
+                                    key={mod.id}
+                                    id={mod.id}
+                                    title={mod.title}
+                                    color={mod.color}
+                                    count={records.length}
+                                    isActive={activeModule === mod.id}
+                                    onClick={() => setActiveModule(mod.id)}
+                                    onAdd={(id) => { setActiveModule(id); setEditingEntry(null); setViewMode('form'); }}
+                                    alert={showAlert}
+                                />
+                            );
+                        })}
+                    </div>
+
+                    {renderLogs(activeModule)}
+                </>
+            ) : (
+                <div className="fade-in">
+                    <div className="content-title-row">
+                        <h3>{editingEntry ? 'Modify' : 'New'} {getModuleTitle(activeModule)}</h3>
+                        <button className="toggle-btn secondary mini" onClick={() => setViewMode('dashboard')}>Back to Logs</button>
+                    </div>
+
+                    <div className="manual-form-wrapper">
+                        {activeModule === 'mouldPrep' && (
+                            <MouldPrepForm
+                                onSave={(data) => handleSave('mouldPrep', data)}
+                                onCancel={() => setViewMode('dashboard')}
+                                isLongLine={isLongLine}
+                                existingEntries={entries.mouldPrep}
+                                initialData={editingEntry}
+                                activeContainer={activeContainer}
+                            />
+                        )}
+                        {activeModule === 'htsWire' && (
+                            <HTSWireForm
+                                onSave={(data) => handleSave('htsWire', data)}
+                                onCancel={() => setViewMode('dashboard')}
+                                isLongLine={isLongLine}
+                                existingEntries={entries.htsWire}
+                                initialData={editingEntry}
+                                activeContainer={activeContainer}
+                            />
+                        )}
+                        {activeModule === 'demoulding' && (
+                            <DemouldingForm
+                                onSave={(data) => handleSave('demoulding', data)}
+                                onCancel={() => setViewMode('dashboard')}
+                                isLongLine={isLongLine}
+                                existingEntries={entries.demoulding}
+                                initialData={editingEntry}
+                                activeContainer={activeContainer}
+                            />
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+
+    if (isInline) return content;
+
     return (
         <div className="modal-overlay" onClick={onBack}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: viewMode === 'dashboard' ? '1200px' : '1600px', width: '95%', height: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="modal-content large-modal" onClick={e => e.stopPropagation()}>
                 <header className="modal-header">
-                    <div>
-                        <h2 style={{ margin: 0 }}>Manual Inspection Console</h2>
-                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>
-                            {activeContainer?.name} ({isLongLine ? 'Long Line Plant' : 'Stress Bench Plant'})
+                    <div className="header-titles">
+                        <h2>Inspection Console</h2>
+                        <p className="header-subtitle">
+                            {activeContainer?.name} • {isLongLine ? 'LONG LINE' : 'STRESS BENCH'}
                         </p>
                     </div>
                     <button className="close-btn" onClick={onBack}>×</button>
                 </header>
 
-                <div className="modal-body" style={{ flexGrow: 1, overflowY: 'auto', padding: '1.5rem', background: viewMode === 'dashboard' ? '#f8fafc' : '#fff' }}>
-                    {viewMode === 'dashboard' && renderDashboard()}
-                    {(viewMode === 'list' || viewMode === 'form') && renderModuleView()}
+                <div className="modal-body-wrapper">
+                    {content}
                 </div>
             </div>
         </div>

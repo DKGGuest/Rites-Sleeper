@@ -43,7 +43,13 @@ const SleeperProcessDuty = () => {
         }
     ];
 
-    const [allWitnessedRecords, setAllWitnessedRecords] = useState({ 1: [] });
+    const [allWitnessedRecords, setAllWitnessedRecords] = useState({
+        1: [
+            { id: 1, time: '08:15', batchNo: '601', ca1: 434, ca2: 177, fa: 208, cement: 175.2, water: 36.8, admixture: 1.42, source: 'Scada Witnessed', location: 'Line I', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
+            { id: 2, time: '09:30', batchNo: '601', ca1: 437, ca2: 179, fa: 206, cement: 175.8, water: 37.2, admixture: 1.45, source: 'Manual', location: 'Line I', timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() },
+            { id: 3, time: '10:45', batchNo: '601', ca1: 435, ca2: 178, fa: 207.5, cement: 175.3, water: 36.9, admixture: 1.43, source: 'Scada Witnessed', location: 'Line I', timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString() }
+        ]
+    });
     const [allTensionRecords, setAllTensionRecords] = useState({
         1: [
             { id: 1, time: '10:05', batchNo: '601', benchNo: '401', finalLoad: 732, wires: 18, source: 'Scada' },
@@ -81,6 +87,9 @@ const SleeperProcessDuty = () => {
 
 
     const [selectedBatchNo, setSelectedBatchNo] = useState('601');
+
+    const [selectedManualTabModule, setSelectedManualTabModule] = useState('mouldPrep');
+    const [selectedMouldBenchModule, setSelectedMouldBenchModule] = useState('summary');
 
     const [compactionRecords, setCompactionRecords] = useState([
         { id: 101, time: '09:15:22', batchNo: '605', benchNo: '1', rpm: 9005, duration: 45, vibratorId: 'VIB-01', tachoCount: 4, workingTachos: 4 },
@@ -130,10 +139,27 @@ const SleeperProcessDuty = () => {
         htsWire: [
             { id: 1, time: '09:00', benchNo: '12', wiresUsed: 32, satisfactory: true, timestamp: new Date().toISOString() }
         ],
-        demoulding: [
-            { id: 1, time: '11:15', benchNo: '10', processSatisfactory: true, timestamp: new Date().toISOString() }
-        ]
+        demoulding: []
     });
+
+    const [manualEditEntry, setManualEditEntry] = useState(null);
+    const [showMoistureConsole, setShowMoistureConsole] = useState(false);
+    const [showSteamConsole, setShowSteamConsole] = useState(false);
+    const [showCompactionConsole, setShowCompactionConsole] = useState(false);
+    const [showBatchConsole, setShowBatchConsole] = useState(false);
+    const [showWireConsole, setShowWireConsole] = useState(false);
+    const [showBatchEntryForm, setShowBatchEntryForm] = useState(false);
+    const [showWireTensionForm, setShowWireTensionForm] = useState(false);
+    const [showMouldBenchForm, setShowMouldBenchForm] = useState(false);
+
+    const handleManualDelete = (subModule, id) => {
+        if (window.confirm('Are you sure you want to delete this record?')) {
+            setManualCheckEntries(prev => ({
+                ...prev,
+                [subModule]: prev[subModule].filter(e => e.id !== id)
+            }));
+        }
+    };
 
 
     // Use Custom Hooks for Stats
@@ -143,15 +169,15 @@ const SleeperProcessDuty = () => {
     const wireTensionStats = useWireTensionStats(tensionRecords, selectedTensionBatch);
 
     const tabs = [
-        { title: 'Manual Checks', subtitle: 'Hourly inspection', alert: manualChecksAlert },
-        { title: 'Moisture Analysis', subtitle: 'Shift-wise samples', alert: moistureAlert },
-        { title: 'Batch Weighment', subtitle: 'SCADA & Manual Sync' },
-        { title: 'Wire Tensioning', subtitle: 'Pressure logs' },
-        { title: 'Compaction of Concrete (Vibrator Report)', subtitle: 'Vibrator Report' },
-        { title: 'Steam Curing', subtitle: 'Temp profiles' },
-        { title: 'Mould & Bench Checking', subtitle: 'Plant Assets' },
-        { title: 'Steam Cube Testing', subtitle: 'Strength Analysis' },
-        { title: 'Raw Material Inventory', subtitle: 'Stock Levels' }
+        { id: 'Manual Checks', title: 'Manual Checks', description: 'Hourly plant & quality inspection', alert: manualChecksAlert },
+        { id: 'Moisture Analysis', title: 'Moisture Analysis', description: 'Aggregate free moisture testing', alert: moistureAlert },
+        { id: 'Batch Weighment', title: 'Batch Weighment', description: 'SCADA weight & manual verification' },
+        { id: 'Wire Tensioning', title: 'Wire Tensioning', description: 'Long line wire pressure monitoring' },
+        { id: 'Compaction of Concrete (Vibrator Report)', title: 'Compaction Performance', description: 'Scada vibrator frequency logs' },
+        { id: 'Steam Curing', title: 'Steam Curing', description: 'Chamber temperature profile logs' },
+        { id: 'Mould & Bench Checking', title: 'Mould & Bench Checking', description: 'Asset integrity & dimensional check' },
+        { id: 'Steam Cube Testing', title: 'Steam Cube Testing', description: '7-hour & 28-day strength analysis' },
+        { id: 'Raw Material Inventory', title: 'Inventory Levels', description: 'Daily stock & consumption tracking' }
     ];
 
     const handleAddContainer = () => {
@@ -161,14 +187,145 @@ const SleeperProcessDuty = () => {
         setShowContainerForm(false);
     };
 
+    const handleDeleteContainer = (id, name, e) => {
+        if (e) e.stopPropagation();
+        if (containers.length <= 1) {
+            alert("At least one Line or Shed must be active for duty.");
+            return;
+        }
+        if (window.confirm(`Are you sure you want to remove ${name}? All temporary shift data for this section will be cleared.`)) {
+            setContainers(prev => {
+                const filtered = prev.filter(c => c.id !== id);
+                if (activeContainerId === id) {
+                    setActiveContainerId(filtered[0]?.id || null);
+                }
+                return filtered;
+            });
+        }
+    };
+
     if (!dutyStarted) {
+        const activeContainer = containers.find(c => c.id === activeContainerId);
         return (
-            <div className="duty-welcome-screen app-container">
-                <div className="duty-welcome-card section-card">
-                    <h1 style={{ marginBottom: '1rem', color: '#1e293b' }}>Sleeper Process Engineer – Shift</h1>
-                    <p style={{ color: '#64748b', marginBottom: '2rem' }}>Ready to start your shift duty?</p>
-                    <button className="toggle-btn" style={{ width: '100%', padding: '1rem' }} onClick={() => setDutyStarted(true)}>
-                        Start Duty
+            <div className="duty-welcome-screen app-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '90vh', background: '#f8fafc' }}>
+                <div className="duty-welcome-card" style={{ maxWidth: '440px', width: '92%', padding: '2.5rem', textAlign: 'center', background: '#fff', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02)', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: 'var(--fs-lg)', marginBottom: '0.75rem', fontWeight: '900', color: '#42818c', textTransform: 'uppercase', letterSpacing: '3px' }}>Shift Log</div>
+                    <h1 style={{ fontSize: 'var(--fs-2xl)', fontWeight: '700', color: '#42818c', margin: '0 0 8px 0' }}>Sleeper Process Duty</h1>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: 'var(--fs-sm)' }}>Real-time production monitoring and quality control</p>
+                    <p style={{ color: '#64748b', marginBottom: '2rem', fontSize: 'var(--fs-xs)', fontWeight: '500' }}>Confirm your working line or shed to initialize today's duty</p>
+
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', marginBottom: '2rem' }}>
+                        {containers.map(c => (
+                            <div key={c.id} style={{ position: 'relative' }}>
+                                <button
+                                    onClick={() => setActiveContainerId(c.id)}
+                                    className="hover-lift"
+                                    style={{
+                                        padding: '10px 20px',
+                                        borderRadius: '12px',
+                                        border: activeContainerId === c.id ? '2px solid #42818c' : '1px solid #e2e8f0',
+                                        background: activeContainerId === c.id ? '#f0f9fa' : '#fff',
+                                        color: activeContainerId === c.id ? '#42818c' : '#64748b',
+                                        fontSize: 'var(--fs-xs)',
+                                        fontWeight: '800',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        minWidth: '100px',
+                                        boxShadow: activeContainerId === c.id ? '0 4px 6px -1px rgba(66, 129, 140, 0.1)' : 'none'
+                                    }}
+                                >
+                                    {c.name}
+                                </button>
+                                <button
+                                    onClick={(e) => handleDeleteContainer(c.id, c.name, e)}
+                                    style={{
+                                        position: 'absolute',
+                                        top: '-6px',
+                                        right: '-6px',
+                                        width: '18px',
+                                        height: '18px',
+                                        borderRadius: '50%',
+                                        background: '#fff',
+                                        color: '#ef4444',
+                                        border: '1px solid #fee2e2',
+                                        fontSize: '10px',
+                                        fontWeight: '900',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                    }}
+                                >×</button>
+                            </div>
+                        ))}
+                        {!showContainerForm && (
+                            <button
+                                onClick={() => setShowContainerForm(true)}
+                                style={{
+                                    padding: '10px 20px',
+                                    borderRadius: '12px',
+                                    border: '1px dashed #cbd5e1',
+                                    background: '#f8fafc',
+                                    color: '#64748b',
+                                    fontSize: 'var(--fs-xs)',
+                                    fontWeight: '700',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                            >+ New</button>
+                        )}
+                    </div>
+
+                    {showContainerForm && (
+                        <div className="fade-in" style={{
+                            background: '#f8fafc',
+                            padding: '1.5rem',
+                            borderRadius: '20px',
+                            marginBottom: '2rem',
+                            border: '1px solid #e2e8f0',
+                            textAlign: 'left',
+                            boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)'
+                        }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '1.25rem' }}>
+                                <div className="form-field" style={{ margin: 0 }}>
+                                    <label style={{ fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '6px', display: 'block' }}>Type</label>
+                                    <select
+                                        value={newContainer.type}
+                                        onChange={e => setNewContainer({ ...newContainer, type: e.target.value, value: containerValues[e.target.value][0] })}
+                                        style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: 'var(--fs-xs)', fontWeight: '600' }}
+                                    >
+                                        <option value="Line">Line</option>
+                                        <option value="Shed">Shed</option>
+                                    </select>
+                                </div>
+                                <div className="form-field" style={{ margin: 0 }}>
+                                    <label style={{ fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '6px', display: 'block' }}>Identity</label>
+                                    <select
+                                        value={newContainer.value}
+                                        onChange={e => setNewContainer({ ...newContainer, value: e.target.value })}
+                                        style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: 'var(--fs-xs)', fontWeight: '600' }}
+                                    >
+                                        {containerValues[newContainer.type].map(val => <option key={val} value={val}>{val}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button className="toggle-btn" style={{ flex: 2, padding: '12px', fontSize: 'var(--fs-xs)', fontWeight: '800' }} onClick={handleAddContainer}>Add Now</button>
+                                <button className="toggle-btn secondary" style={{ flex: 1, padding: '12px', fontSize: 'var(--fs-xs)', background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0', fontWeight: '800' }} onClick={() => setShowContainerForm(false)}>Cancel</button>
+                            </div>
+                        </div>
+                    )}
+
+                    <button
+                        className="toggle-btn hover-lift"
+                        style={{ width: '100%', padding: '1rem', fontSize: 'var(--fs-sm)', fontWeight: '900', borderRadius: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}
+                        onClick={() => {
+                            if (!activeContainerId) alert("Please select a line or shed to continue.");
+                            else setDutyStarted(true);
+                        }}
+                    >
+                        Start Duty {activeContainer ? `for ${activeContainer.name}` : ''}
                     </button>
                 </div>
             </div>
@@ -177,796 +334,321 @@ const SleeperProcessDuty = () => {
 
     return (
         <div className="app-container">
-            <header className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                    <h1 className="dashboard-title">Sleeper Process Duty – Shift</h1>
-                    <p className="dashboard-subtitle">Real-time process monitoring and shift logs</p>
-                </div>
-
-                <div className="container-selector-wrapper" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <div className="container-toggles" style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px', gap: '4px' }}>
-                        {containers.map(c => (
-                            <button
-                                key={c.id}
-                                onClick={() => setActiveContainerId(c.id)}
-                                className={activeContainerId === c.id ? 'active' : ''}
-                                style={{
-                                    padding: '6px 12px',
-                                    borderRadius: '6px',
-                                    border: 'none',
-                                    background: activeContainerId === c.id ? '#42818c' : 'transparent',
-                                    color: activeContainerId === c.id ? '#fff' : '#64748b',
-                                    fontSize: '0.75rem',
-                                    fontWeight: '600',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                {c.name}
-                            </button>
-                        ))}
+            <div className="dashboard-container" style={{ padding: '24px' }}>
+                <header style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+                    <div>
+                        <h1 style={{ fontSize: 'var(--fs-2xl)', fontWeight: '700', color: '#42818c', margin: '0 0 8px 0' }}>Sleeper Process Duty</h1>
+                        <p style={{ margin: 0, color: '#64748b', fontSize: 'var(--fs-sm)' }}>Real-time production monitoring & quality control</p>
                     </div>
-                    <button
-                        className="add-container-btn"
-                        onClick={() => setShowContainerForm(true)}
-                        style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '50%',
-                            border: '1px dashed #42818c',
-                            background: '#fff',
-                            color: '#42818c',
-                            fontSize: '1.2rem',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                        }}
-                    >
-                        +
-                    </button>
-                </div>
-            </header>
 
-            {showContainerForm && (
-                <div className="container-form-overlay" style={{
-                    marginBottom: '2rem',
-                    padding: '1.5rem',
-                    background: '#fff',
-                    borderRadius: '12px',
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ background: '#f1f5f9', padding: '4px', borderRadius: '12px', display: 'flex', gap: '2px', border: '1px solid #e2e8f0' }}>
+                            {containers.map(c => (
+                                <button
+                                    key={c.id}
+                                    onClick={() => setActiveContainerId(c.id)}
+                                    style={{
+                                        padding: '8px 16px',
+                                        borderRadius: '10px',
+                                        border: 'none',
+                                        background: activeContainerId === c.id ? '#fff' : 'transparent',
+                                        color: activeContainerId === c.id ? '#42818c' : '#64748b',
+                                        fontSize: '0.75rem',
+                                        fontWeight: '800',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        boxShadow: activeContainerId === c.id ? '0 4px 6px -1px rgba(0,0,0,0.05)' : 'none',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px'
+                                    }}
+                                >
+                                    {c.name}
+                                </button>
+                            ))}
+                        </div>
+                        <button className="btn-secondary" onClick={() => setShowContainerForm(true)} style={{ padding: '8px 12px', fontSize: '0.75rem' }}>+ Add</button>
+                    </div>
+                </header>
+
+                {showContainerForm && (
+                    <div className="container-form-overlay" style={{
+                        marginBottom: '2rem',
+                        padding: '1.25rem',
+                        background: '#fff',
+                        borderRadius: '16px',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)',
+                        animation: 'fadeIn 0.3s ease-in-out'
+                    }}>
+                        <h4 style={{ margin: '0 0 1rem 0', fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Add New Shed or Line</h4>
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                            <div className="form-field" style={{ margin: 0, flex: '1 1 140px' }}>
+                                <label style={{ fontSize: '0.65rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Select Type</label>
+                                <select
+                                    value={newContainer.type}
+                                    onChange={e => setNewContainer({ ...newContainer, type: e.target.value, value: containerValues[e.target.value][0] })}
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: 'var(--fs-xs)', fontWeight: '600' }}
+                                >
+                                    <option value="Line">Line</option>
+                                    <option value="Shed">Shed</option>
+                                </select>
+                            </div>
+                            <div className="form-field" style={{ margin: 0, flex: '1 1 140px' }}>
+                                <label style={{ fontSize: '0.65rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Select Specific</label>
+                                <select
+                                    value={newContainer.value}
+                                    onChange={e => setNewContainer({ ...newContainer, value: e.target.value })}
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: 'var(--fs-xs)', fontWeight: '600' }}
+                                >
+                                    {containerValues[newContainer.type].map(val => <option key={val} value={val}>{val}</option>)}
+                                </select>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', flex: '2 1 200px' }}>
+                                <button className="toggle-btn" style={{ flex: 1, padding: '10px', fontSize: 'var(--fs-xs)' }} onClick={handleAddContainer}>Add Now</button>
+                                <button className="toggle-btn secondary" style={{ flex: 1, padding: '10px', fontSize: 'var(--fs-xs)', background: '#94a3b8' }} onClick={() => setShowContainerForm(false)}>Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Sub-navigation Card Grid - IE-General Style */}
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                    gap: '16px',
+                    marginBottom: '32px'
                 }}>
-                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem' }}>Add New Shed or Line</h4>
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
-                        <div className="form-field" style={{ margin: 0 }}>
-                            <label style={{ fontSize: '0.7rem' }}>Select Type</label>
-                            <select
-                                value={newContainer.type}
-                                onChange={e => setNewContainer({ ...newContainer, type: e.target.value, value: containerValues[e.target.value][0] })}
-                                style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                            >
-                                <option value="Line">Line</option>
-                                <option value="Shed">Shed</option>
-                            </select>
-                        </div>
-                        <div className="form-field" style={{ margin: 0 }}>
-                            <label style={{ fontSize: '0.7rem' }}>Select Specific</label>
-                            <select
-                                value={newContainer.value}
-                                onChange={e => setNewContainer({ ...newContainer, value: e.target.value })}
-                                style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                            >
-                                {containerValues[newContainer.type].map(val => <option key={val} value={val}>{val}</option>)}
-                            </select>
-                        </div>
-                        <button className="toggle-btn" onClick={handleAddContainer}>Add Now</button>
-                        <button className="toggle-btn secondary" onClick={() => setShowContainerForm(false)} style={{ background: '#94a3b8' }}>Cancel</button>
-                    </div>
-                </div>
-            )}
+                    {tabs.map((tab) => (
+                        <div
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            style={{
+                                background: activeTab === tab.id ? '#f0f9fa' : 'white',
+                                border: `2px solid ${activeTab === tab.id ? '#42818c' : '#e2e8f0'}`,
+                                borderRadius: '16px',
+                                padding: '16px',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                position: 'relative',
+                                boxShadow: activeTab === tab.id ? '0 10px 15px -3px rgba(66, 129, 140, 0.1)' : 'none',
+                                transform: activeTab === tab.id ? 'translateY(-2px)' : 'none',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'space-between',
+                                minHeight: '100px'
+                            }}
+                        >
+                            <div>
+                                <h3 style={{
+                                    fontSize: '13px',
+                                    fontWeight: '800',
+                                    color: activeTab === tab.id ? '#42818c' : '#334155',
+                                    marginBottom: '4px',
+                                    margin: 0
+                                }}>
+                                    {tab.title}
+                                </h3>
+                                <p style={{ fontSize: '10px', color: '#64748b', margin: 0, fontWeight: '500' }}>{tab.description}</p>
+                            </div>
 
-            <div className="ie-tab-row">
-                {tabs.map((tab) => (
-                    <div
-                        key={tab.title}
-                        className={`ie-tab-card ${activeTab === tab.title ? 'active' : ''}`}
-                        onClick={() => setActiveTab(tab.title)}
-                    >
-                        <span className="ie-tab-title">
-                            {tab.title}
-                        </span>
-                        <span className="ie-tab-subtitle">{tab.subtitle}</span>
-                        <div className="ie-tab-status">
-                            <span style={{ fontSize: '12px' }}>●</span>
-                            {tab.title === 'Batch Weighment' ? `${witnessedRecords.length} Witnessed` :
-                                tab.title === 'Moisture Analysis' ? '4 Logs (Shift A)' :
-                                    tab.title === 'Compaction of Concrete (Vibrator Report)' ? 'Live Monitoring' :
-                                        tab.title === 'Wire Tensioning' ? 'Sync Active' : 'Online'}
+                            <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{
+                                    fontSize: '10px',
+                                    fontWeight: '700',
+                                    color: activeTab === tab.id ? '#42818c' : '#94a3b8',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px'
+                                }}>
+                                    {tab.id === 'Batch Weighment' ? `${witnessedRecords.length} Witnessed` :
+                                        tab.id === 'Moisture Analysis' ? '4 Logs Today' :
+                                            tab.id === 'Compaction of Concrete (Vibrator Report)' ? 'Scada Live' : 'Active'}
+                                </span>
+                                {activeTab === tab.id && (
+                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#42818c' }}></span>
+                                )}
+                            </div>
+
+                            {tab.alert && (
+                                <span style={{
+                                    position: 'absolute',
+                                    top: '12px',
+                                    right: '12px',
+                                    background: '#ef4444',
+                                    color: '#fff',
+                                    fontSize: '10px',
+                                    fontWeight: '900',
+                                    width: '16px',
+                                    height: '16px',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
+                                }}>!</span>
+                            )}
                         </div>
-                        {tab.alert && (
-                            <span className="badge-count" style={{ position: 'absolute', top: '8px', right: '8px', margin: 0, padding: '2px 6px' }}>!</span>
+                    ))}
+                </div>
+
+                <div className="dashboard-detail-view" style={{ background: '#fff', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: '24px', borderRadius: '20px' }}>
+                    <div className="duty-section-toolbar" style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '16px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                            {activeTab !== 'Steam Cube Testing' && (
+                                <h2 className="duty-section-title" style={{ fontSize: '0.95rem', fontWeight: '800', margin: 0 }}>{activeTab}</h2>
+                            )}
+                            {activeTab === 'Batch Weighment' && <span className="badge-count" style={{ marginLeft: 0, fontSize: '10px' }}>{witnessedRecords.length}</span>}
+                        </div>
+                        {activeTab === 'Batch Weighment' && (
+                            <button className="toggle-btn" onClick={() => setShowBatchEntryForm(true)}>
+                                + Add New Entry
+                            </button>
+                        )}
+                        {activeTab === 'Wire Tensioning' && (
+                            <button className="toggle-btn" onClick={() => setShowWireTensionForm(true)}>
+                                + Add New Entry
+                            </button>
+                        )}
+                        {!(activeTab === 'Mould & Bench Checking' || activeTab === 'Manual Checks' || activeTab === 'Steam Cube Testing' || activeTab === 'Batch Weighment' || activeTab === 'Wire Tensioning' || activeTab === 'Compaction of Concrete (Vibrator Report)' || activeTab === 'Steam Curing') && (
+                            <button className="toggle-btn" style={{ fontSize: '0.7rem' }} onClick={() => { setViewMode('entry'); setDetailView('detail_modal'); }}>
+                                {activeTab === 'Raw Material Inventory' ? 'Open Inventory Console' :
+                                    activeTab === 'Moisture Analysis' ? 'New Analysis Entry' : 'New Entry'}
+                            </button>
+                        )}
+                        {activeTab === 'Mould & Bench Checking' && (
+                            <div style={{ background: '#f0fdf4', color: '#10b981', padding: '4px 10px', borderRadius: '6px', fontSize: '9px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#10b981' }}></div>
+                                ASSET CONSOLE ACTIVE
+                            </div>
                         )}
                     </div>
-                ))}
-            </div>
 
-            <div className="dashboard-detail-view" style={{ background: 'none', border: 'none', boxShadow: 'none', padding: 0 }}>
-                <div className="duty-section-toolbar">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <h2 className="duty-section-title">{activeTab} Record</h2>
-                        {activeTab === 'Batch Weighment' && <span className="badge-count" style={{ marginLeft: 0 }}>{witnessedRecords.length}</span>}
-                    </div>
-                    {!(activeTab === 'Mould & Bench Checking' || activeTab === 'Manual Checks') && (
-                        <button className="toggle-btn" onClick={() => { setViewMode('entry'); setDetailView('detail_modal'); }}>
-                            {activeTab === 'Wire Tensioning' ? 'Open Tensioning Console' :
-                                activeTab === 'Steam Curing' ? 'Curing Console' :
-                                    activeTab === 'Steam Cube Testing' ? 'Strength Test Console' : 'New Entry'}
-                        </button>
-                    )}
-                    {activeTab === 'Mould & Bench Checking' && (
-                        <button className="toggle-btn" onClick={() => { setViewMode('entry'); setDetailView('detail_modal'); }}>
-                            Open Asset Console
-                        </button>
-                    )}
-                </div>
 
-                <div style={{ marginTop: '3rem' }}>
-                    {/* Render Tab Specific Content Summary (Dashboard View) */}
-                    {activeTab === 'Batch Weighment' && (
-                        <>
-                            <h3 style={{ fontSize: '1rem', fontWeight: '500', color: '#475569', marginBottom: '1.5rem' }}>Historical Statistics (Batch {selectedBatchNo})</h3>
-                            <div className="rm-grid-cards" style={{ overflowX: 'auto', paddingBottom: '1rem' }}>
-                                {batchStats?.ingredientStats.map(stat => (
-                                    <div key={stat.name} className="calc-card" style={{ flex: '0 0 160px', padding: '1rem' }}>
-                                        <span className="calc-label" style={{ fontSize: 'var(--fs-xxs)' }}>{stat.name} DEV</span>
-                                        <div className="calc-value" style={{ fontSize: 'var(--fs-lg)', color: Math.abs(stat.meanDev) > 1 ? 'var(--color-danger)' : 'var(--color-success)' }}>
-                                            {stat.meanDev > 0 ? '+' : ''}{stat.meanDev.toFixed(2)}%
-                                        </div>
-                                        <div style={{ fontSize: 'var(--fs-xxs)', color: '#94a3b8', marginTop: '0.2rem' }}>
-                                            Std Dev: {stat.stdDev.toFixed(2)}
-                                        </div>
-                                    </div>
-                                ))}
+                    <div style={{ marginTop: '3rem' }}>
+                        {activeTab === 'Batch Weighment' && (
+                            <div style={{ width: '100%', marginTop: '-1rem' }}>
+                                <BatchWeighment
+                                    onBack={() => { }}
+                                    activeContainer={containers.find(c => c.id === activeContainerId)}
+                                    sharedState={{ batchDeclarations, setBatchDeclarations, witnessedRecords, setWitnessedRecords }}
+                                    displayMode="inline"
+                                    showForm={showBatchEntryForm}
+                                    setShowForm={setShowBatchEntryForm}
+                                />
                             </div>
-                            <div className="data-table-section" style={{ marginTop: '1rem' }}>
-                                <div className="table-title-bar">Recent Witnessed Logs</div>
-                                <table className="ui-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Shed / Line No.</th>
-                                            <th>Source of Data</th>
-                                            <th>Time stamp</th>
-                                            <th>Batch No.</th>
-                                            <th>CA1 - Actual Wt.</th>
-                                            <th>CA2 - Actual Wt.</th>
-                                            <th>FA - Actual Wt.</th>
-                                            <th>Cement - Actual Wt.</th>
-                                            <th>Water (L) - Actual</th>
-                                            <th>Admix - Actual Wt.</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {witnessedRecords.filter(r => r.batchNo === selectedBatchNo).length === 0 ? (
-                                            <tr><td colSpan="10" style={{ textAlign: 'center', padding: '2rem' }}>No records for this batch yet.</td></tr>
-                                        ) : (
-                                            witnessedRecords.filter(r => r.batchNo === selectedBatchNo).slice(0, 5).map(r => (
-                                                <tr key={r.id}>
-                                                    <td>{r.location || 'N/A'}</td>
-                                                    <td><span className={`status-pill ${r.source === 'Manual' ? 'manual' : 'witnessed'}`}>{r.source}</span></td>
-                                                    <td>{r.time}</td>
-                                                    <td><strong>{r.batchNo}</strong></td>
-                                                    <td>{r.ca1 || '0'}</td>
-                                                    <td>{r.ca2 || '0'}</td>
-                                                    <td>{r.fa || '0'}</td>
-                                                    <td>{r.cement}</td>
-                                                    <td>{r.water}</td>
-                                                    <td>{r.admixture || '0'}</td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </>
-                    )}
+                        )}
 
-                    {activeTab === 'Moisture Analysis' && (
-                        <div style={{ width: '100%', marginTop: '-1.5rem' }}>
-                            <MoistureAnalysis
-                                displayMode="inline"
-                                onBack={() => { }}
-                                onSave={() => setMoistureAlert(false)}
-                                initialView="list"
-                                records={moistureRecords}
-                                setRecords={setMoistureRecords}
+                        {activeTab === 'Moisture Analysis' && (
+                            <div style={{ width: '100%' }}>
+                                <MoistureAnalysis
+                                    displayMode="inline"
+                                    onBack={() => { }}
+                                    onSave={() => setMoistureAlert(false)}
+                                    initialView="list"
+                                    records={moistureRecords}
+                                    setRecords={setMoistureRecords}
+                                />
+                            </div>
+                        )}
+
+                        {activeTab === 'Compaction of Concrete (Vibrator Report)' && (
+                            <div style={{ width: '100%', marginTop: '-1rem' }}>
+                                <CompactionConcrete
+                                    displayMode="inline"
+                                    onBack={() => { }}
+                                    onSave={() => { }}
+                                />
+                            </div>
+                        )}
+
+                        {activeTab === 'Wire Tensioning' && (
+                            <div style={{ width: '100%', marginTop: '-1rem' }}>
+                                <WireTensioning
+                                    onBack={() => { }}
+                                    batches={batchDeclarations}
+                                    sharedState={{ tensionRecords, setTensionRecords }}
+                                    displayMode="inline"
+                                    showForm={showWireTensionForm}
+                                    setShowForm={setShowWireTensionForm}
+                                />
+                            </div>
+                        )}
+
+                        {activeTab === 'Mould & Bench Checking' && (
+                            <div style={{ width: '100%' }}>
+                                <MouldBenchCheck
+                                    isInline={true}
+                                    onBack={() => { }}
+                                    sharedState={{
+                                        records: benchMouldCheckRecords,
+                                        setRecords: setBenchMouldCheckRecords,
+                                        allAssets: allBenchesMoulds
+                                    }}
+                                    showForm={showMouldBenchForm}
+                                    setShowForm={setShowMouldBenchForm}
+                                />
+                            </div>
+                        )}
+
+                        {activeTab === 'Steam Curing' && (
+                            <div style={{ width: '100%', marginTop: '-1rem' }}>
+                                <SteamCuring
+                                    displayMode="inline"
+                                    onBack={() => { }}
+                                    steamRecords={steamRecords}
+                                    setSteamRecords={setSteamRecords}
+                                />
+                            </div>
+                        )}
+
+                        {activeTab === 'Steam Cube Testing' && (
+                            <SteamCubeTesting
+                                testedRecords={testedRecords}
+                                setTestedRecords={setTestedRecords}
                             />
-                        </div>
-                    )}
+                        )}
 
-                    {activeTab === 'Compaction of Concrete (Vibrator Report)' && (
-                        <div style={{ width: '100%' }}>
-                            <div className="dash-section-header" style={{ marginBottom: '1.5rem' }}>
-                                <h3 className="dash-section-title"><span style={{ color: '#42818c' }}>●</span> SCADA Vibrator Performance Analysis (Batch {selectedCompactionBatch})</h3>
-                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                    <button className="toggle-btn" onClick={() => { setViewMode('entry'); setDetailView('detail_modal'); }}>Open Vibrator Console</button>
-                                    <select className="dash-select" value={selectedCompactionBatch} onChange={(e) => setSelectedCompactionBatch(e.target.value)}>
-                                        {[...new Set(compactionRecords.map(r => r.batchNo))].map(b => <option key={b} value={b}>{b}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-
-                            {compactionStats && (
-                                <>
-                                    <div className="rm-grid-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-                                        <div className="calc-card"><span className="mini-label">Records Received</span><div className="calc-value">{compactionStats.count}</div></div>
-                                        <div className="calc-card"><span className="mini-label">Tacho Working</span><div className="calc-value" style={{ color: '#10b981' }}>{compactionStats.tachoWorkingPct.toFixed(0)}%</div></div>
-                                        <div className="calc-card"><span className="mini-label">Mean RPM</span><div className="calc-value">{compactionStats.meanRpm.toFixed(0)}</div></div>
-                                        <div className="calc-card"><span className="mini-label">Median RPM</span><div className="calc-value">{compactionStats.medianRpm.toFixed(0)}</div></div>
-                                        <div className="calc-card"><span className="mini-label">Avg. Duration</span><div className="calc-value">{compactionStats.avgDuration.toFixed(1)}s</div></div>
-                                        <div className="calc-card"><span className="mini-label">Std Dev (σ)</span><div className="calc-value">{compactionStats.stdDev.toFixed(2)}</div></div>
-                                        <div className="calc-card"><span className="mini-label">% Within Spec</span><div className="calc-value" style={{ color: '#10b981' }}>{compactionStats.pctWithinSpec.toFixed(1)}%</div></div>
-                                        <div className="calc-card"><span className="mini-label">% Above USL</span><div className="calc-value" style={{ color: '#ef4444' }}>{compactionStats.pctAboveUSL.toFixed(1)}%</div></div>
+                        {activeTab === 'Raw Material Inventory' && (
+                            <div style={{ width: '100%' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                                    <div className="calc-card hover-lift" style={{ borderLeft: '3px solid #8b5cf6', padding: '1rem' }}>
+                                        <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '0.25rem', fontWeight: '600' }}>Cement (OPC-53)</div>
+                                        <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1e293b' }}>120.5 MT</div>
+                                        <div style={{ fontSize: '0.65rem', color: '#10b981', marginTop: '0.4rem', fontWeight: '700' }}>3 Days Stock</div>
                                     </div>
-
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                                        <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                            <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem' }}>Vibration Frequency Distribution</h4>
-                                            <div style={{ height: '120px', display: 'flex', alignItems: 'flex-end', gap: '4px' }}>
-                                                {[30, 45, 60, 85, 95, 80, 55, 40, 25, 10].map((h, i) => (
-                                                    <div key={i} style={{ flex: 1, background: h > 80 ? '#10b981' : '#42818c', height: `${h}%`, borderRadius: '2px 2px 0 0' }}></div>
-                                                ))}
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '10px', color: '#64748b' }}>
-                                                <span>8640 RPM</span>
-                                                <span>9000 RPM</span>
-                                                <span>9360 RPM</span>
-                                            </div>
-                                        </div>
-                                        <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                            <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem' }}>Compaction Duration Variability</h4>
-                                            <div style={{ height: '120px', display: 'flex', alignItems: 'center', position: 'relative' }}>
-                                                <div style={{ position: 'absolute', left: 0, right: 0, height: '2px', background: '#e2e8f0' }}></div>
-                                                <div style={{ position: 'absolute', left: '10%', right: '10%', height: '40px', background: 'rgba(66, 129, 140, 0.1)', border: '1px dashed #42818c' }}></div>
-                                                {[42, 45, 48, 44, 46, 43, 47, 45, 44, 46].map((d, i) => (
-                                                    <div key={i} style={{
-                                                        position: 'absolute',
-                                                        left: `${i * 10}%`,
-                                                        width: '8px',
-                                                        height: '8px',
-                                                        borderRadius: '50%',
-                                                        background: '#42818c',
-                                                        transform: `translateY(${(d - 45) * 5}px)`
-                                                    }}></div>
-                                                ))}
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '10px', color: '#64748b' }}>
-                                                <span>Obs 1</span>
-                                                <span>Timeline</span>
-                                                <span>Obs {compactionStats.count}</span>
-                                            </div>
-                                        </div>
+                                    <div className="calc-card hover-lift" style={{ borderLeft: '3px solid #3b82f6', padding: '1rem' }}>
+                                        <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '0.25rem', fontWeight: '600' }}>20mm Aggregate</div>
+                                        <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1e293b' }}>450.0 MT</div>
+                                        <div style={{ fontSize: '0.65rem', color: '#10b981', marginTop: '0.4rem', fontWeight: '700' }}>Full Capacity</div>
                                     </div>
-                                </>
-                            )}
-                        </div>
-                    )}
-
-                    {activeTab === 'Wire Tensioning' && (
-                        <div style={{ width: '100%' }}>
-                            <div className="dash-section-header" style={{ marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                <h3 className="dash-section-title"><span style={{ color: 'var(--primary-color)' }}>●</span> SCADA Tensioning Performance (Batch {selectedTensionBatch})</h3>
-                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                                    <select className="dash-select" value={selectedTensionBatch} onChange={(e) => setSelectedTensionBatch(e.target.value)}>
-                                        {[...new Set(tensionRecords.map(r => r.batchNo))].map(b => <option key={b} value={b}>{b}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-
-                            {wireTensionStats ? (
-                                <WireTensionStats stats={wireTensionStats} />
-                            ) : (
-                                <div style={{ textAlign: 'center', padding: '3rem', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                    <p style={{ color: '#64748b' }}>No tensioning data available for the selected batch.</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {activeTab === 'Mould & Bench Checking' && (
-                        <div style={{ width: '100%' }}>
-                            <div className="dash-section-header" style={{ marginBottom: '1.5rem' }}>
-                                <h3 className="dash-section-title"><span style={{ color: '#42818c' }}>●</span> Mould & Bench Checking</h3>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))', gap: '2rem' }}>
-                                {/* Summary Card */}
-                                <div className="calc-card" style={{ borderLeft: '4px solid #42818c', padding: '1.5rem' }}>
-                                    <h4 style={{ margin: '0 0 1.5rem 0', fontSize: '1.1rem' }}>Summary</h4>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
-                                        <div className="calc-card" style={{ background: '#f0f9ff', border: '1px solid #42818c' }}>
-                                            <span className="mini-label">Total Benches</span>
-                                            <div className="calc-value" style={{ fontSize: '1.5rem' }}>60</div>
-                                        </div>
-                                        <div className="calc-card" style={{ background: '#f0f9ff', border: '1px solid #42818c' }}>
-                                            <span className="mini-label">Total Moulds</span>
-                                            <div className="calc-value" style={{ fontSize: '1.5rem' }}>240</div>
-                                        </div>
-                                        <div className="calc-card" style={{ background: '#f0fdf4', border: '1px solid #10b981' }}>
-                                            <span className="mini-label">Benches Used (30d)</span>
-                                            <div className="calc-value" style={{ fontSize: '1.5rem', color: '#10b981' }}>55</div>
-                                        </div>
-                                        <div className="calc-card" style={{ background: '#f0fdf4', border: '1px solid #10b981' }}>
-                                            <span className="mini-label">Moulds Used (30d)</span>
-                                            <div className="calc-value" style={{ fontSize: '1.5rem', color: '#10b981' }}>215</div>
-                                        </div>
-                                        <div className="calc-card" style={{ background: '#fffbeb', border: '1px solid #f59e0b' }}>
-                                            <span className="mini-label">% Bench Checked</span>
-                                            <div className="calc-value" style={{ fontSize: '1.5rem', color: '#f59e0b' }}>76.4%</div>
-                                        </div>
-                                        <div className="calc-card" style={{ background: '#fffbeb', border: '1px solid #f59e0b' }}>
-                                            <span className="mini-label">% Mould Checked</span>
-                                            <div className="calc-value" style={{ fontSize: '1.5rem', color: '#f59e0b' }}>78.1%</div>
-                                        </div>
+                                    <div className="calc-card hover-lift" style={{ borderLeft: '3px solid #3b82f6', padding: '1rem' }}>
+                                        <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '0.25rem', fontWeight: '600' }}>10mm Aggregate</div>
+                                        <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1e293b' }}>320.3 MT</div>
+                                        <div style={{ fontSize: '0.65rem', color: '#f59e0b', marginTop: '0.4rem', fontWeight: '700' }}>Low Stock</div>
                                     </div>
-                                </div>
-
-                                {/* Bench & Mould Checked Card */}
-                                <div className="calc-card" style={{ borderLeft: '4px solid #10b981', padding: '1.5rem' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                        <h4 style={{ margin: 0, fontSize: '1.1rem' }}>Bench & Mould Checked</h4>
-                                        <button className="toggle-btn" onClick={() => { setViewMode('entry'); setDetailView('detail_modal'); }}>+ Add New</button>
-                                    </div>
-                                    <div className="log-list" style={{ maxHeight: '350px', overflowY: 'auto' }}>
-                                        {benchMouldCheckRecords.length === 0 ? (
-                                            <div style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8', fontSize: '0.85rem' }}>No checks recorded yet.</div>
-                                        ) : (
-                                            benchMouldCheckRecords.map(record => {
-                                                const isEditable = (() => {
-                                                    const diffMs = Date.now() - new Date(record.timestamp).getTime();
-                                                    return diffMs < (1 * 60 * 60 * 1000); // 1 hour
-                                                })();
-                                                return (
-                                                    <div key={record.id} style={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'flex-start',
-                                                        padding: '0.75rem',
-                                                        borderBottom: '1px solid #f1f5f9',
-                                                        background: isEditable ? '#fefce8' : 'transparent',
-                                                        borderRadius: '6px',
-                                                        marginBottom: '0.5rem',
-                                                        flexWrap: 'wrap',
-                                                        gap: '0.5rem'
-                                                    }}>
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: '1 1 auto', minWidth: '150px' }}>
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                                                                <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#1e293b' }}>{record.name}</span>
-                                                                <span className={`status-pill ${record.type === 'Bench' ? 'witnessed' : 'manual'}`} style={{ fontSize: '9px', padding: '2px 6px' }}>
-                                                                    {record.type}
-                                                                </span>
-                                                            </div>
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{record.checkDate} {record.checkTime}</span>
-                                                                <span style={{ fontSize: '0.75rem', fontWeight: '600', color: record.result === 'OK' ? '#10b981' : '#ef4444' }}>
-                                                                    {record.result}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                        <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-                                                            {isEditable && (
-                                                                <>
-                                                                    <button
-                                                                        className="btn-action"
-                                                                        style={{ fontSize: '10px', padding: '3px 8px', whiteSpace: 'nowrap' }}
-                                                                        onClick={() => { setViewMode('entry'); setDetailView('detail_modal'); }}
-                                                                    >
-                                                                        Modify
-                                                                    </button>
-                                                                    <button
-                                                                        className="btn-action"
-                                                                        style={{ fontSize: '10px', padding: '3px 8px', background: '#ef4444', borderColor: '#ef4444', whiteSpace: 'nowrap' }}
-                                                                        onClick={() => setBenchMouldCheckRecords(prev => prev.filter(r => r.id !== record.id))}
-                                                                    >
-                                                                        Delete
-                                                                    </button>
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* All Bench & Mould Card */}
-                                <div className="calc-card" style={{ borderLeft: '4px solid #3b82f6', padding: '1.5rem' }}>
-                                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem' }}>All Bench & Mould</h4>
-                                    <div className="log-list" style={{ maxHeight: '350px', overflowY: 'auto' }}>
-                                        {allBenchesMoulds.length === 0 ? (
-                                            <div style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8', fontSize: '0.85rem' }}>No assets declared yet.</div>
-                                        ) : (
-                                            allBenchesMoulds.map(asset => (
-                                                <div key={asset.id} style={{
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    alignItems: 'center',
-                                                    padding: '0.75rem',
-                                                    borderBottom: '1px solid #f1f5f9',
-                                                    borderRadius: '6px',
-                                                    marginBottom: '0.5rem'
-                                                }}>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                            <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#1e293b' }}>{asset.name}</span>
-                                                            <span className={`status-pill ${asset.type === 'Bench' ? 'witnessed' : 'manual'}`} style={{ fontSize: '9px', padding: '2px 6px' }}>
-                                                                {asset.type}
-                                                            </span>
-                                                        </div>
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                                                            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                                                                Last Casting: <strong style={{ color: '#475569' }}>{asset.lastCasting}</strong>
-                                                            </span>
-                                                            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                                                                Last Checking: <strong style={{ color: '#475569' }}>{asset.lastChecking}</strong>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
+                                    <div className="calc-card hover-lift" style={{ borderLeft: '3px solid #f59e0b', padding: '1rem' }}>
+                                        <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '0.25rem', fontWeight: '600' }}>Admixture</div>
+                                        <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1e293b' }}>2,400 L</div>
+                                        <div style={{ fontSize: '0.65rem', color: '#10b981', marginTop: '0.4rem', fontWeight: '700' }}>OK</div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {activeTab === 'Steam Curing' && (
-                        <div style={{ width: '100%' }}>
-                            <div className="dash-section-header" style={{ marginBottom: '1.5rem' }}>
-                                <h3 className="dash-section-title"><span style={{ color: '#f59e0b' }}>●</span> SCADA Heat Treatment Analysis (Batch {selectedSteamBatch})</h3>
-                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                    <button className="toggle-btn" onClick={() => { setViewMode('entry'); setDetailView('detail_modal'); }}>Open Curing Console</button>
-                                    <select className="dash-select" value={selectedSteamBatch} onChange={(e) => setSelectedSteamBatch(e.target.value)}>
-                                        {[...new Set(steamRecords.map(r => r.batchNo))].map(b => <option key={b} value={b}>{b}</option>)}
-                                    </select>
-                                </div>
+                        {activeTab === 'Manual Checks' && (
+                            <div style={{ width: '100%', marginTop: '-1rem' }}>
+                                <ManualChecks
+                                    isInline={true}
+                                    onBack={() => { }}
+                                    activeContainer={containers.find(c => c.id === activeContainerId)}
+                                    sharedState={{ entries: manualCheckEntries, setEntries: setManualCheckEntries }}
+                                    onAlertChange={setManualChecksAlert}
+                                />
                             </div>
-
-                            <div className="rm-grid-cards" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem', marginBottom: '2rem' }}>
-                                <div className="calc-card" style={{ borderLeft: '4px solid #f59e0b' }}>
-                                    <span className="mini-label">Avg. IST (Initial Setting Time)</span>
-                                    <div className="calc-value">145 min</div>
-                                    <p style={{ fontSize: '0.7rem', color: '#64748b', margin: '0.5rem 0 0' }}>Latest Cement Consignment (S-24-001)</p>
-                                </div>
-                                <div className="calc-card" style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
-                                    <div><span className="mini-label">Chambers Loaded</span><div className="calc-value">{steamStats?.count || 0}</div></div>
-                                    <div><span className="mini-label">Deviated Cycles</span><div className="calc-value" style={{ color: (steamStats?.totalOutliers || 0) > 0 ? '#ef4444' : '#10b981' }}>{steamStats?.totalOutliers || 0}</div></div>
-                                    <div><span className="mini-label">Compliance</span><div className="calc-value">{steamStats ? ((steamStats.count - steamStats.totalOutliers) / steamStats.count * 100).toFixed(0) : 0}%</div></div>
-                                </div>
-                            </div>
-
-                            <h4 style={{ fontSize: '0.9rem', marginBottom: '1rem', color: '#1e293b' }}>Individual Chamber Summary & Validations</h4>
-                            <div className="table-outer-wrapper" style={{ marginBottom: '2rem' }}>
-                                <table className="ui-table">
-                                    <thead>
-                                        <tr>
-                                            <th>CH #</th><th>Pre-Steam</th><th>Rising Rate</th><th>Const Temp</th><th>Const Dur</th><th>Cool Rate</th><th>Check</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {steamStats?.records.map(r => (
-                                            <tr key={r.chamberNo}>
-                                                <td><strong>Chamber {r.chamberNo}</strong></td>
-                                                <td>{r.preDur}h</td>
-                                                <td>{r.riseRate}°/h</td>
-                                                <td>{r.constTemp}°C</td>
-                                                <td>{r.constDur}h</td>
-                                                <td>{r.coolRate}°/h</td>
-                                                <td>
-                                                    <span style={{
-                                                        display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                                        color: r.isOk ? '#10b981' : '#ef4444', fontWeight: 'bold'
-                                                    }}>
-                                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: r.isOk ? '#10b981' : '#ef4444' }}></span>
-                                                        {r.isOk ? 'OK' : 'NOT OK'}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <h4 style={{ fontSize: '0.9rem', marginBottom: '1rem', color: '#1e293b' }}>Statistical Performance Analysis</h4>
-                            <div className="table-outer-wrapper" style={{ marginBottom: '2rem' }}>
-                                <table className="ui-table" style={{ textAlign: 'center' }}>
-                                    <thead style={{ background: '#f8fafc' }}>
-                                        <tr>
-                                            <th style={{ textAlign: 'left' }}>Phase / Metric</th>
-                                            <th>Min</th><th>Max</th><th>Mean</th><th>Deviation (σ)</th><th>Outliers</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {steamStats?.stats.map(s => (
-                                            <tr key={s.key}>
-                                                <td style={{ textAlign: 'left', fontWeight: '500' }}>{s.name}</td>
-                                                <td>{s.min.toFixed(1)}</td>
-                                                <td>{s.max.toFixed(1)}</td>
-                                                <td style={{ fontWeight: 'bold' }}>{s.mean.toFixed(1)}</td>
-                                                <td>{s.stdDev.toFixed(2)}</td>
-                                                <td style={{ color: s.outliers > 0 ? '#ef4444' : '#10b981' }}>{s.outliers}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                                <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.85rem' }}>Temperature Trajectory (Target vs Actual)</h4>
-                                    <div style={{ height: '100px', position: 'relative', display: 'flex', alignItems: 'flex-end', gap: '1px' }}>
-                                        {[28, 32, 45, 58, 60, 60, 60, 60, 50, 40, 32].map((v, i) => (
-                                            <div key={i} style={{ flex: 1, height: `${(v / 70) * 100}%`, background: '#f59e0b', borderRadius: '2px 2px 0 0', opacity: 0.8 }}></div>
-                                        ))}
-                                        {/* Target Line */}
-                                        <div style={{ position: 'absolute', bottom: '82%', left: 0, right: 0, height: '1px', borderTop: '1px dashed #ef4444', zIndex: 1 }}></div>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '9px', color: '#64748b' }}>
-                                        <span>Pre-Steam</span>
-                                        <span>Rising</span>
-                                        <span>Constant (60°C)</span>
-                                        <span>Cooling</span>
-                                    </div>
-                                </div>
-                                <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.85rem' }}>Phase Duration Stability</h4>
-                                    <div style={{ height: '100px', display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
-                                        <div style={{ textAlign: 'center' }}><div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid #f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>92%</div><span style={{ fontSize: '10px' }}>Rate</span></div>
-                                        <div style={{ textAlign: 'center' }}><div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid #10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>100%</div><span style={{ fontSize: '10px' }}>Temp</span></div>
-                                        <div style={{ textAlign: 'center' }}><div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid #3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>88%</div><span style={{ fontSize: '10px' }}>Time</span></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'Steam Cube Testing' && (
-                        <div style={{ width: '100%' }}>
-                            <div className="dash-section-header" style={{ marginBottom: '1.5rem' }}>
-                                <h3 className="dash-section-title"><span style={{ color: '#10b981' }}>●</span> Steam Cube Testing (Transfer Strength)</h3>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))', gap: '2rem' }}>
-                                {/* Statistics Card */}
-                                <div className="calc-card" style={{ borderLeft: '4px solid #10b981', padding: '1.5rem' }}>
-                                    <h4 style={{ margin: '0 0 1.5rem 0', fontSize: '1.1rem' }}>Statistics</h4>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                                        {/* M55 Stats */}
-                                        <div style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '8px', border: '1px solid #10b981' }}>
-                                            <h5 style={{ margin: '0 0 0.75rem 0', color: '#10b981', fontSize: '0.9rem' }}>GRADE M-55</h5>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
-                                                <div><span className="mini-label">Min</span><div className="calc-value" style={{ fontSize: '1rem' }}>42.5</div></div>
-                                                <div><span className="mini-label">Max</span><div className="calc-value" style={{ fontSize: '1rem' }}>48.2</div></div>
-                                                <div><span className="mini-label">Avg</span><div className="calc-value" style={{ fontSize: '1rem' }}>45.1</div></div>
-                                            </div>
-                                            <div style={{ marginTop: '0.75rem', fontSize: '0.7rem', color: '#64748b' }}>
-                                                <span style={{ color: '#ef4444', fontWeight: 'bold' }}>Unsatisfactory: 0</span> • Below Avg: 42%
-                                            </div>
-                                        </div>
-                                        {/* M60 Stats */}
-                                        <div style={{ background: '#eff6ff', padding: '1rem', borderRadius: '8px', border: '1px solid #3b82f6' }}>
-                                            <h5 style={{ margin: '0 0 0.75rem 0', color: '#3b82f6', fontSize: '0.9rem' }}>GRADE M-60</h5>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
-                                                <div><span className="mini-label">Min</span><div className="calc-value" style={{ fontSize: '1rem' }}>51.2</div></div>
-                                                <div><span className="mini-label">Max</span><div className="calc-value" style={{ fontSize: '1rem' }}>58.9</div></div>
-                                                <div><span className="mini-label">Avg</span><div className="calc-value" style={{ fontSize: '1rem' }}>55.4</div></div>
-                                            </div>
-                                            <div style={{ marginTop: '0.75rem', fontSize: '0.7rem', color: '#64748b' }}>
-                                                <span style={{ color: '#ef4444', fontWeight: 'bold' }}>Unsatisfactory: 0</span> • Below Avg: 38%
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Test Sample Declared Card */}
-                                <div className="calc-card" style={{ borderLeft: '4px solid #3b82f6', padding: '1.5rem' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                        <h4 style={{ margin: 0, fontSize: '1.1rem' }}>Test Sample Declared</h4>
-                                        <button className="toggle-btn" onClick={() => { setViewMode('entry'); setDetailView('detail_modal'); }}>+ Add New Sample</button>
-                                    </div>
-                                    <div className="log-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                                        {[
-                                            { cubeNo: '401A', batch: '610', grade: 'M55', castDate: '2026-01-29' },
-                                            { cubeNo: '405H', batch: '611', grade: 'M60', castDate: '2026-01-30' }
-                                        ].map((sample, idx) => (
-                                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #f1f5f9' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                    <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#1e293b' }}>{sample.cubeNo}</span>
-                                                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Batch {sample.batch}</span>
-                                                </div>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <span className={`status-pill ${sample.grade === 'M55' ? 'witnessed' : 'manual'}`} style={{ fontSize: '10px' }}>
-                                                        {sample.grade}
-                                                    </span>
-                                                    <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{sample.castDate}</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Recent Testing Done Card */}
-                                <div className="calc-card" style={{ borderLeft: '4px solid #f59e0b', padding: '1.5rem' }}>
-                                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Recent Testing Done</h4>
-                                    <div className="log-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                                        {testedRecords.length === 0 ? (
-                                            <div style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8', fontSize: '0.85rem' }}>No tests conducted yet.</div>
-                                        ) : (
-                                            testedRecords.slice(0, 5).map(test => {
-                                                const isEditable = (() => {
-                                                    const diffMs = Date.now() - new Date(test.timestamp).getTime();
-                                                    return diffMs < (1 * 60 * 60 * 1000); // 1 hour
-                                                })();
-                                                const isPassing = parseFloat(test.strength) >= (test.grade === 'M55' ? 40 : 50);
-                                                return (
-                                                    <div key={test.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #f1f5f9' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                            <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#1e293b' }}>{test.cubeNo}</span>
-                                                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Batch {test.batchNo}</span>
-                                                        </div>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: isPassing ? '#10b981' : '#ef4444' }}>
-                                                                {test.strength} N/mm²
-                                                            </span>
-                                                            {isEditable && (
-                                                                <button
-                                                                    className="btn-action"
-                                                                    style={{ fontSize: '10px', padding: '2px 6px' }}
-                                                                    onClick={() => { setViewMode('entry'); setDetailView('detail_modal'); }}
-                                                                >
-                                                                    Edit
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-
-                    {activeTab === 'Raw Material Inventory' && (
-                        <div style={{ width: '100%' }}>
-                            <div className="dash-section-header" style={{ marginBottom: '1.5rem' }}>
-                                <h3 className="dash-section-title"><span style={{ color: '#8b5cf6' }}>●</span> Raw Material Inventory</h3>
-                                <button className="toggle-btn" onClick={() => { setViewMode('entry'); setDetailView('detail_modal'); }}>Open Inventory Console</button>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                                <div className="calc-card" style={{ borderLeft: '4px solid #8b5cf6', padding: '1.5rem' }}>
-                                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>Cement (OPC-53)</div>
-                                    <div style={{ fontSize: '1.8rem', fontWeight: '700', color: '#1e293b' }}>120.5 MT</div>
-                                    <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.5rem' }}>Enough for 3 days</div>
-                                </div>
-                                <div className="calc-card" style={{ borderLeft: '4px solid #3b82f6', padding: '1.5rem' }}>
-                                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>20mm Aggregate</div>
-                                    <div style={{ fontSize: '1.8rem', fontWeight: '700', color: '#1e293b' }}>450.0 MT</div>
-                                    <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.5rem' }}>Full Capacity</div>
-                                </div>
-                                <div className="calc-card" style={{ borderLeft: '4px solid #3b82f6', padding: '1.5rem' }}>
-                                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>10mm Aggregate</div>
-                                    <div style={{ fontSize: '1.8rem', fontWeight: '700', color: '#1e293b' }}>320.3 MT</div>
-                                    <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.5rem' }}>Low Stock Alert</div>
-                                </div>
-                                <div className="calc-card" style={{ borderLeft: '4px solid #f59e0b', padding: '1.5rem' }}>
-                                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>Admixture</div>
-                                    <div style={{ fontSize: '1.8rem', fontWeight: '700', color: '#1e293b' }}>2,400 L</div>
-                                    <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.5rem' }}>OK</div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'Manual Checks' && (
-                        <div style={{ width: '100%' }}>
-                            <div className="dash-section-header" style={{ marginBottom: '1.5rem' }}>
-                                <h3 className="dash-section-title"><span style={{ color: '#3b82f6' }}>●</span> Manual Process Inspections</h3>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))', gap: '2rem' }}>
-                                {/* Mould Prep Section */}
-                                <div className="calc-card" style={{ borderLeft: '4px solid #3b82f6', padding: '1.5rem' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                        <h4 style={{ margin: 0, fontSize: '1.1rem' }}>Mould Preparation</h4>
-                                        <button className="toggle-btn" onClick={() => { setSubModuleToOpen('mouldPrep'); setViewMode('detail'); setDetailView('detail_modal'); }}>+ Add New</button>
-                                    </div>
-                                    <div className="log-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                                        {manualCheckEntries.mouldPrep.length === 0 ? (
-                                            <div style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8', fontSize: '0.85rem' }}>No logs yet for this shift.</div>
-                                        ) : (
-                                            manualCheckEntries.mouldPrep.map(log => (
-                                                <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                        <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', background: '#f8fafc', padding: '2px 6px', borderRadius: '4px' }}>{log.time}</span>
-                                                        <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>{containers.find(c => c.id === activeContainerId)?.type === 'Line' ? 'Gang' : 'Bench'} {log.benchNo}</span>
-                                                    </div>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: log.lumpsFree && log.oilApplied ? '#10b981' : '#ef4444' }}>
-                                                            {log.lumpsFree && log.oilApplied ? 'READY' : 'ISSUE'}
-                                                        </span>
-                                                        {log.lumpsFree && log.oilApplied ? '✅' : '⚠️'}
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* HTS Wire Section */}
-                                <div className="calc-card" style={{ borderLeft: '4px solid #8b5cf6', padding: '1.5rem' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                        <h4 style={{ margin: 0, fontSize: '1.1rem' }}>HTS Wire Placement</h4>
-                                        <button className="toggle-btn" onClick={() => { setSubModuleToOpen('htsWire'); setViewMode('detail'); setDetailView('detail_modal'); }}>+ Add New</button>
-                                    </div>
-                                    <div className="log-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                                        {manualCheckEntries.htsWire.length === 0 ? (
-                                            <div style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8', fontSize: '0.85rem' }}>No logs yet for this shift.</div>
-                                        ) : (
-                                            manualCheckEntries.htsWire.map(log => (
-                                                <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                        <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', background: '#f8fafc', padding: '2px 6px', borderRadius: '4px' }}>{log.time}</span>
-                                                        <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>{containers.find(c => c.id === activeContainerId)?.type === 'Line' ? 'Gang' : 'Bench'} {log.benchNo}</span>
-                                                    </div>
-                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                                        <span style={{ fontSize: '10px', background: '#eff6ff', color: '#3b82f6', padding: '1px 6px', borderRadius: '50px', fontWeight: '700' }}>{log.wiresUsed} Wires</span>
-                                                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: log.satisfactory ? '#10b981' : '#ef4444' }}>
-                                                            {log.satisfactory ? 'PASS' : 'FAIL'}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Demoulding Section */}
-                                <div className="calc-card" style={{ borderLeft: '4px solid #f59e0b', padding: '1.5rem' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                        <h4 style={{ margin: 0, fontSize: '1.1rem' }}>Demoulding Inspection</h4>
-                                        <button className="toggle-btn" onClick={() => { setSubModuleToOpen('demoulding'); setViewMode('detail'); setDetailView('detail_modal'); }}>+ Add New</button>
-                                    </div>
-                                    <div className="log-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                                        {manualCheckEntries.demoulding.length === 0 ? (
-                                            <div style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8', fontSize: '0.85rem' }}>No logs yet for this shift.</div>
-                                        ) : (
-                                            manualCheckEntries.demoulding.map(log => (
-                                                <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                        <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', background: '#f8fafc', padding: '2px 6px', borderRadius: '4px' }}>{log.time}</span>
-                                                        <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>{containers.find(c => c.id === activeContainerId)?.type === 'Line' ? 'Gang' : 'Bench'} {log.benchNo}</span>
-                                                    </div>
-                                                    <span className={`status-pill ${log.processSatisfactory ? 'witnessed' : 'manual'}`} style={{ fontSize: '10px' }}>
-                                                        {log.processSatisfactory ? 'RESULT: PASS' : 'RESULT: FAIL'}
-                                                    </span>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
-            </div>
 
-            {
-                detailView === 'detail_modal' && (
+                {detailView === 'detail_modal' && (
                     <div className="modal-container-wrapper">
                         {activeTab === 'Batch Weighment' ? (
                             <BatchWeighment
@@ -982,6 +664,7 @@ const SleeperProcessDuty = () => {
                                 initialSubModule={subModuleToOpen}
                                 initialViewMode={viewMode}
                                 sharedState={{ entries: manualCheckEntries, setEntries: setManualCheckEntries }}
+                                initialEditData={manualEditEntry}
                             />
                         ) : activeTab === 'Moisture Analysis' ? (
                             <MoistureAnalysis
@@ -1000,7 +683,16 @@ const SleeperProcessDuty = () => {
                         ) : activeTab === 'Compaction of Concrete (Vibrator Report)' ? (
                             <CompactionConcrete onBack={() => setDetailView('dashboard')} onSave={() => { }} />
                         ) : activeTab === 'Mould & Bench Checking' ? (
-                            <MouldBenchCheck onBack={() => setDetailView('dashboard')} />
+                            <MouldBenchCheck
+                                onBack={() => setDetailView('dashboard')}
+                                sharedState={{
+                                    records: benchMouldCheckRecords,
+                                    setRecords: setBenchMouldCheckRecords,
+                                    allAssets: allBenchesMoulds
+                                }}
+                                initialModule={subModuleToOpen}
+                                initialViewMode={viewMode}
+                            />
                         ) : activeTab === 'Steam Curing' ? (
                             <SteamCuring
                                 onBack={() => setDetailView('dashboard')}
@@ -1023,9 +715,39 @@ const SleeperProcessDuty = () => {
                             </div>
                         ) : null}
                     </div>
-                )
-            }
-        </div >
+                )}
+            </div>
+
+            {showMoistureConsole && (
+                <MoistureAnalysis
+                    displayMode="modal"
+                    onBack={() => setShowMoistureConsole(false)}
+                    onSave={() => {
+                        setShowMoistureConsole(false);
+                        setMoistureAlert(false);
+                    }}
+                    records={moistureRecords}
+                    setRecords={setMoistureRecords}
+                />
+            )}
+
+            {showSteamConsole && (
+                <SteamCuring
+                    displayMode="modal"
+                    onBack={() => setShowSteamConsole(false)}
+                    steamRecords={steamRecords}
+                    setSteamRecords={setSteamRecords}
+                />
+            )}
+
+            {showCompactionConsole && (
+                <CompactionConcrete
+                    displayMode="modal"
+                    onBack={() => setShowCompactionConsole(false)}
+                    onSave={() => { }}
+                />
+            )}
+        </div>
     );
 };
 

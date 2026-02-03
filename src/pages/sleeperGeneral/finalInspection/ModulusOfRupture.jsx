@@ -229,7 +229,7 @@ const ModulusOfRupture = () => {
 
                 {viewMode === 'declared' && (
                     <div className="section-card fade-in">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                             <h4 style={{ margin: 0, color: '#475569' }}>MOR Samples Pending Testing (15 Day Aging)</h4>
                             <button className="btn-verify" onClick={handleAddSample}>+ Add New Sample</button>
                         </div>
@@ -324,9 +324,9 @@ const MORSampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => 
                             <input type="text" value={formData.sampleId} onChange={e => setFormData({ ...formData, sampleId: e.target.value })} placeholder="e.g. MOR-2026-XYZ" />
                         </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
-                        <button className="btn-verify" style={{ flex: 1 }} onClick={() => onSave(formData)}>{isModifying ? 'Update Sample' : 'Save Declaration'}</button>
-                        <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#64748b', border: 'none' }} onClick={onClose}>Cancel</button>
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '32px', flexWrap: 'wrap' }}>
+                        <button className="btn-verify" style={{ flex: '1 1 200px' }} onClick={() => onSave(formData)}>{isModifying ? 'Update Sample' : 'Save Declaration'}</button>
+                        <button className="btn-save" style={{ flex: '1 1 200px', background: '#f1f5f9', color: '#64748b', border: 'none' }} onClick={onClose}>Cancel</button>
                     </div>
                 </div>
             </div>
@@ -354,14 +354,14 @@ const MORTestDetailsModal = ({ sample, onClose, onSave }) => {
                 </div>
                 <div className="form-modal-body">
                     <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
                             <div><span style={{ fontSize: '10px', color: '#64748b' }}>Sampling Date</span><div style={{ fontWeight: '700' }}>{sample.dateOfSampling}</div></div>
                             <div><span style={{ fontSize: '10px', color: '#64748b' }}>Grade</span><div style={{ fontWeight: '700' }}>{sample.concreteGrade}</div></div>
                             <div><span style={{ fontSize: '10px', color: '#64748b' }}>Identification</span><div style={{ fontWeight: '700' }}>{sample.sampleId}</div></div>
                         </div>
                     </div>
 
-                    <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                         <div className="input-group" style={{ gridColumn: 'span 2' }}>
                             <label>Date of Testing</label>
                             <input type="date" value={testData.dateOfTesting} onChange={e => setTestData({ ...testData, dateOfTesting: e.target.value })} />
@@ -388,9 +388,9 @@ const MORTestDetailsModal = ({ sample, onClose, onSave }) => {
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                        <button className="btn-verify" style={{ flex: 1 }} onClick={() => onSave({ ...testData, result })}>Save Test Results</button>
-                        <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#64748b', border: 'none' }} onClick={onClose}>Cancel</button>
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '24px', flexWrap: 'wrap' }}>
+                        <button className="btn-verify" style={{ flex: '1 1 200px' }} onClick={() => onSave({ ...testData, result })}>Save Test Results</button>
+                        <button className="btn-save" style={{ flex: '1 1 200px', background: '#f1f5f9', color: '#64748b', border: 'none' }} onClick={onClose}>Cancel</button>
                     </div>
                 </div>
             </div>

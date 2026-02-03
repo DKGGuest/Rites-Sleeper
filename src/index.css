@@ -1,5 +1,4 @@
-/* Global Design System - Rites Sleeper Application */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&family=Outfit:wght@100..900&display=swap');
 
 :root {
     --primary-color: #21808d;
@@ -20,13 +19,17 @@
     --border-radius: 8px;
     --border-radius-lg: 12px;
 
-    /* Font Sizes */
-    --fs-xxs: 0.65rem;
-    --fs-xs: 0.75rem;
-    --fs-sm: 0.8125rem;
+    /* Global Typography Source of Truth */
+    --font-primary: 'Inter', -apple-system, system-ui, sans-serif;
+    --font-secondary: 'Outfit', sans-serif;
+
+    /* Standardized Compact Font Sizes */
+    --fs-xxs: 0.6rem;
+    --fs-xs: 0.725rem;
+    --fs-sm: 0.8rem;
     --fs-md: 0.875rem;
-    --fs-lg: 1rem;
-    --fs-xl: 1.125rem;
+    --fs-lg: 0.95rem;
+    --fs-xl: 1.1rem;
     --fs-2xl: 1.25rem;
 
     /* Primary Palette shim */
@@ -47,6 +50,7 @@
     margin: 0;
     padding: 0;
     max-width: 100%;
+    font-family: var(--font-primary);
 }
 
 html,
@@ -55,7 +59,7 @@ body {
     width: 100%;
     margin: 0;
     padding: 0;
-    font-family: 'Inter', 'Outfit', sans-serif;
+    font-family: var(--font-primary);
     background-color: #f8fafc;
     color: var(--text-main);
     line-height: 1.6;
@@ -679,7 +683,7 @@ h4 {
 /* --- Forms --- */
 .form-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.25rem 2rem;
     margin-bottom: 1.5rem;
 }
@@ -782,6 +786,7 @@ textarea:focus {
     justify-content: center;
     width: 100%;
     margin-top: 2rem;
+    flex-wrap: wrap;
 }
 
 /* Clean Scrollbar for Tables */
@@ -1315,5 +1320,23 @@ textarea:focus {
 @media (max-width: 900px) {
     .two-col-layout {
         grid-template-columns: 1fr;
+    }
+}
+
+/* --- Global Utilities --- */
+.content-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+    .content-title-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
     }
 }

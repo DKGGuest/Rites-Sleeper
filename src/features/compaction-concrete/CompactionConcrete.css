@@ -1,0 +1,198 @@
+.compaction-container {
+    padding: 1rem;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.compaction-sub-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.compaction-form-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.compaction-form-card {
+    width: 100%;
+    max-width: 820px;
+    max-height: 92vh;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.compaction-card-header {
+    background: #FFF8E7;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #F3E8FF;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.compaction-card-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.compaction-section {
+    padding: 1.25rem;
+    border-radius: 8px;
+    margin-bottom: 1.25rem;
+    border: 1px solid transparent;
+}
+
+.section-blue {
+    background: #eff6ff;
+    border-color: #dbeafe;
+}
+
+.section-amber {
+    background: #fffbeb;
+    border-color: #fef3c7;
+}
+
+.section-green {
+    background: #f0fdf4;
+    border-color: #dcfce7;
+}
+
+.section-slate {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.section-header {
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.step-number {
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.blue-bg {
+    background: #3b82f6;
+}
+
+.amber-bg {
+    background: #d97706;
+}
+
+.green-bg {
+    background: #10b981;
+}
+
+.slate-bg {
+    background: #64748b;
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.vibration-stats-placeholder {
+    padding: 3rem;
+    text-align: center;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+@media (max-width: 768px) {
+    .compaction-sub-grid {
+        flex-direction: column;
+    }
+
+    .compaction-section .form-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .compaction-card-header h2 {
+        font-size: 1rem;
+    }
+}
+
+/* CompactionSubCard Styles */
+.compaction-sub-card {
+    flex: 1 1 200px;
+    padding: 16px 20px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-height: 100px;
+}
+
+.compaction-sub-card.active {
+    background: #fff;
+    box-shadow: 0 4px 12px var(--active-color-alpha, rgba(66, 129, 140, 0.12));
+    transform: translateY(-2px);
+}
+
+.card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.card-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.card-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.card-footer {
+    margin-top: auto;
+    font-size: 10px;
+    color: #64748b;
+    font-weight: 600;
+}

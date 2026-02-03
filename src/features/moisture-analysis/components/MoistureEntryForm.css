@@ -1,0 +1,143 @@
+.moisture-form-container {
+    padding: 1rem;
+}
+
+.moisture-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.moisture-section h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 1rem;
+}
+
+.moisture-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px;
+}
+
+.moisture-mix-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 1rem;
+}
+
+.moisture-batch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 12px;
+    margin-top: 1rem;
+}
+
+.moisture-calc-grid {
+    margin-top: 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px;
+}
+
+.calc-card {
+    padding: 8px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+}
+
+.calc-card .mini-label {
+    font-size: 9px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.calc-card .calc-value {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.moisture-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.moisture-tab-btn {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.moisture-tab-btn.active {
+    background: #42818c;
+    color: white;
+    border-color: #42818c;
+}
+
+.moisture-details-section {
+    padding: 1.5rem;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.moisture-details-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.moisture-auto-vals {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.auto-val-card {
+    padding: 0.75rem;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.auto-val-card .val-label {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    margin-bottom: 0.25rem;
+}
+
+.auto-val-card .val-content {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+@media (max-width: 768px) {
+    .moisture-mix-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .moisture-details-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .moisture-tabs {
+        flex-direction: column;
+    }
+}

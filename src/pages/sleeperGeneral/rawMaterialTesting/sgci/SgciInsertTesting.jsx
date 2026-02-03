@@ -5,9 +5,36 @@ import { MOCK_SGCI_HISTORY, MOCK_INVENTORY, MOCK_VERIFIED_CONSIGNMENTS } from '.
 
 import '../cement/CementForms.css';
 
-const SgciInsertTesting = () => {
+const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
+    <div
+        className={`asset-card ${isActive ? 'active' : ''}`}
+        onClick={onClick}
+        style={{
+            borderColor: isActive ? color : '#e2e8f0',
+            borderTop: `4px solid ${color}`,
+            '--active-color-alpha': `${color}15`,
+            cursor: 'pointer',
+            flex: '1',
+            minWidth: '200px'
+        }}
+    >
+        <div className="asset-card-header">
+            <div>
+                <h4 className="asset-card-title" style={{ color: '#64748b', fontSize: '10px' }}>{title}</h4>
+                <div className="asset-card-count" style={{ fontSize: count === 'N/A' ? '1.1rem' : '1.5rem', margin: '4px 0', fontWeight: count === 'N/A' ? '400' : '700' }}>{count}</div>
+            </div>
+        </div>
+        <div className="asset-card-label" style={{ color: color, fontSize: '9px', fontWeight: '700' }}>{label}</div>
+    </div>
+);
+
+const SgciInsertTesting = ({ onBack }) => {
+    const [viewMode, setViewMode] = useState('history');
     const [showForm, setShowForm] = useState(false);
-    const [history, setHistory] = useState(MOCK_SGCI_HISTORY);
+    const [history, setHistory] = useState(MOCK_SGCI_HISTORY.map(h => ({
+        ...h,
+        createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
+    })));
     const [availableLots] = useState(MOCK_INVENTORY.SGCI || []);
 
     const { register, control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm({
@@ -33,7 +60,6 @@ const SgciInsertTesting = () => {
     const selectedLotNo = watch('lotNo');
     const readings = watch('readings');
 
-    // Auto-fill header fields based on Lot No.
     useEffect(() => {
         const lot = availableLots.find(l => l.lotNo === selectedLotNo);
         if (lot) {
@@ -43,25 +69,15 @@ const SgciInsertTesting = () => {
             setValue('ritesBook', lot.ritesBook);
             setValue('type', lot.type);
             setValue('inventoryId', lot.id);
-        } else {
-            setValue('supplier', '');
-            setValue('approvalValidity', '');
-            setValue('ritesIc', '');
-            setValue('ritesBook', '');
-            setValue('type', '');
-            setValue('inventoryId', '');
         }
     }, [selectedLotNo, availableLots, setValue]);
 
-    // Update row results automatically
     useEffect(() => {
         readings.forEach((r, idx) => {
             const w = parseFloat(r.weight);
             const isWeightOk = w >= 1.4395 && w <= 1.5285;
             const res = (isWeightOk && !r.dimensionalNotOk && !r.hammerNotOk) ? 'PASS' : 'FAIL';
-            if (r.result !== res) {
-                setValue(`readings.${idx}.result`, res);
-            }
+            if (r.result !== res) setValue(`readings.${idx}.result`, res);
         });
     }, [readings, setValue]);
 
@@ -73,10 +89,18 @@ const SgciInsertTesting = () => {
         return { total, passed, rejected, rejectionPct };
     }, [readings]);
 
+    const canModify = (createdAt) => {
+        if (!createdAt) return false;
+        const entryTime = new Date(createdAt).getTime();
+        const now = new Date().getTime();
+        return (now - entryTime) < (60 * 60 * 1000); // 1 hour
+    };
+
     const onSubmit = (data) => {
         const newRecord = {
-            id: history.length + 1,
+            id: Date.now(),
             testDate: data.date,
+            createdAt: new Date().toISOString(),
             lotNo: data.lotNo,
             supplier: data.supplier,
             checked: summary.total,
@@ -89,136 +113,135 @@ const SgciInsertTesting = () => {
         reset();
     };
 
+    const handleDelete = (id) => {
+        if (window.confirm('Delete this record?')) {
+            setHistory(prev => prev.filter(h => h.id !== id));
+        }
+    };
+
     const historyColumns = [
         { key: 'testDate', label: 'Date' },
-        { key: 'consignmentNo', label: 'Consignment No.' },
         { key: 'lotNo', label: 'Lot No.' },
         { key: 'supplier', label: 'Supplier' },
         { key: 'checked', label: 'Tested' },
         { key: 'accepted', label: 'Pass' },
-        { key: 'rejected', label: 'Fail' },
-        { key: 'rejectionPct', label: 'Rej. %', render: (val) => val ? `${val}%` : '0%' }
+        {
+            key: 'actions',
+            label: 'Actions',
+            render: (_, row) => {
+                const editable = canModify(row.createdAt);
+                return (
+                    <div className="btn-group-center" style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                        <button
+                            className={`btn-action mini ${!editable ? 'disabled-btn' : ''}`}
+                            disabled={!editable}
+                            onClick={() => {
+                                reset({
+                                    date: row.testDate,
+                                    lotNo: row.lotNo,
+                                    supplier: row.supplier,
+                                    readings: []
+                                });
+                                setShowForm(true);
+                            }}
+                            title={!editable ? "Expired" : ""}
+                        >
+                            Modify
+                        </button>
+                        <button
+                            className={`btn-action mini danger ${!editable ? 'disabled-btn' : ''}`}
+                            disabled={!editable}
+                            onClick={() => handleDelete(row.id)}
+                        >
+                            Delete
+                        </button>
+                    </div>
+                );
+            }
+        }
     ];
 
     return (
-        <div className="sgci-testing-root cement-forms-scope">
-            <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600, color: '#101828' }}>SGCI Insert Audit & Weekly Summary</h2>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                    <button className="btn-save" style={{ width: 'auto', background: '#059669' }}>Export PDF</button>
-                    <button className="btn-save" style={{ width: 'auto' }} onClick={() => setShowForm(true)}>+ New Audit Record</button>
-                </div>
+        <div className="sgci-testing-root cement-forms-scope fade-in">
+            <div className="content-title-row" style={{ marginBottom: '24px' }}>
+                <h2 style={{ margin: 0 }}>SGCI Insert Audit Report</h2>
+                <button className="toggle-btn secondary mini" onClick={onBack}>Back to Dashboard</button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap' }}>
+                <SubCard id="stats" title="Analytics" color="#42818c" count="N/A" label="Statistics" isActive={viewMode === 'stats'} onClick={() => setViewMode('stats')} />
+                <SubCard id="history" title="Historical" color="#10b981" count={history.length} label="Test Logs" isActive={viewMode === 'history'} onClick={() => setViewMode('history')} />
+            </div>
+
+            <div className="view-layer">
+                {viewMode === 'stats' && (
+                    <div className="table-outer-wrapper fade-in" style={{ padding: '40px', textAlign: 'center' }}>
+                        <h4 style={{ color: '#64748b' }}>SGCI Testing Analytics</h4>
+                        <div style={{ height: '300px', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '20px' }}>
+                            <span style={{ color: '#cbd5e1', fontWeight: '600' }}>Chart Placeholder</span>
+                        </div>
+                    </div>
+                )}
+
+                {viewMode === 'history' && (
+                    <div className="table-outer-wrapper fade-in">
+                        <div className="content-title-row" style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', marginBottom: 0 }}>
+                            <h4 style={{ margin: 0 }}>Weekly Audit Logs</h4>
+                            <button className="toggle-btn mini" onClick={() => { reset(); setShowForm(true); }}>+ Add New Audit</button>
+                        </div>
+                        <EnhancedDataTable columns={historyColumns} data={history} />
+                    </div>
+                )}
             </div>
 
             {showForm && (
                 <div className="form-modal-overlay" onClick={() => setShowForm(false)}>
-                    <div className="form-modal-container" onClick={(e) => e.stopPropagation()}>
+                    <div className="form-modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1000px' }}>
                         <div className="form-modal-header">
-                            <span className="form-modal-header-title">SGCI Insert Audit Report</span>
-                            <button className="form-modal-close" onClick={() => setShowForm(false)}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </button>
+                            <span className="form-modal-header-title">SGCI Insert Audit Detail</span>
+                            <button className="form-modal-close" onClick={() => setShowForm(false)}>✕</button>
                         </div>
-
                         <div className="form-modal-body" style={{ background: '#f8fafc' }}>
                             <form onSubmit={handleSubmit(onSubmit)}>
                                 <div className="form-grid">
+                                    <div className="input-group"><label>Date</label><input type="date" {...register('date')} /></div>
                                     <div className="input-group">
-                                        <label>Date of Testing <span className="required">*</span></label>
-                                        <input type="date" {...register('date', { required: 'Required' })} />
-                                    </div>
-                                    <div className="input-group">
-                                        <label>Consignment No. <span className="required">*</span></label>
-                                        <select {...register('consignmentNo', { required: 'Required' })}>
-                                            <option value="">Select Consignment</option>
-                                            {MOCK_VERIFIED_CONSIGNMENTS.map(c => (
-                                                <option key={c} value={c}>{c}</option>
-                                            ))}
+                                        <label>Consignment</label>
+                                        <select {...register('consignmentNo')}>
+                                            <option value="">Select</option>
+                                            {MOCK_VERIFIED_CONSIGNMENTS.map(c => <option key={c} value={c}>{c}</option>)}
                                         </select>
                                     </div>
                                     <div className="input-group">
-                                        <label>Lot No. <span className="required">*</span></label>
-                                        <select {...register('lotNo', { required: 'Required' })}>
-                                            <option value="">Select Lot</option>
+                                        <label>Lot No.</label>
+                                        <select {...register('lotNo')}>
+                                            <option value="">Select</option>
                                             {availableLots.map(l => <option key={l.id} value={l.lotNo}>{l.lotNo}</option>)}
                                         </select>
                                     </div>
-                                    <div className="input-group">
-                                        <label>SGCI Supplier</label>
-                                        <input type="text" readOnly className="readOnly" {...register('supplier')} />
-                                    </div>
-                                    <div className="input-group">
-                                        <label>RDSO Approval Validity</label>
-                                        <input type="text" readOnly className="readOnly" {...register('approvalValidity')} />
-                                    </div>
-                                    <div className="input-group">
-                                        <label>Inventory ID</label>
-                                        <input type="text" readOnly className="readOnly" {...register('inventoryId')} />
-                                    </div>
-                                    <div className="input-group">
-                                        <label>Type of Insert</label>
-                                        <input type="text" readOnly className="readOnly" {...register('type')} />
-                                    </div>
-                                    <div className="input-group">
-                                        <label>RITES IC Number & Date</label>
-                                        <input type="text" readOnly className="readOnly" {...register('ritesIc')} />
-                                    </div>
-                                    <div className="input-group">
-                                        <label>RITES IC Book No. & Set No.</label>
-                                        <input type="text" readOnly className="readOnly" {...register('ritesBook')} />
-                                    </div>
+                                    <div className="input-group"><label>Supplier</label><input type="text" readOnly className="readOnly" {...register('supplier')} /></div>
+                                    <div className="input-group"><label>Validity</label><input type="text" readOnly className="readOnly" {...register('approvalValidity')} /></div>
                                 </div>
 
                                 <div className="section-divider"></div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                    <h3 style={{ margin: 0, fontSize: '14px', color: '#101828' }}>Inspection Table</h3>
-                                    <button type="button" className="btn-save" style={{ width: 'auto', height: '28px', padding: '0 12px' }} onClick={() => append({ heatNo: '', patternNo: '', weight: '', dimensionalNotOk: false, hammerNotOk: false, result: 'PASS' })}>+ Add Row</button>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                    <h3 style={{ fontSize: '14px' }}>Readings</h3>
+                                    <button type="button" className="btn-save" style={{ width: 'auto', padding: '0 12px' }} onClick={() => append({ heatNo: '', patternNo: '', weight: '', dimensionalNotOk: false, hammerNotOk: false, result: 'PASS' })}>+ Add Row</button>
                                 </div>
 
-                                <div className="table-wrapper" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                                <div className="table-wrapper" style={{ maxHeight: '300px', overflowY: 'auto' }}>
                                     <table>
-                                        <thead>
-                                            <tr>
-                                                <th style={{ width: '120px' }}>Heat No.</th>
-                                                <th style={{ width: '120px' }}>Pattern No.</th>
-                                                <th style={{ width: '100px' }}>Weight (Kg)</th>
-                                                <th style={{ width: '100px' }}>Dim. !OK</th>
-                                                <th style={{ width: '100px' }}>Hammer !OK</th>
-                                                <th style={{ width: '80px' }}>Result</th>
-                                                <th style={{ width: '50px' }}></th>
-                                            </tr>
-                                        </thead>
+                                        <thead><tr><th>Heat No.</th><th>Pattern</th><th>Weight</th><th>Dim</th><th>Hammer</th><th>Result</th><th></th></tr></thead>
                                         <tbody>
                                             {fields.map((field, index) => (
                                                 <tr key={field.id}>
-                                                    <td><input type="text" {...register(`readings.${index}.heatNo`, { required: true })} style={{ textAlign: 'left', border: 'none', background: 'transparent' }} /></td>
-                                                    <td><input type="text" {...register(`readings.${index}.patternNo`, { required: true })} style={{ textAlign: 'left', border: 'none', background: 'transparent' }} /></td>
-                                                    <td>
-                                                        <input type="number" step="0.0001" {...register(`readings.${index}.weight`, { required: true })} style={{ border: 'none', background: 'transparent' }} />
-                                                    </td>
-                                                    <td style={{ textAlign: 'center' }}>
-                                                        <input type="checkbox" {...register(`readings.${index}.dimensionalNotOk`)} />
-                                                    </td>
-                                                    <td style={{ textAlign: 'center' }}>
-                                                        <input type="checkbox" {...register(`readings.${index}.hammerNotOk`)} />
-                                                    </td>
-                                                    <td style={{ textAlign: 'center' }}>
-                                                        <span style={{
-                                                            fontWeight: 600,
-                                                            color: readings[index]?.result === 'PASS' ? '#059669' : '#dc2626',
-                                                            fontSize: '11px'
-                                                        }}>
-                                                            {readings[index]?.result}
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        {fields.length > 1 && (
-                                                            <button type="button" onClick={() => remove(index)} style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', fontSize: '16px' }}>×</button>
-                                                        )}
-                                                    </td>
+                                                    <td><input type="text" {...register(`readings.${index}.heatNo`)} /></td>
+                                                    <td><input type="text" {...register(`readings.${index}.patternNo`)} /></td>
+                                                    <td><input type="number" step="0.0001" {...register(`readings.${index}.weight`)} /></td>
+                                                    <td style={{ textAlign: 'center' }}><input type="checkbox" {...register(`readings.${index}.dimensionalNotOk`)} /></td>
+                                                    <td style={{ textAlign: 'center' }}><input type="checkbox" {...register(`readings.${index}.hammerNotOk`)} /></td>
+                                                    <td style={{ textAlign: 'center' }}>{readings[index]?.result}</td>
+                                                    <td><button type="button" onClick={() => remove(index)} style={{ color: 'red', border: 'none', background: 'none' }}>×</button></td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -226,26 +249,13 @@ const SgciInsertTesting = () => {
                                 </div>
 
                                 <div className="summary-box" style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', display: 'flex', gap: '20px', marginTop: '16px' }}>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Total Checked</div>
-                                        <div style={{ fontSize: '18px', fontWeight: 600, color: '#101828' }}>{summary.total}</div>
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Passed</div>
-                                        <div style={{ fontSize: '18px', fontWeight: 600, color: '#059669' }}>{summary.passed}</div>
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Rejected</div>
-                                        <div style={{ fontSize: '18px', fontWeight: 600, color: '#dc2626' }}>{summary.rejected}</div>
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Rejection %</div>
-                                        <div style={{ fontSize: '18px', fontWeight: 600, color: '#101828' }}>{summary.rejectionPct}%</div>
-                                    </div>
+                                    <div><label style={{ fontSize: '10px' }}>TOTAL</label><div style={{ fontSize: '18px', fontWeight: 600 }}>{summary.total}</div></div>
+                                    <div><label style={{ fontSize: '10px' }}>PASS</label><div style={{ fontSize: '18px', fontWeight: 600, color: 'green' }}>{summary.passed}</div></div>
+                                    <div><label style={{ fontSize: '10px' }}>FAIL</label><div style={{ fontSize: '18px', fontWeight: 600, color: 'red' }}>{summary.rejected}</div></div>
                                 </div>
 
-                                <div className="form-modal-footer" style={{ borderTop: 'none', padding: '24px 0 0', background: 'transparent' }}>
-                                    <button type="submit" className="btn-save">Save Audit Report</button>
+                                <div className="form-modal-footer" style={{ borderTop: 'none', padding: '24px 0 0' }}>
+                                    <button type="submit" className="btn-save">Save Audit</button>
                                     <button type="button" className="btn-save" style={{ background: '#64748b' }} onClick={() => setShowForm(false)}>Cancel</button>
                                 </div>
                             </form>
@@ -253,39 +263,9 @@ const SgciInsertTesting = () => {
                     </div>
                 </div>
             )}
-
-            <div className="dashboard-view">
-                {/* Weekly Summary KPIs */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
-                    <div style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-                        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px', fontWeight: 600 }}>Total Inspected (Weekly)</div>
-                        <div style={{ fontSize: '24px', fontWeight: 700, color: '#101828' }}>3,450</div>
-                    </div>
-                    <div style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-                        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px', fontWeight: 600 }}>Accepted</div>
-                        <div style={{ fontSize: '24px', fontWeight: 700, color: '#059669' }}>3,412</div>
-                    </div>
-                    <div style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-                        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px', fontWeight: 600 }}>Rejected</div>
-                        <div style={{ fontSize: '24px', fontWeight: 700, color: '#dc2626' }}>38</div>
-                    </div>
-                    <div style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-                        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px', fontWeight: 600 }}>Avg. Rejection</div>
-                        <div style={{ fontSize: '24px', fontWeight: 700, color: '#101828' }}>1.10%</div>
-                    </div>
-                </div>
-
-                <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h4 style={{ margin: 0, color: '#475467', fontSize: '16px' }}>Weekly Audit Logs</h4>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <span style={{ fontSize: '12px', color: '#64748b' }}>Filter:</span>
-                        <input type="date" className="search-input" style={{ width: '130px', height: '28px' }} />
-                    </div>
-                </div>
-                <EnhancedDataTable columns={historyColumns} data={history} />
-            </div>
         </div>
     );
 };
+
 
 export default SgciInsertTesting;

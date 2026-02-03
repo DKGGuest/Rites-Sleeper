@@ -4,9 +4,36 @@ import EnhancedDataTable from '../../../../components/common/EnhancedDataTable';
 import { MOCK_WATER_HISTORY } from '../../../../utils/rawMaterialMockData';
 import '../cement/CementForms.css';
 
-const WaterTesting = () => {
+const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
+    <div
+        className={`asset-card ${isActive ? 'active' : ''}`}
+        onClick={onClick}
+        style={{
+            borderColor: isActive ? color : '#e2e8f0',
+            borderTop: `4px solid ${color}`,
+            '--active-color-alpha': `${color}15`,
+            cursor: 'pointer',
+            flex: '1',
+            minWidth: '200px'
+        }}
+    >
+        <div className="asset-card-header">
+            <div>
+                <h4 className="asset-card-title" style={{ color: '#64748b', fontSize: '10px' }}>{title}</h4>
+                <div className="asset-card-count" style={{ fontSize: count === 'N/A' ? '1.1rem' : '1.5rem', margin: '4px 0', fontWeight: count === 'N/A' ? '400' : '700' }}>{count}</div>
+            </div>
+        </div>
+        <div className="asset-card-label" style={{ color: color, fontSize: '9px', fontWeight: '700' }}>{label}</div>
+    </div>
+);
+
+const WaterTesting = ({ onBack }) => {
+    const [viewMode, setViewMode] = useState('history');
     const [showForm, setShowForm] = useState(false);
-    const [history, setHistory] = useState(MOCK_WATER_HISTORY);
+    const [history, setHistory] = useState(MOCK_WATER_HISTORY.map(h => ({
+        ...h,
+        createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
+    })));
 
     const { register, handleSubmit, reset, formState: { errors } } = useForm({
         defaultValues: {
@@ -16,10 +43,18 @@ const WaterTesting = () => {
         }
     });
 
+    const canModify = (createdAt) => {
+        if (!createdAt) return false;
+        const entryTime = new Date(createdAt).getTime();
+        const now = new Date().getTime();
+        return (now - entryTime) < (60 * 60 * 1000); // 1 hour
+    };
+
     const onSubmit = (data) => {
         const newRecord = {
-            id: history.length + 1,
+            id: Date.now(),
             testDate: data.testDate,
+            createdAt: new Date().toISOString(),
             ph: data.phValue,
             tds: `${data.tdsResult} ppm`
         };
@@ -28,80 +63,108 @@ const WaterTesting = () => {
         reset();
     };
 
+    const handleDelete = (id) => {
+        if (window.confirm('Delete this record?')) {
+            setHistory(prev => prev.filter(h => h.id !== id));
+        }
+    };
+
     const historyColumns = [
-        { key: 'testDate', label: 'Date of Testing' },
+        { key: 'testDate', label: 'Date' },
         { key: 'ph', label: 'PH Value' },
-        { key: 'tds', label: 'TDS Result' }
+        { key: 'tds', label: 'TDS Result' },
+        {
+            key: 'actions',
+            label: 'Actions',
+            render: (_, row) => {
+                const editable = canModify(row.createdAt);
+                return (
+                    <div className="btn-group-center" style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                        <button
+                            className={`btn-action mini ${!editable ? 'disabled-btn' : ''}`}
+                            disabled={!editable}
+                            onClick={() => {
+                                reset({
+                                    testDate: row.testDate,
+                                    phValue: row.ph,
+                                    tdsResult: row.tds.replace(' ppm', '')
+                                });
+                                setShowForm(true);
+                            }}
+                        >
+                            Modify
+                        </button>
+                        <button
+                            className={`btn-action mini danger ${!editable ? 'disabled-btn' : ''}`}
+                            disabled={!editable}
+                            onClick={() => handleDelete(row.id)}
+                        >
+                            Delete
+                        </button>
+                    </div>
+                );
+            }
+        }
     ];
 
     return (
-        <div className="water-testing-root cement-forms-scope">
-            <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600, color: '#101828' }}>Water Quality Testing</h2>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                    <button className="btn-save" style={{ width: 'auto', background: '#059669' }}>Export PDF</button>
-                    <button className="btn-save" style={{ width: 'auto' }} onClick={() => setShowForm(true)}>+ New Water Test</button>
-                </div>
+        <div className="water-testing-root cement-forms-scope fade-in">
+            <div className="content-title-row" style={{ marginBottom: '24px' }}>
+                <h2 style={{ margin: 0 }}>Water Quality Testing</h2>
+                <button className="toggle-btn secondary mini" onClick={onBack}>Back to Dashboard</button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap' }}>
+                <SubCard id="stats" title="Analytics" color="#42818c" count="N/A" label="Statistics" isActive={viewMode === 'stats'} onClick={() => setViewMode('stats')} />
+                <SubCard id="history" title="Historical" color="#10b981" count={history.length} label="Test Logs" isActive={viewMode === 'history'} onClick={() => setViewMode('history')} />
+            </div>
+
+            <div className="view-layer">
+                {viewMode === 'stats' && (
+                    <div className="table-outer-wrapper fade-in" style={{ padding: '40px', textAlign: 'center' }}>
+                        <h4 style={{ color: '#64748b' }}>Water Testing Analytics</h4>
+                        <div style={{ height: '300px', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '20px' }}>
+                            <span style={{ color: '#cbd5e1', fontWeight: '600' }}>Chart Placeholder</span>
+                        </div>
+                    </div>
+                )}
+
+                {viewMode === 'history' && (
+                    <div className="table-outer-wrapper fade-in">
+                        <div className="content-title-row" style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', marginBottom: 0 }}>
+                            <h4 style={{ margin: 0 }}>Historical Quality Logs</h4>
+                            <button className="toggle-btn mini" onClick={() => { reset(); setShowForm(true); }}>+ Add New Testing</button>
+                        </div>
+                        <EnhancedDataTable columns={historyColumns} data={history} />
+                    </div>
+                )}
             </div>
 
             {showForm && (
                 <div className="form-modal-overlay" onClick={() => setShowForm(false)}>
                     <div className="form-modal-container" onClick={(e) => e.stopPropagation()}>
                         <div className="form-modal-header">
-                            <span className="form-modal-header-title">New Water Quality Test</span>
-                            <button className="form-modal-close" onClick={() => setShowForm(false)}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </button>
+                            <span className="form-modal-header-title">Water Quality Test Record</span>
+                            <button className="form-modal-close" onClick={() => setShowForm(false)}>✕</button>
                         </div>
-
                         <div className="form-modal-body" style={{ background: '#f8fafc' }}>
                             <form onSubmit={handleSubmit(onSubmit)}>
                                 <div className="form-grid">
                                     <div className="input-group">
                                         <label>Date of Testing <span className="required">*</span></label>
-                                        <input
-                                            type="date"
-                                            {...register('testDate', { required: 'Date is required' })}
-                                        />
-                                        {errors.testDate && <span className="hint-text" style={{ color: 'red' }}>{errors.testDate.message}</span>}
+                                        <input type="date" {...register('testDate', { required: true })} />
                                     </div>
-
                                     <div className="input-group">
-                                        <label>pH Value Test <span className="required">*</span></label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            {...register('phValue', {
-                                                required: 'pH value is required',
-                                                min: { value: 0, message: 'Min 0' },
-                                                max: { value: 14, message: 'Max 14' }
-                                            })}
-                                            placeholder="Enter pH value"
-                                        />
-                                        <span className="hint-text">Typical range: 0–14</span>
-                                        {errors.phValue && <span className="hint-text" style={{ color: 'red' }}>{errors.phValue.message}</span>}
+                                        <label>pH Value <span className="required">*</span></label>
+                                        <input type="number" step="0.01" {...register('phValue', { required: true, min: 0, max: 14 })} placeholder="0–14" />
                                     </div>
-
                                     <div className="input-group">
-                                        <label>TDS Test <span className="required">*</span></label>
-                                        <input
-                                            type="number"
-                                            {...register('tdsResult', {
-                                                required: 'TDS result is required',
-                                                validate: value => Number.isInteger(Number(value)) || 'Whole numbers only'
-                                            })}
-                                            placeholder="Enter TDS"
-                                        />
-                                        <span className="hint-text">ppm</span>
-                                        {errors.tdsResult && <span className="hint-text" style={{ color: 'red' }}>{errors.tdsResult.message}</span>}
+                                        <label>TDS (ppm) <span className="required">*</span></label>
+                                        <input type="number" {...register('tdsResult', { required: true })} placeholder="Enter TDS" />
                                     </div>
                                 </div>
-
-                                <div className="form-modal-footer" style={{ borderTop: 'none', padding: '24px 0 0', background: 'transparent' }}>
-                                    <button type="submit" className="btn-save">Submit Result</button>
+                                <div className="form-modal-footer" style={{ borderTop: 'none', padding: '24px 0 0' }}>
+                                    <button type="submit" className="btn-save">Save Result</button>
                                     <button type="button" className="btn-save" style={{ background: '#64748b' }} onClick={() => setShowForm(false)}>Cancel</button>
                                 </div>
                             </form>
@@ -109,15 +172,9 @@ const WaterTesting = () => {
                     </div>
                 </div>
             )}
-
-            <div className="dashboard-view">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <h4 style={{ margin: 0, color: '#475467', fontSize: '15px' }}>Historical Quality Logs</h4>
-                </div>
-                <EnhancedDataTable columns={historyColumns} data={history} />
-            </div>
         </div>
     );
 };
+
 
 export default WaterTesting;

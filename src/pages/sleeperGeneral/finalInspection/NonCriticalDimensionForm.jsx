@@ -89,8 +89,8 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage })
     return (
         <div className="non-critical-dimension-form" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '10px' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', background: '#e2e8f0', padding: '12px 16px', borderRadius: '8px 8px 0 0' }}>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#1e293b', margin: 0 }}>Non-Critical Dimensions - Full Inspection Form</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', background: '#e2e8f0', padding: '12px 16px', borderRadius: '8px 8px 0 0', flexWrap: 'wrap', gap: '10px' }}>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#1e293b', margin: 0, flex: '1 1 300px' }}>Non-Critical Dimensions - Full Inspection Form</h2>
                 <button
                     onClick={onCancel}
                     style={{ background: 'transparent', border: 'none', fontSize: '1.2rem', color: '#64748b', cursor: 'pointer', padding: '4px' }}
@@ -114,7 +114,7 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage })
                 {/* Section 2: Available Sleepers */}
                 <div style={{ background: '#f1f5f9', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
                     <h4 style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px', textTransform: 'uppercase' }}>2. Available Sleepers (Select for Testing)</h4>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
                         <div style={{ fontSize: '11px', fontWeight: '700', color: '#15803d' }}>
                             Selected: {selectedSleepers.length} / {allSleepersPool.length}
                         </div>
@@ -168,7 +168,7 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage })
                 <div style={{ background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', opacity: isChecklistComplete ? 1 : 0.6, pointerEvents: isChecklistComplete ? 'auto' : 'none' }}>
                     <h4 style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px', textTransform: 'uppercase' }}>4. Result of Checking</h4>
 
-                    <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
                         {[
                             { id: 'ok', label: 'All OK', color: '#10b981' },
                             { id: 'partial-ok', label: 'Partially OK', color: '#f59e0b' },
@@ -280,7 +280,7 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage })
             </div>
 
             {/* Footer */}
-            <div style={{ display: 'flex', gap: '16px', marginTop: '16px', padding: '0 16px 16px 16px' }}>
+            <div style={{ display: 'flex', gap: '16px', marginTop: '16px', padding: '0 16px 16px 16px', flexWrap: 'wrap-reverse' }}>
                 <button
                     onClick={onSave}
                     disabled={selectedSleepers.length === 0}

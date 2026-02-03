@@ -85,6 +85,7 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
                     <input
                         id="bench-no"
                         type="number"
+                        min="0"
                         placeholder={`Enter ${fieldLabel} Number`}
                         value={formData.benchNo}
                         onChange={e => handleChange('benchNo', e.target.value)}
@@ -124,7 +125,6 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
             </div>
             <div className="form-actions-center" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                 <button className="toggle-btn" onClick={handleSave}>Save Entry</button>
-                <button className="toggle-btn" style={{ background: '#f1f5f9', color: '#64748b' }} onClick={onCancel}>Cancel</button>
             </div>
         </div>
     );

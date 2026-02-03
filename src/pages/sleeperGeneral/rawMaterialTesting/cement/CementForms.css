@@ -16,7 +16,7 @@
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 16px;
-    --font-family: var(--font-primary, 'Inter', system-ui, -apple-system, sans-serif);
+    --font-family: var(--font-primary);
     --font-size-base: var(--fs-sm);
     --font-size-label: var(--fs-xs);
     --font-size-table-row: var(--fs-sm);
@@ -578,4 +578,18 @@
 
 .cement-forms-scope input[type="checkbox"]:hover {
     border-color: #21808d;
+}
+
+.cement-forms-scope .disabled-btn {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+    background-color: #94a3b8 !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.cement-forms-scope .disabled-btn:hover {
+    background-color: #94a3b8 !important;
+    transform: none !important;
+    box-shadow: none !important;
 }

@@ -1,305 +1,399 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import CollapsibleSection from '../../components/common/CollapsibleSection';
-
-/**
- * SteamCubeStats Component
- */
-export const SteamCubeStats = ({ records }) => {
-    const grades = ['M55', 'M60'];
-    const thresholds = { 'M55': 40, 'M60': 50 };
-
-    const calculateStats = (grade) => {
-        const filtered = records.filter(r => r.grade === grade);
-        if (filtered.length === 0) return null;
-
-        const strengths = filtered.map(r => parseFloat(r.strength));
-        const avg = strengths.reduce((a, b) => a + b, 0) / strengths.length;
-        const unsatisfactory = filtered.filter(r => parseFloat(r.strength) < thresholds[grade]).length;
-        const belowAvg = strengths.filter(s => s < avg).length;
-
-        return {
-            min: Math.min(...strengths).toFixed(2),
-            max: Math.max(...strengths).toFixed(2),
-            avg: avg.toFixed(2),
-            unsatisfactory,
-            belowAvgPct: ((belowAvg / strengths.length) * 100).toFixed(1)
-        };
-    };
-
-    return (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-            {grades.map(grade => {
-                const stats = calculateStats(grade);
-                if (!stats) return (
-                    <div key={grade} className="calc-card" style={{ opacity: 0.6 }}>
-                        <h4 style={{ margin: '0 0 0.5rem 0', color: '#64748b' }}>{grade} Statistics</h4>
-                        <p style={{ fontSize: '0.8rem', margin: 0 }}>No data available</p>
-                    </div>
-                );
-                return (
-                    <div key={grade} className="calc-card" style={{ borderLeft: `4px solid ${grade === 'M55' ? '#10b981' : '#3b82f6'}` }}>
-                        <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b' }}>{grade} Category</h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                            <div>
-                                <span className="mini-label">Min Strength</span>
-                                <div className="calc-value" style={{ fontSize: '1.25rem' }}>{stats.min}</div>
-                            </div>
-                            <div>
-                                <span className="mini-label">Max Strength</span>
-                                <div className="calc-value" style={{ fontSize: '1.25rem' }}>{stats.max}</div>
-                            </div>
-                            <div>
-                                <span className="mini-label">Avg Strength</span>
-                                <div className="calc-value" style={{ fontSize: '1.25rem', color: 'var(--primary-color)' }}>{stats.avg}</div>
-                            </div>
-                            <div>
-                                <span className="mini-label">Unsatisfactory</span>
-                                <div className="calc-value" style={{ fontSize: '1.25rem', color: stats.unsatisfactory > 0 ? '#ef4444' : '#10b981' }}>{stats.unsatisfactory}</div>
-                            </div>
-                        </div>
-                        <div style={{ marginTop: '1rem', paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9', fontSize: '0.75rem', color: '#64748b' }}>
-                            <span style={{ fontWeight: '600' }}>{stats.belowAvgPct}%</span> of results below average
-                        </div>
-                    </div>
-                );
-            })}
-        </div>
-    );
-};
+import EnhancedDataTable from '../../components/common/EnhancedDataTable';
+import './SteamCubeTesting.css';
 
 const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedRecords: propSetTestedRecords }) => {
-    // Mock initial data for samples
-    const [samples, setSamples] = useState([
-        { id: 1, batchNo: 610, chamberNo: 1, benchNo: 401, sequence: 'A', cubeNo: '401A', castDate: '2026-01-29', lbcTime: '10:30', grade: 'M55', benchesInChamber: '401, 402', sleeperType: 'RT-1' },
-        { id: 2, batchNo: 611, chamberNo: 2, benchNo: 405, sequence: 'H', cubeNo: '405H', castDate: '2026-01-30', lbcTime: '09:15', grade: 'M60', benchesInChamber: '405, 406, 407, 408', sleeperType: 'RT-2' }
+    const [viewMode, setViewMode] = useState('statistics'); // 'statistics', 'declared', 'tested'
+    const [showDeclareModal, setShowDeclareModal] = useState(false);
+    const [showTestModal, setShowTestModal] = useState(false);
+    const [selectedSample, setSelectedSample] = useState(null);
+    const [isModifying, setIsModifying] = useState(false);
+
+    // Mock initial data for samples declared but not yet tested
+    const [declaredSamples, setDeclaredSamples] = useState([
+        { id: 1, batchNo: 610, chamberNo: 1, benchNo: 401, sequence: 'A', cubeNo: '401A', castDate: '2026-01-29', lbcTime: '10:30', grade: 'M55', sleeperType: 'RT-1', createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString() },
+        { id: 2, batchNo: 611, chamberNo: 2, benchNo: 405, sequence: 'H', cubeNo: '405H', castDate: '2026-01-30', lbcTime: '09:15', grade: 'M60', sleeperType: 'RT-2', createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString() }
     ]);
 
     const [localTestedRecords, setLocalTestedRecords] = useState([
-        { id: 101, batchNo: 608, chamberNo: 3, benchesInChamber: '301, 302', cubeNo: '301B', grade: 'M55', strength: '42.5', testDate: '2026-01-30', testTime: '11:00', weight: '8.1', load: '956', timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString() }
+        {
+            id: 101, batchNo: 608, chamberNo: 3, cubeNo: '301B', grade: 'M55', strength: '42.50', weight: '8.1', load: '956',
+            testDate: '2026-01-30', testTime: '11:00', result: 'PASS', timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString()
+        }
     ]);
 
     const testedRecords = propTestedRecords || localTestedRecords;
     const setTestedRecords = propSetTestedRecords || setLocalTestedRecords;
 
-    const [selectedBatch, setSelectedBatch] = useState('All');
+    // Statistics Calculation
+    const stats = useMemo(() => {
+        const allTests = testedRecords;
+        const totalTests = allTests.length;
+        const strengths = allTests.map(r => parseFloat(r.strength)).filter(s => !isNaN(s));
 
-    // Form States
-    const [sampleForm, setSampleForm] = useState({
-        batchNo: '', chamberNo: '', benchNo: '', sequence: 'A', castDate: new Date().toISOString().split('T')[0], lbcTime: '', grade: 'M55', benchesInChamber: '', sleeperType: 'RT-1'
-    });
+        const avgStrength = strengths.length > 0 ? (strengths.reduce((a, b) => a + b, 0) / strengths.length).toFixed(2) : '0.00';
+        const minStrength = strengths.length > 0 ? Math.min(...strengths).toFixed(2) : '0.00';
+        const maxStrength = strengths.length > 0 ? Math.max(...strengths).toFixed(2) : '0.00';
+        const passRate = totalTests > 0 ? ((allTests.filter(t => t.result === 'PASS').length / totalTests) * 100).toFixed(1) : '0.0';
 
-    const [testForm, setTestForm] = useState({
-        testDate: new Date().toISOString().split('T')[0], testTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }), weight: '', load: '', strength: ''
-    });
+        const m55Tests = allTests.filter(t => t.grade === 'M55');
+        const m60Tests = allTests.filter(t => t.grade === 'M60');
 
-    const [selectedSampleForTest, setSelectedSampleForTest] = useState(null);
-    const [editingRecordId, setEditingRecordId] = useState(null);
-
-    useEffect(() => {
-        if (testForm.load && !isNaN(testForm.load)) {
-            const strength = (parseFloat(testForm.load) * 1000 / 22500).toFixed(2);
-            setTestForm(prev => ({ ...prev, strength }));
-        }
-    }, [testForm.load]);
-
-    const handleDeclareSample = () => {
-        if (!sampleForm.batchNo || !sampleForm.benchNo) {
-            alert('Required fields missing');
-            return;
-        }
-        const cubeNo = `${sampleForm.benchNo}${sampleForm.sequence}`;
-        const newSample = {
-            ...sampleForm,
-            id: Date.now(),
-            cubeNo
+        return {
+            totalDeclared: declaredSamples.length,
+            totalTests,
+            avgStrength,
+            minStrength,
+            maxStrength,
+            passRate,
+            m55Count: m55Tests.length,
+            m60Count: m60Tests.length,
+            lastTest: allTests.length > 0 ? allTests[0].testDate : 'N/A'
         };
-        setSamples(prev => [...prev, newSample]);
-        setSampleForm({ batchNo: '', chamberNo: '', benchNo: '', sequence: 'A', castDate: new Date().toISOString().split('T')[0], lbcTime: '', grade: 'M55', benchesInChamber: '', sleeperType: 'RT-1' });
+    }, [declaredSamples, testedRecords]);
+
+    const isWithinHour = (isoString) => {
+        if (!isoString) return false;
+        const diff = Date.now() - new Date(isoString).getTime();
+        return diff < (60 * 60 * 1000);
     };
 
-    const handleSaveTestResult = () => {
-        if (!selectedSampleForTest || !testForm.load) {
-            alert('Please select a sample and enter test data');
-            return;
-        }
+    const handleAddSample = () => {
+        setSelectedSample(null);
+        setIsModifying(false);
+        setShowDeclareModal(true);
+    };
 
-        const newRecord = {
-            ...selectedSampleForTest,
-            ...testForm,
-            id: editingRecordId || Date.now(),
-            timestamp: new Date().toISOString(),
-            source: 'Manual'
-        };
+    const handleModifySample = (sample) => {
+        setSelectedSample(sample);
+        setIsModifying(true);
+        setShowDeclareModal(true);
+    };
 
-        if (editingRecordId) {
-            setTestedRecords(prev => prev.map(r => r.id === editingRecordId ? newRecord : r));
-            setEditingRecordId(null);
+    const handleEnterTestDetails = (sample) => {
+        setSelectedSample(sample);
+        setShowTestModal(true);
+    };
+
+    const saveDeclaration = (formData) => {
+        if (isModifying) {
+            setDeclaredSamples(prev => prev.map(s => s.id === selectedSample.id ? { ...s, ...formData } : s));
         } else {
-            setTestedRecords(prev => [newRecord, ...prev]);
-            setSamples(prev => prev.filter(s => s.id !== selectedSampleForTest.id));
+            const newSample = {
+                ...formData,
+                id: Date.now(),
+                createdAt: new Date().toISOString()
+            };
+            setDeclaredSamples(prev => [newSample, ...prev]);
+        }
+        setShowDeclareModal(false);
+    };
+
+    const handleEditTest = (record) => {
+        setSelectedSample(record);
+        setIsModifying(true);
+        setShowTestModal(true);
+    };
+
+    const saveTestDetails = (testData) => {
+        const completedTest = {
+            ...selectedSample,
+            ...testData,
+            timestamp: selectedSample.timestamp || new Date().toISOString()
+        };
+
+        if (isModifying) {
+            setTestedRecords(prev => prev.map(r => r.id === selectedSample.id ? completedTest : r));
+        } else {
+            setTestedRecords(prev => [completedTest, ...prev]);
+            setDeclaredSamples(prev => prev.filter(s => s.id !== selectedSample.id));
         }
 
-        setSelectedSampleForTest(null);
-        setTestForm({ testDate: new Date().toISOString().split('T')[0], testTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }), weight: '', load: '', strength: '' });
+        setShowTestModal(false);
+        setIsModifying(false);
     };
 
-    const isRecordEditable = (timestamp) => {
-        const diffMs = Date.now() - new Date(timestamp).getTime();
-        return diffMs < (8 * 60 * 60 * 1000); // 8 hours
+    const handleDeleteTest = (id) => {
+        if (window.confirm('Are you sure you want to delete this test record?')) {
+            setTestedRecords(prev => prev.filter(r => r.id !== id));
+        }
     };
 
-    const handleEditResult = (record) => {
-        setEditingRecordId(record.id);
-        setSelectedSampleForTest(record);
-        setTestForm({
-            testDate: record.testDate,
-            testTime: record.testTime,
-            weight: record.weight,
-            load: record.load,
-            strength: record.strength
-        });
-        const manualSection = document.getElementById('manual-entry-section');
-        if (manualSection) manualSection.scrollIntoView({ behavior: 'smooth' });
-    };
+    const columnsDeclared = [
+        { key: 'cubeNo', label: 'Cube No' },
+        { key: 'batchNo', label: 'Batch No' },
+        { key: 'chamberNo', label: 'Chamber' },
+        { key: 'castDate', label: 'Casting Date' },
+        { key: 'grade', label: 'Grade' },
+        {
+            key: 'actions',
+            label: 'Actions',
+            render: (_, row) => (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    {isWithinHour(row.createdAt) && (
+                        <button className="btn-save" style={{ fontSize: '10px', padding: '4px 8px' }} onClick={() => handleModifySample(row)}>Modify</button>
+                    )}
+                    <button className="btn-verify" style={{ fontSize: '10px', padding: '4px 8px' }} onClick={() => handleEnterTestDetails(row)}>Enter Test Details</button>
+                </div>
+            )
+        }
+    ];
 
-    const batches = ['All', ...new Set(samples.map(s => s.batchNo.toString()))];
+    const columnsTested = [
+        { key: 'cubeNo', label: 'Cube No' },
+        { key: 'batchNo', label: 'Batch No' },
+        { key: 'grade', label: 'Grade' },
+        { key: 'load', label: 'Load (KN)' },
+        { key: 'strength', label: 'Strength (N/mm²)' },
+        {
+            key: 'result',
+            label: 'Result',
+            render: (val) => (
+                <span className={`status-pill ${val === 'PASS' ? 'witnessed' : 'manual'}`}>{val}</span>
+            )
+        },
+        {
+            key: 'actions',
+            label: 'Actions',
+            render: (_, row) => (
+                isWithinHour(row.timestamp) ? (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button className="btn-save" style={{ fontSize: '10px', padding: '4px 8px' }} onClick={() => handleEditTest(row)}>Edit</button>
+                        <button className="btn-action" style={{ fontSize: '10px', padding: '4px 8px', background: '#fee2e2', color: '#ef4444' }} onClick={() => handleDeleteTest(row.id)}>Delete</button>
+                    </div>
+                ) : <span style={{ fontSize: '10px', color: '#94a3b8' }}>Locked</span>
+            )
+        }
+    ];
 
     return (
-        <div className="modal-overlay" onClick={onBack}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1600px', width: '98%', height: '90vh', display: 'flex', flexDirection: 'column' }}>
-                <header className="modal-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                        <div>
-                            <h2 style={{ margin: 0 }}>Steam Cube Testing Console</h2>
-                            <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Transfer Strength Verification</p>
+        <div className="steam-cube-testing-module cement-forms-scope">
+            <header style={{ marginBottom: '24px' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#13343b', margin: 0 }}>Steam Cube Testing Record</h2>
+                <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>Transfer strength verification for steam cured sleepers</p>
+            </header>
+
+            <div className="nav-tabs" style={{
+                marginBottom: '24px',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px'
+            }}>
+                <div
+                    className={`nav-tab-card ${viewMode === 'statistics' ? 'active' : ''}`}
+                    onClick={() => setViewMode('statistics')}
+                    style={cardTabStyle(viewMode === 'statistics', '#10b981')}
+                >
+                    <span style={{ fontSize: '10px', fontWeight: '700', opacity: 0.8 }}>ANALYSIS</span>
+                    <span style={{ fontSize: '14px', fontWeight: '800' }}>Statistics Dashboard</span>
+                </div>
+                <div
+                    className={`nav-tab-card ${viewMode === 'declared' ? 'active' : ''}`}
+                    onClick={() => setViewMode('declared')}
+                    style={cardTabStyle(viewMode === 'declared', '#3b82f6')}
+                >
+                    <span style={{ fontSize: '10px', fontWeight: '700', opacity: 0.8 }}>PENDING</span>
+                    <span style={{ fontSize: '14px', fontWeight: '800' }}>Test Sample Declared</span>
+                </div>
+                <div
+                    className={`nav-tab-card ${viewMode === 'tested' ? 'active' : ''}`}
+                    onClick={() => setViewMode('tested')}
+                    style={cardTabStyle(viewMode === 'tested', '#f59e0b')}
+                >
+                    <span style={{ fontSize: '10px', fontWeight: '700', opacity: 0.8 }}>COMPLETED</span>
+                    <span style={{ fontSize: '14px', fontWeight: '800' }}>Recent Testing Done</span>
+                </div>
+            </div>
+
+            <div className="tab-content" style={{ animation: 'fadeIn 0.3s ease' }}>
+                {viewMode === 'statistics' && (
+                    <div className="fade-in">
+                        <div className="steam-cube-stats-grid">
+                            <StatCard label="Total Declared" value={stats.totalDeclared} />
+                            <StatCard label="Total Tests" value={stats.totalTests} />
+                            <StatCard label="Avg Strength" value={stats.avgStrength} unit="N/mm²" />
+                            <StatCard label="Pass Rate" value={stats.passRate} unit="%" color={parseFloat(stats.passRate) > 95 ? '#10b981' : '#f59e0b'} />
+                            <StatCard label="Min Strength" value={stats.minStrength} unit="N/mm²" />
+                            <StatCard label="Max Strength" value={stats.maxStrength} unit="N/mm²" />
+                            <StatCard label="M55 Tests" value={stats.m55Count} />
+                            <StatCard label="M60 Tests" value={stats.m60Count} />
+                            <StatCard label="Last Test Date" value={stats.lastTest} />
                         </div>
-                        <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Select Batch:</span>
-                            <select
-                                className="dash-select"
-                                style={{ margin: 0, width: '100px' }}
-                                value={selectedBatch}
-                                onChange={(e) => setSelectedBatch(e.target.value)}
-                            >
-                                {batches.map(b => <option key={b} value={b}>{b}</option>)}
+
+                        <div className="steam-cube-charts-grid">
+                            <div className="steam-cube-chart-card">
+                                <h4 style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#1e293b', fontWeight: '800' }}>Strength Trend (Last 10 Tests)</h4>
+                                <div className="steam-cube-bar-chart-container">
+                                    {[45, 52, 48, 55, 60, 58, 49, 53, 57, 51].map((h, i) => (
+                                        <div key={i} className="steam-cube-bar" style={{ height: `${(h / 70) * 100}%` }}>
+                                            <span className="steam-cube-bar-label">{h}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="steam-cube-chart-card" style={{ justifyContent: 'center', alignItems: 'center' }}>
+                                <div style={{ width: '150px', height: '150px', borderRadius: '50%', background: `conic-gradient(#10b981 ${stats.passRate}%, #e2e8f0 0)`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                                    <div style={{ width: '110px', height: '110px', borderRadius: '50%', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                        <span style={{ fontSize: '24px', fontWeight: '800', color: '#1e293b' }}>{stats.passRate}%</span>
+                                        <span style={{ fontSize: '10px', color: '#64748b', fontWeight: '700' }}>PASS RATE</span>
+                                    </div>
+                                </div>
+                                <div style={{ marginTop: '20px', display: 'flex', gap: '15px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '10px', height: '10px', background: '#10b981', borderRadius: '2px' }}></span><span style={{ fontSize: '12px', fontWeight: '600' }}>Pass</span></div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ width: '10px', height: '10px', background: '#e2e8f0', borderRadius: '2px' }}></span><span style={{ fontSize: '12px', fontWeight: '600' }}>Fail</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {viewMode === 'declared' && (
+                    <div className="section-card fade-in">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h4 style={{ margin: 0, color: '#475569' }}>Pending Strength Verification</h4>
+                            <button className="btn-verify" onClick={handleAddSample}>+ Add New Sample</button>
+                        </div>
+                        <EnhancedDataTable columns={columnsDeclared} data={declaredSamples} />
+                    </div>
+                )}
+
+                {viewMode === 'tested' && (
+                    <div className="section-card fade-in">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h4 style={{ margin: 0, color: '#475569' }}>Tested Samples Log (Transfer Strength)</h4>
+                        </div>
+                        <EnhancedDataTable columns={columnsTested} data={testedRecords} />
+                    </div>
+                )}
+            </div>
+
+            {showDeclareModal && (
+                <SampleDeclarationModal
+                    sample={selectedSample}
+                    isModifying={isModifying}
+                    onClose={() => setShowDeclareModal(false)}
+                    onSave={saveDeclaration}
+                />
+            )}
+
+            {showTestModal && (
+                <TestDetailsModal
+                    sample={selectedSample}
+                    onClose={() => setShowTestModal(false)}
+                    onSave={saveTestDetails}
+                    isModifying={isModifying}
+                />
+            )}
+        </div>
+    );
+};
+
+const cardTabStyle = (active, color) => ({
+    flex: '1 1 200px',
+    padding: '16px 20px',
+    background: active ? '#fff' : '#f8fafc',
+    border: `1px solid ${active ? color : '#e2e8f0'}`,
+    borderTop: `4px solid ${color}`,
+    borderRadius: '12px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    boxShadow: active ? `0 4px 12px ${color}20` : 'none',
+    transform: active ? 'translateY(-2px)' : 'none'
+});
+
+const StatCard = ({ label, value, unit = '', color = '#1e293b' }) => (
+    <div style={{ background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+        <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '8px' }}>{label}</div>
+        <div style={{ fontSize: '18px', fontWeight: '800', color }}>{value} <span style={{ fontSize: '12px', fontWeight: '600', color: '#94a3b8' }}>{unit}</span></div>
+    </div>
+);
+
+const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => {
+    const [formData, setFormData] = useState(sample || {
+        batchNo: '', chamberNo: '', benchNo: '', sequence: 'A', castDate: new Date().toISOString().split('T')[0], grade: 'M60', sleeperType: 'RT-1234'
+    });
+
+    return (
+        <div className="form-modal-overlay" onClick={onClose}>
+            <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+                <div className="form-modal-header">
+                    <span className="form-modal-header-title">{isModifying ? 'Modify' : 'New'} Steam Cube Declaration</span>
+                    <button className="form-modal-close" onClick={onClose}>X</button>
+                </div>
+                <div className="form-modal-body">
+                    <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div className="input-group"><label>Batch Number</label><input type="number" min="0" value={formData.batchNo} onChange={e => setFormData({ ...formData, batchNo: e.target.value })} /></div>
+                        <div className="input-group"><label>Chamber Number</label><input type="number" min="0" value={formData.chamberNo} onChange={e => setFormData({ ...formData, chamberNo: e.target.value })} /></div>
+                        <div className="input-group"><label>Bench Number</label><input type="number" min="0" value={formData.benchNo} onChange={e => setFormData({ ...formData, benchNo: e.target.value })} /></div>
+                        <div className="input-group">
+                            <label>Sleeper Sequence</label>
+                            <select value={formData.sequence} onChange={e => setFormData({ ...formData, sequence: e.target.value })}>
+                                {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                        </div>
+                        <div className="input-group"><label>Casting Date</label><input type="date" value={formData.castDate} onChange={e => setFormData({ ...formData, castDate: e.target.value })} /></div>
+                        <div className="input-group">
+                            <label>Concrete Grade</label>
+                            <select value={formData.grade} onChange={e => setFormData({ ...formData, grade: e.target.value })}>
+                                <option>M55</option><option>M60</option>
                             </select>
                         </div>
                     </div>
-                    <button className="close-btn" onClick={onBack}>×</button>
-                </header>
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
+                        <button className="btn-verify" style={{ flex: 1 }} onClick={() => onSave({ ...formData, cubeNo: `${formData.benchNo}${formData.sequence}` })}>
+                            {isModifying ? 'Update Declaration' : 'Save Declaration'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
-                <div className="modal-body" style={{ flexGrow: 1, overflowY: 'auto', padding: '1.5rem' }}>
+const TestDetailsModal = ({ sample, onClose, onSave, isModifying }) => {
+    const [testData, setTestData] = useState({
+        testDate: sample.testDate || new Date().toISOString().split('T')[0],
+        testTime: sample.testTime || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+        weight: sample.weight || '',
+        load: sample.load || '',
+        strength: sample.strength || ''
+    });
 
-                    <CollapsibleSection title="SCADA Data Fetched (Pending Samples)" defaultOpen={true}>
-                        <div style={{ marginBottom: '2rem', background: '#f8fafc', padding: '1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                            <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem' }}>Declare New Sample</h4>
-                            <div className="form-grid">
-                                <div className="form-field"><label>Batch Number</label><input type="number" value={sampleForm.batchNo} onChange={e => setSampleForm({ ...sampleForm, batchNo: e.target.value })} /></div>
-                                <div className="form-field"><label>Bench Number</label><input type="number" value={sampleForm.benchNo} onChange={e => setSampleForm({ ...sampleForm, benchNo: e.target.value })} /></div>
-                                <div className="form-field">
-                                    <label>Sleeper Sequence</label>
-                                    <select value={sampleForm.sequence} onChange={e => setSampleForm({ ...sampleForm, sequence: e.target.value })}>
-                                        {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(s => <option key={s} value={s}>{s}</option>)}
-                                    </select>
-                                </div>
-                                <div className="form-field">
-                                    <label>Concrete Grade</label>
-                                    <select value={sampleForm.grade} onChange={e => setSampleForm({ ...sampleForm, grade: e.target.value })}>
-                                        <option value="M55">M55</option>
-                                        <option value="M60">M60</option>
-                                    </select>
-                                </div>
-                                <div className="form-actions-center" style={{ gridColumn: 'span 2', marginTop: '0.5rem' }}>
-                                    <button className="toggle-btn" onClick={handleDeclareSample}>Declare Sample</button>
-                                </div>
-                            </div>
-                        </div>
+    useEffect(() => {
+        if (testData.load && !isNaN(testData.load)) {
+            const strength = (parseFloat(testData.load) * 1000 / 22500).toFixed(2);
+            setTestData(prev => ({ ...prev, strength }));
+        }
+    }, [testData.load]);
 
-                        <div className="table-outer-wrapper">
-                            <table className="ui-table">
-                                <thead>
-                                    <tr>
-                                        <th>Cube No</th><th>Batch</th><th>Chamber</th><th>Casting Date</th><th>Grade</th><th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {samples.filter(s => selectedBatch === 'All' || s.batchNo.toString() === selectedBatch).length === 0 ? (
-                                        <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No pending samples declared.</td></tr>
-                                    ) : (
-                                        samples.filter(s => selectedBatch === 'All' || s.batchNo.toString() === selectedBatch).map(s => (
-                                            <tr key={s.id}>
-                                                <td data-label="Cube"><strong>{s.cubeNo}</strong></td>
-                                                <td data-label="Batch">{s.batchNo}</td>
-                                                <td data-label="Chamber">{s.chamberNo}</td>
-                                                <td data-label="Date">{s.castDate}</td>
-                                                <td data-label="Grade">{s.grade}</td>
-                                                <td data-label="Action">
-                                                    <button className="btn-action" onClick={() => setSelectedSampleForTest(s)}>Test Sample</button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </CollapsibleSection>
+    const result = parseFloat(testData.strength) >= (sample.grade === 'M55' ? 40 : 50) ? 'PASS' : 'FAIL';
 
-                    <CollapsibleSection title="Scada Witness / Manual Data Entry" defaultOpen={true} id="manual-entry-section">
-                        {!selectedSampleForTest ? (
-                            <div style={{ textAlign: 'center', padding: '2rem', background: '#f8fafc', borderRadius: '12px', color: '#64748b', marginBottom: '2rem' }}>
-                                Select a sample from the list above to enter results.
-                            </div>
-                        ) : (
-                            <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '2rem' }} className="fade-in">
-                                <h4 style={{ margin: '0 0 1rem 0' }}>Results for Cube: {selectedSampleForTest.cubeNo}</h4>
-                                <div className="form-grid">
-                                    <div className="form-field"><label>Weight (Kgs)</label><input type="number" step="0.001" value={testForm.weight} onChange={e => setTestForm({ ...testForm, weight: e.target.value })} /></div>
-                                    <div className="form-field"><label>Load (KN)</label><input type="number" step="0.1" value={testForm.load} onChange={e => setTestForm({ ...testForm, load: e.target.value })} /></div>
-                                    <div className="form-field"><label>Strength (N/mm²)</label><input type="number" step="0.01" value={testForm.strength} onChange={e => setTestForm({ ...testForm, strength: e.target.value })} /></div>
-                                    <div className="form-field"><label>Test Time</label><input type="time" value={testForm.testTime} onChange={e => setTestForm({ ...testForm, testTime: e.target.value })} /></div>
-                                    <div className="form-actions-center" style={{ gridColumn: 'span 2', marginTop: '1rem' }}>
-                                        <button className="toggle-btn" onClick={handleSaveTestResult}>{editingRecordId ? 'Update Result' : 'Save Test Result'}</button>
-                                        <button className="toggle-btn secondary" onClick={() => setSelectedSampleForTest(null)} style={{ marginLeft: '1rem' }}>Cancel</button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="table-outer-wrapper">
-                            <table className="ui-table">
-                                <thead>
-                                    <tr>
-                                        <th>Cube No</th><th>Batch</th><th>Grade</th><th>Load</th><th>Strength</th><th>Result</th><th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {testedRecords.length === 0 ? (
-                                        <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No tested results yet.</td></tr>
-                                    ) : (
-                                        testedRecords.map(t => (
-                                            <tr key={t.id}>
-                                                <td data-label="Cube"><strong>{t.cubeNo}</strong></td>
-                                                <td data-label="Batch">{t.batchNo}</td>
-                                                <td data-label="Grade">{t.grade}</td>
-                                                <td data-label="Load">{t.load} KN</td>
-                                                <td data-label="Strength">{t.strength} N/mm²</td>
-                                                <td data-label="Result">
-                                                    <span className={`status-pill ${parseFloat(t.strength) >= (t.grade === 'M55' ? 40 : 50) ? 'witnessed' : 'manual'}`}>
-                                                        {parseFloat(t.strength) >= (t.grade === 'M55' ? 40 : 50) ? 'OK' : 'NOT OK'}
-                                                    </span>
-                                                </td>
-                                                <td data-label="Action">
-                                                    {isRecordEditable(t.timestamp) ? (
-                                                        <button className="btn-action" onClick={() => handleEditResult(t)}>Edit</button>
-                                                    ) : <span style={{ fontSize: '10px', color: '#94a3b8' }}>Locked</span>}
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </CollapsibleSection>
+    return (
+        <div className="form-modal-overlay" onClick={onClose}>
+            <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+                <div className="form-modal-header">
+                    <span className="form-modal-header-title">Enter Strength Results: {sample.cubeNo}</span>
+                    <button className="form-modal-close" onClick={onClose}>X</button>
+                </div>
+                <div className="form-modal-body">
+                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '20px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                        <div><div style={{ fontSize: '10px', color: '#64748b' }}>Batch</div><div style={{ fontWeight: '700' }}>{sample.batchNo}</div></div>
+                        <div><div style={{ fontSize: '10px', color: '#64748b' }}>Grade</div><div style={{ fontWeight: '700' }}>{sample.grade}</div></div>
+                        <div><div style={{ fontSize: '10px', color: '#64748b' }}>Cast Date</div><div style={{ fontWeight: '700' }}>{sample.castDate}</div></div>
+                    </div>
+                    <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div className="input-group"><label>Weight (Kgs)</label><input type="number" step="0.001" value={testData.weight} onChange={e => setTestData({ ...testData, weight: e.target.value })} /></div>
+                        <div className="input-group"><label>Load (KN)</label><input type="number" step="0.1" value={testData.load} onChange={e => setTestData({ ...testData, load: e.target.value })} /></div>
+                        <div className="input-group"><label>Strength (N/mm²)</label><input readOnly value={testData.strength} style={{ background: '#f8fafc' }} /></div>
+                        <div className="input-group"><label>Result</label><input readOnly value={testData.strength ? result : ''} style={{ color: result === 'PASS' ? '#10b981' : '#ef4444', fontWeight: '800', background: '#f8fafc' }} /></div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
+                        <button className="btn-verify" style={{ flex: 1 }} onClick={() => onSave({ ...testData, result })}>Save & Move to Tested</button>
+                    </div>
                 </div>
             </div>
         </div>

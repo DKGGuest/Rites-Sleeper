@@ -8,11 +8,14 @@ export const useBatchStats = (witnessedRecords, batchDeclarations, selectedBatch
         if (!declared) return null;
 
         const ingredients = ['ca1', 'ca2', 'fa', 'cement', 'water', 'admixture'];
-        const TOLERANCE = 3;
+        const TOLERANCE = 3; // 3% tolerance for outliers
 
+        // Per-ingredient statistics
         const ingredientStats = ingredients.map(ing => {
             const setVal = declared.setValues[ing];
-            const deviations = records.map(r => ((r[ing] - setVal) / setVal) * 100);
+            const actualValues = records.map(r => parseFloat(r[ing]) || 0);
+            const deviations = actualValues.map(actual => ((actual - setVal) / setVal) * 100);
+
             const count = deviations.length;
             const meanDev = count ? deviations.reduce((a, b) => a + b, 0) / count : 0;
             const variance = count ? deviations.reduce((a, b) => a + Math.pow(b - meanDev, 2), 0) / count : 0;
@@ -23,19 +26,38 @@ export const useBatchStats = (witnessedRecords, batchDeclarations, selectedBatch
 
             return {
                 name: ing.toUpperCase(),
-                count,
-                meanDev,
-                stdDev,
-                maxPos,
-                maxNeg,
-                outliers
+                ingredient: ing,
+                totalBatches: count,
+                meanDeviation: meanDev,
+                stdDeviation: stdDev,
+                maxPositiveDeviation: maxPos,
+                maxNegativeDeviation: maxNeg,
+                outlierCount: outliers,
+                setValue: setVal
             };
         });
 
+        // Set Value Validation Statistics
+        const totalBatchWeighments = records.length;
+        const matchingSetValues = batchDeclarations.filter(b => b.proportionMatch === 'OK').length;
+        const mismatchSetValues = batchDeclarations.filter(b => b.proportionMatch === 'NOT OK').length;
+
         return {
-            totalBatches: records.length,
-            matchingSetValues: batchDeclarations.filter(b => b.proportionMatch === 'OK').length,
-            mismatchSetValues: batchDeclarations.filter(b => b.proportionMatch === 'NOT OK').length,
+            // Set Value Validation
+            setValueValidation: {
+                totalBatchWeighments: batchDeclarations.length,
+                matchingProportion: matchingSetValues,
+                mismatchingProportion: mismatchSetValues
+            },
+            // Actual Value Statistics
+            actualValueStats: {
+                totalBatchWeighments,
+                ingredientStats
+            },
+            // Legacy support
+            totalBatches: totalBatchWeighments,
+            matchingSetValues,
+            mismatchSetValues,
             ingredientStats
         };
     }, [witnessedRecords, batchDeclarations, selectedBatchNo]);

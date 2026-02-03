@@ -1,77 +1,104 @@
 /* Sleeper Process Duty Dashboard Styles */
 
 .ie-tab-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 16px;
-    margin-bottom: 32px;
+    display: flex;
+    gap: 12px;
+    margin-bottom: 2rem;
+    overflow-x: auto;
+    padding: 0.5rem 0.25rem;
+    scrollbar-width: none;
+    /* Hide scrollbar for cleaner look */
+}
+
+.ie-tab-row::-webkit-scrollbar {
+    display: none;
 }
 
 .ie-tab-card {
     background: white;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 16px;
+    border-radius: 14px;
+    padding: 0.75rem 1rem;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
     position: relative;
-    box-shadow: none;
+    min-width: 160px;
+    flex: 0 0 auto;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
 }
 
 .ie-tab-card:hover {
     border-color: #cbd5e1;
     transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .ie-tab-card.active {
-    background: #f0f9fa;
+    background: #ffffff;
     border-color: #42818c;
-    box-shadow: 0 4px 6px -1px rgba(66, 129, 140, 0.1);
+    border-width: 2px;
+    box-shadow: 0 10px 15px -3px rgba(66, 129, 140, 0.1);
 }
 
 .ie-tab-title {
-    font-weight: 700;
-    font-size: 13px;
+    font-weight: 800;
+    font-size: 0.8125rem;
     color: #475569;
+    letter-spacing: -0.2px;
 }
 
 .ie-tab-card.active .ie-tab-title {
-    color: #13343b;
+    color: #42818c;
 }
 
 .ie-tab-subtitle {
-    font-size: 10px;
-    color: #64748b;
+    font-size: 0.65rem;
+    color: #94a3b8;
+    font-weight: 600;
+    text-transform: uppercase;
 }
 
 .ie-tab-status {
-    margin-top: 4px;
-    font-size: 9px;
-    font-weight: 700;
-    color: #42818c;
+    margin-top: 6px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #64748b;
     display: flex;
     align-items: center;
     gap: 4px;
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    width: fit-content;
+}
+
+.ie-tab-card.active .ie-tab-status {
+    background: #f0f9fa;
+    color: #42818c;
 }
 
 .dashboard-header {
-    margin-bottom: 24px;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
 }
 
 .dashboard-title {
-    font-size: var(--fs-2xl);
-    font-weight: 700;
-    color: #42818c;
-    margin: 0 0 8px 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.5px;
 }
 
 .dashboard-subtitle {
     margin: 0;
     color: #64748b;
-    font-size: var(--fs-sm);
+    font-size: 0.8125rem;
+    font-weight: 500;
 }
 
 .duty-section-toolbar {

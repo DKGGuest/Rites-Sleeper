@@ -108,7 +108,7 @@ const IncomingVerificationDashboard = () => {
                         <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
                             <div className="form-modal-header">
                                 <span className="form-modal-header-title">Incoming Verification: {selectedEntry.id}</span>
-                                <button className="form-modal-close" onClick={() => setViewModal(false)}>×</button>
+                                <button className="form-modal-close" onClick={() => setViewModal(false)}>X</button>
                             </div>
                             <div className="form-modal-body">
                                 <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
@@ -125,7 +125,7 @@ const IncomingVerificationDashboard = () => {
 
                                 {selectedEntry.status === 'Verified' && (
                                     <div style={{ background: '#ecfdf5', padding: '16px', borderRadius: '12px', border: '1px solid #10b98133', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <div style={{ fontSize: '20px' }}>🛡️</div>
+                                        <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#059669' }}>OK</div>
                                         <div>
                                             <div style={{ fontSize: '12px', fontWeight: '700', color: '#059669' }}>VERIFIED & LOCKED</div>
                                             <div style={{ fontSize: '10px', color: '#065f46' }}>By {selectedEntry.verifiedBy} on {selectedEntry.verifiedAt}</div>
