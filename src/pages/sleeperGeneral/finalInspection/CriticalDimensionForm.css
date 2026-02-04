@@ -197,6 +197,11 @@
 @media (max-width: 768px) {
     .declaration-grid {
         grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .critical-section {
+        padding: 1rem;
     }
 
     .result-options-row {
@@ -205,11 +210,66 @@
 
     .critical-form-footer {
         flex-direction: column-reverse;
+        padding: 0 8px 8px 8px;
+    }
+
+    .rejection-table-section .ui-table,
+    .rejection-table-section .ui-table thead,
+    .rejection-table-section .ui-table tbody,
+    .rejection-table-section .ui-table th,
+    .rejection-table-section .ui-table td,
+    .rejection-table-section .ui-table tr {
+        display: block;
+        width: 100%;
+    }
+
+    .rejection-table-section .ui-table thead {
+        display: none;
+    }
+
+    .rejection-table-section .ui-table tr {
+        margin-bottom: 12px;
+        padding: 10px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .rejection-table-section .ui-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px dotted #e2e8f0;
+    }
+
+    .rejection-table-section .ui-table td:last-child {
+        border-bottom: none;
+    }
+
+    .rejection-table-section .ui-table td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        font-size: 10px;
+        color: #64748b;
+        text-transform: uppercase;
+    }
+
+    .rejection-table-section .ui-select {
+        width: 60%;
     }
 }
 
 @media (max-width: 480px) {
     .declaration-grid {
         grid-template-columns: 1fr;
+    }
+
+    .item-value {
+        font-size: 1.1rem;
+    }
+
+    .critical-form-header h2 {
+        font-size: 0.95rem;
     }
 }

@@ -29,13 +29,14 @@ const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
 );
 
 const SgciInsertTesting = ({ onBack }) => {
-    const [viewMode, setViewMode] = useState('history');
+    const [viewMode, setViewMode] = useState('new-stocks'); // Default to new stocks
     const [showForm, setShowForm] = useState(false);
     const [history, setHistory] = useState(MOCK_SGCI_HISTORY.map(h => ({
         ...h,
         createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
     })));
     const [availableLots] = useState(MOCK_INVENTORY.SGCI || []);
+    const pendingStocks = MOCK_INVENTORY.SGCI.filter(item => item.status === 'Verified');
 
     const { register, control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm({
         defaultValues: {
@@ -119,6 +120,34 @@ const SgciInsertTesting = ({ onBack }) => {
         }
     };
 
+    const inventoryColumns = [
+        { key: 'supplier', label: 'Registered Agency' },
+        { key: 'lotNo', label: 'Lot No.', isHeaderHighlight: true },
+        { key: 'type', label: 'Insert Type' },
+        { key: 'qty', label: 'Quantity' },
+        { key: 'ritesIc', label: 'RITES IC' },
+        {
+            key: 'actions',
+            label: 'Actions',
+            render: (_, row) => (
+                <button
+                    className="btn-action mini"
+                    onClick={() => {
+                        reset({
+                            date: new Date().toISOString().split('T')[0],
+                            lotNo: row.lotNo,
+                            inventoryId: row.id,
+                            readings: [{ heatNo: '', patternNo: '', weight: '', dimensionalNotOk: false, hammerNotOk: false, result: 'PASS' }]
+                        });
+                        setShowForm(true);
+                    }}
+                >
+                    Add Test Detail
+                </button>
+            )
+        }
+    ];
+
     const historyColumns = [
         { key: 'testDate', label: 'Date' },
         { key: 'lotNo', label: 'Lot No.' },
@@ -170,6 +199,15 @@ const SgciInsertTesting = ({ onBack }) => {
 
             <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap' }}>
                 <SubCard id="stats" title="Analytics" color="#42818c" count="N/A" label="Statistics" isActive={viewMode === 'stats'} onClick={() => setViewMode('stats')} />
+                <SubCard
+                    id="new-stocks"
+                    title="Inventory"
+                    color="#f59e0b"
+                    count={pendingStocks.length}
+                    label="Pending for Test"
+                    isActive={viewMode === 'new-stocks'}
+                    onClick={() => setViewMode('new-stocks')}
+                />
                 <SubCard id="history" title="Historical" color="#10b981" count={history.length} label="Test Logs" isActive={viewMode === 'history'} onClick={() => setViewMode('history')} />
             </div>
 
@@ -180,6 +218,15 @@ const SgciInsertTesting = ({ onBack }) => {
                         <div style={{ height: '300px', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '20px' }}>
                             <span style={{ color: '#cbd5e1', fontWeight: '600' }}>Chart Placeholder</span>
                         </div>
+                    </div>
+                )}
+
+                {viewMode === 'new-stocks' && (
+                    <div className="table-outer-wrapper fade-in">
+                        <div className="content-title-row" style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', marginBottom: 0 }}>
+                            <h4 style={{ margin: 0 }}>SGCI Inventory Pending Testing</h4>
+                        </div>
+                        <EnhancedDataTable columns={inventoryColumns} data={pendingStocks} />
                     </div>
                 )}
 

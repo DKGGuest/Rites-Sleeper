@@ -184,11 +184,11 @@ const WaterCubeTesting = () => {
     return (
         <div className="water-cube-module cement-forms-scope">
             <header style={{ marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#13343b', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Water Cured Cube Strength</h2>
+                <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#13343b', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Water Cured Cube Strength</h2>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
-                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '700' }}>SUB CARD- 4</span>
+                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>SUB CARD- 4</span>
                     <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#cbd5e1' }}></span>
-                    <span style={{ fontSize: '12px', color: '#42818c', fontWeight: '700' }}>FINAL INSPECTION PROFILE</span>
+                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>FINAL INSPECTION PROFILE</span>
                 </div>
             </header>
 
@@ -274,7 +274,7 @@ const WaterCubeTesting = () => {
             {/* Actual Save Test Data Form Modal */}
             {showTestForm && (
                 <div className="form-modal-overlay">
-                    <div className="form-modal-container" style={{ maxWidth: '950px', width: '96%' }}>
+                    <div className="form-modal-container" style={{ maxWidth: '1200px', width: '98%' }}>
                         <div className="form-modal-header">
                             <span className="form-modal-header-title">Enter Cube Strength Data - Batch {selectedBatch.batchNo}</span>
                             <button className="form-modal-close" onClick={() => setShowTestForm(false)}>X</button>

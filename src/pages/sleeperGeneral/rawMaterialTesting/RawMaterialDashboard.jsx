@@ -4,6 +4,7 @@ import AggregateTesting from './aggregates/AggregatesTesting';
 import HtsWireTesting from './hts/HtsWireTesting';
 import SgciInsertTesting from './sgci/SgciInsertTesting';
 import WaterTesting from './water/WaterTesting';
+import AdmixtureTesting from './admixture/AdmixtureTesting';
 
 const RawMaterialDashboard = () => {
     const [selectedMaterial, setSelectedMaterial] = useState('cement');
@@ -13,7 +14,8 @@ const RawMaterialDashboard = () => {
         { id: 'aggregates', title: 'Aggregate Testing', subtitle: 'Crushing & Impact' },
         { id: 'hts-wire', title: 'HTS Wire Testing', subtitle: 'Daily mandatory' },
         { id: 'sgci', title: 'SGCI Insert Testing', subtitle: 'Weekly summary' },
-        { id: 'water', title: 'Water Testing', subtitle: 'PH & TDS monthly' }
+        { id: 'water', title: 'Water Testing', subtitle: 'PH & TDS monthly' },
+        { id: 'admixture', title: 'Admixture Testing', subtitle: 'Specific Gravity & PH' }
     ];
 
     const renderContent = () => {
@@ -23,6 +25,7 @@ const RawMaterialDashboard = () => {
             case 'hts-wire': return <HtsWireTesting onBack={() => setSelectedMaterial(null)} />;
             case 'sgci': return <SgciInsertTesting onBack={() => setSelectedMaterial(null)} />;
             case 'water': return <WaterTesting onBack={() => setSelectedMaterial(null)} />;
+            case 'admixture': return <AdmixtureTesting onBack={() => setSelectedMaterial(null)} />;
             default: return null;
         }
     };

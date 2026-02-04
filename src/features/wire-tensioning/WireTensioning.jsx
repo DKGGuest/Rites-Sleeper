@@ -55,16 +55,16 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
 
     // Mock SCADA records
     const [scadaRecords, setScadaRecords] = useState([
-        { id: 201, time: '11:05', batchNo: '601', benchNo: '411', finalLoad: 733 },
-        { id: 202, time: '11:12', batchNo: '601', benchNo: '412', finalLoad: 729 },
-        { id: 203, time: '11:20', batchNo: '601', benchNo: '413', finalLoad: 736 },
-        { id: 204, time: '11:28', batchNo: '601', benchNo: '414', finalLoad: 742 },
-        { id: 205, time: '11:35', batchNo: '601', benchNo: '415', finalLoad: 726 },
-        { id: 206, time: '11:42', batchNo: '601', benchNo: '416', finalLoad: 731 },
-        { id: 207, time: '11:50', batchNo: '601', benchNo: '417', finalLoad: 738 },
-        { id: 208, time: '11:58', batchNo: '601', benchNo: '418', finalLoad: 734 },
-        { id: 209, time: '12:05', batchNo: '601', benchNo: '419', finalLoad: 727 },
-        { id: 210, time: '12:12', batchNo: '601', benchNo: '420', finalLoad: 733 },
+        { id: 201, time: '11:05', batchNo: '601', benchNo: '411', wireLength: 32000, crossSection: 154, modulus: 195, measuredElongation: 195, forceElongation: 725, totalLoad: 730, finalLoad: 733 },
+        { id: 202, time: '11:12', batchNo: '601', benchNo: '412', wireLength: 32000, crossSection: 154, modulus: 195, measuredElongation: 192, forceElongation: 720, totalLoad: 725, finalLoad: 729 },
+        { id: 203, time: '11:20', batchNo: '601', benchNo: '413', wireLength: 32000, crossSection: 154, modulus: 195, measuredElongation: 198, forceElongation: 732, totalLoad: 735, finalLoad: 736 },
+        { id: 204, time: '11:28', batchNo: '601', benchNo: '414', wireLength: 32000, crossSection: 154, modulus: 195, measuredElongation: 202, forceElongation: 740, totalLoad: 740, finalLoad: 742 },
+        { id: 205, time: '11:35', batchNo: '601', benchNo: '415', wireLength: 32000, crossSection: 154, modulus: 195, measuredElongation: 190, forceElongation: 718, totalLoad: 720, finalLoad: 726 },
+        { id: 206, time: '11:42', batchNo: '601', benchNo: '416', wireLength: 32000, crossSection: 154, modulus: 195, measuredElongation: 194, forceElongation: 728, totalLoad: 730, finalLoad: 731 },
+        { id: 207, time: '11:50', batchNo: '601', benchNo: '417', wireLength: 32000, crossSection: 154, modulus: 195, measuredElongation: 196, forceElongation: 735, totalLoad: 735, finalLoad: 738 },
+        { id: 208, time: '11:58', batchNo: '601', benchNo: '418', wireLength: 32000, crossSection: 154, modulus: 195, measuredElongation: 195, forceElongation: 730, totalLoad: 730, finalLoad: 734 },
+        { id: 209, time: '12:05', batchNo: '601', benchNo: '419', wireLength: 32000, crossSection: 154, modulus: 195, measuredElongation: 191, forceElongation: 722, totalLoad: 725, finalLoad: 727 },
+        { id: 210, time: '12:12', batchNo: '601', benchNo: '420', wireLength: 32000, crossSection: 154, modulus: 195, measuredElongation: 195, forceElongation: 729, totalLoad: 730, finalLoad: 733 },
     ]);
 
     const wireTensionStats = useWireTensionStats(tensionRecords, selectedBatch);
@@ -73,6 +73,12 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
         batchNo: selectedBatch,
         benchNo: '',
+        wireLength: '',
+        crossSection: '',
+        modulus: '',
+        measuredElongation: '',
+        forceElongation: '',
+        totalLoad: '',
         finalLoad: '',
         type: 'RT-1234'
     });
@@ -136,6 +142,12 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
         setFormData(prev => ({
             ...prev,
             benchNo: '',
+            wireLength: '',
+            crossSection: '',
+            modulus: '',
+            measuredElongation: '',
+            forceElongation: '',
+            totalLoad: '',
             finalLoad: '',
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
         }));
@@ -146,11 +158,17 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
             time: record.time,
             batchNo: record.batchNo,
             benchNo: record.benchNo,
+            wireLength: record.wireLength || '',
+            crossSection: record.crossSection || '',
+            modulus: record.modulus || '',
+            measuredElongation: record.measuredElongation || '',
+            forceElongation: record.forceElongation || '',
+            totalLoad: record.totalLoad || '',
             finalLoad: record.finalLoad,
-            type: record.type
+            type: record.type || 'RT-1234'
         });
         setEditId(record.id);
-        setViewMode('form');
+        if (setShowForm) setShowForm(true); else setViewMode('form');
     };
 
     const renderDashboard = () => (
@@ -241,15 +259,34 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                                 <h4 style={{ margin: 0, fontSize: '1.1rem', color: '#78350f', fontWeight: '800' }}>Scada Fetched Values (Pending)</h4>
                             </div>
                             <table className="ui-table" style={{ background: '#fff', borderRadius: '12px' }}>
-                                <thead><tr><th>PLC Time</th><th>Bench</th><th>PLC Load (KN)</th><th>Action</th></tr></thead>
+                                <thead>
+                                    <tr>
+                                        <th>PLC Time</th>
+                                        <th>Bench</th>
+                                        <th>Wire Length</th>
+                                        <th>Cross Section</th>
+                                        <th>Modulus</th>
+                                        <th>Measured Elongation</th>
+                                        <th>Force (Elong.)</th>
+                                        <th>Total Load</th>
+                                        <th>Final Load</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
                                 <tbody>
                                     {scadaRecords.filter(r => r.batchNo === selectedBatch).length === 0 ? (
-                                        <tr><td colSpan="4" style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8' }}>No pending SCADA data for this batch.</td></tr>
+                                        <tr><td colSpan="10" style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8' }}>No pending SCADA data for this batch.</td></tr>
                                     ) : (
                                         scadaRecords.filter(r => r.batchNo === selectedBatch).map(record => (
                                             <tr key={record.id}>
                                                 <td>{record.time}</td>
                                                 <td><strong>{record.benchNo}</strong></td>
+                                                <td>{record.wireLength}</td>
+                                                <td>{record.crossSection}</td>
+                                                <td>{record.modulus}</td>
+                                                <td>{record.measuredElongation}</td>
+                                                <td>{record.forceElongation}</td>
+                                                <td>{record.totalLoad}</td>
                                                 <td style={{ fontWeight: '700', color: '#42818c' }}>{record.finalLoad} KN</td>
                                                 <td><button className="btn-action" onClick={() => handleWitness(record)}>Witness</button></td>
                                             </tr>
@@ -267,16 +304,44 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                             </div>
                             <div className="form-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
                                 <div className="form-field">
+                                    <label>Batch No.</label>
+                                    <input type="text" name="batchNo" value={formData.batchNo} readOnly style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc' }} />
+                                </div>
+                                <div className="form-field">
                                     <label>Bench No.</label>
                                     <input type="number" min="0" name="benchNo" value={formData.benchNo} onChange={handleFormChange} placeholder="e.g. 405" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
                                 </div>
                                 <div className="form-field">
-                                    <label>Final Load (KN)</label>
-                                    <input type="number" min="0" name="finalLoad" value={formData.finalLoad} onChange={handleFormChange} placeholder="e.g. 730" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-                                </div>
-                                <div className="form-field">
                                     <label>Time</label>
                                     <input type="time" name="time" value={formData.time} onChange={handleFormChange} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                                </div>
+                                <div className="form-field">
+                                    <label>Length of Wire (mm)</label>
+                                    <input type="number" name="wireLength" value={formData.wireLength} onChange={handleFormChange} placeholder="mm" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                                </div>
+                                <div className="form-field">
+                                    <label>Total Cross section (mm2)</label>
+                                    <input type="number" name="crossSection" value={formData.crossSection} onChange={handleFormChange} placeholder="mm2" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                                </div>
+                                <div className="form-field">
+                                    <label>Youngs Modulus (x10^3)</label>
+                                    <input type="number" name="modulus" value={formData.modulus} onChange={handleFormChange} placeholder="Kg/mm2" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                                </div>
+                                <div className="form-field">
+                                    <label>Measured Elongation (mm)</label>
+                                    <input type="number" name="measuredElongation" value={formData.measuredElongation} onChange={handleFormChange} placeholder="mm" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                                </div>
+                                <div className="form-field">
+                                    <label>Pre-stress force (Elongation)</label>
+                                    <input type="number" name="forceElongation" value={formData.forceElongation} onChange={handleFormChange} placeholder="KN" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                                </div>
+                                <div className="form-field">
+                                    <label>Total pre-stress load (KN)</label>
+                                    <input type="number" name="totalLoad" value={formData.totalLoad} onChange={handleFormChange} placeholder="KN" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                                </div>
+                                <div className="form-field">
+                                    <label>Final Load (Pressure Gauge)</label>
+                                    <input type="number" min="0" name="finalLoad" value={formData.finalLoad} onChange={handleFormChange} placeholder="KN" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
                                 </div>
                             </div>
                             <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
@@ -338,10 +403,25 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                             <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b', fontWeight: '800' }}>Current Witness Logs</h4>
                             <div className="table-outer-wrapper" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                                 <table className="ui-table">
-                                    <thead><tr><th>Source</th><th>Time</th><th>Batch</th><th>Bench</th><th>Load (KN)</th><th>Load/Wire</th><th>Actions</th></tr></thead>
+                                    <thead>
+                                        <tr>
+                                            <th>Source</th>
+                                            <th>Time</th>
+                                            <th>Batch</th>
+                                            <th>Bench</th>
+                                            <th>Wire Length</th>
+                                            <th>Cross Section</th>
+                                            <th>Modulus</th>
+                                            <th>Measured Elong.</th>
+                                            <th>Force (Elong.)</th>
+                                            <th>Total Load</th>
+                                            <th>Final Load</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
                                     <tbody>
                                         {tensionRecords.length === 0 ? (
-                                            <tr><td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>No records logged yet.</td></tr>
+                                            <tr><td colSpan="12" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>No records logged yet.</td></tr>
                                         ) : (
                                             tensionRecords.map(entry => (
                                                 <tr key={entry.id}>
@@ -349,12 +429,17 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                                                     <td>{entry.time}</td>
                                                     <td>{entry.batchNo}</td>
                                                     <td>{entry.benchNo}</td>
+                                                    <td>{entry.wireLength || '-'}</td>
+                                                    <td>{entry.crossSection || '-'}</td>
+                                                    <td>{entry.modulus || '-'}</td>
+                                                    <td>{entry.measuredElongation || '-'}</td>
+                                                    <td>{entry.forceElongation || '-'}</td>
+                                                    <td>{entry.totalLoad || '-'}</td>
                                                     <td><strong>{entry.finalLoad} KN</strong></td>
-                                                    <td>{entry.loadPerWire}</td>
                                                     <td>
-                                                        <div style={{ display: 'flex', gap: '8px' }}>
-                                                            {entry.source === 'Manual' && <button className="btn-action" onClick={() => handleEdit(entry)}>Edit</button>}
-                                                            <button className="btn-action" style={{ background: '#fee2e2', color: '#ef4444', border: 'none' }} onClick={() => handleDelete(entry.id)}>Delete</button>
+                                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                                            {entry.source === 'Manual' && <button className="btn-action mini" onClick={() => handleEdit(entry)}>Edit</button>}
+                                                            <button className="btn-action mini danger" style={{ background: '#fee2e2', color: '#ef4444', border: 'none' }} onClick={() => handleDelete(entry.id)}>Delete</button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -376,12 +461,31 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                                     </select>
                                 </div>
                                 <table className="ui-table">
-                                    <thead><tr><th>PLC Time</th><th>Bench</th><th>PLC Load (KN)</th><th>Status</th></tr></thead>
+                                    <thead>
+                                        <tr>
+                                            <th>PLC Time</th>
+                                            <th>Bench</th>
+                                            <th>Wire Length</th>
+                                            <th>Cross Section</th>
+                                            <th>Modulus</th>
+                                            <th>Measured Elong.</th>
+                                            <th>Force (Elong.)</th>
+                                            <th>Total Load</th>
+                                            <th>Final Load</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
                                     <tbody>
                                         {scadaRecords.filter(r => r.batchNo === selectedBatch).map(r => (
                                             <tr key={r.id}>
                                                 <td>{r.time}</td>
                                                 <td><strong>{r.benchNo}</strong></td>
+                                                <td>{r.wireLength}</td>
+                                                <td>{r.crossSection}</td>
+                                                <td>{r.modulus}</td>
+                                                <td>{r.measuredElongation}</td>
+                                                <td>{r.forceElongation}</td>
+                                                <td>{r.totalLoad}</td>
                                                 <td style={{ fontWeight: '700' }}>{r.finalLoad} KN</td>
                                                 <td><span style={{ fontSize: '10px', color: '#10b981', fontWeight: 'bold' }}>PENDING WITNESS</span></td>
                                             </tr>
@@ -434,10 +538,25 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                             </div>
                             <div className="table-outer-wrapper" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                                 <table className="ui-table">
-                                    <thead><tr><th>Source</th><th>Time</th><th>Batch</th><th>Bench</th><th>Load (KN)</th><th>Load/Wire</th><th>Actions</th></tr></thead>
+                                    <thead>
+                                        <tr>
+                                            <th>Source</th>
+                                            <th>Time</th>
+                                            <th>Batch</th>
+                                            <th>Bench</th>
+                                            <th>Wire Length</th>
+                                            <th>Cross Section</th>
+                                            <th>Modulus</th>
+                                            <th>Measured Elong.</th>
+                                            <th>Force (Elong.)</th>
+                                            <th>Total Load</th>
+                                            <th>Final Load</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
                                     <tbody>
                                         {tensionRecords.length === 0 ? (
-                                            <tr><td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>No records logged yet.</td></tr>
+                                            <tr><td colSpan="12" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>No records logged yet.</td></tr>
                                         ) : (
                                             tensionRecords.map(entry => (
                                                 <tr key={entry.id}>
@@ -445,8 +564,13 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                                                     <td>{entry.time}</td>
                                                     <td>{entry.batchNo}</td>
                                                     <td>{entry.benchNo}</td>
+                                                    <td>{entry.wireLength || '-'}</td>
+                                                    <td>{entry.crossSection || '-'}</td>
+                                                    <td>{entry.modulus || '-'}</td>
+                                                    <td>{entry.measuredElongation || '-'}</td>
+                                                    <td>{entry.forceElongation || '-'}</td>
+                                                    <td>{entry.totalLoad || '-'}</td>
                                                     <td><strong>{entry.finalLoad} KN</strong></td>
-                                                    <td>{entry.loadPerWire}</td>
                                                     <td>
                                                         <div style={{ display: 'flex', gap: '8px' }}>
                                                             {entry.source === 'Manual' && <button className="btn-action" onClick={() => handleEdit(entry)}>Edit</button>}
@@ -473,12 +597,31 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                                     </select>
                                 </div>
                                 <table className="ui-table">
-                                    <thead><tr><th>PLC Time</th><th>Bench</th><th>PLC Load (KN)</th><th>Status</th></tr></thead>
+                                    <thead>
+                                        <tr>
+                                            <th>PLC Time</th>
+                                            <th>Bench</th>
+                                            <th>Wire Length</th>
+                                            <th>Cross Section</th>
+                                            <th>Modulus</th>
+                                            <th>Measured Elong.</th>
+                                            <th>Force (Elong.)</th>
+                                            <th>Total Load</th>
+                                            <th>Final Load</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
                                     <tbody>
                                         {scadaRecords.filter(r => r.batchNo === selectedBatch).map(r => (
                                             <tr key={r.id}>
                                                 <td>{r.time}</td>
                                                 <td><strong>{r.benchNo}</strong></td>
+                                                <td>{r.wireLength}</td>
+                                                <td>{r.crossSection}</td>
+                                                <td>{r.modulus}</td>
+                                                <td>{r.measuredElongation}</td>
+                                                <td>{r.forceElongation}</td>
+                                                <td>{r.totalLoad}</td>
                                                 <td style={{ fontWeight: '700' }}>{r.finalLoad} KN</td>
                                                 <td><span style={{ fontSize: '10px', color: '#10b981', fontWeight: 'bold' }}>PENDING WITNESS</span></td>
                                             </tr>

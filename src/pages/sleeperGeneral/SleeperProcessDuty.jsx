@@ -117,9 +117,9 @@ const SleeperProcessDuty = () => {
 
     // Mould & Bench Checking Data
     const [benchMouldCheckRecords, setBenchMouldCheckRecords] = useState([
-        { id: 1, type: 'Bench', assetNo: '210-A', dateOfChecking: '2026-01-30', checkTime: '10:30', visualResult: 'ok', dimensionResult: 'ok', overallResult: 'OK', timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(), lastCasting: '2026-01-25', sleeperType: 'RT-1234' },
-        { id: 2, type: 'Bench', assetNo: '210', dateOfChecking: '2026-01-30', checkTime: '11:15', visualResult: 'ok', dimensionResult: 'ok', overallResult: 'OK', timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(), lastCasting: '2026-01-29', sleeperType: 'RT-1234' },
-        { id: 3, type: 'Mould', assetNo: 'M-205', dateOfChecking: '2026-01-29', checkTime: '14:20', visualResult: 'ok', dimensionResult: 'not-ok', overallResult: 'FAIL', timestamp: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(), lastCasting: '2026-01-29', sleeperType: 'RT-1234' }
+        { id: 1, type: 'Bench', assetNo: '210-A', location: 'Line I', dateOfChecking: '2026-01-30', checkTime: '10:30', visualResult: 'ok', dimensionResult: 'ok', overallResult: 'OK', timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(), lastCasting: '2026-01-25', sleeperType: 'RT-1234' },
+        { id: 2, type: 'Bench', assetNo: '210', location: 'Line I', dateOfChecking: '2026-01-30', checkTime: '11:15', visualResult: 'ok', dimensionResult: 'ok', overallResult: 'OK', timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(), lastCasting: '2026-01-29', sleeperType: 'RT-1234' },
+        { id: 3, type: 'Mould', assetNo: 'M-205', location: 'Line I', dateOfChecking: '2026-01-29', checkTime: '14:20', visualResult: 'ok', dimensionResult: 'not-ok', overallResult: 'FAIL', dimensionReason: 'Rail Seat distance error', timestamp: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(), lastCasting: '2026-01-29', sleeperType: 'RT-1234' }
     ]);
 
     const [allBenchesMoulds, setAllBenchesMoulds] = useState([
@@ -583,6 +583,7 @@ const SleeperProcessDuty = () => {
                                         setRecords: setBenchMouldCheckRecords,
                                         allAssets: allBenchesMoulds
                                     }}
+                                    activeContainer={containers.find(c => c.id === activeContainerId)}
                                     showForm={showMouldBenchForm}
                                     setShowForm={setShowMouldBenchForm}
                                 />
@@ -604,6 +605,7 @@ const SleeperProcessDuty = () => {
                             <SteamCubeTesting
                                 testedRecords={testedRecords}
                                 setTestedRecords={setTestedRecords}
+                                activeContainer={containers.find(c => c.id === activeContainerId)}
                             />
                         )}
 

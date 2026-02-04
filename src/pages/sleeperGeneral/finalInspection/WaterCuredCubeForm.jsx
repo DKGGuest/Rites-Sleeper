@@ -146,8 +146,8 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
                                 {cubes.filter(c => c.sample === 1).map((cube, idx) => (
                                     <tr key={cube.id}>
                                         <td>
-                                            <div style={{ display: 'flex', gap: '4px' }}>
-                                                <input type="date" value={cube.date} onChange={(e) => handleCubeChange(cube.id, 'date', e.target.value)} style={{ width: '110px' }} />
+                                            <div className="date-time-inputs">
+                                                <input type="date" value={cube.date} onChange={(e) => handleCubeChange(cube.id, 'date', e.target.value)} />
                                                 <input type="time" value={cube.time} onChange={(e) => handleCubeChange(cube.id, 'time', e.target.value)} />
                                             </div>
                                         </td>
@@ -187,8 +187,8 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
                                 {cubes.filter(c => c.sample === 2).map((cube, idx) => (
                                     <tr key={cube.id}>
                                         <td>
-                                            <div style={{ display: 'flex', gap: '4px' }}>
-                                                <input type="date" value={cube.date} onChange={(e) => handleCubeChange(cube.id, 'date', e.target.value)} style={{ width: '110px' }} />
+                                            <div className="date-time-inputs">
+                                                <input type="date" value={cube.date} onChange={(e) => handleCubeChange(cube.id, 'date', e.target.value)} />
                                                 <input type="time" value={cube.time} onChange={(e) => handleCubeChange(cube.id, 'time', e.target.value)} />
                                             </div>
                                         </td>

@@ -82,8 +82,22 @@ const VisualInspectionForm = ({ batch, onSave, onCancel }) => {
     };
 
     const getRejectionOptions = (sectionId) => {
-        if (sectionId === 'visual') return ['Rail Seat Damage (LT)', 'Rail Seat Damage (RT)'];
-        if (sectionId === 'dimension') return ['Outer Gauge', 'Rail Seat (LT)', 'Rail Seat (RT)'];
+        if (sectionId === 'visual') return [
+            'Rail Seat Damage (LT)',
+            'Rail Seat Damage (RT)',
+            'Surface Honeycomb',
+            'Surface Damage',
+            'Foreign Object in Sleeper',
+            'Position of HTS Wire'
+        ];
+        if (sectionId === 'dimension') return [
+            'Outer Gauge',
+            'Depth',
+            'Width',
+            'Length of Sleeper',
+            'Wind Gauge',
+            'Camber Check'
+        ];
         return null;
     };
 
@@ -219,31 +233,43 @@ const VisualInspectionForm = ({ batch, onSave, onCancel }) => {
                                             <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', animation: 'fadeIn 0.2s' }}>
                                                 <div style={{ marginBottom: '8px', color: '#42818c', fontWeight: '700', fontSize: '11px' }}>Select Rejected Sleepers:</div>
                                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                                    {sleepers.map(sl => (
-                                                        <div
-                                                            key={sl.id}
-                                                            onClick={() => {
-                                                                const failed = sectionStates[s.id].failedSleepers;
-                                                                const newVal = failed.includes(sl.id)
-                                                                    ? failed.filter(fid => fid !== sl.id)
-                                                                    : [...failed, sl.id];
-                                                                handleSectionChange(s.id, 'failedSleepers', newVal);
-                                                            }}
-                                                            style={{
-                                                                padding: '2px 8px',
-                                                                borderRadius: '4px',
-                                                                fontSize: '10px',
-                                                                cursor: 'pointer',
-                                                                border: '1px solid',
-                                                                borderColor: sectionStates[s.id].failedSleepers.includes(sl.id) ? '#ef4444' : '#e2e8f0',
-                                                                background: sectionStates[s.id].failedSleepers.includes(sl.id) ? '#fee2e2' : '#fff',
-                                                                color: sectionStates[s.id].failedSleepers.includes(sl.id) ? '#b91c1c' : '#64748b',
-                                                                fontWeight: '600'
-                                                            }}
-                                                        >
-                                                            {sl.id.split('/')[1]}
-                                                        </div>
-                                                    ))}
+                                                    {sleepers.map(sl => {
+                                                        const isRejectedElsewhere = sections.some(otherSection =>
+                                                            otherSection.id !== s.id &&
+                                                            (sectionStates[otherSection.id].result === 'all-rejected' ||
+                                                                sectionStates[otherSection.id].failedSleepers.includes(sl.id))
+                                                        );
+                                                        const isCurrentlyRejected = sectionStates[s.id].failedSleepers.includes(sl.id);
+
+                                                        return (
+                                                            <div
+                                                                key={sl.id}
+                                                                onClick={() => {
+                                                                    if (isRejectedElsewhere) return;
+                                                                    const failed = sectionStates[s.id].failedSleepers;
+                                                                    const newVal = failed.includes(sl.id)
+                                                                        ? failed.filter(fid => fid !== sl.id)
+                                                                        : [...failed, sl.id];
+                                                                    handleSectionChange(s.id, 'failedSleepers', newVal);
+                                                                }}
+                                                                style={{
+                                                                    padding: '2px 8px',
+                                                                    borderRadius: '4px',
+                                                                    fontSize: '10px',
+                                                                    cursor: isRejectedElsewhere ? 'not-allowed' : 'pointer',
+                                                                    border: '1px solid',
+                                                                    borderColor: isCurrentlyRejected ? '#ef4444' : '#e2e8f0',
+                                                                    background: isCurrentlyRejected ? '#fee2e2' : isRejectedElsewhere ? '#f1f5f9' : '#fff',
+                                                                    color: isCurrentlyRejected ? '#b91c1c' : isRejectedElsewhere ? '#94a3b8' : '#64748b',
+                                                                    fontWeight: '600',
+                                                                    opacity: isRejectedElsewhere ? 0.5 : 1
+                                                                }}
+                                                                title={isRejectedElsewhere ? 'Rejected in another section' : ''}
+                                                            >
+                                                                {sl.id.split('/')[1]}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
 
                                                 {s.id !== 'ftc' && sectionStates[s.id].failedSleepers.length > 0 && (

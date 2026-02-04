@@ -95,7 +95,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries, initial
                     <label>Type of Sleeper (Auto)</label>
                     <input type="text" readOnly value={formData.sleeperType} className="readOnly" style={{ background: '#f8fafc', color: '#64748b' }} placeholder="Auto-populated" />
                 </div>
-                <div className="form-field" style={{ gridColumn: formData.visualCheck === 'Not OK' ? 'auto' : 'span 2' }}>
+                <div className="form-field" style={{ gridColumn: 'span 2' }}>
                     <label>Process Satisfactory?</label>
                     <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.75rem', cursor: 'pointer', fontWeight: '500' }}>
                         <input type="checkbox" checked={formData.processSatisfactory} onChange={e => handleChange('processSatisfactory', e.target.checked)} />
@@ -110,9 +110,9 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries, initial
                         <option value="Not OK">Not OK</option>
                     </select>
                 </div>
-                {formData.visualCheck === 'Not OK' && (
+                {formData.visualCheck === 'Not OK' ? (
                     <div className="form-field">
-                        <label htmlFor="visual-defect">Visual Defect <span className="required">*</span></label>
+                        <label htmlFor="visual-defect">Reason for Visual Check <span className="required">*</span></label>
                         <select id="visual-defect" value={formData.visualDefect} onChange={e => handleChange('visualDefect', e.target.value)}>
                             <option value="">Select Defect</option>
                             <option value="Cracks">Cracks</option>
@@ -121,6 +121,8 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries, initial
                             <option value="Other">Other</option>
                         </select>
                     </div>
+                ) : (
+                    <div className="form-field" style={{ visibility: 'hidden' }} aria-hidden="true" />
                 )}
 
                 <div className="form-field">
@@ -130,9 +132,9 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries, initial
                         <option value="Not OK">Not OK</option>
                     </select>
                 </div>
-                {formData.dimCheck === 'Not OK' && (
+                {formData.dimCheck === 'Not OK' ? (
                     <div className="form-field">
-                        <label htmlFor="dim-defect">Dimensional Defect <span className="required">*</span></label>
+                        <label htmlFor="dim-defect">Reason for Dimension Check <span className="required">*</span></label>
                         <select id="dim-defect" value={formData.dimDefect} onChange={e => handleChange('dimDefect', e.target.value)}>
                             <option value="">Select Defect</option>
                             <option value="Length deviation">Length deviation</option>
@@ -140,6 +142,8 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries, initial
                             <option value="Height deviation">Height deviation</option>
                         </select>
                     </div>
+                ) : (
+                    <div className="form-field" style={{ visibility: 'hidden' }} aria-hidden="true" />
                 )}
 
                 <div className="form-field" style={{ gridColumn: 'span 2' }}>

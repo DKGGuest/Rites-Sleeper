@@ -16,19 +16,25 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
     const [activeSection, setActiveSection] = useState('ca1');
 
     // Common Form Section Data
+    // Common Form Section Data
     const [commonData, setCommonData] = useState({
         date: initialData?.date || new Date().toISOString().split('T')[0],
         shift: initialData?.shift || 'A',
         timing: initialData?.timing || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
         batchNo: initialData?.batchNo || '',
         mixDesignId: initialData?.mixDesignId || '',
-        // Batch Wt. Dry (Target/Approved from Mix Design)
-        batchDryCA1: initialData?.batchDryCA1 || '',
-        batchDryCA2: initialData?.batchDryCA2 || '',
-        batchDryFA: initialData?.batchDryFA || '',
-        batchDryWater: initialData?.batchDryWater || '',
-        batchDryAdmix: initialData?.batchDryAdmix || '1.44',
-        batchDryCement: initialData?.batchDryCement || '',
+
+        // Selected Design Values (Read Only Reference)
+        designValues: initialData?.designValues || null,
+
+        // User Entered Weights (Dry State)
+        userDryCA1: initialData?.userDryCA1 || '',
+        userDryCA2: initialData?.userDryCA2 || '',
+        userDryFA: initialData?.userDryFA || '',
+        userDryWater: initialData?.userDryWater || '',
+        userDryAdmix: initialData?.userDryAdmix || '1.44',
+        userDryCement: initialData?.userDryCement || '',
+
         designAC: initialData?.designAC || '',
         designWC: initialData?.designWC || ''
     });
@@ -47,13 +53,17 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                 setCommonData(prev => ({
                     ...prev,
                     mixDesignId: val,
-                    batchDryCA1: mix.ca1,
-                    batchDryCA2: mix.ca2,
-                    batchDryFA: mix.fa,
-                    batchDryWater: mix.water,
-                    batchDryCement: mix.cement,
+                    designValues: mix,
                     designAC: mix.ac,
-                    designWC: mix.wc
+                    designWC: mix.wc,
+                    // Optionally pre-fill user values if desired, or leave empty for mandatory manual entry
+                    // Let's leave them empty to ensure user enters them as requested
+                    userDryCA1: '',
+                    userDryCA2: '',
+                    userDryFA: '',
+                    userDryWater: '',
+                    userDryCement: '',
+                    userDryAdmix: '1.44'
                 }));
                 return;
             }
@@ -76,29 +86,29 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
         const absorption = parseFloat(data.absorption) || 0;
 
         let batchDry = 0;
-        if (aggType === 'ca1') batchDry = parseFloat(commonData.batchDryCA1) || 0;
-        if (aggType === 'ca2') batchDry = parseFloat(commonData.batchDryCA2) || 0;
-        if (aggType === 'fa') batchDry = parseFloat(commonData.batchDryFA) || 0;
+        if (aggType === 'ca1') batchDry = parseFloat(commonData.userDryCA1) || 0;
+        if (aggType === 'ca2') batchDry = parseFloat(commonData.userDryCA2) || 0;
+        if (aggType === 'fa') batchDry = parseFloat(commonData.userDryFA) || 0;
 
-        // Wt. of Moisture in Sample (Gms) = B17 - B16 (wet - dried)
+        // Wt. of Moisture in Sample (Gms) = wet - dried
         const moistureInSample = wetSample - driedSample;
 
-        // Moisture % = B18/B16 * 100
+        // Moisture % = (wet - dried) / dried * 100
         const moisturePct = driedSample > 0 ? (moistureInSample / driedSample) * 100 : 0;
 
-        // Free Moisture % = B19 - B20 (moisture% - absorption%)
+        // Free Moisture % = moisture% - absorption%
         const freeMoisturePct = moisturePct - absorption;
 
-        // Batch Wt. (Dry) = B5 (from common data)
+        // Batch Wt. (Dry) = from User Input
         const batchWtDry = batchDry;
 
-        // Free Moisture (Kgs) = (B21 * B22)/100
+        // Free Moisture (Kgs) = (free% * batchWtDry)/100
         const freeMoistureKg = (freeMoisturePct * batchWtDry) / 100;
 
-        // Adjusted Wt. (Kgs) = B23 + B22
+        // Adjusted Wt. (Kgs) = freeMoistureKg + batchWtDry
         const adjustedWt = freeMoistureKg + batchWtDry;
 
-        // Wt. Adopted (Kgs) = ROUND UP B24
+        // Wt. Adopted (Kgs) = ROUND UP adjustedWt
         const wtAdopted = Math.ceil(adjustedWt);
 
         return {
@@ -112,28 +122,28 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
         };
     };
 
-    const ca1Calc = useMemo(() => calculateAggregate('ca1'), [aggData.ca1, commonData.batchDryCA1]);
-    const ca2Calc = useMemo(() => calculateAggregate('ca2'), [aggData.ca2, commonData.batchDryCA2]);
-    const faCalc = useMemo(() => calculateAggregate('fa'), [aggData.fa, commonData.batchDryFA]);
+    const ca1Calc = useMemo(() => calculateAggregate('ca1'), [aggData.ca1, commonData.userDryCA1]);
+    const ca2Calc = useMemo(() => calculateAggregate('ca2'), [aggData.ca2, commonData.userDryCA2]);
+    const faCalc = useMemo(() => calculateAggregate('fa'), [aggData.fa, commonData.userDryFA]);
 
-    // Total Free Moisture (Wt.) = B24 + B35 + B46
+    // Total Free Moisture (Wt.) = user inputs
     const totalFreeMoisture = (
         parseFloat(ca1Calc.freeMoistureKg) +
         parseFloat(ca2Calc.freeMoistureKg) +
         parseFloat(faCalc.freeMoistureKg)
     ).toFixed(2);
 
-    // Adjusted / Adopted wt. of Water = B7 - B13
-    const adjustedWater = (parseFloat(commonData.batchDryWater) - parseFloat(totalFreeMoisture)).toFixed(2);
+    // Adjusted / Adopted wt. of Water = User Water - Total Free Moisture
+    const adjustedWater = (parseFloat(commonData.userDryWater) - parseFloat(totalFreeMoisture)).toFixed(2);
 
-    // W/C Ratio = B7 / B9
-    const wcRatio = parseFloat(commonData.batchDryCement) > 0
-        ? (parseFloat(adjustedWater) / parseFloat(commonData.batchDryCement)).toFixed(3)
+    // W/C Ratio = Adjusted Water / User Cement
+    const wcRatio = parseFloat(commonData.userDryCement) > 0
+        ? (parseFloat(adjustedWater) / parseFloat(commonData.userDryCement)).toFixed(3)
         : '0.000';
 
-    // A/C Ratio = ((B10+B11+B12)/B9)
-    const acRatio = parseFloat(commonData.batchDryCement) > 0
-        ? ((parseFloat(ca1Calc.wtAdopted) + parseFloat(ca2Calc.wtAdopted) + parseFloat(faCalc.wtAdopted)) / parseFloat(commonData.batchDryCement)).toFixed(2)
+    // A/C Ratio = (Sum of Adopted Wts) / User Cement
+    const acRatio = parseFloat(commonData.userDryCement) > 0
+        ? ((parseFloat(ca1Calc.wtAdopted) + parseFloat(ca2Calc.wtAdopted) + parseFloat(faCalc.wtAdopted)) / parseFloat(commonData.userDryCement)).toFixed(2)
         : '0.00';
 
     const handleSubmit = () => {
@@ -175,33 +185,31 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
 
             {/* Common Form Section */}
             <div className="moisture-section">
-                <h4>Common Form Section</h4>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                    <h4 style={{ margin: 0 }}>Common Form Section</h4>
+                    <div style={{ display: 'flex', gap: '1rem', background: '#fff', padding: '10px 16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        <div className="form-field-compact">
+                            <label>Date</label>
+                            <strong>{commonData.date}</strong>
+                        </div>
+                        <div style={{ width: '1px', background: '#e2e8f0' }}></div>
+                        <div className="form-field-compact">
+                            <label>Shift</label>
+                            <strong>{commonData.shift}</strong>
+                        </div>
+                    </div>
+                </div>
 
                 <div className="moisture-grid">
-                    <div className="form-field">
-                        <label>Date</label>
-                        <input type="date" value={commonData.date} onChange={e => handleCommonChange('date', e.target.value)} readOnly className="read-only-input" />
-                    </div>
-                    <div className="form-field">
-                        <label>Shift</label>
-                        <select value={commonData.shift} onChange={e => handleCommonChange('shift', e.target.value)} disabled className="read-only-input">
-                            <option value="A">A</option>
-                            <option value="B">B</option>
-                            <option value="C">C</option>
-                        </select>
-                    </div>
                     <div className="form-field">
                         <label>Time <span className="required">*</span></label>
                         <input type="time" value={commonData.timing} onChange={e => handleCommonChange('timing', e.target.value)} />
                     </div>
                     <div className="form-field">
                         <label>Batch No. <span className="required">*</span></label>
-                        <input type="number" min="0" value={commonData.batchNo} onChange={e => handleCommonChange('batchNo', e.target.value)} placeholder="Enter Batch Number" />
+                        <input type="number" min="0" value={commonData.batchNo} onChange={e => handleCommonChange('batchNo', e.target.value)} placeholder="000" />
                     </div>
-                </div>
-
-                <div className="moisture-mix-grid">
-                    <div className="form-field">
+                    <div className="form-field" style={{ gridColumn: 'span 2' }}>
                         <label>Approved Mix Design <span className="required">*</span></label>
                         <select
                             value={commonData.mixDesignId}
@@ -214,69 +222,111 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                             ))}
                         </select>
                     </div>
-                    {commonData.mixDesignId && (
-                        <>
-                            <div className="calc-card">
-                                <span className="mini-label">Design A/C</span>
-                                <div className="calc-value accent-text">{commonData.designAC}</div>
-                            </div>
-                            <div className="calc-card">
-                                <span className="mini-label">Design W/C</span>
-                                <div className="calc-value accent-text">{commonData.designWC}</div>
-                            </div>
-                        </>
-                    )}
                 </div>
 
-                <h5 className="sub-header-mini">Batch Wt. Dry (Kgs) - Populated from Mix Design</h5>
-                <div className="moisture-batch-grid">
-                    {['CA1', 'CA2', 'FA', 'Water', 'Admix', 'Cement'].map(field => (
-                        <div className="form-field" key={field}>
-                            <label className="label-tiny">{field}</label>
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={commonData[`batchDry${field}`]}
-                                onChange={e => handleCommonChange(`batchDry${field}`, e.target.value)}
-                            />
-                        </div>
-                    ))}
-                </div>
+                {commonData.mixDesignId && (
+                    <div style={{ marginTop: '24px', animation: 'fadeIn 0.3s' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                            <div className="design-weights-card">
+                                <h5 className="sub-header-mini" style={{ color: '#42818c', borderLeft: '3px solid #42818c', paddingLeft: '8px' }}>
+                                    Standard Design Parameters (Read Only)
+                                </h5>
+                                <div className="design-params-grid">
+                                    <div className="param-item"><span>Design A/C:</span> <strong>{commonData.designAC}</strong></div>
+                                    <div className="param-item"><span>Design W/C:</span> <strong>{commonData.designWC}</strong></div>
+                                </div>
+                                <div className="design-table-wrapper">
+                                    <table className="design-mini-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Cement</th>
+                                                <th>CA1 (20)</th>
+                                                <th>CA2 (10)</th>
+                                                <th>FA</th>
+                                                <th>Water</th>
+                                                <th>Admix</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>{commonData.designValues?.cement}</td>
+                                                <td>{commonData.designValues?.ca1}</td>
+                                                <td>{commonData.designValues?.ca2}</td>
+                                                <td>{commonData.designValues?.fa}</td>
+                                                <td>{commonData.designValues?.water}</td>
+                                                <td>{commonData.designValues?.ac}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
 
-                {/* Auto-calculated fields */}
-                <div className="moisture-calc-grid">
-                    <div className="calc-card">
-                        <span className="mini-label">Wt. Adopt. (CA1)</span>
-                        <div className="calc-value">{ca1Calc.wtAdopted}</div>
-                    </div>
-                    <div className="calc-card">
-                        <span className="mini-label">Wt. Adopt. (CA2)</span>
-                        <div className="calc-value">{ca2Calc.wtAdopted}</div>
-                    </div>
-                    <div className="calc-card">
-                        <span className="mini-label">Wt. Adopt. (FA)</span>
-                        <div className="calc-value">{faCalc.wtAdopted}</div>
-                    </div>
-                    <div className="calc-card highlight-border">
-                        <span className="mini-label">Free Moist. (Wt.)</span>
-                        <div className="calc-value success-text">{totalFreeMoisture}</div>
-                    </div>
-                    <div className="calc-card">
-                        <span className="mini-label">Adj. Water</span>
-                        <div className="calc-value">{adjustedWater}</div>
-                    </div>
-                    <div className="calc-card">
-                        <span className="mini-label">W/C Ratio</span>
-                        <div className={`calc-value ${parseFloat(wcRatio) > 0.4 ? 'error-text' : 'success-text'}`}>
-                            {wcRatio}
+                            <div className="user-weights-card">
+                                <h5 className="sub-header-mini" style={{ color: '#0f172a', borderLeft: '3px solid #0f172a', paddingLeft: '8px' }}>
+                                    Enter Actual Batch Dry Weights (User Input)
+                                </h5>
+                                <div className="user-inputs-grid">
+                                    {[
+                                        { id: 'Cement', label: 'Cement' },
+                                        { id: 'CA1', label: 'CA1 (20)' },
+                                        { id: 'CA2', label: 'CA2 (10)' },
+                                        { id: 'FA', label: 'FA' },
+                                        { id: 'Water', label: 'Water' },
+                                        { id: 'Admix', label: 'Admix' }
+                                    ].map(item => (
+                                        <div className="form-field-slim" key={item.id}>
+                                            <label>{item.label}</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                placeholder="0.00"
+                                                value={commonData[`userDry${item.id}`]}
+                                                onChange={e => handleCommonChange(`userDry${item.id}`, e.target.value)}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Summary Metrics */}
+                        <div className="moisture-calc-grid">
+                            <div className="calc-card">
+                                <span className="mini-label">Wt. Adopt. (CA1)</span>
+                                <div className="calc-value">{ca1Calc.wtAdopted}</div>
+                            </div>
+                            <div className="calc-card">
+                                <span className="mini-label">Wt. Adopt. (CA2)</span>
+                                <div className="calc-value">{ca2Calc.wtAdopted}</div>
+                            </div>
+                            <div className="calc-card">
+                                <span className="mini-label">Wt. Adopt. (FA)</span>
+                                <div className="calc-value">{faCalc.wtAdopted}</div>
+                            </div>
+                            <div className="calc-card highlight-border">
+                                <span className="mini-label">Free Moist. (Wt.)</span>
+                                <div className="calc-value success-text">{totalFreeMoisture}</div>
+                            </div>
+                            <div className="calc-card">
+                                <span className="mini-label">Adj. Water</span>
+                                <div className="calc-value">{adjustedWater}</div>
+                            </div>
+                            <div className="calc-card">
+                                <span className="mini-label">W/C Ratio</span>
+                                <div className={`calc-value ${parseFloat(wcRatio) > 0.4 ? 'error-text' : 'success-text'}`}>
+                                    {wcRatio}
+                                </div>
+                                <span className="hint-text">Design: {commonData.designWC}</span>
+                            </div>
+                            <div className="calc-card">
+                                <span className="mini-label">A/C Ratio</span>
+                                <div className="calc-value">{acRatio}</div>
+                                <span className="hint-text">Design: {commonData.designAC}</span>
+                            </div>
                         </div>
                     </div>
-                    <div className="calc-card">
-                        <span className="mini-label">A/C Ratio</span>
-                        <div className="calc-value">{acRatio}</div>
-                    </div>
-                </div>
+                )}
             </div>
 
             {/* Toggle Sections for CA1, CA2, FA */}

@@ -180,37 +180,35 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
 
     const content = (
         <div className="manual-checks-container">
+            <div className="sub-cards-grid">
+                {[
+                    { id: 'mouldPrep', title: 'Mould Preparation', color: '#3b82f6' },
+                    { id: 'htsWire', title: 'HTS Wire Placement', color: '#f59e0b' },
+                    { id: 'demoulding', title: 'Demoulding Inspection', color: '#10b981' }
+                ].map(mod => {
+                    const lastHour = new Date(Date.now() - 60 * 60 * 1000);
+                    const records = entries[mod.id] || [];
+                    const hasRecentReading = records.some(e => new Date(e.timestamp) > lastHour);
+                    const showAlert = !hasRecentReading;
+
+                    return (
+                        <SubCard
+                            key={mod.id}
+                            id={mod.id}
+                            title={mod.title}
+                            color={mod.color}
+                            count={records.length}
+                            isActive={activeModule === mod.id}
+                            onClick={() => { setActiveModule(mod.id); setViewMode('dashboard'); }}
+                            onAdd={(id) => { setActiveModule(id); setEditingEntry(null); setViewMode('form'); }}
+                            alert={showAlert}
+                        />
+                    );
+                })}
+            </div>
+
             {viewMode === 'dashboard' ? (
-                <>
-                    <div className="sub-cards-grid">
-                        {[
-                            { id: 'mouldPrep', title: 'Mould Preparation', color: '#3b82f6' },
-                            { id: 'htsWire', title: 'HTS Wire Placement', color: '#f59e0b' },
-                            { id: 'demoulding', title: 'Demoulding Inspection', color: '#10b981' }
-                        ].map(mod => {
-                            const lastHour = new Date(Date.now() - 60 * 60 * 1000);
-                            const records = entries[mod.id] || [];
-                            const hasRecentReading = records.some(e => new Date(e.timestamp) > lastHour);
-                            const showAlert = !hasRecentReading;
-
-                            return (
-                                <SubCard
-                                    key={mod.id}
-                                    id={mod.id}
-                                    title={mod.title}
-                                    color={mod.color}
-                                    count={records.length}
-                                    isActive={activeModule === mod.id}
-                                    onClick={() => setActiveModule(mod.id)}
-                                    onAdd={(id) => { setActiveModule(id); setEditingEntry(null); setViewMode('form'); }}
-                                    alert={showAlert}
-                                />
-                            );
-                        })}
-                    </div>
-
-                    {renderLogs(activeModule)}
-                </>
+                renderLogs(activeModule)
             ) : (
                 <div className="fade-in">
                     <div className="content-title-row">

@@ -10,15 +10,16 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
     const [isModifying, setIsModifying] = useState(false);
 
     // Mock initial data for samples declared but not yet tested
+    // Mock initial data for samples declared but not yet tested
     const [declaredSamples, setDeclaredSamples] = useState([
-        { id: 1, batchNo: 610, chamberNo: 1, benchNo: 401, sequence: 'A', cubeNo: '401A', castDate: '2026-01-29', lbcTime: '10:30', grade: 'M55', sleeperType: 'RT-1', createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString() },
-        { id: 2, batchNo: 611, chamberNo: 2, benchNo: 405, sequence: 'H', cubeNo: '405H', castDate: '2026-01-30', lbcTime: '09:15', grade: 'M60', sleeperType: 'RT-2', createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString() }
+        { id: 1, batchNo: 610, chamberNo: 1, benchNo: 401, sequence: 'A', cubeNo: '401A', castDate: '2026-01-29', castTime: '10:30', grade: 'M55', sleeperType: 'RT-1', lineNumber: 'Line-1', createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString() },
+        { id: 2, batchNo: 611, chamberNo: 2, benchNo: 405, sequence: 'H', cubeNo: '405H', castDate: '2026-01-30', castTime: '09:15', grade: 'M60', sleeperType: 'RT-2', lineNumber: 'Shed-3', createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString() }
     ]);
 
     const [localTestedRecords, setLocalTestedRecords] = useState([
         {
             id: 101, batchNo: 608, chamberNo: 3, cubeNo: '301B', grade: 'M55', strength: '42.50', weight: '8.1', load: '956',
-            testDate: '2026-01-30', testTime: '11:00', result: 'PASS', timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString()
+            testDate: '2026-01-30', testTime: '11:00', result: 'PASS', lineNumber: 'Line-1', castTime: '10:00', ageHrs: '25.0', timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString()
         }
     ]);
 
@@ -36,9 +37,6 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
         const maxStrength = strengths.length > 0 ? Math.max(...strengths).toFixed(2) : '0.00';
         const passRate = totalTests > 0 ? ((allTests.filter(t => t.result === 'PASS').length / totalTests) * 100).toFixed(1) : '0.0';
 
-        const m55Tests = allTests.filter(t => t.grade === 'M55');
-        const m60Tests = allTests.filter(t => t.grade === 'M60');
-
         return {
             totalDeclared: declaredSamples.length,
             totalTests,
@@ -46,8 +44,6 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
             minStrength,
             maxStrength,
             passRate,
-            m55Count: m55Tests.length,
-            m60Count: m60Tests.length,
             lastTest: allTests.length > 0 ? allTests[0].testDate : 'N/A'
         };
     }, [declaredSamples, testedRecords]);
@@ -120,11 +116,12 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
     };
 
     const columnsDeclared = [
+        { key: 'lineNumber', label: 'Line / Shed' },
         { key: 'cubeNo', label: 'Cube No' },
         { key: 'batchNo', label: 'Batch No' },
         { key: 'chamberNo', label: 'Chamber' },
         { key: 'castDate', label: 'Casting Date' },
-        { key: 'grade', label: 'Grade' },
+        { key: 'castTime', label: 'Casting Time' },
         {
             key: 'actions',
             label: 'Actions',
@@ -140,11 +137,12 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
     ];
 
     const columnsTested = [
+        { key: 'lineNumber', label: 'Line / Shed' },
         { key: 'cubeNo', label: 'Cube No' },
         { key: 'batchNo', label: 'Batch No' },
-        { key: 'grade', label: 'Grade' },
+        { key: 'ageHrs', label: 'Age (Hrs)' },
         { key: 'load', label: 'Load (KN)' },
-        { key: 'strength', label: 'Strength (N/mm²)' },
+        { key: 'strength', label: 'Strength' },
         {
             key: 'result',
             label: 'Result',
@@ -312,9 +310,17 @@ const StatCard = ({ label, value, unit = '', color = '#1e293b' }) => (
     </div>
 );
 
-const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => {
+const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave, activeContainer }) => {
     const [formData, setFormData] = useState(sample || {
-        batchNo: '', chamberNo: '', benchNo: '', sequence: 'A', castDate: new Date().toISOString().split('T')[0], grade: 'M60', sleeperType: 'RT-1234'
+        batchNo: '',
+        chamberNo: '',
+        benchNo: '',
+        sequence: 'A',
+        castDate: new Date().toISOString().split('T')[0],
+        castTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+        grade: 'M60',
+        sleeperType: 'RT-1234',
+        lineNumber: activeContainer?.name || ''
     });
 
     return (
@@ -326,6 +332,14 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => {
                 </div>
                 <div className="form-modal-body">
                     <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div className="input-group">
+                            <label>Line Number / Shed Number</label>
+                            <input type="text" readOnly value={formData.lineNumber} className="readOnly" style={{ background: '#f8fafc' }} />
+                        </div>
+                        <div className="input-group">
+                            <label>Time of Casting (LBC)</label>
+                            <input type="time" value={formData.castTime} onChange={e => setFormData({ ...formData, castTime: e.target.value })} />
+                        </div>
                         <div className="input-group"><label>Batch Number</label><input type="number" min="0" value={formData.batchNo} onChange={e => setFormData({ ...formData, batchNo: e.target.value })} /></div>
                         <div className="input-group"><label>Chamber Number</label><input type="number" min="0" value={formData.chamberNo} onChange={e => setFormData({ ...formData, chamberNo: e.target.value })} /></div>
                         <div className="input-group"><label>Bench Number</label><input type="number" min="0" value={formData.benchNo} onChange={e => setFormData({ ...formData, benchNo: e.target.value })} /></div>
@@ -360,12 +374,25 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying }) => {
         testTime: sample.testTime || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
         weight: sample.weight || '',
         load: sample.load || '',
-        strength: sample.strength || ''
+        strength: sample.strength || '',
+        ageHrs: sample.ageHrs || '0.0'
     });
 
     useEffect(() => {
+        // Calculate Age in Hours
+        if (sample.castDate && sample.castTime && testData.testDate && testData.testTime) {
+            const cast = new Date(`${sample.castDate}T${sample.castTime}`);
+            const test = new Date(`${testData.testDate}T${testData.testTime}`);
+            const diffMs = test - cast;
+            const diffHrs = (diffMs / (1000 * 60 * 60)).toFixed(1);
+            setTestData(prev => ({ ...prev, ageHrs: diffHrs }));
+        }
+    }, [testData.testDate, testData.testTime, sample.castDate, sample.castTime]);
+
+    useEffect(() => {
+        // Strength = Load / 22.5 (for 150mm cube)
         if (testData.load && !isNaN(testData.load)) {
-            const strength = (parseFloat(testData.load) * 1000 / 22500).toFixed(2);
+            const strength = (parseFloat(testData.load) / 22.5).toFixed(2);
             setTestData(prev => ({ ...prev, strength }));
         }
     }, [testData.load]);
@@ -374,25 +401,60 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying }) => {
 
     return (
         <div className="form-modal-overlay" onClick={onClose}>
-            <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '650px' }}>
                 <div className="form-modal-header">
-                    <span className="form-modal-header-title">Enter Strength Results: {sample.cubeNo}</span>
+                    <span className="form-modal-header-title">Strength Verification: {sample.cubeNo}</span>
                     <button className="form-modal-close" onClick={onClose}>X</button>
                 </div>
                 <div className="form-modal-body">
-                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '20px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                        <div><div style={{ fontSize: '10px', color: '#64748b' }}>Batch</div><div style={{ fontWeight: '700' }}>{sample.batchNo}</div></div>
-                        <div><div style={{ fontSize: '10px', color: '#64748b' }}>Grade</div><div style={{ fontWeight: '700' }}>{sample.grade}</div></div>
-                        <div><div style={{ fontSize: '10px', color: '#64748b' }}>Cast Date</div><div style={{ fontWeight: '700' }}>{sample.castDate}</div></div>
+                    <div style={{ marginBottom: '20px' }}>
+                        <label className="mini-label" style={{ color: '#42818c', fontSize: '11px' }}>INITIAL DECLARATION</label>
+                        <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                            <div><div style={{ fontSize: '10px', color: '#64748b' }}>Line / Shed</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.lineNumber}</div></div>
+                            <div><div style={{ fontSize: '10px', color: '#64748b' }}>Batch Number</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.batchNo}</div></div>
+                            <div><div style={{ fontSize: '10px', color: '#64748b' }}>Chamber Number</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.chamberNo}</div></div>
+                            <div><div style={{ fontSize: '10px', color: '#64748b' }}>Cube Number</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.cubeNo}</div></div>
+                            <div><div style={{ fontSize: '10px', color: '#64748b' }}>Date of Casting</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.castDate}</div></div>
+                            <div><div style={{ fontSize: '10px', color: '#64748b' }}>Time of Casting</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.castTime}</div></div>
+                        </div>
                     </div>
-                    <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                        <div className="input-group"><label>Weight (Kgs)</label><input type="number" step="0.001" value={testData.weight} onChange={e => setTestData({ ...testData, weight: e.target.value })} /></div>
-                        <div className="input-group"><label>Load (KN)</label><input type="number" step="0.1" value={testData.load} onChange={e => setTestData({ ...testData, load: e.target.value })} /></div>
-                        <div className="input-group"><label>Strength (N/mm²)</label><input readOnly value={testData.strength} style={{ background: '#f8fafc' }} /></div>
-                        <div className="input-group"><label>Result</label><input readOnly value={testData.strength ? result : ''} style={{ color: result === 'PASS' ? '#10b981' : '#ef4444', fontWeight: '800', background: '#f8fafc' }} /></div>
+
+                    <label className="mini-label" style={{ color: '#42818c', fontSize: '11px' }}>INPUT SECTION</label>
+                    <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '16px', background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        <div className="input-group">
+                            <label>Date of Testing</label>
+                            <input type="date" value={testData.testDate} onChange={e => setTestData({ ...testData, testDate: e.target.value })} />
+                        </div>
+                        <div className="input-group">
+                            <label>Time of Testing</label>
+                            <input type="time" value={testData.testTime} onChange={e => setTestData({ ...testData, testTime: e.target.value })} />
+                        </div>
+                        <div className="input-group">
+                            <label>Age (Hrs)</label>
+                            <input readOnly value={testData.ageHrs} style={{ background: '#f1f5f9', fontWeight: '700' }} />
+                        </div>
+                        <div className="input-group">
+                            <label>Weight (Kgs)</label>
+                            <input type="number" step="0.01" placeholder="e.g. 8.25" value={testData.weight} onChange={e => setTestData({ ...testData, weight: e.target.value })} />
+                        </div>
+                        <div className="input-group">
+                            <label>Load (KN)</label>
+                            <input type="number" step="0.1" placeholder="e.g. 950" value={testData.load} onChange={e => setTestData({ ...testData, load: e.target.value })} />
+                        </div>
+                        <div className="input-group">
+                            <label>Strength (N/mm²)</label>
+                            <input readOnly value={testData.strength} style={{ background: '#f0fdf4', fontWeight: '800', color: '#166534' }} />
+                        </div>
+                        <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                            <label>Result</label>
+                            <input readOnly value={testData.strength ? result : 'WAITING FOR INPUT'} style={{ color: result === 'PASS' ? '#10b981' : '#ef4444', fontWeight: '900', background: '#f8fafc', textAlign: 'center', letterSpacing: '1px' }} />
+                        </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
-                        <button className="btn-verify" style={{ flex: 1 }} onClick={() => onSave({ ...testData, result })}>Save & Move to Tested</button>
+
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                        <button className="btn-verify" style={{ flex: 1, padding: '14px' }} onClick={() => onSave({ ...testData, result })}>
+                            Complete Test & Archive
+                        </button>
                     </div>
                 </div>
             </div>

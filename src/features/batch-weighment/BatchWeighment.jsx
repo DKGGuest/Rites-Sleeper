@@ -298,7 +298,7 @@ const BatchWeighment = ({ onBack, sharedState, activeContainer, displayMode = 'm
                                     <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Manage all witnessed batch declarations.</p>
                                 </div>
                             </div>
-                            <ManualDataEntry batches={batchDeclarations} witnessedRecords={witnessedRecords} onSave={handleSaveWitness} activeContainer={activeContainer} onDelete={handleDelete} />
+                            <ManualDataEntry batches={batchDeclarations} witnessedRecords={witnessedRecords} onSave={handleSaveWitness} activeContainer={activeContainer} onDelete={handleDelete} onlyHistory={true} />
                         </div>
                     )}
 
@@ -467,7 +467,7 @@ const BatchWeighment = ({ onBack, sharedState, activeContainer, displayMode = 'm
                                     <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Manage all witnessed batch declarations.</p>
                                 </div>
                             </div>
-                            <ManualDataEntry batches={batchDeclarations} witnessedRecords={witnessedRecords} onSave={handleSaveWitness} activeContainer={activeContainer} onDelete={handleDelete} />
+                            <ManualDataEntry batches={batchDeclarations} witnessedRecords={witnessedRecords} onSave={handleSaveWitness} activeContainer={activeContainer} onDelete={handleDelete} onlyHistory={true} />
                         </div>
                     )}
 

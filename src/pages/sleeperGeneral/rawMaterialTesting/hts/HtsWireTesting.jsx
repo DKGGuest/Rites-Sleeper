@@ -29,13 +29,15 @@ const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
 );
 
 const HtsWireTesting = ({ onBack }) => {
-    const [viewMode, setViewMode] = useState('history'); // Default to history (logs)
+    const [viewMode, setViewMode] = useState('new-stocks'); // Default to new stocks
     const [showForm, setShowForm] = useState(false);
     const [availableCoils] = useState(MOCK_INVENTORY.HTS || []);
     const [history, setHistory] = useState(MOCK_HTS_HISTORY.map(h => ({
         ...h,
         createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
     })));
+
+    const pendingStocks = MOCK_INVENTORY.HTS.filter(item => item.status === 'Verified');
 
     const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm({
         defaultValues: {
@@ -88,6 +90,32 @@ const HtsWireTesting = ({ onBack }) => {
         }
     };
 
+    const inventoryColumns = [
+        { key: 'vendor', label: 'Registered Agency' },
+        { key: 'coilNo', label: 'Coil No.', isHeaderHighlight: true },
+        { key: 'qty', label: 'Quantity' },
+        { key: 'receivedDate', label: 'Arrival Date' },
+        {
+            key: 'actions',
+            label: 'Actions',
+            render: (_, row) => (
+                <button
+                    className="btn-action mini"
+                    onClick={() => {
+                        reset({
+                            testDate: new Date().toISOString().split('T')[0],
+                            coilNo: row.coilNo,
+                            inventoryId: row.id
+                        });
+                        setShowForm(true);
+                    }}
+                >
+                    Add Test Detail
+                </button>
+            )
+        }
+    ];
+
     const historyColumns = [
         { key: 'testDate', label: 'Date' },
         { key: 'consignmentNo', label: 'Consignment' },
@@ -134,6 +162,15 @@ const HtsWireTesting = ({ onBack }) => {
 
             <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap' }}>
                 <SubCard id="stats" title="Analytics" color="#42818c" count="N/A" label="Statistics" isActive={viewMode === 'stats'} onClick={() => setViewMode('stats')} />
+                <SubCard
+                    id="new-stocks"
+                    title="Inventory"
+                    color="#f59e0b"
+                    count={pendingStocks.length}
+                    label="Pending for Test"
+                    isActive={viewMode === 'new-stocks'}
+                    onClick={() => setViewMode('new-stocks')}
+                />
                 <SubCard id="history" title="Historical" color="#10b981" count={history.length} label="Test Logs" isActive={viewMode === 'history'} onClick={() => setViewMode('history')} />
             </div>
 
@@ -144,6 +181,15 @@ const HtsWireTesting = ({ onBack }) => {
                         <div style={{ height: '300px', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '20px' }}>
                             <span style={{ color: '#cbd5e1', fontWeight: '600' }}>Chart Placeholder</span>
                         </div>
+                    </div>
+                )}
+
+                {viewMode === 'new-stocks' && (
+                    <div className="table-outer-wrapper fade-in">
+                        <div className="content-title-row" style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', marginBottom: 0 }}>
+                            <h4 style={{ margin: 0 }}>HTS Inventory Pending Testing</h4>
+                        </div>
+                        <EnhancedDataTable columns={inventoryColumns} data={pendingStocks} />
                     </div>
                 )}
 

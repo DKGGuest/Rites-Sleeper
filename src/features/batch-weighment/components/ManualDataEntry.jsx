@@ -83,7 +83,7 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
 
     return (
         <div className="manual-batch-controls" id="manual-entry-section">
-            {!onlyHistory && (
+            {(!onlyHistory || editingId) && (
                 <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem', border: '1px solid #e2e8f0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: editingId ? '1rem' : 0 }}>
                         <h4 style={{ margin: 0, color: '#1e293b' }}>{editingId ? 'Edit Manual Batch Result' : 'Add Manual Batch Result'}</h4>
@@ -147,7 +147,89 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
                 </div>
             )}
 
-            {/* Table removed as per request */}
+            {/* Historical Table */}
+            {!hideHistory && (
+                <div className="table-outer-wrapper" style={{ marginTop: '1.5rem' }}>
+                    <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ width: '4px', height: '16px', background: '#10b981', borderRadius: '2px' }}></span>
+                            <h4 style={{ margin: 0, color: '#1e293b', fontSize: '0.9rem', fontWeight: '800' }}>Historical Witnessed Logs</h4>
+                        </div>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '700', background: '#fff', padding: '4px 12px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
+                            {witnessedRecords.length} Records Found
+                        </span>
+                    </div>
+                    <div className="table-responsive">
+                        <table className="ui-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Batch</th>
+                                    <th>CA1 (Kg)</th>
+                                    <th>CA2 (Kg)</th>
+                                    <th>FA (Kg)</th>
+                                    <th>Cement (Kg)</th>
+                                    <th>Water (L)</th>
+                                    <th>Admix (Kg)</th>
+                                    <th>Source</th>
+                                    <th style={{ textAlign: 'center' }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {witnessedRecords.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="11" style={{ padding: '3rem', textAlign: 'center', color: '#64748b', fontStyle: 'italic' }}>
+                                            No witnessed declarations found.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    witnessedRecords.map((record) => (
+                                        <tr key={record.id} className="hover-row">
+                                            <td data-label="Date">{record.date}</td>
+                                            <td data-label="Time">{record.time}</td>
+                                            <td data-label="Batch"><strong>{record.batchNo}</strong></td>
+                                            <td data-label="CA1">{record.ca1}</td>
+                                            <td data-label="CA2">{record.ca2}</td>
+                                            <td data-label="FA">{record.fa}</td>
+                                            <td data-label="Cement">{record.cement}</td>
+                                            <td data-label="Water">{record.water}</td>
+                                            <td data-label="Admix">{record.admixture}</td>
+                                            <td data-label="Source">
+                                                <span className={`status-pill ${record.source?.toLowerCase().includes('scada') ? 'witnessed' : 'manual'}`}>
+                                                    {record.source}
+                                                </span>
+                                            </td>
+                                            <td data-label="Actions">
+                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                                    {isRecordEditable(record.timestamp || record.id) && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleEdit(record)}
+                                                                className="btn-action mini"
+                                                                style={{ padding: '4px 10px', fontSize: '0.7rem', background: '#3b82f6' }}
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                onClick={() => onDelete(record.id)}
+                                                                className="btn-action danger mini"
+                                                                style={{ padding: '4px 10px', fontSize: '0.7rem' }}
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

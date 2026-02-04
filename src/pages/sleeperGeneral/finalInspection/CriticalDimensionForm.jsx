@@ -19,8 +19,8 @@ const CriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage }) =>
 
     const parametersToCheck = [
         'ToeGap',
-        'Slope Gauge',
-        'WindGauge'
+        'Dist b/w Inserts (Rail Seat)',
+        'Slope Gauge'
     ];
 
     const [checklistState, setChecklistState] = useState(
@@ -76,7 +76,7 @@ const CriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage }) =>
         switch (mainReason) {
             case 'ToeGap': return ['ToeGap(LT) - Inner', 'ToeGap (LT) - Outer', 'ToeGap (RT)-Inner', 'ToeGap (RT) - Outer'];
             case 'Slope Gauge': return ['Slope Gauge (LT)', 'Slope Gauge (RT)'];
-            case 'WindGauge': return ['Wind Gauge (LT)', 'Wind Gauge (RT)'];
+            case 'Dist b/w Inserts (Rail Seat)': return ['Dist b/w Inserts (LT)', 'Dist b/w Inserts (RT)'];
             default: return [];
         }
     };
@@ -204,8 +204,8 @@ const CriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage }) =>
                                     <tbody>
                                         {Object.keys(rejectionDetails).map(sid => (
                                             <tr key={sid}>
-                                                <td className="fw-700">{sid.split('/')[1]}</td>
-                                                <td>
+                                                <td data-label="Sleeper No" className="fw-700">{sid.split('/')[1]}</td>
+                                                <td data-label="Main Reason">
                                                     <select
                                                         value={rejectionDetails[sid].mainReason}
                                                         onChange={(e) => handleRejectionChange(sid, 'mainReason', e.target.value)}
@@ -215,7 +215,7 @@ const CriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage }) =>
                                                         {parametersToCheck.map(p => <option key={p} value={p}>{p}</option>)}
                                                     </select>
                                                 </td>
-                                                <td>
+                                                <td data-label="Sub Reason">
                                                     <select
                                                         value={rejectionDetails[sid].subReason}
                                                         onChange={(e) => handleRejectionChange(sid, 'subReason', e.target.value)}
