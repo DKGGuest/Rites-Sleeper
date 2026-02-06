@@ -349,6 +349,54 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                             </div>
                         </div>
 
+                        {/* 4. Logs Saved for Current Batch (Slate) */}
+                        <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                            <div style={{ paddingBottom: '1rem', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <span style={{ background: '#475569', color: '#fff', fontSize: '0.75rem', fontWeight: '800', width: '24px', height: '24px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>4</span>
+                                <h4 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b', fontWeight: '800' }}>Logs Saved for Batch {selectedBatch}</h4>
+                            </div>
+                            <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                <table className="ui-table" style={{ background: '#fff' }}>
+                                    <thead>
+                                        <tr>
+                                            <th>Time</th>
+                                            <th>Bench</th>
+                                            <th>Source</th>
+                                            <th>Force (KN)</th>
+                                            <th>Elongation</th>
+                                            <th>Final Load</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {tensionRecords.filter(r => r.batchNo === selectedBatch).length === 0 ? (
+                                            <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No records saved for this batch yet.</td></tr>
+                                        ) : (
+                                            tensionRecords.filter(r => r.batchNo === selectedBatch).map(record => (
+                                                <tr key={record.id}>
+                                                    <td>{record.time}</td>
+                                                    <td><strong>{record.benchNo}</strong></td>
+                                                    <td><span className={`status-pill ${record.source === 'Manual' ? 'manual' : 'witnessed'}`}>{record.source}</span></td>
+                                                    <td>{record.forceElongation || '-'}</td>
+                                                    <td>{record.measuredElongation || '-'}</td>
+                                                    <td style={{ fontWeight: '700', color: '#42818c' }}>{record.finalLoad} KN</td>
+                                                    <td>
+                                                        <button
+                                                            className="btn-action mini danger"
+                                                            style={{ background: '#fee2e2', color: '#ef4444', border: 'none' }}
+                                                            onClick={(e) => { e.stopPropagation(); handleDelete(record.id); }}
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>

@@ -67,13 +67,29 @@ const IncomingVerificationDashboard = () => {
         setViewModal(false);
     };
 
-    const columns = [
-        { key: 'id', label: 'ID' },
-        { key: 'vendor', label: 'Vendor' },
-        { key: 'consignmentNo', label: 'Consignment No' },
-        { key: 'qty', label: 'Quantity' },
-        { key: 'receivedDate', label: 'Received Date' },
-        {
+    const getMainColumns = (matId) => {
+        const baseColumns = [
+            { key: 'receivedDate', label: 'Date of Receiving' },
+            { key: 'invoiceNo', label: 'Invoice / Bill No' },
+            {
+                key: 'batchLot',
+                label: matId === 'HTS' ? 'Coil No / Lot No' : 'Batch / Lot No',
+                render: (_, row) => row.batchNo || row.lotNo || row.serialNoCoils || 'N/A'
+            },
+        ];
+
+        // Specific column for RITES materials
+        if (['HTS', 'SGCI', 'DOWEL'].includes(matId)) {
+            baseColumns.push({
+                key: 'ritesInfo',
+                label: 'RITES IC & Date',
+                render: (_, row) => row.ritesIcNo ? `${row.ritesIcNo} (${row.ritesIcDate})` : 'N/A'
+            });
+        }
+
+        baseColumns.push({ key: 'qty', label: 'Qty' });
+
+        baseColumns.push({
             key: 'status',
             label: 'Status',
             render: (val) => (
@@ -86,11 +102,12 @@ const IncomingVerificationDashboard = () => {
                     color: val === 'Verified' ? '#059669' : val === 'Rejected' ? '#ef4444' : '#c2410c',
                     border: `1px solid ${val === 'Verified' ? '#10b98133' : val === 'Rejected' ? '#f8717133' : '#f9731633'}`
                 }}>
-                    {val === 'Unverified' ? 'Pending Verification' : val}
+                    {val === 'Unverified' ? 'Pending' : val}
                 </span>
             )
-        },
-        {
+        });
+
+        baseColumns.push({
             key: 'actions',
             label: 'Action',
             render: (_, row) => (
@@ -99,13 +116,46 @@ const IncomingVerificationDashboard = () => {
                     onClick={() => { setSelectedEntry(row); setViewModal(true); }}
                     style={{ fontSize: '11px', padding: '6px 14px', width: 'auto' }}
                 >
-                    View Details
+                    Details
                 </button>
             )
-        }
-    ];
+        });
+
+        return baseColumns;
+    };
 
     const currentData = selectedMaterial ? (inventory[selectedMaterial] || []).filter(item => item.status === statusFilter) : [];
+
+    // Helper to format field labels
+    const formatLabel = (key) => {
+        const labels = {
+            id: 'ID',
+            vendor: 'Vendor',
+            receivedDate: 'Date of Receipt',
+            invoiceNo: 'Invoice / E-way Bill No',
+            invoiceDate: 'Invoice / E-way Bill Date',
+            cementType: 'Cement Type',
+            manufacturerName: 'Manufacturer Name',
+            batchNo: 'Batch No',
+            mfgWeek: 'Manufacturing Week',
+            mfgYear: 'Manufacturing Year',
+            mtcNo: 'MTC No',
+            qty: 'Quantity',
+            totalQtyKg: 'Total Qty (Kgs)',
+            gradeSpec: 'Grade / Spec',
+            ritesIcNo: 'RITES IC No',
+            ritesIcDate: 'RITES IC Date',
+            serialNoCoils: 'Serial Number of Coils',
+            lotNo: 'Lot No',
+            relaxationTestDate: 'Relaxation Test Pass Date',
+            aggregateType: 'Type of Aggregate',
+            source: 'Source',
+            status: 'Status',
+            verifiedBy: 'Verified By',
+            verifiedAt: 'Verified At'
+        };
+        return labels[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+    };
 
     return (
         <div className="verification-dashboard cement-forms-scope">
@@ -201,7 +251,7 @@ const IncomingVerificationDashboard = () => {
                     </div>
 
                     <EnhancedDataTable
-                        columns={columns}
+                        columns={getMainColumns(selectedMaterial)}
                         data={currentData}
                         emptyMessage={`No ${statusFilter === 'Unverified' ? 'pending' : statusFilter.toLowerCase()} records found for ${materials.find(m => m.id === selectedMaterial).title}.`}
                     />
@@ -214,21 +264,27 @@ const IncomingVerificationDashboard = () => {
 
             {viewModal && selectedEntry && (
                 <div className="form-modal-overlay" onClick={() => setViewModal(false)}>
-                    <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+                    <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '700px' }}>
                         <div className="form-modal-header">
                             <span className="form-modal-header-title">Incoming Verification: {selectedEntry.id}</span>
                             <button className="form-modal-close" onClick={() => setViewModal(false)}>X</button>
                         </div>
                         <div className="form-modal-body">
                             <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
-                                <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#42818c' }}>Consignment Details</h4>
+                                <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#42818c' }}>Full Inventory Details (Vendor Submitted)</h4>
                                 <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                                    <div><label style={{ fontSize: '11px', color: '#64748b' }}>Vendor</label><div style={{ fontWeight: '600' }}>{selectedEntry.vendor}</div></div>
-                                    <div><label style={{ fontSize: '11px', color: '#64748b' }}>Consignment No</label><div style={{ fontWeight: '600' }}>{selectedEntry.consignmentNo}</div></div>
-                                    <div><label style={{ fontSize: '11px', color: '#64748b' }}>Quantity</label><div style={{ fontWeight: '600' }}>{selectedEntry.qty}</div></div>
-                                    <div><label style={{ fontSize: '11px', color: '#64748b' }}>Received Date</label><div style={{ fontWeight: '600' }}>{selectedEntry.receivedDate}</div></div>
-                                    {selectedEntry.lotNo && <div><label style={{ fontSize: '11px', color: '#64748b' }}>Lot No</label><div style={{ fontWeight: '600' }}>{selectedEntry.lotNo}</div></div>}
-                                    {selectedEntry.coilNo && <div><label style={{ fontSize: '11px', color: '#64748b' }}>Coil No</label><div style={{ fontWeight: '600' }}>{selectedEntry.coilNo}</div></div>}
+                                    {Object.entries(selectedEntry).map(([key, value]) => {
+                                        // Skip internal fields and already shown status/verification
+                                        if (['status', 'verifiedBy', 'verifiedAt'].includes(key)) return null;
+                                        if (typeof value === 'object') return null;
+
+                                        return (
+                                            <div key={key}>
+                                                <label style={{ fontSize: '11px', color: '#64748b' }}>{formatLabel(key)}</label>
+                                                <div style={{ fontWeight: '600', fontSize: '13px' }}>{value || 'N/A'}</div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
@@ -244,7 +300,7 @@ const IncomingVerificationDashboard = () => {
                                     gap: '12px'
                                 }}>
                                     <div style={{ fontSize: '1.2rem', fontWeight: '800', color: selectedEntry.status === 'Verified' ? '#059669' : '#ef4444' }}>
-                                        {selectedEntry.status === 'Verified' ? 'OK' : 'X'}
+                                        {selectedEntry.status === 'Verified' ? '✓' : '✗'}
                                     </div>
                                     <div>
                                         <div style={{ fontSize: '12px', fontWeight: '700', color: selectedEntry.status === 'Verified' ? '#059669' : '#ef4444', textTransform: 'uppercase' }}>
@@ -260,11 +316,11 @@ const IncomingVerificationDashboard = () => {
                             <div style={{ display: 'flex', gap: '12px' }}>
                                 {selectedEntry.status === 'Unverified' ? (
                                     <>
-                                        <button className="btn-verify" style={{ flex: 1, height: '44px', background: '#059669' }} onClick={handleVerify}>Verify</button>
+                                        <button className="btn-verify" style={{ flex: 1, height: '44px', background: '#059669' }} onClick={handleVerify}>Verify & Approve</button>
                                         <button className="btn-verify" style={{ flex: 1, height: '44px', background: '#dc2626' }} onClick={handleReject}>Reject</button>
                                     </>
                                 ) : (
-                                    <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#94a3b8', border: 'none', cursor: 'not-allowed', height: '44px' }} disabled>Action Completed</button>
+                                    <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#94a3b8', border: 'none', cursor: 'not-allowed', height: '44px' }} disabled>Verification Finalized</button>
                                 )}
                                 <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: 'none', height: '44px' }} onClick={() => setViewModal(false)}>Close</button>
                             </div>

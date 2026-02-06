@@ -25,21 +25,25 @@ const CONSTANTS = {
         "Dent marks due to mishandling or impact",
         "Uneven or distorted mould profile"
     ],
-    BENCH_DIMENSIONS: [
-        "Length", "Width inside bench", "Distance between fixed end of first channel", "Distance between first & second channel",
-        "Distance between second & third channel", "Distance between third & fourth channel", "Distance between fourth & fifth channel",
-        "Distance between fifth & sixth channel", "Distance between sixth & seventh channel", "Distance between seventh & eighth channel",
-        "Distance between eighth & ninth channel", "Distance between lifting hooks", "Distance between lifting hook to fixed end",
-        "Distance between lifting hook to free end", "Jack height (Left)", "Jack height (Right)", "Jack length (Left)",
-        "Jack length (Right)", "End box stand length (Left)", "End box stand length (Right)", "Tie plate thickness on channel",
-        "Tie thickness", "Distance between jack & end box stand", "Free end box hole position", "Fixed end box hole position",
-        "Dab bolt and nut position", "Main channel", "Bottom channel", "Rail below lifting hook", "Height of rail below lifting hook"
-    ],
-    MOULD_DIMENSIONS: [
-        "Full Length", "Outer Length (insert to Insert)", "Between Rail Seat", "Centre of Mould to Centre of Rail Seat",
-        "Centre of Rail Seat to Mould End", "Centre of Mould to Side", "End of Mould", "End Height", "Centre Height",
-        "Rail Seat Height", "Slope Gauge", "End Plate Height"
-    ]
+    DIMENSION_REASONS: {
+        BENCH: [
+            "Length Deviation",
+            "Width Gap Issue",
+            "Channel Distance Mismatch",
+            "Hook Position Error",
+            "Jack Height Out of Tolerance",
+            "End Box Alignment Issue",
+            "Hole Position Displacement"
+        ],
+        MOULD: [
+            "Rail Seat Distance Error",
+            "Centre to End Length Error",
+            "Mould Profile Distortion",
+            "Height Variation",
+            "Slope Gauge Failure",
+            "End Plate Alignment Issue"
+        ]
+    }
 };
 
 // --- Helper Utilities ---
@@ -116,8 +120,7 @@ const HistoryLogs = ({ records, onAdd, onModify, onDelete }) => (
         <div className="history-header">
             <h4 className="m-0 fw-800 color-navy">List of Checking Done</h4>
             <div className="btn-group">
-                <button className="toggle-btn" onClick={() => onAdd(CONSTANTS.ASSET_TYPES.BENCH)}>+ New Bench Check</button>
-                <button className="toggle-btn purple-btn" onClick={() => onAdd(CONSTANTS.ASSET_TYPES.MOULD)}>+ New Mould Check</button>
+                <button className="toggle-btn" onClick={() => onAdd()}>+ New Joint Entry</button>
             </div>
         </div>
         <div className="table-responsive">
@@ -140,11 +143,15 @@ const HistoryLogs = ({ records, onAdd, onModify, onDelete }) => (
                             <tr key={record.id} className="table-row-hover">
                                 <td><span className="fw-700">{record.dateOfChecking}</span> <span className="text-muted">{record.checkTime}</span></td>
                                 <td><strong>{record.assetNo}</strong> <span className="location-tag">({record.location})</span></td>
-                                <td className={record.type === 'Bench' ? (record.overallResult === 'OK' ? 'text-success' : 'text-danger') : ''}>
-                                    {record.type === 'Bench' ? record.overallResult : 'N/A'}
+                                <td>
+                                    <span className={`status-badge-mini ${record.benchOverall === 'OK' ? 'success' : 'danger'}`}>
+                                        {record.benchOverall}
+                                    </span>
                                 </td>
-                                <td className={record.type === 'Mould' ? (record.overallResult === 'OK' ? 'text-success' : 'text-danger') : ''}>
-                                    {record.type === 'Mould' ? record.overallResult : 'N/A'}
+                                <td>
+                                    <span className={`status-badge-mini ${record.mouldOverall === 'OK' ? 'success' : 'danger'}`}>
+                                        {record.mouldOverall}
+                                    </span>
                                 </td>
                                 <td><span className={`fw-800 ${record.overallResult === 'OK' ? 'text-success' : 'text-danger'}`}>{record.overallResult}</span></td>
                                 <td className="text-center">
@@ -225,114 +232,160 @@ const AssetMasterList = ({ allAssets, records }) => {
 };
 
 const InspectionForm = ({ formState, setFormState, onSave, onCancel, editingEntry }) => {
-    const isBench = formState.type === CONSTANTS.ASSET_TYPES.BENCH;
-    const visualOptions = isBench ? CONSTANTS.BENCH_VISUAL_OPTIONS : CONSTANTS.MOULD_VISUAL_OPTIONS;
-    const dimensionLabels = isBench ? CONSTANTS.BENCH_DIMENSIONS : CONSTANTS.MOULD_DIMENSIONS;
+    const handleCheckChange = (part, field, value) => {
+        setFormState(prev => ({
+            ...prev,
+            [part]: { ...prev[part], [field]: value }
+        }));
+    };
 
     return (
-        <div className="fade-in">
-            <div className="content-title-row">
-                <h3>{editingEntry ? 'Modify' : 'New'} {formState.type} Check Entry</h3>
-                <button className="toggle-btn secondary mini" onClick={onCancel}>Back to Logs</button>
+        <div className="fade-in mb-40">
+            <div className="content-title-row inspection-form-title-row">
+                <div className="title-with-accent">
+                    <div className="accent-line"></div>
+                    <h3 className="m-0 form-main-title">
+                        {editingEntry ? 'Modify' : 'New'} Joint Asset Inspection (Bench & Mould)
+                    </h3>
+                </div>
+                <button className="toggle-btn secondary mini" onClick={onCancel}>← Cancel Entry</button>
             </div>
 
             <div className="mould-form-container">
+                {/* Header Section: Common Asset Info */}
                 <div className="mould-form-header-info">
                     <div className="form-field">
                         <label className="field-label-mini">LINE / SHED NO.</label>
-                        <input className="field-input-static" value={formState.location} readOnly />
-                    </div>
-                    <div className="form-field">
-                        <label className="field-label-mini">ASSET TYPE</label>
-                        <select className="field-select-bold" value={formState.type} onChange={e => setFormState({ ...formState, type: e.target.value, dimensionReasons: {} })}>
-                            <option value={CONSTANTS.ASSET_TYPES.BENCH}>Bench / Gang</option>
-                            <option value={CONSTANTS.ASSET_TYPES.MOULD}>Mould</option>
-                        </select>
-                    </div>
-                    <div className="form-field">
-                        <label className="field-label-mini">{isBench ? 'BENCH / GANG NO.' : 'MOULD NO.'}</label>
-                        <input className="field-input" placeholder="e.g. 210-A" value={formState.assetNo} onChange={e => setFormState({ ...formState, assetNo: e.target.value })} />
+                        <input className="field-input-static highlight-location" value={formState.location} readOnly />
                     </div>
                     <div className="form-field">
                         <label className="field-label-mini">DATE OF CHECKING</label>
                         <input className="field-input" type="date" value={formState.dateOfChecking} onChange={e => setFormState({ ...formState, dateOfChecking: e.target.value })} />
                     </div>
                     <div className="form-field">
-                        <label className="field-label-mini">LAST CASTING DATE</label>
-                        <input className="field-input-static" value={formState.lastCasting} readOnly />
+                        <label className="field-label-mini">BENCH / GANG NO.</label>
+                        <input className="field-input" placeholder="e.g. 210-A" value={formState.assetNo} onChange={e => setFormState({ ...formState, assetNo: e.target.value })} />
                     </div>
                     <div className="form-field">
                         <label className="field-label-mini">SLEEPER TYPE</label>
                         <input className="field-input-static" value={formState.sleeperType} readOnly />
                     </div>
+                    <div className="form-field">
+                        <label className="field-label-mini">LATEST CASTING</label>
+                        <input className="field-input-static" value={formState.lastCasting} readOnly />
+                    </div>
                 </div>
 
-                <h4 className="form-section-title">{formState.type} Quality Check</h4>
+                <div className="inspection-grid-container">
 
-                <CollapsibleSection title="Visual Inspection" defaultOpen={true}>
-                    <div className="form-grid-2">
-                        <div className="form-field">
-                            <label className="field-label-sm">Visual Result</label>
-                            <select className="field-select" value={formState.visualResult} onChange={e => setFormState({ ...formState, visualResult: e.target.value })}>
-                                <option value="ok">OK</option>
-                                <option value="not-ok">Not OK</option>
-                            </select>
+                    {/* BENCH SECTION */}
+                    <div className="inspection-part-card bench-theme">
+                        <div className="part-header">
+                            <div className="inspection-badge bench">BENCH</div>
+                            <h4 className="inspection-section-title">Bench Inspection List</h4>
                         </div>
-                        {formState.visualResult === 'not-ok' && (
-                            <div className="form-field">
-                                <label className="field-label-sm">Visual Discrepancy Reason</label>
-                                <select className="field-select" value={formState.visualReason} onChange={e => setFormState({ ...formState, visualReason: e.target.value })}>
-                                    <option value="">Select Reason...</option>
-                                    {visualOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+
+                        <div className="inspection-content-box">
+                            <div className="form-field mb-16">
+                                <label className="field-label-sm">Visual Check Result</label>
+                                <select className="field-select" value={formState.bench.visualResult} onChange={e => handleCheckChange('bench', 'visualResult', e.target.value)}>
+                                    <option value="ok">OK - Satisfactory</option>
+                                    <option value="not-ok">NOT OK - Needs Attention</option>
                                 </select>
                             </div>
-                        )}
-                    </div>
-                </CollapsibleSection>
-
-                <CollapsibleSection title="Dimensional Checking" defaultOpen={true}>
-                    <div className="form-field mg-b-24">
-                        <label className="field-label-sm">Dimensional Result</label>
-                        <select className="field-select" value={formState.dimensionResult} onChange={e => setFormState({ ...formState, dimensionResult: e.target.value })}>
-                            <option value="ok">OK</option>
-                            <option value="not-ok">Not OK</option>
-                        </select>
-                    </div>
-
-                    {formState.dimensionResult === 'not-ok' && (
-                        <div className="discrepancy-card">
-                            <label className="discrepancy-label">Enter Measurements for Discrepancy</label>
-                            <div className="dimensional-discrepancy-grid">
-                                {dimensionLabels.map(label => (
-                                    <div key={label} className="dimension-input-row">
-                                        <label>{label}</label>
-                                        <input
-                                            type="text"
-                                            value={formState.dimensionReasons[label] || ''}
-                                            onChange={e => setFormState({
-                                                ...formState,
-                                                dimensionReasons: { ...formState.dimensionReasons, [label]: e.target.value }
-                                            })}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
+                            {formState.bench.visualResult === 'not-ok' && (
+                                <div className="form-field fade-in">
+                                    <label className="field-label-sm">Visual Failure Reason</label>
+                                    <select className="field-select" value={formState.bench.visualReason} onChange={e => handleCheckChange('bench', 'visualReason', e.target.value)}>
+                                        <option value="">-- Select Reason --</option>
+                                        {CONSTANTS.BENCH_VISUAL_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                    </select>
+                                </div>
+                            )}
                         </div>
-                    )}
-                </CollapsibleSection>
 
-                <div className="form-field">
-                    <label className="field-label-sm">Remarks</label>
+                        <div className="inspection-content-box">
+                            <div className="form-field mb-16">
+                                <label className="field-label-sm">Dimensional Check Result</label>
+                                <select className="field-select" value={formState.bench.dimensionResult} onChange={e => handleCheckChange('bench', 'dimensionResult', e.target.value)}>
+                                    <option value="ok">OK - Within Tolerance</option>
+                                    <option value="not-ok">NOT OK - Deviation Found</option>
+                                </select>
+                            </div>
+                            {formState.bench.dimensionResult === 'not-ok' && (
+                                <div className="form-field fade-in">
+                                    <label className="field-label-sm">Dimensional Discrepancy Reason</label>
+                                    <select className="field-select" value={formState.bench.dimensionReason} onChange={e => handleCheckChange('bench', 'dimensionReason', e.target.value)}>
+                                        <option value="">-- Select Deviation Area --</option>
+                                        {CONSTANTS.DIMENSION_REASONS.BENCH.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                    </select>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* MOULD SECTION */}
+                    <div className="inspection-part-card mould-theme">
+                        <div className="part-header">
+                            <div className="inspection-badge mould">MOULD</div>
+                            <h4 className="inspection-section-title">Mould Inspection List</h4>
+                        </div>
+
+                        <div className="inspection-content-box">
+                            <div className="form-field mb-16">
+                                <label className="field-label-sm">Visual Check Result</label>
+                                <select className="field-select" value={formState.mould.visualResult} onChange={e => handleCheckChange('mould', 'visualResult', e.target.value)}>
+                                    <option value="ok">OK - Satisfactory</option>
+                                    <option value="not-ok">NOT OK - Needs Attention</option>
+                                </select>
+                            </div>
+                            {formState.mould.visualResult === 'not-ok' && (
+                                <div className="form-field fade-in">
+                                    <label className="field-label-sm">Visual Failure Reason</label>
+                                    <select className="field-select" value={formState.mould.visualReason} onChange={e => handleCheckChange('mould', 'visualReason', e.target.value)}>
+                                        <option value="">-- Select Reason --</option>
+                                        {CONSTANTS.MOULD_VISUAL_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                    </select>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="inspection-content-box">
+                            <div className="form-field mb-16">
+                                <label className="field-label-sm">Dimensional Check Result</label>
+                                <select className="field-select" value={formState.mould.dimensionResult} onChange={e => handleCheckChange('mould', 'dimensionResult', e.target.value)}>
+                                    <option value="ok">OK - Within Tolerance</option>
+                                    <option value="not-ok">NOT OK - Deviation Found</option>
+                                </select>
+                            </div>
+                            {formState.mould.dimensionResult === 'not-ok' && (
+                                <div className="form-field fade-in">
+                                    <label className="field-label-sm">Dimensional Discrepancy Reason</label>
+                                    <select className="field-select" value={formState.mould.dimensionReason} onChange={e => handleCheckChange('mould', 'dimensionReason', e.target.value)}>
+                                        <option value="">-- Select Deviation Area --</option>
+                                        {CONSTANTS.DIMENSION_REASONS.MOULD.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                    </select>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="form-field combined-remarks-field">
+                    <label className="field-label-sm">Combined Inspection Remarks</label>
                     <textarea
                         className="field-textarea"
-                        placeholder="Additional observations..."
+                        placeholder="Additional overall observations..."
                         value={formState.remarks}
                         onChange={e => setFormState({ ...formState, remarks: e.target.value })}
                     />
                 </div>
 
-                <div className="action-row-center mg-t-40">
-                    <button className="toggle-btn" onClick={onSave}>{editingEntry ? 'Update Record' : 'Submit Entry'}</button>
+                <div className="action-row-center inspection-form-actions">
+                    <button className="toggle-btn main-submit-btn" onClick={onSave}>
+                        {editingEntry ? 'Update Record' : 'Submit Joint Entry'}
+                    </button>
+                    <button className="toggle-btn secondary" onClick={onCancel}>Cancel</button>
                 </div>
             </div>
         </div>
@@ -350,46 +403,64 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
     const effectiveShowForm = showForm !== undefined ? showForm : (viewMode === 'form');
 
     const [formState, setFormState] = useState({
-        type: CONSTANTS.ASSET_TYPES.BENCH,
         assetNo: '',
         location: activeContainer?.name || '',
-        lastCasting: '',
+        lastCasting: '2025-01-31',
         sleeperType: 'RT-1234',
         dateOfChecking: DateUtils.getNowISO(),
-        visualResult: 'ok',
-        visualReason: '',
-        dimensionResult: 'ok',
-        dimensionReasons: {},
+        bench: {
+            visualResult: 'ok',
+            visualReason: '',
+            dimensionResult: 'ok',
+            dimensionReason: ''
+        },
+        mould: {
+            visualResult: 'ok',
+            visualReason: '',
+            dimensionResult: 'ok',
+            dimensionReason: ''
+        },
         remarks: ''
     });
 
     useEffect(() => {
-        if (editingEntry) setFormState({ ...editingEntry });
-        else if (activeContainer?.name) setFormState(prev => ({ ...prev, location: activeContainer.name }));
+        if (editingEntry) {
+            // Support legacy format if necessary or assume new format
+            setFormState({ ...editingEntry });
+        } else if (activeContainer?.name) {
+            setFormState(prev => ({ ...prev, location: activeContainer.name }));
+        }
     }, [editingEntry, activeContainer]);
 
     const handleSave = () => {
-        if (!formState.assetNo) return alert('Please enter Asset No.');
+        if (!formState.assetNo) return alert('Please enter Bench/Gang No.');
+
+        const benchOverall = (formState.bench.visualResult === 'ok' && formState.bench.dimensionResult === 'ok') ? 'OK' : 'FAIL';
+        const mouldOverall = (formState.mould.visualResult === 'ok' && formState.mould.dimensionResult === 'ok') ? 'OK' : 'FAIL';
 
         const newRecord = {
             ...formState,
             id: editingEntry ? editingEntry.id : Date.now(),
             timestamp: editingEntry ? editingEntry.timestamp : new Date().toISOString(),
             checkTime: DateUtils.getNowTime(),
-            overallResult: (formState.visualResult === 'ok' && formState.dimensionResult === 'ok') ? 'OK' : 'FAIL'
+            benchOverall,
+            mouldOverall,
+            overallResult: (benchOverall === 'OK' && mouldOverall === 'OK') ? 'OK' : 'FAIL'
         };
 
         setRecords(prev => editingEntry ? prev.map(r => r.id === editingEntry.id ? newRecord : r) : [newRecord, ...prev]);
         handleCloseForm();
     };
 
-    const handleAdd = (type) => {
+    const handleAdd = () => {
         setEditingEntry(null);
         setFormState({
-            type, assetNo: '', location: activeContainer?.name || '',
+            assetNo: '', location: activeContainer?.name || '',
             lastCasting: '2025-01-31', sleeperType: 'RT-1234',
             dateOfChecking: DateUtils.getNowISO(),
-            visualResult: 'ok', visualReason: '', dimensionResult: 'ok', dimensionReasons: {}, remarks: ''
+            bench: { visualResult: 'ok', visualReason: '', dimensionResult: 'ok', dimensionReason: '' },
+            mould: { visualResult: 'ok', visualReason: '', dimensionResult: 'ok', dimensionReason: '' },
+            remarks: ''
         });
         if (setShowForm) setShowForm(true); else setViewMode('form');
     };
@@ -427,20 +498,20 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
             </div>
 
             <div className="mould-bench-content-area">
-                {effectiveShowForm ? (
-                    <InspectionForm
-                        formState={formState}
-                        setFormState={setFormState}
-                        onSave={handleSave}
-                        onCancel={handleCloseForm}
-                        editingEntry={editingEntry}
-                    />
-                ) : (
-                    <>
-                        {activeModule === 'summary' && <AssetSummary allAssets={allAssets} records={records} />}
-                        {activeModule === 'checked' && <HistoryLogs records={records} onAdd={handleAdd} onModify={(r) => { setEditingEntry(r); if (setShowForm) setShowForm(true); else setViewMode('form'); }} onDelete={(id) => setRecords(p => p.filter(r => r.id !== id))} />}
-                        {activeModule === 'allAssets' && <AssetMasterList allAssets={allAssets} records={records} />}
-                    </>
+                {activeModule === 'summary' && <AssetSummary allAssets={allAssets} records={records} />}
+                {activeModule === 'checked' && <HistoryLogs records={records} onAdd={handleAdd} onModify={(r) => { setEditingEntry(r); if (setShowForm) setShowForm(true); else setViewMode('form'); }} onDelete={(id) => setRecords(p => p.filter(r => r.id !== id))} />}
+                {activeModule === 'allAssets' && <AssetMasterList allAssets={allAssets} records={records} />}
+
+                {effectiveShowForm && (
+                    <div style={{ marginTop: '32px' }}>
+                        <InspectionForm
+                            formState={formState}
+                            setFormState={setFormState}
+                            onSave={handleSave}
+                            onCancel={handleCloseForm}
+                            editingEntry={editingEntry}
+                        />
+                    </div>
                 )}
             </div>
         </div>

@@ -148,7 +148,7 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                 </div>
             ) : (
                 <div style={{ display: 'flex', justifyContent: 'center', width: '100%', padding: '1rem 0' }}>
-                    <div style={{ width: '100%', maxWidth: '850px' }}>
+                    <div style={{ width: '100%', maxWidth: '1100px' }}>
                         <MoistureEntryForm
                             onCancel={() => { setView('list'); setEditRecord(null); }}
                             onSave={handleSaveEntry}

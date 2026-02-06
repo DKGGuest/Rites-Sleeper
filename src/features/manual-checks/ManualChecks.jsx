@@ -121,45 +121,116 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
         const records = entries[mod] || [];
         return (
             <div className="table-outer-wrapper fade-in">
-                <div className="content-title-row">
-                    <h4>{getModuleTitle(mod)} History</h4>
-                </div>
+                {/* History Header Removed as per requirement */}
                 <div className="table-responsive">
                     <table className="ui-table">
                         <thead>
                             <tr>
-                                <th>Time</th>
-                                <th>{fieldLabel} No.</th>
-                                {mod === 'mouldPrep' && <><th>Lumps Free</th><th>Oil Applied</th></>}
-                                {mod === 'htsWire' && <><th>Wires</th><th>Satisfactory</th></>}
-                                {mod === 'demoulding' && <><th>Visual</th><th>Result</th></>}
-                                <th className="text-center">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {records.length === 0 ? (
-                                <tr><td colSpan="6" className="empty-msg">No logs found.</td></tr>
-                            ) : (
-                                records.map(entry => (
-                                    <tr key={entry.id} className="table-row-hover">
-                                        <td>{entry.time}</td>
-                                        <td><strong>{entry.benchNo}</strong></td>
-                                        {mod === 'mouldPrep' && (
-                                            <>
-                                                <td className={entry.lumpsFree ? 'text-success' : 'text-danger'}>{entry.lumpsFree ? 'OK' : 'ISSUE'}</td>
-                                                <td className={entry.oilApplied ? 'text-success' : 'text-danger'}>{entry.oilApplied ? 'OK' : 'ISSUE'}</td>
-                                            </>
-                                        )}
+                                {mod === 'mouldPrep' ? (
+                                    <>
+                                        <th style={{ background: '#fffbeb' }}>Line/Shed</th>
+                                        <th style={{ background: '#fffbeb' }}>Date & Time</th>
+                                        <th style={{ background: '#fffbeb' }}>Batch</th>
+                                        <th style={{ background: '#fffbeb' }}>{fieldLabel} No.</th>
+                                        <th style={{ background: '#fffbeb' }}>Type</th>
+                                        <th style={{ background: '#fffbeb' }}>Mould Cleaned?</th>
+                                        <th style={{ background: '#fffbeb' }}>Oil Applied?</th>
+                                    </>
+                                ) : (
+                                    <>
+                                        <th style={{ width: '80px', background: '#fffbeb' }}>Location</th>
+                                        <th style={{ background: '#fffbeb' }}>Date & Time</th>
+                                        <th style={{ background: '#fffbeb' }}>Batch</th>
+                                        <th style={{ background: '#fffbeb' }}>{fieldLabel} No.</th>
+                                        <th style={{ background: '#fffbeb' }}>Type</th>
                                         {mod === 'htsWire' && (
                                             <>
-                                                <td>{entry.wiresUsed}</td>
-                                                <td>{entry.satisfactory ? 'Yes' : 'No'}</td>
+                                                <th style={{ background: '#fffbeb' }}>Wires</th>
+                                                <th style={{ background: '#fffbeb' }}>Arrangement</th>
+                                                <th style={{ background: '#fffbeb' }}>Status</th>
                                             </>
                                         )}
                                         {mod === 'demoulding' && (
                                             <>
-                                                <td>{entry.visualCheck}</td>
-                                                <td><span className={`status-pill ${entry.processSatisfactory ? 'witnessed' : 'manual'}`}>{entry.processSatisfactory ? 'Pass' : 'Fail'}</span></td>
+                                                <th style={{ background: '#fffbeb' }}>Casting</th>
+                                                <th style={{ background: '#fffbeb' }}>Process</th>
+                                                <th style={{ background: '#fffbeb' }}>Check Status</th>
+                                            </>
+                                        )}
+                                    </>
+                                )}
+                                <th className="text-center" style={{ background: '#fffbeb' }}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {records.length === 0 ? (
+                                <tr><td colSpan="10" className="empty-msg">No logs found.</td></tr>
+                            ) : (
+                                records.map(entry => (
+                                    <tr key={entry.id} className="table-row-hover">
+                                        {mod === 'mouldPrep' ? (
+                                            <>
+                                                <td style={{ fontSize: '11px', color: '#64748b' }}>{entry.location || 'N/A'}</td>
+                                                <td>
+                                                    <div style={{ fontSize: '13px', fontWeight: '600' }}>{entry.time}</div>
+                                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>{entry.date || '-'}</div>
+                                                </td>
+                                                <td><span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '700' }}>{entry.batchNo || '-'}</span></td>
+                                                <td><strong>{entry.benchNo}</strong></td>
+                                                <td><small>{entry.sleeperType || '-'}</small></td>
+                                                <td>
+                                                    <span style={{
+                                                        color: entry.lumpsFree === 'Yes' ? '#059669' : '#ef4444',
+                                                        fontWeight: '700',
+                                                        fontSize: '11px'
+                                                    }}>
+                                                        {entry.lumpsFree === 'Yes' ? '✓ CLEAN' : '✗ DIRTY'}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span style={{
+                                                        color: entry.oilApplied === 'Yes' ? '#059669' : '#ef4444',
+                                                        fontWeight: '700',
+                                                        fontSize: '11px'
+                                                    }}>
+                                                        {entry.oilApplied === 'Yes' ? '✓ APPLIED' : '✗ NO'}
+                                                    </span>
+                                                </td>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <td style={{ fontSize: '11px', color: '#64748b' }}>{entry.location || 'N/A'}</td>
+                                                <td>
+                                                    <div style={{ fontSize: '13px', fontWeight: '800' }}>{entry.time}</div>
+                                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>{entry.date}</div>
+                                                </td>
+                                                <td><span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '700' }}>{entry.batchNo || '-'}</span></td>
+                                                <td><strong>{entry.benchNo}</strong></td>
+                                                <td><small>{entry.sleeperType}</small></td>
+
+                                                {mod === 'htsWire' && (
+                                                    <>
+                                                        <td>{entry.wiresUsed}</td>
+                                                        <td>{entry.htsArrangementCheck}</td>
+                                                        <td>
+                                                            <span className={`status-pill ${entry.overallStatus === 'OK' ? 'witnessed' : 'manual'}`} style={{ fontSize: '10px' }}>
+                                                                {entry.overallStatus}
+                                                            </span>
+                                                        </td>
+                                                    </>
+                                                )}
+                                                {mod === 'demoulding' && (
+                                                    <>
+                                                        <td><small>{entry.dateOfCasting ? new Date(entry.dateOfCasting).toLocaleDateString('en-GB') : '-'}</small></td>
+                                                        <td style={{ fontSize: '11px' }}>{entry.processSatisfactory}</td>
+                                                        <td>
+                                                            <div style={{ fontSize: '10px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                                <span style={{ color: entry.visualCheck === 'All OK' ? '#059669' : '#dc2626' }}>V: {entry.visualCheck}</span>
+                                                                <span style={{ color: entry.dimCheck === 'All OK' ? '#059669' : '#dc2626' }}>D: {entry.dimCheck}</span>
+                                                            </div>
+                                                        </td>
+                                                    </>
+                                                )}
                                             </>
                                         )}
                                         <td className="text-center">
@@ -212,11 +283,22 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
             ) : (
                 <div className="fade-in">
                     <div className="content-title-row">
-                        <h3>{editingEntry ? 'Modify' : 'New'} {getModuleTitle(activeModule)}</h3>
-                        <button className="toggle-btn secondary mini" onClick={() => setViewMode('dashboard')}>Back to Logs</button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <button className="back-btn-circle" onClick={() => setViewMode('dashboard')} title="Back to Dashboard">←</button>
+                            <h3 style={{ margin: 0 }}>{editingEntry ? 'Modify' : 'New'} {getModuleTitle(activeModule)}</h3>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <span className="status-pill manual" style={{ padding: '6px 12px' }}>Input Mode</span>
+                        </div>
                     </div>
 
-                    <div className="manual-form-wrapper">
+                    <div className="manual-form-wrapper" style={{
+                        background: '#fff',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+                        border: '1px solid #e2e8f0',
+                        marginBottom: '32px'
+                    }}>
                         {activeModule === 'mouldPrep' && (
                             <MouldPrepForm
                                 onSave={(data) => handleSave('mouldPrep', data)}
@@ -247,6 +329,23 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                                 activeContainer={activeContainer}
                             />
                         )}
+                    </div>
+
+                    {/* NEW SECTION: Logs shown below form */}
+                    <div className="logs-preview-section">
+                        <div style={{
+                            padding: '16px 20px',
+                            background: '#f8fafc',
+                            borderLeft: '4px solid #3b82f6',
+                            marginBottom: '16px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}>
+                            <h4 style={{ margin: 0, fontSize: '0.95rem', color: '#1e293b', fontWeight: '800' }}>RECENTLY SAVED LOGS</h4>
+                            <span style={{ fontSize: '12px', color: '#64748b' }}>Shift: Current</span>
+                        </div>
+                        {renderLogs(activeModule)}
                     </div>
                 </div>
             )}

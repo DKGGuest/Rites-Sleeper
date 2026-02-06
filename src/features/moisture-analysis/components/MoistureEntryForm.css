@@ -233,3 +233,136 @@
     font-size: 0.8rem;
     color: #1e293b;
 }
+
+/* Design Comparison Grid Styles */
+.design-comparison-container {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+}
+
+.comparison-table-header {
+    background: linear-gradient(to right, #f8fafc, #fff);
+    padding: 16px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.header-status-badge {
+    background: #42818c;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+}
+
+.comparison-grid-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.comparison-grid-row {
+    display: grid;
+    grid-template-columns: 160px repeat(8, 1fr);
+    min-width: 950px;
+    /* Ensure columns don't squash too much */
+}
+
+.comparison-grid-row:hover {
+    background-color: rgba(248, 250, 252, 0.5);
+}
+
+.comparison-grid-row.header-row {
+    background: #f1f5f9;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.comparison-grid-row.design-row {
+    background: #f0f9fa;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.comparison-grid-row.input-row {
+    background: #fff;
+}
+
+.cell {
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    font-size: 0.825rem;
+    border-right: 1px solid #f1f5f9;
+    transition: all 0.2s ease;
+}
+
+.cell:last-child {
+    border-right: none;
+}
+
+.col-label {
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    font-size: 0.65rem;
+}
+
+.row-label {
+    background: #f8fafc !important;
+    font-weight: 800;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: #475569;
+}
+
+.design-text {
+    color: #42818c;
+}
+
+.input-text {
+    color: #1e293b;
+}
+
+.data-cell {
+    font-weight: 700;
+    color: #475569;
+}
+
+.data-cell.highlight {
+    color: #42818c;
+    background: rgba(66, 129, 140, 0.05);
+}
+
+.calculated-cell {
+    color: #94a3b8;
+    font-style: italic;
+}
+
+.input-row .cell input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1e293b;
+    background: #f8fafc;
+    transition: all 0.2s;
+}
+
+.input-row .cell input:focus {
+    outline: none;
+    border-color: #42818c;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(66, 129, 140, 0.1);
+}

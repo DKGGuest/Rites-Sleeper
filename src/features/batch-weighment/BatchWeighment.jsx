@@ -90,7 +90,7 @@ const BatchWeighment = ({ onBack, sharedState, activeContainer, displayMode = 'm
         }
     };
 
-    const [formSections, setFormSections] = useState({ declaration: true, scada: true, manual: true });
+    const [formSections, setFormSections] = useState({ declaration: true, scada: true, manual: true, witness: true });
 
     const toggleSection = (section) => {
         setFormSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -165,7 +165,56 @@ const BatchWeighment = ({ onBack, sharedState, activeContainer, displayMode = 'm
                             </div>
                             {formSections.manual && (
                                 <div style={{ padding: '0 1.5rem 1.5rem 1.5rem', borderTop: '1px solid #86efac', paddingTop: '1.5rem' }}>
-                                    <ManualDataEntry batches={batchDeclarations} witnessedRecords={witnessedRecords} onSave={handleSaveWitness} activeContainer={activeContainer} onDelete={handleDelete} />
+                                    <ManualDataEntry batches={batchDeclarations} witnessedRecords={witnessedRecords} onSave={handleSaveWitness} activeContainer={activeContainer} onDelete={handleDelete} hideHistory={true} />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Section 4: Witness Confirmation */}
+                        <div style={{ background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                            <div
+                                onClick={() => toggleSection('witness')}
+                                style={{ padding: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <span style={{ background: '#475569', color: '#fff', fontSize: '0.75rem', fontWeight: '800', width: '24px', height: '24px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>4</span>
+                                    <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b', fontWeight: '800' }}>Witness Confirmation & Logs</h3>
+                                </div>
+                                <span style={{ transition: 'transform 0.2s', transform: formSections.witness ? 'rotate(180deg)' : 'rotate(0deg)', color: '#475569' }}>▼</span>
+                            </div>
+                            {formSections.witness && (
+                                <div style={{ padding: '0 1.5rem 1.5rem 1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
+                                    <div style={{ marginBottom: '1.5rem', display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
+                                        <div className="form-field">
+                                            <label>Verified By (Witness Name)</label>
+                                            <input type="text" placeholder="Enter name" style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }} />
+                                        </div>
+                                        <div className="form-field">
+                                            <label>Overall Batch Remarks</label>
+                                            <input type="text" placeholder="Any deviations or observations..." style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }} />
+                                        </div>
+                                    </div>
+
+                                    {/* History list for current batch session */}
+                                    <ManualDataEntry
+                                        batches={batchDeclarations}
+                                        witnessedRecords={witnessedRecords.filter(r => r.batchNo === selectedBatchNo)}
+                                        onSave={handleSaveWitness}
+                                        activeContainer={activeContainer}
+                                        onDelete={handleDelete}
+                                        onlyHistory={true}
+                                        small={true}
+                                    />
+
+                                    <div style={{ marginTop: '1.5rem', textAlign: 'center', padding: '1.25rem', borderTop: '1px dashed #e2e8f0' }}>
+                                        <button
+                                            className="toggle-btn"
+                                            onClick={() => { alert('Batch data confirmed and locked.'); setShowForm(false); }}
+                                            style={{ minWidth: '200px', height: '40px', fontSize: '0.85rem', background: '#1e293b' }}
+                                        >
+                                            Confirm & Save Batch Records
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>

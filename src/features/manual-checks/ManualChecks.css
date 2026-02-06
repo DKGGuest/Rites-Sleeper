@@ -101,6 +101,58 @@
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
 }
 
+/* Standard Form Grid for Dynamic Layouts */
+.form-grid-standard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    background: #fcfcfc;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid #eef2f6;
+}
+
+.form-field-full {
+    grid-column: 1 / -1;
+}
+
+.form-actions-row {
+    margin-top: 24px;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.form-actions-row button {
+    flex: 1;
+    min-width: 160px;
+    max-width: 240px;
+    height: 44px;
+    font-weight: 800;
+    border-radius: 50px;
+    /* Pill shape to match toggle-btn */
+}
+
+.form-info-card {
+    padding: 10px;
+    background: #f1f5f9;
+    border-radius: 6px;
+    font-weight: 700;
+    color: #475569;
+    font-size: 13px;
+    border: 1px solid #e2e8f0;
+}
+
+.form-input-standard {
+    padding: 10px;
+    font-size: 13px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    width: 100%;
+    background: white;
+}
+
 @media (max-width: 768px) {
     .sub-cards-grid {
         grid-template-columns: 1fr;
@@ -108,5 +160,15 @@
 
     .manual-sub-card {
         min-height: auto;
+    }
+
+    .form-grid-standard {
+        grid-template-columns: 1fr;
+        padding: 12px;
+    }
+
+    .form-actions-row button {
+        max-width: none;
+        width: 100%;
     }
 }

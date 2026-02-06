@@ -11,21 +11,25 @@ import '../../../components/common/Checkbox.css';
  */
 const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initialData, activeContainer }) => {
     const [formData, setFormData] = useState({
+        date: new Date().toLocaleDateString('en-GB'), // Auto date
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+        batchNo: '',
         benchNo: '',
-        lumpsFree: false,
-        oilApplied: false,
+        lumpsFree: 'Yes',
+        oilApplied: 'Yes',
         remarks: ''
     });
 
     React.useEffect(() => {
         if (initialData) {
             setFormData({
+                date: initialData.date || new Date().toLocaleDateString('en-GB'),
                 time: initialData.time,
+                batchNo: initialData.batchNo || '',
                 benchNo: initialData.benchNo,
-                lumpsFree: initialData.lumpsFree,
-                oilApplied: initialData.oilApplied,
-                remarks: initialData.remarks
+                lumpsFree: initialData.lumpsFree === true ? 'Yes' : (initialData.lumpsFree === false ? 'No' : (initialData.lumpsFree || 'Yes')),
+                oilApplied: initialData.oilApplied === true ? 'Yes' : (initialData.oilApplied === false ? 'No' : (initialData.oilApplied || 'Yes')),
+                remarks: initialData.remarks || ''
             });
         }
     }, [initialData]);
@@ -35,16 +39,20 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
     };
 
     const handleSave = () => {
-        if (!formData.time || !formData.benchNo) {
-            alert('Please fill in all required fields.');
+        if (!formData.time || !formData.benchNo || !formData.batchNo) {
+            alert('Please fill in all required fields (Batch No, Time and Number).');
             return;
         }
 
-        // Strict Duplicate Check
-        const isDuplicate = (existingEntries || []).some(entry => entry.benchNo === formData.benchNo && entry.id !== initialData?.id);
+        // Strict Duplicate Check (Bench/Batch)
+        const isDuplicate = (existingEntries || []).some(entry =>
+            entry.benchNo === formData.benchNo &&
+            entry.batchNo === formData.batchNo &&
+            entry.id !== initialData?.id
+        );
         if (isDuplicate) {
             const fieldLabel = isLongLine ? 'Gang' : 'Bench';
-            alert(`${fieldLabel} No. ${formData.benchNo} has already been entered in this shift. Duplicate entries are not allowed.`);
+            alert(`${fieldLabel} No. ${formData.benchNo} for Batch ${formData.batchNo} has already been entered. Duplicate entries are not allowed.`);
             return;
         }
 
@@ -56,77 +64,112 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
     const fieldLabel = isLongLine ? 'Gang' : 'Bench';
 
     return (
-        <div className="form-container">
-            <div className="form-section-header">
-                <h3>Mould Preparation Details ({isLongLine ? 'Long Line Plant' : 'Short Line Plant'})</h3>
-            </div>
-            <div className="form-grid">
+        <div className="form-container" style={{ padding: '20px' }}>
+            <div className="form-grid-standard">
+                {/* 1. Line/Shed No (Auto) */}
                 <div className="form-field">
-                    <label>{activeContainer?.type === 'Line' ? 'Line No.' : 'Shed No.'}</label>
-                    <input
-                        type="text"
-                        readOnly
-                        value={activeContainer?.name || ''}
-                        className="readOnly"
-                        style={{ background: '#f8fafc', color: '#64748b' }}
-                    />
+                    <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Line / Shed No.</label>
+                    <div className="form-info-card">
+                        {activeContainer?.name || 'N/A'}
+                    </div>
                 </div>
+
+                {/* 2. Date (Auto) */}
                 <div className="form-field">
-                    <label htmlFor="prep-time">Time <span className="required">*</span></label>
+                    <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Date</label>
+                    <div className="form-info-card">
+                        {formData.date}
+                    </div>
+                </div>
+
+                {/* 3. Time */}
+                <div className="form-field">
+                    <label htmlFor="prep-time" style={{ fontSize: '11px', fontWeight: '700' }}>Time <span className="required">*</span></label>
                     <input
                         id="prep-time"
                         type="time"
+                        className="form-input-standard"
                         value={formData.time}
                         onChange={e => handleChange('time', e.target.value)}
                     />
                 </div>
+
+                {/* 4. Batch No (Int) */}
                 <div className="form-field">
-                    <label htmlFor="bench-no">{fieldLabel} No. <span className="required">*</span></label>
+                    <label htmlFor="batch-no" style={{ fontSize: '11px', fontWeight: '700' }}>Batch No. <span className="required">*</span></label>
+                    <input
+                        id="batch-no"
+                        type="number"
+                        placeholder="Batch No"
+                        className="form-input-standard"
+                        value={formData.batchNo}
+                        onChange={e => handleChange('batchNo', e.target.value)}
+                    />
+                </div>
+
+                {/* 5. Bench/Gang No (Int) */}
+                <div className="form-field">
+                    <label htmlFor="bench-no" style={{ fontSize: '11px', fontWeight: '700' }}>{fieldLabel} No. <span className="required">*</span></label>
                     <input
                         id="bench-no"
                         type="number"
-                        min="0"
-                        placeholder={`Enter ${fieldLabel} Number`}
+                        placeholder={`${fieldLabel} No`}
+                        className="form-input-standard"
                         value={formData.benchNo}
                         onChange={e => handleChange('benchNo', e.target.value)}
                     />
                 </div>
-                <div className="form-field" style={{ gridColumn: 'span 2' }}>
-                    <label>Quality Checks</label>
-                    <div className="checkbox-group" style={{ display: 'flex', gap: '2.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
-                        <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontWeight: '500' }}>
-                            <input
-                                type="checkbox"
-                                checked={formData.lumpsFree}
-                                onChange={e => handleChange('lumpsFree', e.target.checked)}
-                            />
-                            Free from concrete lumps & foreign matters etc.
-                        </label>
-                        <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontWeight: '500' }}>
-                            <input
-                                type="checkbox"
-                                checked={formData.oilApplied}
-                                onChange={e => handleChange('oilApplied', e.target.checked)}
-                            />
-                            Mould Oil Applied
-                        </label>
-                    </div>
-                </div>
+
+                {/* 6. Lumps Free (Dropdown) */}
                 <div className="form-field">
-                    <label htmlFor="remarks">Remarks</label>
+                    <label style={{ fontSize: '11px', fontWeight: '700' }}>Mould Cleaned? <span className="required">*</span></label>
+                    <select
+                        className="form-input-standard"
+                        value={formData.lumpsFree}
+                        onChange={e => handleChange('lumpsFree', e.target.value)}
+                    >
+                        <option value="Yes">Yes (Lumps Free)</option>
+                        <option value="No">No (Has Lumps)</option>
+                    </select>
+                </div>
+
+                {/* 7. Mould Oil (Dropdown) */}
+                <div className="form-field">
+                    <label style={{ fontSize: '11px', fontWeight: '700' }}>Oil Applied? <span className="required">*</span></label>
+                    <select
+                        className="form-input-standard"
+                        value={formData.oilApplied}
+                        onChange={e => handleChange('oilApplied', e.target.value)}
+                    >
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
+                {/* Remarks - Span wider if possible */}
+                <div className="form-field form-field-full">
+                    <label htmlFor="remarks" style={{ fontSize: '11px', fontWeight: '700' }}>Remarks</label>
                     <input
                         id="remarks"
                         type="text"
-                        placeholder="Enter additional remarks"
+                        placeholder="Additional remarks"
+                        className="form-input-standard"
                         value={formData.remarks}
                         onChange={e => handleChange('remarks', e.target.value)}
                     />
                 </div>
             </div>
-            <div className="form-actions-center" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                <button className="toggle-btn" onClick={handleSave}>Save Entry</button>
+
+            <div className="form-actions-row">
+                <button className="toggle-btn" onClick={handleSave}>
+                    {initialData ? 'Update Entry' : 'Save Entry'}
+                </button>
+                {initialData && (
+                    <button className="toggle-btn secondary" onClick={onCancel}>Cancel</button>
+                )}
             </div>
         </div>
+
     );
 };
 

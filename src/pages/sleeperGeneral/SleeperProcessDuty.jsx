@@ -25,6 +25,7 @@ const SleeperProcessDuty = () => {
     const [activeContainerId, setActiveContainerId] = useState(1);
     const [showContainerForm, setShowContainerForm] = useState(false);
     const [newContainer, setNewContainer] = useState({ type: 'Line', value: 'Line I' });
+    const [containerToDelete, setContainerToDelete] = useState(null);
 
     const containerValues = {
         'Line': ['Line I', 'Line II', 'Line III', 'Line IV'],
@@ -193,15 +194,20 @@ const SleeperProcessDuty = () => {
             alert("At least one Line or Shed must be active for duty.");
             return;
         }
-        if (window.confirm(`Are you sure you want to remove ${name}? All temporary shift data for this section will be cleared.`)) {
-            setContainers(prev => {
-                const filtered = prev.filter(c => c.id !== id);
-                if (activeContainerId === id) {
-                    setActiveContainerId(filtered[0]?.id || null);
-                }
-                return filtered;
-            });
-        }
+        setContainerToDelete({ id, name });
+    };
+
+    const confirmDeleteContainer = () => {
+        if (!containerToDelete) return;
+        const { id } = containerToDelete;
+        setContainers(prev => {
+            const filtered = prev.filter(c => c.id !== id);
+            if (activeContainerId === id) {
+                setActiveContainerId(filtered[0]?.id || null);
+            }
+            return filtered;
+        });
+        setContainerToDelete(null);
     };
 
     if (!dutyStarted) {
@@ -342,28 +348,51 @@ const SleeperProcessDuty = () => {
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <div style={{ background: '#f1f5f9', padding: '4px', borderRadius: '12px', display: 'flex', gap: '2px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ background: '#f1f5f9', padding: '4px', borderRadius: '12px', display: 'flex', gap: '6px', border: '1px solid #e2e8f0' }}>
                             {containers.map(c => (
-                                <button
-                                    key={c.id}
-                                    onClick={() => setActiveContainerId(c.id)}
-                                    style={{
-                                        padding: '8px 16px',
-                                        borderRadius: '10px',
-                                        border: 'none',
-                                        background: activeContainerId === c.id ? '#fff' : 'transparent',
-                                        color: activeContainerId === c.id ? '#42818c' : '#64748b',
-                                        fontSize: '0.75rem',
-                                        fontWeight: '800',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        boxShadow: activeContainerId === c.id ? '0 4px 6px -1px rgba(0,0,0,0.05)' : 'none',
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '0.5px'
-                                    }}
-                                >
-                                    {c.name}
-                                </button>
+                                <div key={c.id} style={{ position: 'relative' }}>
+                                    <button
+                                        onClick={() => setActiveContainerId(c.id)}
+                                        style={{
+                                            padding: '8px 16px',
+                                            borderRadius: '10px',
+                                            border: activeContainerId === c.id ? '1px solid #42818c' : 'none',
+                                            background: activeContainerId === c.id ? '#fff' : 'transparent',
+                                            color: activeContainerId === c.id ? '#42818c' : '#64748b',
+                                            fontSize: '0.75rem',
+                                            fontWeight: '800',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            boxShadow: activeContainerId === c.id ? '0 4px 6px -1px rgba(0,0,0,0.05)' : 'none',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.5px'
+                                        }}
+                                    >
+                                        {c.name}
+                                    </button>
+                                    <button
+                                        onClick={(e) => handleDeleteContainer(c.id, c.name, e)}
+                                        style={{
+                                            position: 'absolute',
+                                            top: '-4px',
+                                            right: '-4px',
+                                            width: '16px',
+                                            height: '16px',
+                                            borderRadius: '50%',
+                                            background: '#fff',
+                                            color: '#ef4444',
+                                            border: '1px solid #fee2e2',
+                                            fontSize: '10px',
+                                            fontWeight: '900',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                            zIndex: 5
+                                        }}
+                                    >×</button>
+                                </div>
                             ))}
                         </div>
                         <button className="btn-secondary" onClick={() => setShowContainerForm(true)} style={{ padding: '8px 12px', fontSize: '0.75rem' }}>+ Add</button>
@@ -748,6 +777,81 @@ const SleeperProcessDuty = () => {
                     onBack={() => setShowCompactionConsole(false)}
                     onSave={() => { }}
                 />
+            )}
+
+            {/* Global Custom Alert Dialog for Container Deletion */}
+            {containerToDelete && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(15, 23, 42, 0.65)',
+                    zIndex: 99999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backdropFilter: 'blur(4px)'
+                }}>
+                    <div className="fade-in" style={{
+                        width: '320px',
+                        background: '#fff',
+                        borderRadius: '24px',
+                        padding: '2rem',
+                        textAlign: 'center',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                        border: '1px solid #e2e8f0'
+                    }}>
+                        <div style={{
+                            width: '56px',
+                            height: '56px',
+                            background: '#fee2e2',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: '0 auto 1.5rem auto',
+                            color: '#ef4444',
+                            fontSize: '24px'
+                        }}>!</div>
+                        <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: '800', color: '#1e293b' }}>Confirm Removal</h3>
+                        <p style={{ margin: '0 0 2rem 0', fontSize: '0.875rem', color: '#64748b', lineHeight: '1.5' }}>
+                            Are you sure you want to remove <strong>{containerToDelete.name}</strong>? All temporary shift records for this section will be cleared.
+                        </p>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                            <button
+                                onClick={() => setContainerToDelete(null)}
+                                style={{
+                                    flex: 1,
+                                    padding: '12px',
+                                    borderRadius: '12px',
+                                    border: '1px solid #e2e8f0',
+                                    background: '#f8fafc',
+                                    color: '#64748b',
+                                    fontWeight: '800',
+                                    fontSize: '0.8rem',
+                                    cursor: 'pointer'
+                                }}
+                            >Cancel</button>
+                            <button
+                                onClick={confirmDeleteContainer}
+                                style={{
+                                    flex: 1,
+                                    padding: '12px',
+                                    borderRadius: '12px',
+                                    border: 'none',
+                                    background: '#ef4444',
+                                    color: '#fff',
+                                    fontWeight: '800',
+                                    fontSize: '0.8rem',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.2)'
+                                }}
+                            >Remove</button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

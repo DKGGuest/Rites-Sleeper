@@ -2,8 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import './MoistureEntryForm.css';
 
 const MIX_DESIGNS = [
-    { id: 'MIX-01', name: 'M60 - Standard Sleeper (Approved)', cement: '175.5', ca1: '436.2', ca2: '178.6', fa: '207.1', water: '37.0', ac: '4.69', wc: '0.211' },
-    { id: 'MIX-02', name: 'M55 - Special Project (Approved)', cement: '170.0', ca1: '440.0', ca2: '180.0', fa: '210.0', water: '38.0', ac: '4.88', wc: '0.223' },
+    { id: 'MIX-01', name: 'M60 - Standard Sleeper (Approved)', cement: '175.5', ca1: '436.2', ca2: '178.6', fa: '207.1', water: '37.0', admix: '1.44', ac: '4.69', wc: '0.211' },
+    { id: 'MIX-02', name: 'M55 - Special Project (Approved)', cement: '170.0', ca1: '440.0', ca2: '180.0', fa: '210.0', water: '38.0', admix: '1.40', ac: '4.88', wc: '0.223' },
 ];
 
 /**
@@ -36,7 +36,8 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
         userDryCement: initialData?.userDryCement || '',
 
         designAC: initialData?.designAC || '',
-        designWC: initialData?.designWC || ''
+        designWC: initialData?.designWC || '',
+        designValues: initialData?.designValues || null
     });
 
     // Aggregate Data for CA1, CA2, FA
@@ -56,14 +57,12 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                     designValues: mix,
                     designAC: mix.ac,
                     designWC: mix.wc,
-                    // Optionally pre-fill user values if desired, or leave empty for mandatory manual entry
-                    // Let's leave them empty to ensure user enters them as requested
                     userDryCA1: '',
                     userDryCA2: '',
                     userDryFA: '',
                     userDryWater: '',
                     userDryCement: '',
-                    userDryAdmix: '1.44'
+                    userDryAdmix: mix.admix // Default to design admix but editable
                 }));
                 return;
             }
@@ -225,67 +224,62 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                 </div>
 
                 {commonData.mixDesignId && (
-                    <div style={{ marginTop: '24px', animation: 'fadeIn 0.3s' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                            <div className="design-weights-card">
-                                <h5 className="sub-header-mini" style={{ color: '#42818c', borderLeft: '3px solid #42818c', paddingLeft: '8px' }}>
-                                    Standard Design Parameters (Read Only)
-                                </h5>
-                                <div className="design-params-grid">
-                                    <div className="param-item"><span>Design A/C:</span> <strong>{commonData.designAC}</strong></div>
-                                    <div className="param-item"><span>Design W/C:</span> <strong>{commonData.designWC}</strong></div>
-                                </div>
-                                <div className="design-table-wrapper">
-                                    <table className="design-mini-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Cement</th>
-                                                <th>CA1 (20)</th>
-                                                <th>CA2 (10)</th>
-                                                <th>FA</th>
-                                                <th>Water</th>
-                                                <th>Admix</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>{commonData.designValues?.cement}</td>
-                                                <td>{commonData.designValues?.ca1}</td>
-                                                <td>{commonData.designValues?.ca2}</td>
-                                                <td>{commonData.designValues?.fa}</td>
-                                                <td>{commonData.designValues?.water}</td>
-                                                <td>{commonData.designValues?.ac}</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
+                    <div className="design-comparison-container" style={{ marginTop: '24px', animation: 'fadeIn 0.3s' }}>
+
+                        <div className="comparison-table-header">
+                            <div style={{ flex: 1 }}>Design Parameters & Input Verification</div>
+                            <div className="header-status-badge">Mix: {commonData.designValues?.name}</div>
+                        </div>
+
+                        <div className="comparison-grid-wrapper">
+                            {/* Column Headers */}
+                            <div className="comparison-grid-row header-row">
+                                <div className="cell col-label">Category</div>
+                                <div className="cell col-label">Design A/C</div>
+                                <div className="cell col-label">Design W/C</div>
+                                <div className="cell col-label">Cement</div>
+                                <div className="cell col-label">CA1 (20)</div>
+                                <div className="cell col-label">CA2 (10)</div>
+                                <div className="cell col-label">FA</div>
+                                <div className="cell col-label">Water</div>
+                                <div className="cell col-label">Admix</div>
                             </div>
 
-                            <div className="user-weights-card">
-                                <h5 className="sub-header-mini" style={{ color: '#0f172a', borderLeft: '3px solid #0f172a', paddingLeft: '8px' }}>
-                                    Enter Actual Batch Dry Weights (User Input)
-                                </h5>
-                                <div className="user-inputs-grid">
-                                    {[
-                                        { id: 'Cement', label: 'Cement' },
-                                        { id: 'CA1', label: 'CA1 (20)' },
-                                        { id: 'CA2', label: 'CA2 (10)' },
-                                        { id: 'FA', label: 'FA' },
-                                        { id: 'Water', label: 'Water' },
-                                        { id: 'Admix', label: 'Admix' }
-                                    ].map(item => (
-                                        <div className="form-field-slim" key={item.id}>
-                                            <label>{item.label}</label>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                step="0.01"
-                                                placeholder="0.00"
-                                                value={commonData[`userDry${item.id}`]}
-                                                onChange={e => handleCommonChange(`userDry${item.id}`, e.target.value)}
-                                            />
-                                        </div>
-                                    ))}
+                            {/* Row 1: Autofetched (Design) */}
+                            <div className="comparison-grid-row design-row">
+                                <div className="cell row-label design-text">Approved Design</div>
+                                <div className="cell data-cell highlight">{commonData.designAC}</div>
+                                <div className="cell data-cell highlight">{commonData.designWC}</div>
+                                <div className="cell data-cell">{commonData.designValues?.cement}</div>
+                                <div className="cell data-cell">{commonData.designValues?.ca1}</div>
+                                <div className="cell data-cell">{commonData.designValues?.ca2}</div>
+                                <div className="cell data-cell">{commonData.designValues?.fa}</div>
+                                <div className="cell data-cell">{commonData.designValues?.water}</div>
+                                <div className="cell data-cell">{commonData.designValues?.admix}</div>
+                            </div>
+
+                            {/* Row 2: User Inputs (Manual) */}
+                            <div className="comparison-grid-row input-row">
+                                <div className="cell row-label input-text">Actual Batch</div>
+                                <div className="cell data-cell calculated-cell">--</div>
+                                <div className="cell data-cell calculated-cell">--</div>
+                                <div className="cell data-cell">
+                                    <input type="number" step="0.01" value={commonData.userDryCement} onChange={e => handleCommonChange('userDryCement', e.target.value)} placeholder="0.00" />
+                                </div>
+                                <div className="cell data-cell">
+                                    <input type="number" step="0.01" value={commonData.userDryCA1} onChange={e => handleCommonChange('userDryCA1', e.target.value)} placeholder="0.00" />
+                                </div>
+                                <div className="cell data-cell">
+                                    <input type="number" step="0.01" value={commonData.userDryCA2} onChange={e => handleCommonChange('userDryCA2', e.target.value)} placeholder="0.00" />
+                                </div>
+                                <div className="cell data-cell">
+                                    <input type="number" step="0.01" value={commonData.userDryFA} onChange={e => handleCommonChange('userDryFA', e.target.value)} placeholder="0.00" />
+                                </div>
+                                <div className="cell data-cell">
+                                    <input type="number" step="0.01" value={commonData.userDryWater} onChange={e => handleCommonChange('userDryWater', e.target.value)} placeholder="0.00" />
+                                </div>
+                                <div className="cell data-cell">
+                                    <input type="number" step="0.01" value={commonData.userDryAdmix} onChange={e => handleCommonChange('userDryAdmix', e.target.value)} placeholder="0.00" />
                                 </div>
                             </div>
                         </div>
