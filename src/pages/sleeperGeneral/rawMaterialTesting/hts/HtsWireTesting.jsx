@@ -221,14 +221,14 @@ const HtsWireTesting = ({ onBack }) => {
                                     <div className="input-group">
                                         <label>Consignment No. <span className="required">*</span></label>
                                         <select {...register('consignmentNo', { required: 'Required' })}>
-                                            <option value="">Select Consignment</option>
+                                            <option value="">-- Select --</option>
                                             {MOCK_VERIFIED_CONSIGNMENTS.map(c => <option key={c} value={c}>{c}</option>)}
                                         </select>
                                     </div>
                                     <div className="input-group">
                                         <label>Coil No. <span className="required">*</span></label>
                                         <select {...register('coilNo', { required: 'Coil No. is required' })}>
-                                            <option value="">Select Coil</option>
+                                            <option value="">-- Select --</option>
                                             {availableCoils.map(c => <option key={c.id} value={c.coilNo}>{c.coilNo}</option>)}
                                         </select>
                                     </div>

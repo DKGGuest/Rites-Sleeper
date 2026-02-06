@@ -24,7 +24,7 @@ const SleeperProcessDuty = () => {
     const [containers, setContainers] = useState([{ id: 1, type: 'Line', name: 'Line I' }]);
     const [activeContainerId, setActiveContainerId] = useState(1);
     const [showContainerForm, setShowContainerForm] = useState(false);
-    const [newContainer, setNewContainer] = useState({ type: 'Line', value: 'Line I' });
+    const [newContainer, setNewContainer] = useState({ type: '', value: '' });
     const [containerToDelete, setContainerToDelete] = useState(null);
 
     const containerValues = {
@@ -87,7 +87,7 @@ const SleeperProcessDuty = () => {
     };
 
 
-    const [selectedBatchNo, setSelectedBatchNo] = useState('601');
+    const [selectedBatchNo, setSelectedBatchNo] = useState('');
 
     const [selectedManualTabModule, setSelectedManualTabModule] = useState('mouldPrep');
     const [selectedMouldBenchModule, setSelectedMouldBenchModule] = useState('summary');
@@ -97,8 +97,8 @@ const SleeperProcessDuty = () => {
         { id: 102, time: '09:16:45', batchNo: '605', benchNo: '1', rpm: 8900, duration: 48, vibratorId: 'VIB-02', tachoCount: 4, workingTachos: 4 },
         { id: 103, time: '09:18:10', batchNo: '605', benchNo: '2', rpm: 9150, duration: 42, vibratorId: 'VIB-03', tachoCount: 4, workingTachos: 3 },
     ]);
-    const [selectedCompactionBatch, setSelectedCompactionBatch] = useState('605');
-    const [selectedTensionBatch, setSelectedTensionBatch] = useState('601');
+    const [selectedCompactionBatch, setSelectedCompactionBatch] = useState('');
+    const [selectedTensionBatch, setSelectedTensionBatch] = useState('');
 
     const [testedRecords, setTestedRecords] = useState([
         { id: 101, cubeNo: '301B', batchNo: 608, grade: 'M55', strength: '42.5', testDate: '2026-01-30', timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString() },
@@ -114,7 +114,7 @@ const SleeperProcessDuty = () => {
     const [steamRecords, setSteamRecords] = useState([
         { id: 1, batchNo: '601', chamberNo: '1', date: '2026-01-20', preDur: 2.25, risePeriod: 2.25, riseRate: 13.3, constTemp: 58, constDur: 4.0, coolDur: 2.5, coolRate: 11.2 },
     ]);
-    const [selectedSteamBatch, setSelectedSteamBatch] = useState('601');
+    const [selectedSteamBatch, setSelectedSteamBatch] = useState('');
 
     // Mould & Bench Checking Data
     const [benchMouldCheckRecords, setBenchMouldCheckRecords] = useState([
@@ -182,10 +182,15 @@ const SleeperProcessDuty = () => {
     ];
 
     const handleAddContainer = () => {
+        if (!newContainer.type || !newContainer.value) {
+            alert("Please select both Type and Identity.");
+            return;
+        }
         const id = Date.now();
         setContainers(prev => [...prev, { id, type: newContainer.type, name: newContainer.value }]);
         setActiveContainerId(id);
         setShowContainerForm(false);
+        setNewContainer({ type: '', value: '' });
     };
 
     const handleDeleteContainer = (id, name, e) => {
@@ -301,6 +306,7 @@ const SleeperProcessDuty = () => {
                                         onChange={e => setNewContainer({ ...newContainer, type: e.target.value, value: containerValues[e.target.value][0] })}
                                         style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: 'var(--fs-xs)', fontWeight: '600' }}
                                     >
+                                        <option value="">Select Type</option>
                                         <option value="Line">Line</option>
                                         <option value="Shed">Shed</option>
                                     </select>
@@ -312,7 +318,8 @@ const SleeperProcessDuty = () => {
                                         onChange={e => setNewContainer({ ...newContainer, value: e.target.value })}
                                         style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: 'var(--fs-xs)', fontWeight: '600' }}
                                     >
-                                        {containerValues[newContainer.type].map(val => <option key={val} value={val}>{val}</option>)}
+                                        <option value="">Select Identity</option>
+                                        {newContainer.type && containerValues[newContainer.type].map(val => <option key={val} value={val}>{val}</option>)}
                                     </select>
                                 </div>
                             </div>
@@ -415,9 +422,10 @@ const SleeperProcessDuty = () => {
                                 <label style={{ fontSize: '0.65rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Select Type</label>
                                 <select
                                     value={newContainer.type}
-                                    onChange={e => setNewContainer({ ...newContainer, type: e.target.value, value: containerValues[e.target.value][0] })}
+                                    onChange={e => setNewContainer({ ...newContainer, type: e.target.value, value: containerValues[e.target.value] ? containerValues[e.target.value][0] : '' })}
                                     style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: 'var(--fs-xs)', fontWeight: '600' }}
                                 >
+                                    <option value="">Select Type</option>
                                     <option value="Line">Line</option>
                                     <option value="Shed">Shed</option>
                                 </select>
@@ -429,7 +437,8 @@ const SleeperProcessDuty = () => {
                                     onChange={e => setNewContainer({ ...newContainer, value: e.target.value })}
                                     style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: 'var(--fs-xs)', fontWeight: '600' }}
                                 >
-                                    {containerValues[newContainer.type].map(val => <option key={val} value={val}>{val}</option>)}
+                                    <option value="">Select Identity</option>
+                                    {newContainer.type && containerValues[newContainer.type].map(val => <option key={val} value={val}>{val}</option>)}
                                 </select>
                             </div>
                             <div style={{ display: 'flex', gap: '8px', flex: '2 1 200px' }}>

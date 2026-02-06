@@ -27,7 +27,7 @@ const CompactionSubCard = ({ id, title, color, statusDetail, isActive, onClick }
 
 const CompactionConcrete = ({ onBack, onSave, displayMode = 'modal' }) => {
     const [viewMode, setViewMode] = useState('witnessed'); // Default to 'witnessed'
-    const [selectedBatch, setSelectedBatch] = useState('615');
+    const [selectedBatch, setSelectedBatch] = useState('');
     const [showForm, setShowForm] = useState(false);
 
     // Mock SCADA Data

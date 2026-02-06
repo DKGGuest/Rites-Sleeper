@@ -93,7 +93,7 @@ export default function CrushingImpactAbrasion10mm({ onSave, onCancel, consignme
                             <div className="input-group">
                                 <label>Consignment No. <span className="required">*</span></label>
                                 <select {...register("consignmentNo", { required: "Required" })}>
-                                    <option value="">Select Consignment</option>
+                                    <option value="">-- Select --</option>
                                     {MOCK_VERIFIED_CONSIGNMENTS.map(c => (
                                         <option key={c} value={c}>{c}</option>
                                     ))}

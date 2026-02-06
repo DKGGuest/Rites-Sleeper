@@ -214,7 +214,7 @@ const VisualInspectionForm = ({ batch, onSave, onCancel }) => {
                                                         value={sectionStates[s.id].globalRemark || ''}
                                                         onChange={(e) => handleSectionChange(s.id, 'globalRemark', e.target.value)}
                                                     >
-                                                        <option value="">Select Reason...</option>
+                                                        <option value="">-- Select --</option>
                                                         {getRejectionOptions(s.id).map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                                     </select>
                                                 ) : (
@@ -287,7 +287,7 @@ const VisualInspectionForm = ({ batch, onSave, onCancel }) => {
                                                                             handleSectionChange(s.id, 'remarks', newRemarks);
                                                                         }}
                                                                     >
-                                                                        <option value="">Select Reason...</option>
+                                                                        <option value="">-- Select --</option>
                                                                         {getRejectionOptions(s.id).map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                                                     </select>
                                                                 ) : (

@@ -301,8 +301,8 @@ const WaterCubeTesting = () => {
 
 const SampleDeclarationModal = ({ batch, isModifying, onClose, onSave }) => {
     const [form, setForm] = useState({
-        sample1: isModifying ? batch.sample1Raw : [{ bench: '', seq: 'A' }, { bench: '', seq: 'A' }, { bench: '', seq: 'A' }],
-        sample2: isModifying ? batch.sample2Raw : [{ bench: '', seq: 'A' }, { bench: '', seq: 'A' }, { bench: '', seq: 'A' }]
+        sample1: isModifying ? batch.sample1Raw : [{ bench: '', seq: '' }, { bench: '', seq: '' }, { bench: '', seq: '' }],
+        sample2: isModifying ? batch.sample2Raw : [{ bench: '', seq: '' }, { bench: '', seq: '' }, { bench: '', seq: '' }]
     });
 
     const handleUpdate = (sampleIdx, cubeIdx, field, val) => {
@@ -346,6 +346,7 @@ const SampleDeclarationModal = ({ batch, isModifying, onClose, onSave }) => {
                                         </div>
                                         <div className="input-group">
                                             <select value={c.seq} onChange={(e) => handleUpdate(sIdx, cIdx, 'seq', e.target.value)}>
+                                                <option value="">Select No.</option>
                                                 <optgroup label="Single Bench">
                                                     {['A', 'B', 'C', 'D'].map(s => <option key={s} value={s}>{s}</option>)}
                                                 </optgroup>
@@ -361,15 +362,22 @@ const SampleDeclarationModal = ({ batch, isModifying, onClose, onSave }) => {
                     </div>
 
                     <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
-                        <button className="btn-verify" style={{ flex: 1, padding: '14px' }} onClick={() => onSave({
-                            batchNo: batch.batchNo,
-                            grade: batch.grade,
-                            castingDate: batch.date || batch.castingDate,
-                            sample1Raw: form.sample1,
-                            sample2Raw: form.sample2,
-                            sample1: form.sample1.map(c => `${c.bench}${c.seq}`),
-                            sample2: form.sample2.map(c => `${c.bench}${c.seq}`),
-                        })}>
+                        <button className="btn-verify" style={{ flex: 1, padding: '14px' }} onClick={() => {
+                            const allCubes = [...form.sample1, ...form.sample2];
+                            if (allCubes.some(c => !c.bench || !c.seq)) {
+                                alert("Please provide both Bench Number and Sequence for all samples.");
+                                return;
+                            }
+                            onSave({
+                                batchNo: batch.batchNo,
+                                grade: batch.grade,
+                                castingDate: batch.date || batch.castingDate,
+                                sample1Raw: form.sample1,
+                                sample2Raw: form.sample2,
+                                sample1: form.sample1.map(c => `${c.bench}${c.seq}`),
+                                sample2: form.sample2.map(c => `${c.bench}${c.seq}`),
+                            });
+                        }}>
                             {isModifying ? 'Update Declaration' : 'Finalize Declaration'}
                         </button>
                         <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: 'none' }} onClick={onClose}>Cancel</button>

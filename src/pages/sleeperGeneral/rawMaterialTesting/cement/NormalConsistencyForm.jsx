@@ -59,7 +59,7 @@ export default function NormalConsistencyForm() {
                     <div className="input-group">
                         <label>Type of Testing <span className="required">*</span></label>
                         <select {...register("type")}>
-                            <option value="">Select</option>
+                            <option value="">-- Select --</option>
                             <option>New Inventory</option>
                             <option>Periodic</option>
                         </select>
@@ -68,7 +68,7 @@ export default function NormalConsistencyForm() {
                     <div className="input-group">
                         <label>Consignment No <span className="required">*</span></label>
                         <select {...register("consignment")}>
-                            <option value="">Select Consignment</option>
+                            <option value="">-- Select --</option>
                             {MOCK_VERIFIED_CONSIGNMENTS.map(c => (
                                 <option key={c} value={c}>{c}</option>
                             ))}

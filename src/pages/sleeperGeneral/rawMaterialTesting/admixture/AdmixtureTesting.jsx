@@ -208,7 +208,7 @@ const AdmixtureTesting = ({ onBack }) => {
                                     <div className="input-group">
                                         <label>Consignment No. <span className="required">*</span></label>
                                         <select {...register('consignmentNo', { required: true })}>
-                                            <option value="">Select</option>
+                                            <option value="">-- Select --</option>
                                             {pendingStocks.map(p => <option key={p.id} value={p.consignmentNo}>{p.consignmentNo}</option>)}
                                         </select>
                                     </div>

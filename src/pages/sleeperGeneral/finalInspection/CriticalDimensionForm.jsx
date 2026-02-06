@@ -211,7 +211,7 @@ const CriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage }) =>
                                                         onChange={(e) => handleRejectionChange(sid, 'mainReason', e.target.value)}
                                                         className="ui-select"
                                                     >
-                                                        <option value="">Select...</option>
+                                                        <option value="">-- Select --</option>
                                                         {parametersToCheck.map(p => <option key={p} value={p}>{p}</option>)}
                                                     </select>
                                                 </td>
@@ -222,7 +222,7 @@ const CriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage }) =>
                                                         disabled={!rejectionDetails[sid].mainReason}
                                                         className="ui-select"
                                                     >
-                                                        <option value="">Select...</option>
+                                                        <option value="">-- Select --</option>
                                                         {getSubReasons(rejectionDetails[sid].mainReason).map(sub => (
                                                             <option key={sub} value={sub}>{sub}</option>
                                                         ))}

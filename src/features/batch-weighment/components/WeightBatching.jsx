@@ -9,7 +9,7 @@ import { apiService } from '../../../services/api';
  */
 const WeightBatching = ({ onWitness, batches = [], selectedBatchNo }) => {
     // If selectedBatchNo is provided by parent (header), use it. otherwise local fallback.
-    const [localBatch, setLocalBatch] = useState(batches[0]?.batchNo || '601');
+    const [localBatch, setLocalBatch] = useState('');
     const activeBatch = selectedBatchNo || localBatch;
 
     const columns = [
@@ -112,6 +112,7 @@ const WeightBatching = ({ onWitness, batches = [], selectedBatchNo }) => {
                             onChange={(e) => setLocalBatch(e.target.value)}
                             style={{ padding: '0.4rem 1rem', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none' }}
                         >
+                            <option value="">-- Select --</option>
                             {batches.map(b => <option key={b.id} value={b.batchNo}>{b.batchNo}</option>)}
                         </select>
                     </div>

@@ -255,14 +255,14 @@ const SgciInsertTesting = ({ onBack }) => {
                                     <div className="input-group">
                                         <label>Consignment</label>
                                         <select {...register('consignmentNo')}>
-                                            <option value="">Select</option>
+                                            <option value="">-- Select --</option>
                                             {MOCK_VERIFIED_CONSIGNMENTS.map(c => <option key={c} value={c}>{c}</option>)}
                                         </select>
                                     </div>
                                     <div className="input-group">
                                         <label>Lot No.</label>
                                         <select {...register('lotNo')}>
-                                            <option value="">Select</option>
+                                            <option value="">-- Select --</option>
                                             {availableLots.map(l => <option key={l.id} value={l.lotNo}>{l.lotNo}</option>)}
                                         </select>
                                     </div>

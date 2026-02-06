@@ -65,7 +65,7 @@ export default function SevenDayStrengthForm() {
                             value={form.typeOfTesting}
                             onChange={e => setForm({ ...form, typeOfTesting: e.target.value })}
                         >
-                            <option value="">Select</option>
+                            <option value="">-- Select --</option>
                             <option>New Inventory</option>
                             <option>Periodic</option>
                         </select>
@@ -78,7 +78,7 @@ export default function SevenDayStrengthForm() {
                             value={form.consignmentNo}
                             onChange={e => setForm({ ...form, consignmentNo: e.target.value })}
                         >
-                            <option value="">Select Consignment</option>
+                            <option value="">-- Select --</option>
                             {MOCK_VERIFIED_CONSIGNMENTS.map(c => (
                                 <option key={c} value={c}>{c}</option>
                             ))}

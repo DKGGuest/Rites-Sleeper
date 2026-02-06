@@ -215,7 +215,7 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                             onChange={e => handleCommonChange('mixDesignId', e.target.value)}
                             className="highlight-select"
                         >
-                            <option value="">-- Select Approved Mix Design --</option>
+                            <option value="">-- Select --</option>
                             {MIX_DESIGNS.map(m => (
                                 <option key={m.id} value={m.id}>{m.name}</option>
                             ))}

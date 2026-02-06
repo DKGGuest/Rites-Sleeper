@@ -738,13 +738,13 @@ select,
 textarea {
     width: 100%;
     padding: 0 12px;
-    height: 32px;
+    height: 40px;
     border: 1px solid var(--neutral-300);
     border-radius: 6px;
-    font-size: var(--fs-sm);
-    /* 13px */
+    font-size: var(--fs-md);
     transition: all 0.2s;
     background: #fff;
+    line-height: 40px;
 }
 
 textarea {

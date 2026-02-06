@@ -49,7 +49,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
 
     const showForm = propsShowForm !== undefined ? propsShowForm : localShowForm;
     const setShowForm = propsSetShowForm !== undefined ? propsSetShowForm : setLocalShowForm;
-    const [selectedBatch, setSelectedBatch] = useState(batches[0]?.batchNo || '601');
+    const [selectedBatch, setSelectedBatch] = useState('');
     const [wiresPerSleeper] = useState(18);
     const [editId, setEditId] = useState(null);
 
@@ -234,6 +234,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                                 <div className="form-field">
                                     <label>Batch No.</label>
                                     <select value={selectedBatch} onChange={(e) => setSelectedBatch(e.target.value)} style={{ padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', width: '100%' }}>
+                                        <option value="">-- Select --</option>
                                         {batches.map(b => <option key={b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
                                     </select>
                                 </div>
@@ -439,6 +440,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
                                 <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b' }}>Select Batch:</label>
                                 <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}>
+                                    <option value="">-- Select --</option>
                                     {batches.map(b => <option key={b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
                                 </select>
                             </div>
@@ -505,6 +507,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                                 <div style={{ marginBottom: '1.5rem' }}>
                                     <label style={{ marginRight: '10px' }}>Filter Batch:</label>
                                     <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
+                                        <option value="">-- Select --</option>
                                         {batches.map(b => <option key={b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
                                     </select>
                                 </div>
@@ -571,6 +574,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                             <div style={{ marginBottom: '1.5rem' }}>
                                 <label style={{ marginRight: '10px' }}>Select Batch:</label>
                                 <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
+                                    <option value="">-- Select --</option>
                                     {batches.map(b => <option key={b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
                                 </select>
                             </div>

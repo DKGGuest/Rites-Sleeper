@@ -330,15 +330,15 @@ const StatCard = ({ label, value, unit = '', color = '#1e293b' }) => (
 const MFSampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => {
     const [formData, setFormData] = useState(sample || {
         dateOfSampling: new Date().toISOString().split('T')[0],
-        concreteGrade: 'M60',
-        plant: 'Stress Bench',
-        shedLineNo: 'Shed 1',
+        concreteGrade: '',
+        plant: '',
+        shedLineNo: '',
         batchNo: '',
         dateOfCasting: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         benchNo: '',
-        mouldNo: 'A',
+        mouldNo: '',
         resultOfMR: 'PASS',
-        typeOfSample: 'Fresh',
+        typeOfSample: '',
         sleeperType: 'RT-1234'
     });
 
@@ -360,6 +360,7 @@ const MFSampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => {
                         <div className="input-group">
                             <label>Concrete Grade</label>
                             <select value={formData.concreteGrade} onChange={e => setFormData({ ...formData, concreteGrade: e.target.value })}>
+                                <option value="">Select Grade</option>
                                 <option>M55</option>
                                 <option>M60</option>
                             </select>
@@ -367,13 +368,15 @@ const MFSampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => {
                         <div className="input-group">
                             <label>Plant – Long Line / Stress Bench</label>
                             <select value={formData.plant} onChange={e => setFormData({ ...formData, plant: e.target.value })}>
+                                <option value="">Select Plant</option>
                                 <option>Long Line</option>
                                 <option>Stress Bench</option>
                             </select>
                         </div>
                         <div className="input-group">
-                            <label>Shed/ Line Number - Drop down</label>
+                            <label>Shed/ Line Number</label>
                             <select value={formData.shedLineNo} onChange={e => setFormData({ ...formData, shedLineNo: e.target.value })}>
+                                <option value="">Select Shed/Line</option>
                                 <option>Shed 1</option><option>Shed 2</option>
                                 <option>Line 1</option><option>Line 2</option>
                             </select>
@@ -391,8 +394,9 @@ const MFSampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => {
                             <input type="text" value={formData.benchNo} onChange={e => setFormData({ ...formData, benchNo: e.target.value })} placeholder="e.g. 405" />
                         </div>
                         <div className="input-group">
-                            <label>Mould No.à A to H</label>
+                            <label>Mould No. (A to H)</label>
                             <select value={formData.mouldNo} onChange={e => setFormData({ ...formData, mouldNo: e.target.value })}>
+                                <option value="">Select Mould</option>
                                 {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(l => <option key={l} value={l}>{l}</option>)}
                             </select>
                         </div>
@@ -407,6 +411,7 @@ const MFSampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => {
                         <div className="input-group">
                             <label>Type of Sample (Retest/ Fresh)</label>
                             <select value={formData.typeOfSample} onChange={e => setFormData({ ...formData, typeOfSample: e.target.value })}>
+                                <option value="">Select Type</option>
                                 <option>Fresh</option>
                                 <option>Retest</option>
                             </select>
@@ -414,6 +419,10 @@ const MFSampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => {
                     </div>
                     <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
                         <button className="btn-verify" style={{ flex: 1 }} onClick={() => {
+                            if (!formData.concreteGrade || !formData.plant || !formData.shedLineNo || !formData.mouldNo || !formData.typeOfSample || !formData.batchNo || !formData.benchNo) {
+                                alert("Please fill in all mandatory fields (Grade, Plant, Shed/Line, Batch, Bench, Mould, and Type).");
+                                return;
+                            }
                             const updatedData = { ...formData, sleeperNo: `${formData.benchNo}-${formData.mouldNo}` };
                             onSave(updatedData);
                         }}>{isModifying ? 'Update Sample Detail' : 'Save Sample Detail'}</button>

@@ -9,9 +9,9 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
         batchNo: '',
         benchNo: '',
         sleeperType: '',
-        processSatisfactory: 'Satisfactory',
-        visualCheck: 'All OK',
-        dimCheck: 'All OK',
+        processSatisfactory: '',
+        visualCheck: '',
+        dimCheck: '',
         defectiveSleepers: [],
         remarks: ''
     });
@@ -25,9 +25,9 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                 batchNo: initialData.batchNo || '',
                 benchNo: initialData.benchNo || '',
                 sleeperType: initialData.sleeperType || '',
-                processSatisfactory: initialData.processSatisfactory || 'Satisfactory',
-                visualCheck: initialData.visualCheck || 'All OK',
-                dimCheck: initialData.dimCheck || 'All OK',
+                processSatisfactory: initialData.processSatisfactory || '',
+                visualCheck: initialData.visualCheck || '',
+                dimCheck: initialData.dimCheck || '',
                 defectiveSleepers: initialData.defectiveSleepers || [],
                 remarks: initialData.remarks || ''
             });
@@ -87,7 +87,15 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
         }
 
         onSave(formData);
-        setFormData(prev => ({ ...prev, benchNo: '', defectiveSleepers: [], remarks: '' }));
+        setFormData(prev => ({
+            ...prev,
+            benchNo: '',
+            processSatisfactory: '',
+            visualCheck: '',
+            dimCheck: '',
+            defectiveSleepers: [],
+            remarks: ''
+        }));
     };
 
     const fieldLabel = isLongLine ? 'Gang' : 'Bench';
@@ -139,6 +147,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                 <div className="form-field">
                     <label style={{ fontSize: '11px', fontWeight: '700' }}>Process Status <span className="required">*</span></label>
                     <select value={formData.processSatisfactory} className="form-input-standard" onChange={e => handleChange('processSatisfactory', e.target.value)}>
+                        <option value="">-- Select --</option>
                         <option value="Satisfactory">Satisfactory</option>
                         <option value="Not Satisfactory">Not Satisfactory</option>
                     </select>
@@ -147,6 +156,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                 <div className="form-field">
                     <label htmlFor="visual-check" style={{ fontSize: '11px', fontWeight: '700' }}>Visual Check <span className="required">*</span></label>
                     <select id="visual-check" value={formData.visualCheck} className="form-input-standard" onChange={e => handleChange('visualCheck', e.target.value)}>
+                        <option value="">-- Select --</option>
                         <option value="All OK">All OK</option>
                         <option value="Partially OK">Partially OK</option>
                         <option value="All Rejected">All Rejected</option>
@@ -156,6 +166,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                 <div className="form-field">
                     <label htmlFor="dim-check" style={{ fontSize: '11px', fontWeight: '700' }}>Dim. Check <span className="required">*</span></label>
                     <select id="dim-check" value={formData.dimCheck} className="form-input-standard" onChange={e => handleChange('dimCheck', e.target.value)}>
+                        <option value="">-- Select --</option>
                         <option value="All OK">All OK</option>
                         <option value="Partially OK">Partially OK</option>
                         <option value="All Rejected">All Rejected</option>
@@ -195,7 +206,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                             <div className="form-field">
                                 <label style={{ fontSize: '10px' }}>Visual Reason</label>
                                 <select value={sleeper.visualReason} className="form-input-standard" onChange={e => updateDefectiveSleeper(idx, 'visualReason', e.target.value)} style={{ padding: '6px', fontSize: '12px' }}>
-                                    <option value="">None / OK</option>
+                                    <option value="">-- Select --</option>
                                     <option value="Cracks">Cracks</option>
                                     <option value="Honey Combing">Honey Combing</option>
                                     <option value="Chipping">Chipping</option>
@@ -206,7 +217,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                             <div className="form-field">
                                 <label style={{ fontSize: '10px' }}>Dim. Reason</label>
                                 <select value={sleeper.dimReason} className="form-input-standard" onChange={e => updateDefectiveSleeper(idx, 'dimReason', e.target.value)} style={{ padding: '6px', fontSize: '12px' }}>
-                                    <option value="">None / OK</option>
+                                    <option value="">-- Select --</option>
                                     <option value="Length deviation">Length deviation</option>
                                     <option value="Width deviation">Width deviation</option>
                                     <option value="Height deviation">Height deviation</option>

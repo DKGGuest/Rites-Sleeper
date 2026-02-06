@@ -76,6 +76,7 @@ export default function SettingTimeForm() {
                     <div className="input-group">
                         <label>Type <span className="required">*</span></label>
                         <select {...register("type")}>
+                            <option value="">-- Select --</option>
                             <option>New Inventory</option>
                             <option>Periodic</option>
                         </select>
@@ -84,7 +85,7 @@ export default function SettingTimeForm() {
                     <div className="input-group">
                         <label>Consignment No <span className="required">*</span></label>
                         <select {...register("consignment", { required: true })}>
-                            <option value="">Select Consignment</option>
+                            <option value="">-- Select --</option>
                             {MOCK_VERIFIED_CONSIGNMENTS.map(c => (
                                 <option key={c} value={c}>{c}</option>
                             ))}
@@ -160,7 +161,7 @@ export default function SettingTimeForm() {
                                             value={r.spot}
                                             onChange={(e) => updateRow(i, "spot", e.target.value)}
                                         >
-                                            <option value="">-</option>
+                                            <option value="">-- Select --</option>
                                             <option value="yes">Yes</option>
                                             <option value="no">No</option>
                                         </select>

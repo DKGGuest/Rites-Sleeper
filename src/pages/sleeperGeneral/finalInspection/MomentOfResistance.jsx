@@ -194,7 +194,7 @@ const MomentOfResistance = () => {
 
 const DeclareSampleModal = ({ batch, onClose, onSave }) => {
     const [samples, setSamples] = useState(
-        Array.from({ length: batch.mrSamplesNeeded || 1 }, () => ({ bench: '', no: 'A' }))
+        Array.from({ length: batch.mrSamplesNeeded || 1 }, () => ({ bench: '', no: '' }))
     );
 
     const handleUpdate = (idx, field, val) => {
@@ -229,6 +229,7 @@ const DeclareSampleModal = ({ batch, onClose, onSave }) => {
                             <div className="input-group">
                                 <label>Sleeper No.</label>
                                 <select value={s.no} onChange={(e) => handleUpdate(idx, 'no', e.target.value)}>
+                                    <option value="">Select No.</option>
                                     {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(l => <option key={l} value={l}>{l}</option>)}
                                 </select>
                             </div>
@@ -236,7 +237,13 @@ const DeclareSampleModal = ({ batch, onClose, onSave }) => {
                     ))}
 
                     <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                        <button className="btn-verify" style={{ flex: 1 }} onClick={() => onSave(batch, samples)}>Save Declaration</button>
+                        <button className="btn-verify" style={{ flex: 1 }} onClick={() => {
+                            if (samples.some(s => !s.bench || !s.no)) {
+                                alert("Please provide both Bench Number and Sleeper Number for all samples.");
+                                return;
+                            }
+                            onSave(batch, samples);
+                        }}>Save Declaration</button>
                         <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: 'none' }} onClick={onClose}>Cancel</button>
                     </div>
                 </div>

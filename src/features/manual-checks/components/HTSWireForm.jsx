@@ -11,8 +11,8 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
         wiresUsed: '',
         wireDia: '',
         layLength: '',
-        htsArrangementCheck: 'OK',
-        overallStatus: 'OK',
+        htsArrangementCheck: '',
+        overallStatus: 'Not OK',
         remarks: ''
     });
 
@@ -69,8 +69,8 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
     };
 
     const handleSave = () => {
-        if (!formData.benchNo || !formData.batchNo || !formData.wiresUsed || !formData.wireDia || !formData.layLength) {
-            alert('Please fill in all required fields (Batch, Bench, Wires, Dia, Lay Length).');
+        if (!formData.benchNo || !formData.batchNo || !formData.wiresUsed || !formData.wireDia || !formData.layLength || !formData.htsArrangementCheck) {
+            alert('Please fill in all required fields (Batch, Bench, Wires, Dia, Lay Length and Arrangement Status).');
             return;
         }
 
@@ -87,7 +87,16 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
         }
 
         onSave(formData);
-        setFormData(prev => ({ ...prev, benchNo: '', wiresUsed: '', wireDia: '', layLength: '', remarks: '' }));
+        setFormData(prev => ({
+            ...prev,
+            benchNo: '',
+            wiresUsed: '',
+            wireDia: '',
+            layLength: '',
+            htsArrangementCheck: '',
+            overallStatus: 'Not OK',
+            remarks: ''
+        }));
     };
 
     const fieldLabel = isLongLine ? 'Gang' : 'Bench';
@@ -166,6 +175,7 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
                 <div className="form-field">
                     <label style={{ fontSize: '11px', fontWeight: '700' }}>Arrangement OK? <span className="required">*</span></label>
                     <select value={formData.htsArrangementCheck} className="form-input-standard" onChange={e => handleChange('htsArrangementCheck', e.target.value)}>
+                        <option value="">-- Select --</option>
                         <option value="OK">OK</option>
                         <option value="Not OK">Not OK</option>
                     </select>

@@ -8,7 +8,7 @@ import { apiService } from '../../../services/api';
 const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate }) => {
     const [sensors, setSensors] = useState({
         sensorStatus: 'working', // 'working', 'notAvailable', 'notWorking'
-        sandType: 'M-Sand'
+        sandType: ''
     });
 
     const [batches, setBatches] = useState(externalBatches || []);
@@ -132,6 +132,7 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate }) => {
                 <div className="form-field">
                     <label>Sand Type</label>
                     <select name="sandType" value={sensors.sandType} onChange={handleSensorChange}>
+                        <option value="">-- Select Sand Type --</option>
                         <option value="M-Sand">M-Sand</option>
                         <option value="Natural Sand">Natural Sand</option>
                     </select>

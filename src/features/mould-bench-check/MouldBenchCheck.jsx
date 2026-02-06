@@ -289,6 +289,7 @@ const InspectionForm = ({ formState, setFormState, onSave, onCancel, editingEntr
                             <div className="form-field mb-16">
                                 <label className="field-label-sm">Visual Check Result</label>
                                 <select className="field-select" value={formState.bench.visualResult} onChange={e => handleCheckChange('bench', 'visualResult', e.target.value)}>
+                                    <option value="">-- Select --</option>
                                     <option value="ok">OK - Satisfactory</option>
                                     <option value="not-ok">NOT OK - Needs Attention</option>
                                 </select>
@@ -297,7 +298,7 @@ const InspectionForm = ({ formState, setFormState, onSave, onCancel, editingEntr
                                 <div className="form-field fade-in">
                                     <label className="field-label-sm">Visual Failure Reason</label>
                                     <select className="field-select" value={formState.bench.visualReason} onChange={e => handleCheckChange('bench', 'visualReason', e.target.value)}>
-                                        <option value="">-- Select Reason --</option>
+                                        <option value="">-- Select --</option>
                                         {CONSTANTS.BENCH_VISUAL_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                     </select>
                                 </div>
@@ -308,6 +309,7 @@ const InspectionForm = ({ formState, setFormState, onSave, onCancel, editingEntr
                             <div className="form-field mb-16">
                                 <label className="field-label-sm">Dimensional Check Result</label>
                                 <select className="field-select" value={formState.bench.dimensionResult} onChange={e => handleCheckChange('bench', 'dimensionResult', e.target.value)}>
+                                    <option value="">-- Select --</option>
                                     <option value="ok">OK - Within Tolerance</option>
                                     <option value="not-ok">NOT OK - Deviation Found</option>
                                 </select>
@@ -316,7 +318,7 @@ const InspectionForm = ({ formState, setFormState, onSave, onCancel, editingEntr
                                 <div className="form-field fade-in">
                                     <label className="field-label-sm">Dimensional Discrepancy Reason</label>
                                     <select className="field-select" value={formState.bench.dimensionReason} onChange={e => handleCheckChange('bench', 'dimensionReason', e.target.value)}>
-                                        <option value="">-- Select Deviation Area --</option>
+                                        <option value="">-- Select --</option>
                                         {CONSTANTS.DIMENSION_REASONS.BENCH.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                     </select>
                                 </div>
@@ -335,6 +337,7 @@ const InspectionForm = ({ formState, setFormState, onSave, onCancel, editingEntr
                             <div className="form-field mb-16">
                                 <label className="field-label-sm">Visual Check Result</label>
                                 <select className="field-select" value={formState.mould.visualResult} onChange={e => handleCheckChange('mould', 'visualResult', e.target.value)}>
+                                    <option value="">-- Select --</option>
                                     <option value="ok">OK - Satisfactory</option>
                                     <option value="not-ok">NOT OK - Needs Attention</option>
                                 </select>
@@ -343,7 +346,7 @@ const InspectionForm = ({ formState, setFormState, onSave, onCancel, editingEntr
                                 <div className="form-field fade-in">
                                     <label className="field-label-sm">Visual Failure Reason</label>
                                     <select className="field-select" value={formState.mould.visualReason} onChange={e => handleCheckChange('mould', 'visualReason', e.target.value)}>
-                                        <option value="">-- Select Reason --</option>
+                                        <option value="">-- Select --</option>
                                         {CONSTANTS.MOULD_VISUAL_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                     </select>
                                 </div>
@@ -354,6 +357,7 @@ const InspectionForm = ({ formState, setFormState, onSave, onCancel, editingEntr
                             <div className="form-field mb-16">
                                 <label className="field-label-sm">Dimensional Check Result</label>
                                 <select className="field-select" value={formState.mould.dimensionResult} onChange={e => handleCheckChange('mould', 'dimensionResult', e.target.value)}>
+                                    <option value="">-- Select --</option>
                                     <option value="ok">OK - Within Tolerance</option>
                                     <option value="not-ok">NOT OK - Deviation Found</option>
                                 </select>
@@ -362,7 +366,7 @@ const InspectionForm = ({ formState, setFormState, onSave, onCancel, editingEntr
                                 <div className="form-field fade-in">
                                     <label className="field-label-sm">Dimensional Discrepancy Reason</label>
                                     <select className="field-select" value={formState.mould.dimensionReason} onChange={e => handleCheckChange('mould', 'dimensionReason', e.target.value)}>
-                                        <option value="">-- Select Deviation Area --</option>
+                                        <option value="">-- Select --</option>
                                         {CONSTANTS.DIMENSION_REASONS.MOULD.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                     </select>
                                 </div>
@@ -409,15 +413,15 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
         sleeperType: 'RT-1234',
         dateOfChecking: DateUtils.getNowISO(),
         bench: {
-            visualResult: 'ok',
+            visualResult: '',
             visualReason: '',
-            dimensionResult: 'ok',
+            dimensionResult: '',
             dimensionReason: ''
         },
         mould: {
-            visualResult: 'ok',
+            visualResult: '',
             visualReason: '',
-            dimensionResult: 'ok',
+            dimensionResult: '',
             dimensionReason: ''
         },
         remarks: ''
@@ -458,8 +462,8 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
             assetNo: '', location: activeContainer?.name || '',
             lastCasting: '2025-01-31', sleeperType: 'RT-1234',
             dateOfChecking: DateUtils.getNowISO(),
-            bench: { visualResult: 'ok', visualReason: '', dimensionResult: 'ok', dimensionReason: '' },
-            mould: { visualResult: 'ok', visualReason: '', dimensionResult: 'ok', dimensionReason: '' },
+            bench: { visualResult: '', visualReason: '', dimensionResult: '', dimensionReason: '' },
+            mould: { visualResult: '', visualReason: '', dimensionResult: '', dimensionReason: '' },
             remarks: ''
         });
         if (setShowForm) setShowForm(true); else setViewMode('form');

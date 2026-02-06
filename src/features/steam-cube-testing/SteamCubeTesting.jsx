@@ -315,10 +315,10 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave, activeCo
         batchNo: '',
         chamberNo: '',
         benchNo: '',
-        sequence: 'A',
+        sequence: '',
         castDate: new Date().toISOString().split('T')[0],
         castTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-        grade: 'M60',
+        grade: '',
         sleeperType: 'RT-1234',
         lineNumber: activeContainer?.name || ''
     });
@@ -346,6 +346,7 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave, activeCo
                         <div className="input-group">
                             <label>Sleeper Sequence</label>
                             <select value={formData.sequence} onChange={e => setFormData({ ...formData, sequence: e.target.value })}>
+                                <option value="">-- Select --</option>
                                 {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(s => <option key={s} value={s}>{s}</option>)}
                             </select>
                         </div>
@@ -353,6 +354,7 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave, activeCo
                         <div className="input-group">
                             <label>Concrete Grade</label>
                             <select value={formData.grade} onChange={e => setFormData({ ...formData, grade: e.target.value })}>
+                                <option value="">-- Select --</option>
                                 <option>M55</option><option>M60</option>
                             </select>
                         </div>

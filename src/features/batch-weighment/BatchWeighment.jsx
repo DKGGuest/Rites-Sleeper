@@ -53,7 +53,7 @@ const BatchWeighment = ({ onBack, sharedState, activeContainer, displayMode = 'm
     const showForm = propsShowForm !== undefined ? propsShowForm : localShowForm;
     const setShowForm = propsSetShowForm !== undefined ? propsSetShowForm : setLocalShowForm;
 
-    const [selectedBatchNo, setSelectedBatchNo] = useState(batchDeclarations[0]?.batchNo || '601');
+    const [selectedBatchNo, setSelectedBatchNo] = useState('');
     const [editId, setEditId] = useState(null);
 
     const batchStats = useBatchStats(witnessedRecords, batchDeclarations, selectedBatchNo);
@@ -271,6 +271,7 @@ const BatchWeighment = ({ onBack, sharedState, activeContainer, displayMode = 'm
                                         onChange={(e) => setSelectedBatchNo(e.target.value)}
                                         style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
                                     >
+                                        <option value="">-- Select --</option>
                                         {[...new Set(batchDeclarations.map(b => b.batchNo))].map(b => (
                                             <option key={b} value={b}>{b}</option>
                                         ))}

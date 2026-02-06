@@ -55,8 +55,8 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
         }
     ]);
 
-    const [selectedBatch, setSelectedBatch] = useState('610');
-    const [selectedChamber, setSelectedChamber] = useState('1');
+    const [selectedBatch, setSelectedBatch] = useState('');
+    const [selectedChamber, setSelectedChamber] = useState('');
     const [editingId, setEditingId] = useState(null);
     const [showForm, setShowForm] = useState(false);
 

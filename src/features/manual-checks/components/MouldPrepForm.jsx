@@ -15,8 +15,8 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
         batchNo: '',
         benchNo: '',
-        lumpsFree: 'Yes',
-        oilApplied: 'Yes',
+        lumpsFree: '',
+        oilApplied: '',
         remarks: ''
     });
 
@@ -27,8 +27,8 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
                 time: initialData.time,
                 batchNo: initialData.batchNo || '',
                 benchNo: initialData.benchNo,
-                lumpsFree: initialData.lumpsFree === true ? 'Yes' : (initialData.lumpsFree === false ? 'No' : (initialData.lumpsFree || 'Yes')),
-                oilApplied: initialData.oilApplied === true ? 'Yes' : (initialData.oilApplied === false ? 'No' : (initialData.oilApplied || 'Yes')),
+                lumpsFree: initialData.lumpsFree === true ? 'Yes' : (initialData.lumpsFree === false ? 'No' : (initialData.lumpsFree || '')),
+                oilApplied: initialData.oilApplied === true ? 'Yes' : (initialData.oilApplied === false ? 'No' : (initialData.oilApplied || '')),
                 remarks: initialData.remarks || ''
             });
         }
@@ -39,8 +39,8 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
     };
 
     const handleSave = () => {
-        if (!formData.time || !formData.benchNo || !formData.batchNo) {
-            alert('Please fill in all required fields (Batch No, Time and Number).');
+        if (!formData.time || !formData.benchNo || !formData.batchNo || !formData.lumpsFree || !formData.oilApplied) {
+            alert('Please fill in all required fields (Batch No, Time, Number and Dropdowns).');
             return;
         }
 
@@ -58,7 +58,14 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
 
         onSave(formData);
         // Reset specific fields after save
-        setFormData(prev => ({ ...prev, benchNo: '', remarks: '' }));
+        // Reset fields after save to ensure dropdowns go back to "-- Select --"
+        setFormData(prev => ({
+            ...prev,
+            benchNo: '',
+            lumpsFree: '',
+            oilApplied: '',
+            remarks: ''
+        }));
     };
 
     const fieldLabel = isLongLine ? 'Gang' : 'Bench';
@@ -128,6 +135,7 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
                         value={formData.lumpsFree}
                         onChange={e => handleChange('lumpsFree', e.target.value)}
                     >
+                        <option value="">-- Select --</option>
                         <option value="Yes">Yes (Lumps Free)</option>
                         <option value="No">No (Has Lumps)</option>
                     </select>
@@ -141,6 +149,7 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
                         value={formData.oilApplied}
                         onChange={e => handleChange('oilApplied', e.target.value)}
                     >
+                        <option value="">-- Select --</option>
                         <option value="Yes">Yes</option>
                         <option value="No">No</option>
                     </select>

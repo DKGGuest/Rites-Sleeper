@@ -56,7 +56,7 @@ export default function SpecificSurfaceForm() {
                     <div className="input-group">
                         <label>Type of Testing <span className="required">*</span></label>
                         <select {...register("type", { required: true })}>
-                            <option value="">Select</option>
+                            <option value="">-- Select --</option>
                             <option value="New Inventory">New Inventory</option>
                             <option value="Periodic">Periodic</option>
                         </select>
@@ -65,7 +65,7 @@ export default function SpecificSurfaceForm() {
                     <div className="input-group">
                         <label>Consignment No. <span className="required">*</span></label>
                         <select {...register("consignment", { required: true })}>
-                            <option value="">Select Consignment</option>
+                            <option value="">-- Select --</option>
                             {MOCK_VERIFIED_CONSIGNMENTS.map(c => (
                                 <option key={c} value={c}>{c}</option>
                             ))}

@@ -122,7 +122,7 @@ export default function CombinedFlakinessElongation({ onSave, onCancel, consignm
                                     onChange={(e) => setSelectedConsignment(e.target.value)}
                                     required
                                 >
-                                    <option value="">Select Consignment</option>
+                                    <option value="">-- Select --</option>
                                     {MOCK_VERIFIED_CONSIGNMENTS.map(c => (
                                         <option key={c} value={c}>{c}</option>
                                     ))}

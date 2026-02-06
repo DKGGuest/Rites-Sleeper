@@ -277,9 +277,9 @@ const StatCard = ({ label, value, unit = '', color = '#1e293b' }) => (
 const MORSampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => {
     const [formData, setFormData] = useState(sample || {
         dateOfSampling: new Date().toISOString().split('T')[0],
-        concreteGrade: 'M60',
-        plant: 'Stress Bench',
-        shedLineNo: 'Shed 1',
+        concreteGrade: '',
+        plant: '',
+        shedLineNo: '',
         sampleId: ''
     });
 
@@ -299,6 +299,7 @@ const MORSampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => 
                         <div className="input-group">
                             <label>Concrete Grade</label>
                             <select value={formData.concreteGrade} onChange={e => setFormData({ ...formData, concreteGrade: e.target.value })}>
+                                <option value="">Select Grade</option>
                                 <option>M55</option>
                                 <option>M60</option>
                             </select>
@@ -306,13 +307,15 @@ const MORSampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => 
                         <div className="input-group">
                             <label>Plant Type</label>
                             <select value={formData.plant} onChange={e => setFormData({ ...formData, plant: e.target.value })}>
+                                <option value="">Select Plant</option>
                                 <option>Long Line</option>
                                 <option>Stress Bench</option>
                             </select>
                         </div>
                         <div className="input-group">
-                            <label>Shed / Line - Drop down</label>
+                            <label>Shed / Line</label>
                             <select value={formData.shedLineNo} onChange={e => setFormData({ ...formData, shedLineNo: e.target.value })}>
+                                <option value="">Select Shed/Line</option>
                                 <option>Shed 1</option>
                                 <option>Shed 2</option>
                                 <option>Line 1</option>
@@ -325,7 +328,13 @@ const MORSampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => 
                         </div>
                     </div>
                     <div style={{ display: 'flex', gap: '12px', marginTop: '32px', flexWrap: 'wrap' }}>
-                        <button className="btn-verify" style={{ flex: '1 1 200px' }} onClick={() => onSave(formData)}>{isModifying ? 'Update Sample' : 'Save Declaration'}</button>
+                        <button className="btn-verify" style={{ flex: '1 1 200px' }} onClick={() => {
+                            if (!formData.concreteGrade || !formData.plant || !formData.shedLineNo || !formData.sampleId) {
+                                alert("Please fill in all mandatory fields (Grade, Plant, Shed/Line, and ID).");
+                                return;
+                            }
+                            onSave(formData);
+                        }}>{isModifying ? 'Update Sample' : 'Save Declaration'}</button>
                         <button className="btn-save" style={{ flex: '1 1 200px', background: '#f1f5f9', color: '#64748b', border: 'none' }} onClick={onClose}>Cancel</button>
                     </div>
                 </div>

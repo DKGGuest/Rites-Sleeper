@@ -9,7 +9,7 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
     const defaultFormData = {
         date: new Date().toISOString().split('T')[0],
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-        batchNo: batches[0]?.batchNo || '',
+        batchNo: '',
         ca1: '', ca2: '', fa: '', cement: '', water: '', admixture: ''
     };
 
@@ -109,6 +109,7 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
                         <div className="form-field">
                             <label style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Batch No.</label>
                             <select name="batchNo" value={formData.batchNo} onChange={handleChange} style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }}>
+                                <option value="">-- Select --</option>
                                 {batches.map(b => <option key={b.id || b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
                             </select>
                         </div>
