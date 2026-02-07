@@ -189,7 +189,7 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                     <div style={{ display: 'flex', gap: '1rem', background: '#fff', padding: '10px 16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                         <div className="form-field-compact">
                             <label>Date</label>
-                            <strong>{commonData.date}</strong>
+                            <strong>{commonData.date ? commonData.date.split('-').reverse().join('/') : ''}</strong>
                         </div>
                         <div style={{ width: '1px', background: '#e2e8f0' }}></div>
                         <div className="form-field-compact">

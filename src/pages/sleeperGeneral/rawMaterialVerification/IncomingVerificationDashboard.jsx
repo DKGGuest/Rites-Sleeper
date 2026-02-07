@@ -69,12 +69,25 @@ const IncomingVerificationDashboard = () => {
 
     const getMainColumns = (matId) => {
         const baseColumns = [
-            { key: 'receivedDate', label: 'Date of Receiving' },
-            { key: 'invoiceNo', label: 'Invoice / Bill No' },
+            {
+                key: 'receivedDate',
+                label: 'Date of Receiving',
+                render: (_, row) => row.receivedDate ? row.receivedDate.split('-').reverse().join('/') : 'N/A'
+            },
+            {
+                key: 'invoiceNo',
+                label: matId === 'AGGREGATES' ? 'Challan No' : 'Invoice / Bill No',
+                render: (_, row) => row.invoiceNo || row.challanNo || 'N/A'
+            },
             {
                 key: 'batchLot',
-                label: matId === 'HTS' ? 'Coil No / Lot No' : 'Batch / Lot No',
-                render: (_, row) => row.batchNo || row.lotNo || row.serialNoCoils || 'N/A'
+                label: matId === 'HTS' ? 'Coil Details' : 'Batch / Lot No',
+                render: (_, row) => {
+                    if (matId === 'HTS' && row.coils) {
+                        return <span style={{ fontSize: '11px', fontStyle: 'italic' }}>{row.coils.length} Coils</span>;
+                    }
+                    return row.batchNo || row.lotNo || row.serialNoCoils || 'N/A';
+                }
             },
         ];
 
@@ -134,6 +147,7 @@ const IncomingVerificationDashboard = () => {
             receivedDate: 'Date of Receipt',
             invoiceNo: 'Invoice / E-way Bill No',
             invoiceDate: 'Invoice / E-way Bill Date',
+            challanNo: 'Challan No.',
             cementType: 'Cement Type',
             manufacturerName: 'Manufacturer Name',
             batchNo: 'Batch No',
@@ -274,8 +288,8 @@ const IncomingVerificationDashboard = () => {
                                 <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#42818c' }}>Full Inventory Details (Vendor Submitted)</h4>
                                 <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
                                     {Object.entries(selectedEntry).map(([key, value]) => {
-                                        // Skip internal fields and already shown status/verification
-                                        if (['status', 'verifiedBy', 'verifiedAt'].includes(key)) return null;
+                                        // Skip internal fields, coils array (handled separately), and verification info
+                                        if (['status', 'verifiedBy', 'verifiedAt', 'coils'].includes(key)) return null;
                                         if (typeof value === 'object') return null;
 
                                         return (
@@ -286,6 +300,29 @@ const IncomingVerificationDashboard = () => {
                                         );
                                     })}
                                 </div>
+
+                                {/* HTS Coils Table */}
+                                {selectedEntry.coils && (
+                                    <div style={{ marginTop: '20px' }}>
+                                        <label style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px', display: 'block' }}>Coil & Lot Details</label>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                                            <thead>
+                                                <tr style={{ background: '#e2e8f0' }}>
+                                                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #cbd5e1' }}>Coil No.</th>
+                                                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #cbd5e1' }}>Lot No.</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {selectedEntry.coils.map((coil, idx) => (
+                                                    <tr key={idx} style={{ background: '#fff' }}>
+                                                        <td style={{ padding: '8px', border: '1px solid #e2e8f0', fontWeight: '700' }}>{coil.coilNo}</td>
+                                                        <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{coil.lotNo}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
                             </div>
 
                             {selectedEntry.status !== 'Unverified' && (

@@ -187,7 +187,7 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
                                 ) : (
                                     witnessedRecords.map((record) => (
                                         <tr key={record.id} className="hover-row">
-                                            <td data-label="Date" style={{ fontSize: small ? '0.65rem' : '0.8rem', padding: small ? '0.25rem' : '0.5rem 0.25rem' }}>{record.date}</td>
+                                            <td data-label="Date" style={{ fontSize: small ? '0.65rem' : '0.8rem', padding: small ? '0.25rem' : '0.5rem 0.25rem' }}>{record.date ? record.date.split('-').reverse().join('/') : ''}</td>
                                             <td data-label="Time" style={{ fontSize: small ? '0.65rem' : '0.8rem', padding: small ? '0.25rem' : '0.5rem 0.25rem' }}>{record.time}</td>
                                             <td data-label="Batch" style={{ fontSize: small ? '0.65rem' : '0.8rem', padding: small ? '0.25rem' : '0.5rem 0.25rem' }}><strong>{record.batchNo}</strong></td>
                                             <td data-label="CA1" style={{ fontSize: small ? '0.65rem' : '0.8rem', padding: small ? '0.25rem' : '0.5rem 0.25rem' }}>{record.ca1}</td>

@@ -50,8 +50,11 @@ export const MOCK_INVENTORY = {
             manufacturerName: 'Tata Steel Ltd',
             ritesIcNo: 'RITES/HTS/101',
             ritesIcDate: '2026-01-08',
-            serialNoCoils: 'C101, C102, C103',
-            lotNo: 'LOT-HTS-99',
+            coils: [
+                { coilNo: 'C101', lotNo: 'LOT-HTS-99-A' },
+                { coilNo: 'C102', lotNo: 'LOT-HTS-99-B' },
+                { coilNo: 'C103', lotNo: 'LOT-HTS-99-C' }
+            ],
             relaxationTestDate: '2026-01-07',
             qty: '25.5 MT',
             status: 'Unverified'
@@ -66,8 +69,10 @@ export const MOCK_INVENTORY = {
             manufacturerName: 'JSW Steel Ltd',
             ritesIcNo: 'RITES/HTS/105',
             ritesIcDate: '2026-01-09',
-            serialNoCoils: 'J991, J992',
-            lotNo: 'LOT-HTS-105',
+            coils: [
+                { coilNo: 'J991', lotNo: 'LOT-HTS-105-1' },
+                { coilNo: 'J992', lotNo: 'LOT-HTS-105-2' }
+            ],
             relaxationTestDate: '2026-01-08',
             qty: '40.2 MT',
             status: 'Verified',
@@ -80,8 +85,7 @@ export const MOCK_INVENTORY = {
             id: 'INV-AGG-001',
             vendor: 'Local Quarry Solutions',
             receivedDate: '2026-01-02',
-            invoiceNo: 'CHL-AGG-99',
-            invoiceDate: '2026-01-01',
+            challanNo: 'CHL-AGG-99',
             aggregateType: 'CA1 (20mm)',
             source: 'Pathankot Quarry',
             qty: '500 MT',
@@ -93,8 +97,7 @@ export const MOCK_INVENTORY = {
             id: 'INV-AGG-002',
             vendor: 'Stone Crushers Ltd',
             receivedDate: '2026-01-06',
-            invoiceNo: 'CHL-AGG-105',
-            invoiceDate: '2026-01-05',
+            challanNo: 'CHL-AGG-105',
             aggregateType: 'FA (River Sand)',
             source: 'Haridwar Source',
             qty: '800 MT',

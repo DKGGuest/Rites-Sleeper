@@ -5,7 +5,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
     const [formData, setFormData] = useState({
         date: new Date().toLocaleDateString('en-GB'),
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-        dateOfCasting: new Date().toISOString().split('T')[0],
+        dateOfCasting: new Date().toLocaleDateString('en-GB'),
         batchNo: '',
         benchNo: '',
         sleeperType: '',
@@ -21,7 +21,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
             setFormData({
                 date: initialData.date || new Date().toLocaleDateString('en-GB'),
                 time: initialData.time || '',
-                dateOfCasting: initialData.dateOfCasting || new Date().toISOString().split('T')[0],
+                dateOfCasting: initialData.dateOfCasting || new Date().toLocaleDateString('en-GB'),
                 batchNo: initialData.batchNo || '',
                 benchNo: initialData.benchNo || '',
                 sleeperType: initialData.sleeperType || '',
@@ -55,7 +55,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
     const addDefectiveSleeper = () => {
         setFormData(prev => ({
             ...prev,
-            defectiveSleepers: [...prev.defectiveSleepers, { sleeperNo: '', visualReason: '', dimReason: '' }]
+            defectiveSleepers: [...prev.defectiveSleepers, { benchNo: '', sequence: '', sleeperNo: '', visualReason: '', dimReason: '' }]
         }));
     };
 
@@ -63,6 +63,14 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
         setFormData(prev => {
             const updated = [...prev.defectiveSleepers];
             updated[index] = { ...updated[index], [field]: value };
+
+            // Auto-generate sleeperNo when benchNo or sequence changes
+            if (field === 'benchNo' || field === 'sequence') {
+                const benchNo = field === 'benchNo' ? value : updated[index].benchNo;
+                const sequence = field === 'sequence' ? value : updated[index].sequence;
+                updated[index].sleeperNo = (benchNo && sequence) ? `${benchNo}-${sequence}` : '';
+            }
+
             return { ...prev, defectiveSleepers: updated };
         });
     };
@@ -124,7 +132,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
 
                 <div className="form-field">
                     <label htmlFor="casting-date" style={{ fontSize: '11px', fontWeight: '700' }}>Date of Casting <span className="required">*</span></label>
-                    <input id="casting-date" type="date" className="form-input-standard" value={formData.dateOfCasting} onChange={e => handleChange('dateOfCasting', e.target.value)} />
+                    <input id="casting-date" type="text" placeholder="DD/MM/YYYY" className="form-input-standard" value={formData.dateOfCasting} onChange={e => handleChange('dateOfCasting', e.target.value)} />
                 </div>
 
                 <div className="form-field">
@@ -190,7 +198,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                     {formData.defectiveSleepers.map((sleeper, idx) => (
                         <div key={idx} style={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                            gridTemplateColumns: 'auto auto auto 1fr 1fr auto',
                             gap: '8px',
                             alignItems: 'end',
                             padding: '12px',
@@ -200,8 +208,44 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                             border: '1px solid #f1f5f9'
                         }}>
                             <div className="form-field">
-                                <label style={{ fontSize: '10px' }}>No.</label>
-                                <input type="number" className="form-input-standard" value={sleeper.sleeperNo} onChange={e => updateDefectiveSleeper(idx, 'sleeperNo', e.target.value)} placeholder="#" style={{ padding: '6px', fontSize: '12px' }} />
+                                <label style={{ fontSize: '10px' }}>Bench/Gang No.</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    className="form-input-standard"
+                                    value={sleeper.benchNo}
+                                    onChange={e => updateDefectiveSleeper(idx, 'benchNo', e.target.value)}
+                                    placeholder="401"
+                                    style={{ padding: '6px', fontSize: '12px', width: '80px' }}
+                                />
+                            </div>
+                            <div className="form-field">
+                                <label style={{ fontSize: '10px' }}>Sequence</label>
+                                <select
+                                    value={sleeper.sequence}
+                                    className="form-input-standard"
+                                    onChange={e => updateDefectiveSleeper(idx, 'sequence', e.target.value)}
+                                    style={{ padding: '6px', fontSize: '12px', width: '70px' }}
+                                >
+                                    <option value="">--</option>
+                                    {['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-field">
+                                <label style={{ fontSize: '10px' }}>Sleeper No.</label>
+                                <div style={{
+                                    padding: '6px 10px',
+                                    fontSize: '12px',
+                                    fontWeight: '700',
+                                    color: sleeper.sleeperNo ? '#42818c' : '#94a3b8',
+                                    background: '#fff',
+                                    border: '1px solid #e2e8f0',
+                                    borderRadius: '6px',
+                                    minWidth: '80px',
+                                    textAlign: 'center'
+                                }}>
+                                    {sleeper.sleeperNo || '--'}
+                                </div>
                             </div>
                             <div className="form-field">
                                 <label style={{ fontSize: '10px' }}>Visual Reason</label>
