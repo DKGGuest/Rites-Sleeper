@@ -86,6 +86,9 @@ const IncomingVerificationDashboard = () => {
                     if (matId === 'HTS' && row.coils) {
                         return <span style={{ fontSize: '11px', fontStyle: 'italic' }}>{row.coils.length} Coils</span>;
                     }
+                    if (matId === 'CEMENT' && row.batches) {
+                        return <span style={{ fontSize: '11px', fontStyle: 'italic' }}>{row.batches.length} Batches</span>;
+                    }
                     return row.batchNo || row.lotNo || row.serialNoCoils || 'N/A';
                 }
             },
@@ -288,8 +291,8 @@ const IncomingVerificationDashboard = () => {
                                 <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#42818c' }}>Full Inventory Details (Vendor Submitted)</h4>
                                 <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
                                     {Object.entries(selectedEntry).map(([key, value]) => {
-                                        // Skip internal fields, coils array (handled separately), and verification info
-                                        if (['status', 'verifiedBy', 'verifiedAt', 'coils'].includes(key)) return null;
+                                        // Skip internal fields, coils/batches arrays (handled separately), and verification info
+                                        if (['status', 'verifiedBy', 'verifiedAt', 'coils', 'batches'].includes(key)) return null;
                                         if (typeof value === 'object') return null;
 
                                         return (
@@ -317,6 +320,35 @@ const IncomingVerificationDashboard = () => {
                                                     <tr key={idx} style={{ background: '#fff' }}>
                                                         <td style={{ padding: '8px', border: '1px solid #e2e8f0', fontWeight: '700' }}>{coil.coilNo}</td>
                                                         <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{coil.lotNo}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+
+                                {/* Cement Batches Table */}
+                                {selectedEntry.batches && (
+                                    <div style={{ marginTop: '20px' }}>
+                                        <label style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px', display: 'block' }}>Batch Details</label>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                                            <thead>
+                                                <tr style={{ background: '#e2e8f0' }}>
+                                                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #cbd5e1' }}>Batch No.</th>
+                                                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #cbd5e1' }}>Week</th>
+                                                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #cbd5e1' }}>Year</th>
+                                                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #cbd5e1' }}>MTC</th>
+                                                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #cbd5e1' }}>Qty</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {selectedEntry.batches.map((batch, idx) => (
+                                                    <tr key={idx} style={{ background: '#fff' }}>
+                                                        <td style={{ padding: '8px', border: '1px solid #e2e8f0', fontWeight: '700' }}>{batch.batchNo}</td>
+                                                        <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{batch.weekNo}</td>
+                                                        <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{batch.yearNo}</td>
+                                                        <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{batch.mtcNo}</td>
+                                                        <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{batch.qty}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>

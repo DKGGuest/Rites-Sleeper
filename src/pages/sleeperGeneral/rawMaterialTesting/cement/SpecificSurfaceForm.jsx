@@ -47,10 +47,11 @@ export default function SpecificSurfaceForm() {
                     <div className="input-group">
                         <label>Date of Testing <span className="required">*</span></label>
                         <input
-                            type="date"
-                            {...register("date", { required: true })}
+                            type="text"
+                            value={new Date().toLocaleDateString('en-GB')}
+                            readOnly
+                            style={{ background: '#f8fafc' }}
                         />
-                        {errors.date && <small className="text-danger">Required</small>}
                     </div>
 
                     <div className="input-group">

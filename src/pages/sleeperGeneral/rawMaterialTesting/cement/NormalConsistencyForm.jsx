@@ -53,7 +53,7 @@ export default function NormalConsistencyForm() {
                 <div className="form-grid">
                     <div className="input-group">
                         <label>Date of Testing <span className="required">*</span></label>
-                        <input type="date" {...register("date")} />
+                        <input type="text" value={new Date().toLocaleDateString('en-GB')} readOnly style={{ background: '#f8fafc' }} />
                     </div>
 
                     <div className="input-group">

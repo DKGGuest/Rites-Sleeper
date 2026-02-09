@@ -94,7 +94,7 @@ export default function CombinedGranulometricCurve({ onSave, onCancel, consignme
                     <div className="form-grid" style={{ marginBottom: '1.5rem' }}>
                         <div className="input-group">
                             <label>Date of Testing <span className="required">*</span></label>
-                            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+                            <input type="text" value={new Date().toLocaleDateString('en-GB')} readOnly style={{ background: '#f1f5f9' }} />
                         </div>
 
                         {!consignment && (

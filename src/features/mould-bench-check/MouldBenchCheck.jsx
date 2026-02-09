@@ -141,7 +141,7 @@ const HistoryLogs = ({ records, onAdd, onModify, onDelete }) => (
                     ) : (
                         records.map(record => (
                             <tr key={record.id} className="table-row-hover">
-                                <td><span className="fw-700">{record.dateOfChecking}</span> <span className="text-muted">{record.checkTime}</span></td>
+                                <td><span className="fw-700">{record.dateOfChecking ? record.dateOfChecking.split('-').reverse().join('/') : ''}</span> <span className="text-muted">{record.checkTime}</span></td>
                                 <td><strong>{record.assetNo}</strong> <span className="location-tag">({record.location})</span></td>
                                 <td>
                                     <span className={`status-badge-mini ${record.benchOverall === 'OK' ? 'success' : 'danger'}`}>
@@ -214,8 +214,8 @@ const AssetMasterList = ({ allAssets, records }) => {
                         {listData.map(asset => (
                             <tr key={asset.id} className="table-row-hover">
                                 <td><strong>{asset.assetNo || asset.name}</strong> <span className="type-tag">{asset.type.toUpperCase()}</span></td>
-                                <td>{asset.lastCasting || '-'}</td>
-                                <td>{asset.lastCheckDate || '-'}</td>
+                                <td>{asset.lastCasting ? asset.lastCasting.split('-').reverse().join('/') : '-'}</td>
+                                <td>{asset.lastCheckDate ? asset.lastCheckDate.split('-').reverse().join('/') : '-'}</td>
                                 <td>{asset.daysSinceCasting}</td>
                                 <td>{asset.daysSinceChecking === 999 ? 'N/A' : asset.daysSinceChecking}</td>
                                 <td><span className="status-badge" style={{ color: asset.color, background: `${asset.color}10` }}>{asset.status.toUpperCase()}</span></td>
@@ -260,7 +260,7 @@ const InspectionForm = ({ formState, setFormState, onSave, onCancel, editingEntr
                     </div>
                     <div className="form-field">
                         <label className="field-label-mini">DATE OF CHECKING</label>
-                        <input className="field-input" type="date" value={formState.dateOfChecking} onChange={e => setFormState({ ...formState, dateOfChecking: e.target.value })} />
+                        <input className="field-input" placeholder="DD/MM/YYYY" value={formState.dateOfChecking ? formState.dateOfChecking.split('-').reverse().join('/') : ''} readOnly style={{ background: '#f8fafc' }} />
                     </div>
                     <div className="form-field">
                         <label className="field-label-mini">BENCH / GANG NO.</label>

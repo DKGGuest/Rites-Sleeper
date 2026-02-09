@@ -12,10 +12,10 @@ export const MOCK_INVENTORY = {
             invoiceDate: '2026-01-04',
             cementType: 'OPC 53',
             manufacturerName: 'UltraTech Cement Ltd',
-            batchNo: 'W01-M01-Y26',
-            mfgWeek: '01',
-            mfgYear: '2026',
-            mtcNo: 'MTC-UT-991',
+            batches: [
+                { batchNo: 'W01-M01-Y26', weekNo: '01', yearNo: '2026', mtcNo: 'MTC-UT-991', qty: '100 MT' },
+                { batchNo: 'W01-M01-Y26-B', weekNo: '01', yearNo: '2026', mtcNo: 'MTC-UT-992', qty: '100 MT' }
+            ],
             qty: '200 MT',
             totalQtyKg: '200000',
             status: 'Unverified'
@@ -28,10 +28,9 @@ export const MOCK_INVENTORY = {
             invoiceDate: '2026-01-06',
             cementType: 'PPC',
             manufacturerName: 'Ambuja Cements Ltd',
-            batchNo: 'W52-M12-Y25',
-            mfgWeek: '52',
-            mfgYear: '2025',
-            mtcNo: 'MTC-AMB-882',
+            batches: [
+                { batchNo: 'W52-M12-Y25', weekNo: '52', yearNo: '2025', mtcNo: 'MTC-AMB-882', qty: '150 MT' }
+            ],
             qty: '150 MT',
             totalQtyKg: '150000',
             status: 'Verified',

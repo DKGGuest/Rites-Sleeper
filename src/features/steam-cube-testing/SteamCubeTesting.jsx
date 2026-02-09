@@ -91,7 +91,7 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
             minStrength,
             maxStrength,
             passRate,
-            lastTest: allTests.length > 0 ? allTests[0].testDate : 'N/A'
+            lastTest: (allTests.length > 0 && allTests[0].testDate) ? allTests[0].testDate.split('-').reverse().join('/') : 'N/A'
         };
     }, [declaredSamples, testedRecords]);
 
@@ -169,7 +169,7 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
         {
             key: 'castDateTime',
             label: 'Date & Time of Casting',
-            render: (_, row) => `${row.castDate} ${row.castTime}`
+            render: (_, row) => `${row.castDate ? row.castDate.split('-').reverse().join('/') : ''} ${row.castTime}`
         },
         { key: 'grade', label: 'Concrete Grade' },
         {
@@ -210,12 +210,12 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
         {
             key: 'castDateTime',
             label: 'Date & Time of Casting',
-            render: (_, row) => `${row.castDate} ${row.castTime}`
+            render: (_, row) => `${row.castDate ? row.castDate.split('-').reverse().join('/') : ''} ${row.castTime}`
         },
         {
             key: 'testDateTime',
             label: 'Date & Time of Testing',
-            render: (_, row) => `${row.testDate} ${row.testTime}`
+            render: (_, row) => `${row.testDate ? row.testDate.split('-').reverse().join('/') : ''} ${row.testTime}`
         },
         {
             key: 'avgStrength',
@@ -453,7 +453,7 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => {
                         </div>
                         <div className="input-group">
                             <label>Date of Casting</label>
-                            <input type="date" value={formData.castDate} onChange={e => setFormData({ ...formData, castDate: e.target.value })} />
+                            <input type="text" readOnly value={formData.castDate ? formData.castDate.split('-').reverse().join('/') : ''} style={{ background: '#f8fafc' }} />
                         </div>
                         <div className="input-group">
                             <label>Batch No.</label>
@@ -619,27 +619,30 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying }) => {
             weight: '',
             load: '',
             strength: '',
-            ageHrs: '0.0'
+            ageHrs: '0.0',
+            testDate: sample.testDate || new Date().toISOString().split('T')[0],
+            testTime: sample.testTime || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
         }))
     });
 
-    // Calculate age in hours for each cube
-    useEffect(() => {
-        if (sample.castDate && sample.castTime && testData.testDate && testData.testTime) {
-            const cast = new Date(`${sample.castDate}T${sample.castTime}`);
-            const test = new Date(`${testData.testDate}T${testData.testTime}`);
-            const diffMs = test - cast;
-            const diffHrs = (diffMs / (1000 * 60 * 60)).toFixed(1);
+    const calculateAge = (castDate, castTime, testDate, testTime) => {
+        if (!castDate || !castTime || !testDate || !testTime) return '0.0';
+        const cast = new Date(`${castDate}T${castTime}`);
+        const test = new Date(`${testDate}T${testTime}`);
+        const diffMs = test - cast;
+        return (diffMs / (1000 * 60 * 60)).toFixed(1);
+    };
 
-            setTestData(prev => ({
-                ...prev,
-                cubeResults: prev.cubeResults.map(cube => ({
-                    ...cube,
-                    ageHrs: diffHrs
-                }))
-            }));
-        }
-    }, [testData.testDate, testData.testTime, sample.castDate, sample.castTime]);
+    // Initialize ageHrs for all cubes on mount (or if sample changes)
+    useEffect(() => {
+        setTestData(prev => ({
+            ...prev,
+            cubeResults: prev.cubeResults.map(cube => ({
+                ...cube,
+                ageHrs: calculateAge(sample.castDate, sample.castTime, cube.testDate, cube.testTime)
+            }))
+        }));
+    }, []); // Run once on mount
 
     const updateCubeData = (index, field, value) => {
         const newCubeResults = [...testData.cubeResults];
@@ -648,6 +651,17 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying }) => {
         // Auto-calculate strength when load changes
         if (field === 'load' && value && !isNaN(value)) {
             newCubeResults[index].strength = (parseFloat(value) / 22.5).toFixed(2);
+        }
+
+        // Recalculate age if date or time changes
+        if (field === 'testDate' || field === 'testTime') {
+            const currentCube = newCubeResults[index];
+            newCubeResults[index].ageHrs = calculateAge(
+                sample.castDate,
+                sample.castTime,
+                currentCube.testDate,
+                currentCube.testTime
+            );
         }
 
         setTestData({ ...testData, cubeResults: newCubeResults });
@@ -670,7 +684,7 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying }) => {
 
     return (
         <div className="form-modal-overlay" onClick={onClose}>
-            <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '1100px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '1200px', maxHeight: '90vh', overflowY: 'auto' }}>
                 <div className="form-modal-header">
                     <span className="form-modal-header-title">Test Form - Batch {sample.batchNo}</span>
                     <button className="form-modal-close" onClick={onClose}>X</button>
@@ -681,23 +695,11 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying }) => {
                         <label className="mini-label" style={{ color: '#42818c', fontSize: '11px' }}>PRE-FILLED INFORMATION</label>
                         <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
                             <div><div style={{ fontSize: '10px', color: '#64748b' }}>Shed No. / Line No.</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.lineNumber}</div></div>
-                            <div><div style={{ fontSize: '10px', color: '#64748b' }}>Date of Casting</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.castDate}</div></div>
+                            <div><div style={{ fontSize: '10px', color: '#64748b' }}>Date of Casting</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.castDate ? sample.castDate.split('-').reverse().join('/') : ''}</div></div>
                             <div><div style={{ fontSize: '10px', color: '#64748b' }}>Batch No.</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.batchNo}</div></div>
                             <div><div style={{ fontSize: '10px', color: '#64748b' }}>LBC Time</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.lbcTime || sample.castTime}</div></div>
                             <div><div style={{ fontSize: '10px', color: '#64748b' }}>Concrete Grade</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.grade}</div></div>
                             <div><div style={{ fontSize: '10px', color: '#64748b' }}>Other Bench No.</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.otherBenches?.join(', ') || 'N/A'}</div></div>
-                        </div>
-                    </div>
-
-                    {/* Test Date and Time */}
-                    <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-                        <div className="input-group">
-                            <label>Date of Testing</label>
-                            <input type="date" value={testData.testDate} onChange={e => setTestData({ ...testData, testDate: e.target.value })} />
-                        </div>
-                        <div className="input-group">
-                            <label>Time of Testing</label>
-                            <input type="time" value={testData.testTime} onChange={e => setTestData({ ...testData, testTime: e.target.value })} />
                         </div>
                     </div>
 
@@ -709,6 +711,8 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying }) => {
                                 <thead>
                                     <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                                         <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '700', color: '#64748b', fontSize: '11px' }}>Cube No.</th>
+                                        <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '700', color: '#64748b', fontSize: '11px', minWidth: '110px' }}>Date of Testing</th>
+                                        <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '700', color: '#64748b', fontSize: '11px', minWidth: '90px' }}>Time</th>
                                         <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '700', color: '#64748b', fontSize: '11px' }}>Age (Hrs)</th>
                                         <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '700', color: '#64748b', fontSize: '11px' }}>Weight (Kgs)</th>
                                         <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '700', color: '#64748b', fontSize: '11px' }}>Load (KN)</th>
@@ -723,9 +727,25 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying }) => {
                                                 <input
                                                     type="text"
                                                     readOnly
+                                                    value={cube.testDate ? cube.testDate.split('-').reverse().join('/') : ''}
+                                                    style={{ width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px', background: '#f8fafc' }}
+                                                />
+                                            </td>
+                                            <td style={{ padding: '12px 8px' }}>
+                                                <input
+                                                    type="time"
+                                                    value={cube.testTime}
+                                                    onChange={e => updateCubeData(idx, 'testTime', e.target.value)}
+                                                    style={{ width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px' }}
+                                                />
+                                            </td>
+                                            <td style={{ padding: '12px 8px' }}>
+                                                <input
+                                                    type="text"
+                                                    readOnly
                                                     value={cube.ageHrs}
                                                     style={{
-                                                        width: '80px',
+                                                        width: '60px',
                                                         padding: '6px',
                                                         border: '1px solid #e2e8f0',
                                                         borderRadius: '6px',
@@ -743,7 +763,7 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying }) => {
                                                     onChange={e => updateCubeData(idx, 'weight', e.target.value)}
                                                     placeholder="8.25"
                                                     style={{
-                                                        width: '100px',
+                                                        width: '80px',
                                                         padding: '6px',
                                                         border: '1px solid #e2e8f0',
                                                         borderRadius: '6px',
@@ -759,7 +779,7 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying }) => {
                                                     onChange={e => updateCubeData(idx, 'load', e.target.value)}
                                                     placeholder="950"
                                                     style={{
-                                                        width: '100px',
+                                                        width: '80px',
                                                         padding: '6px',
                                                         border: '1px solid #e2e8f0',
                                                         borderRadius: '6px',
@@ -773,7 +793,7 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying }) => {
                                                     readOnly
                                                     value={cube.strength}
                                                     style={{
-                                                        width: '100px',
+                                                        width: '80px',
                                                         padding: '6px',
                                                         border: '1px solid #e2e8f0',
                                                         borderRadius: '6px',

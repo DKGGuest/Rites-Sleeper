@@ -106,7 +106,7 @@ const AdmixtureTesting = ({ onBack }) => {
     ];
 
     const historyColumns = [
-        { key: 'testDate', label: 'Date' },
+        { key: 'testDate', label: 'Date', render: (val) => val ? val.split('-').reverse().join('/') : '' },
         { key: 'consignmentNo', label: 'Consignment' },
         { key: 'dosage', label: 'Dosage' },
         { key: 'result', label: 'Result' },
@@ -203,7 +203,7 @@ const AdmixtureTesting = ({ onBack }) => {
                                 <div className="form-grid">
                                     <div className="input-group">
                                         <label>Date of Testing <span className="required">*</span></label>
-                                        <input type="date" {...register('testDate', { required: true })} />
+                                        <input type="text" value={new Date().toLocaleDateString('en-GB')} readOnly style={{ background: '#f1f5f9' }} />
                                     </div>
                                     <div className="input-group">
                                         <label>Consignment No. <span className="required">*</span></label>

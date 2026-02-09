@@ -60,6 +60,10 @@ export default function SevenDayStrengthForm() {
                 {/* Header Fields */}
                 <div className="form-grid">
                     <div className="input-group">
+                        <label>Date of Testing <span className="required">*</span></label>
+                        <input type="text" value={new Date().toLocaleDateString('en-GB')} readOnly style={{ background: '#f8fafc' }} />
+                    </div>
+                    <div className="input-group">
                         <label>Type of Testing <span className="required">*</span></label>
                         <select
                             value={form.typeOfTesting}
@@ -143,9 +147,9 @@ export default function SevenDayStrengthForm() {
                         <tbody>
                             {form.cubes.map((cube, i) => (
                                 <tr key={i}>
-                                    <td data-label="Cast Date"><input type="date" value={cube.castDate} onChange={e => updateCube(i, "castDate", e.target.value)} /></td>
+                                    <td data-label="Cast Date"><input type="text" placeholder="DD/MM/YYYY" value={cube.castDate} onChange={e => updateCube(i, "castDate", e.target.value)} /></td>
                                     <td data-label="Cast Time"><input type="time" value={cube.castTime} onChange={e => updateCube(i, "castTime", e.target.value)} /></td>
-                                    <td data-label="Test Date"><input type="date" value={cube.testDate} onChange={e => updateCube(i, "testDate", e.target.value)} /></td>
+                                    <td data-label="Test Date"><input type="text" placeholder="DD/MM/YYYY" value={cube.testDate} onChange={e => updateCube(i, "testDate", e.target.value)} /></td>
                                     <td data-label="Test Time"><input type="time" value={cube.testTime} onChange={e => updateCube(i, "testTime", e.target.value)} /></td>
                                     <td data-label="Load (kN)"><input type="number" value={cube.load} onChange={e => updateCube(i, "load", e.target.value)} /></td>
                                     <td data-label="Strength (N/mm²)"><input type="number" value={cube.strength} onChange={e => updateCube(i, "strength", e.target.value)} /></td>

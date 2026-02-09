@@ -5,6 +5,7 @@ import SpecificSurfaceForm from './SpecificSurfaceForm';
 import SettingTimeForm from './SettingTimeForm';
 import NormalConsistencyForm from './NormalConsistencyForm';
 import SevenDayStrengthForm from './SevenDayStrengthForm';
+import FinenessTestForm from './FinenessTestForm';
 import { MOCK_INVENTORY, MOCK_CEMENT_HISTORY } from '../../../../utils/rawMaterialMockData';
 import CollectionAwaitingInspection from '../../../../components/CollectionAwaitingInspection';
 import './CementForms.css';
@@ -80,7 +81,14 @@ const CementTesting = ({ onBack }) => {
     const inventoryColumns = [
         { key: 'vendor', label: 'Registered Vendor' },
         { key: 'consignmentNo', label: 'Consignment No.', isHeaderHighlight: true },
-        { key: 'lotNo', label: 'Lot No.' },
+        {
+            key: 'lotNo',
+            label: 'Lot / Batch No.',
+            render: (_, row) => {
+                if (row.batches && row.batches.length > 0) return `${row.batches.length} Batches`;
+                return row.lotNo || row.batchNo || 'N/A';
+            }
+        },
         { key: 'receivedDate', label: 'Arrival Date' },
         {
             key: 'actions',
@@ -100,12 +108,13 @@ const CementTesting = ({ onBack }) => {
     ];
 
     const historyColumns = [
-        { key: 'testDate', label: 'Date' },
+        { key: 'testDate', label: 'Date', render: (val) => val ? val.split('-').reverse().join('/') : '' },
         { key: 'consignmentNo', label: 'Consignment' },
         { key: 'lotNo', label: 'Lot' },
         { key: 'surface', label: 'Surface' },
         { key: 'consistency', label: 'Consistency' },
         { key: 'soundness', label: 'Soundness' },
+        { key: 'fineness', label: 'Fineness (%)' },
         {
             key: 'actions',
             label: 'Actions',
@@ -142,7 +151,8 @@ const CementTesting = ({ onBack }) => {
         { id: 1, label: '7 Day Strength', component: <SevenDayStrengthForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} /> },
         { id: 2, label: 'Normal Consistency', component: <NormalConsistencyForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} /> },
         { id: 3, label: 'Specific Surface', component: <SpecificSurfaceForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} /> },
-        { id: 4, label: 'Setting Time', component: <SettingTimeForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} /> }
+        { id: 4, label: 'Setting Time', component: <SettingTimeForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} /> },
+        { id: 5, label: 'Fineness Test', component: <FinenessTestForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} /> }
     ];
 
     return (

@@ -228,7 +228,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                                     style={{ padding: '6px', fontSize: '12px', width: '70px' }}
                                 >
                                     <option value="">--</option>
-                                    {['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(s => <option key={s} value={s}>{s}</option>)}
+                                    {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
                             <div className="form-field">
@@ -247,27 +247,58 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                                     {sleeper.sleeperNo || '--'}
                                 </div>
                             </div>
+
                             <div className="form-field">
-                                <label style={{ fontSize: '10px' }}>Visual Reason</label>
-                                <select value={sleeper.visualReason} className="form-input-standard" onChange={e => updateDefectiveSleeper(idx, 'visualReason', e.target.value)} style={{ padding: '6px', fontSize: '12px' }}>
-                                    <option value="">-- Select --</option>
-                                    <option value="Cracks">Cracks</option>
-                                    <option value="Honey Combing">Honey Combing</option>
-                                    <option value="Chipping">Chipping</option>
-                                    <option value="Edge Damage">Edge Damage</option>
-                                    <option value="Other">Other</option>
+                                <label style={{ fontSize: '10px' }}>Defect Type</label>
+                                <select
+                                    value={sleeper.defectType || ''}
+                                    className="form-input-standard"
+                                    onChange={e => {
+                                        const type = e.target.value;
+                                        // Reset reasons when type changes
+                                        setFormData(prev => {
+                                            const updated = [...prev.defectiveSleepers];
+                                            updated[idx] = {
+                                                ...updated[idx],
+                                                defectType: type,
+                                                visualReason: '',
+                                                dimReason: ''
+                                            };
+                                            return { ...prev, defectiveSleepers: updated };
+                                        });
+                                    }}
+                                    style={{ padding: '6px', fontSize: '12px' }}
+                                >
+                                    <option value="">-- Type --</option>
+                                    <option value="Visual" disabled={formData.visualCheck === 'All OK'}>Visual</option>
+                                    <option value="Dimensional" disabled={formData.dimCheck === 'All OK'}>Dimensional</option>
                                 </select>
                             </div>
+
                             <div className="form-field">
-                                <label style={{ fontSize: '10px' }}>Dim. Reason</label>
-                                <select value={sleeper.dimReason} className="form-input-standard" onChange={e => updateDefectiveSleeper(idx, 'dimReason', e.target.value)} style={{ padding: '6px', fontSize: '12px' }}>
-                                    <option value="">-- Select --</option>
-                                    <option value="Length deviation">Length deviation</option>
-                                    <option value="Width deviation">Width deviation</option>
-                                    <option value="Height deviation">Height deviation</option>
-                                    <option value="Insert Misalignment">Insert Misalignment</option>
-                                </select>
+                                <label style={{ fontSize: '10px' }}>Defect Reason</label>
+                                {sleeper.defectType === 'Visual' ? (
+                                    <select value={sleeper.visualReason} className="form-input-standard" onChange={e => updateDefectiveSleeper(idx, 'visualReason', e.target.value)} style={{ padding: '6px', fontSize: '12px' }}>
+                                        <option value="">-- Visual Reason --</option>
+                                        <option value="Cracks">Cracks</option>
+                                        <option value="Honey Combing">Honey Combing</option>
+                                        <option value="Chipping">Chipping</option>
+                                        <option value="Edge Damage">Edge Damage</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                ) : sleeper.defectType === 'Dimensional' ? (
+                                    <select value={sleeper.dimReason} className="form-input-standard" onChange={e => updateDefectiveSleeper(idx, 'dimReason', e.target.value)} style={{ padding: '6px', fontSize: '12px' }}>
+                                        <option value="">-- Dim. Reason --</option>
+                                        <option value="Length deviation">Length deviation</option>
+                                        <option value="Width deviation">Width deviation</option>
+                                        <option value="Height deviation">Height deviation</option>
+                                        <option value="Insert Misalignment">Insert Misalignment</option>
+                                    </select>
+                                ) : (
+                                    <div style={{ padding: '6px', fontSize: '12px', color: '#94a3b8', fontStyle: 'italic', background: '#e2e8f0', borderRadius: '6px' }}>Select Type First</div>
+                                )}
                             </div>
+
                             <div style={{ minWidth: '40px', textAlign: 'right' }}>
                                 <button onClick={() => removeDefectiveSleeper(idx)} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', padding: '6px', cursor: 'pointer', height: '32px', width: '32px' }}>×</button>
                             </div>

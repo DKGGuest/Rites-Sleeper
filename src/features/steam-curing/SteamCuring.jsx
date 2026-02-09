@@ -195,7 +195,7 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                                 <div className="form-field"><label style={{ fontSize: '10px' }}>Batch</label><input value={selectedBatch} readOnly style={{ background: '#fff', fontSize: '13px', padding: '6px' }} /></div>
                                 <div className="form-field"><label style={{ fontSize: '10px' }}>Chamber</label><input value={selectedChamber} readOnly style={{ background: '#fff', fontSize: '13px', padding: '6px' }} /></div>
                                 <div className="form-field"><label style={{ fontSize: '10px' }}>Grade</label><input value="M60" readOnly style={{ background: '#fff', fontSize: '13px', padding: '6px' }} /></div>
-                                <div className="form-field"><label style={{ fontSize: '10px' }}>Date</label><input type="date" value={manualForm.date} readOnly style={{ background: '#fff', fontSize: '13px', padding: '6px' }} /></div>
+                                <div className="form-field"><label style={{ fontSize: '10px' }}>Date</label><input type="text" value={manualForm.date ? manualForm.date.split('-').reverse().join('/') : ''} readOnly style={{ background: '#fff', fontSize: '13px', padding: '6px' }} /></div>
                             </div>
                         </div>
 
@@ -274,11 +274,12 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                                 <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#1e293b', fontWeight: '800' }}>Recent Witness Logs</h4>
                             </div>
                             <table className="ui-table" style={{ background: '#fff', fontSize: '12px' }}>
-                                <thead><tr><th>Source</th><th>Batch</th><th>Chamber</th><th>Temp Range</th><th>Actions</th></tr></thead>
+                                <thead><tr><th>Source</th><th>Date</th><th>Batch</th><th>Chamber</th><th>Temp Range</th><th>Actions</th></tr></thead>
                                 <tbody>
                                     {entries.slice(0, 5).map(e => (
                                         <tr key={e.id}>
                                             <td><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
+                                            <td>{e.date ? e.date.split('-').reverse().join('/') : ''}</td>
                                             <td>{e.batchNo}</td><td>{e.chamberNo}</td><td>{e.minConstTemp}-{e.maxConstTemp}°C</td>
                                             <td>
                                                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -317,7 +318,7 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                                     {entries.map(e => (
                                         <tr key={e.id}>
                                             <td><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
-                                            <td>{e.date}</td><td>{e.batchNo}</td><td>{e.chamberNo}</td><td>{e.benches}</td><td>{e.minConstTemp}-{e.maxConstTemp}°C</td>
+                                            <td>{e.date ? e.date.split('-').reverse().join('/') : ''}</td><td>{e.batchNo}</td><td>{e.chamberNo}</td><td>{e.benches}</td><td>{e.minConstTemp}-{e.maxConstTemp}°C</td>
                                             <td>
                                                 <div style={{ display: 'flex', gap: '8px' }}>
                                                     {e.source === 'Manual' && <button className="btn-action" onClick={() => handleEdit(e)}>Edit</button>}
@@ -340,7 +341,7 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                                 <tbody>
                                     {scadaCycles.map(r => (
                                         <tr key={r.id}>
-                                            <td>{r.batchNo}</td><td><strong>{r.chamberNo}</strong></td><td>{r.date}</td><td>{r.benches}</td><td>{r.const.tempRange}°C</td>
+                                            <td>{r.batchNo}</td><td><strong>{r.chamberNo}</strong></td><td>{r.date ? r.date.split('-').reverse().join('/') : ''}</td><td>{r.benches}</td><td>{r.const.tempRange}°C</td>
                                             <td><button className="btn-action" onClick={() => handleWitness(r)}>Witness</button></td>
                                         </tr>
                                     ))}

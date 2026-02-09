@@ -165,7 +165,7 @@ const CompactionConcrete = ({ onBack, onSave, displayMode = 'modal' }) => {
                             <div className="form-grid compact">
                                 <div className="form-field"><label>Batch No.</label><input value={selectedBatch} readOnly /></div>
                                 <div className="form-field"><label>Sleeper Type</label><input value="RT-8746" readOnly /></div>
-                                <div className="form-field"><label>Date</label><input type="date" value={manualForm.date} readOnly /></div>
+                                <div className="form-field"><label>Date</label><input type="text" value={manualForm.date ? manualForm.date.split('-').reverse().join('/') : ''} readOnly /></div>
                             </div>
                         </section>
 
@@ -213,11 +213,12 @@ const CompactionConcrete = ({ onBack, onSave, displayMode = 'modal' }) => {
                             </div>
                             <div className="table-responsive">
                                 <table className="ui-table compact">
-                                    <thead><tr><th>Source</th><th>Time</th><th>Bench</th><th>RPM Range</th><th>Actions</th></tr></thead>
+                                    <thead><tr><th>Source</th><th>Date</th><th>Time</th><th>Bench</th><th>RPM Range</th><th>Actions</th></tr></thead>
                                     <tbody>
                                         {entries.slice(0, 5).map(e => (
                                             <tr key={e.id}>
                                                 <td><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
+                                                <td>{e.date ? e.date.split('-').reverse().join('/') : ''}</td>
                                                 <td>{e.time}</td><td>{e.benchNo}</td><td>{e.minRpm}-{e.maxRpm}</td>
                                                 <td>
                                                     <div className="btn-group">
@@ -259,11 +260,12 @@ const CompactionConcrete = ({ onBack, onSave, displayMode = 'modal' }) => {
                         <div className="table-outer-wrapper">
                             <div className="table-responsive">
                                 <table className="ui-table">
-                                    <thead><tr><th>Source</th><th>Time</th><th>Batch</th><th>Bench</th><th>RPM Range</th><th>Duration</th><th>Actions</th></tr></thead>
+                                    <thead><tr><th>Source</th><th>Date</th><th>Time</th><th>Batch</th><th>Bench</th><th>RPM Range</th><th>Duration</th><th>Actions</th></tr></thead>
                                     <tbody>
                                         {entries.map(e => (
                                             <tr key={e.id}>
                                                 <td><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
+                                                <td>{e.date ? e.date.split('-').reverse().join('/') : ''}</td>
                                                 <td>{e.time}</td><td>{e.batchNo}</td><td>{e.benchNo}</td><td>{e.minRpm}-{e.maxRpm}</td><td>{e.duration}s</td>
                                                 <td>
                                                     <div className="btn-group">

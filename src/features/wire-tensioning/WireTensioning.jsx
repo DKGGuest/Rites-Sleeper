@@ -398,6 +398,17 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                             </div>
                         </div>
 
+                        {/* Final Save Button */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                            <button
+                                className="toggle-btn"
+                                onClick={() => setShowForm(false)}
+                                style={{ background: '#0f172a', color: '#fff', padding: '12px 32px', borderRadius: '8px', fontWeight: '800', border: 'none', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+                            >
+                                Save / Finish Batch
+                            </button>
+                        </div>
+
                     </div>
                 </div>
             </div>

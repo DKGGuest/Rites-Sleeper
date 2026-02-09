@@ -100,7 +100,7 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
                         </div>
                         <div className="form-field">
                             <label style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Date</label>
-                            <input type="date" name="date" value={formData.date} onChange={handleChange} style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }} />
+                            <input type="text" readOnly value={formData.date ? formData.date.split('-').reverse().join('/') : ''} style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem', background: '#f8fafc' }} />
                         </div>
                         <div className="form-field">
                             <label style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Time</label>

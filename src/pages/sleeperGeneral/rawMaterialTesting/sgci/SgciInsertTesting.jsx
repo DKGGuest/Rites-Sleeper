@@ -149,7 +149,7 @@ const SgciInsertTesting = ({ onBack }) => {
     ];
 
     const historyColumns = [
-        { key: 'testDate', label: 'Date' },
+        { key: 'testDate', label: 'Date', render: (val) => val ? val.split('-').reverse().join('/') : '' },
         { key: 'lotNo', label: 'Lot No.' },
         { key: 'supplier', label: 'Supplier' },
         { key: 'checked', label: 'Tested' },
@@ -251,7 +251,7 @@ const SgciInsertTesting = ({ onBack }) => {
                         <div className="form-modal-body" style={{ background: '#f8fafc' }}>
                             <form onSubmit={handleSubmit(onSubmit)}>
                                 <div className="form-grid">
-                                    <div className="input-group"><label>Date</label><input type="date" {...register('date')} /></div>
+                                    <div className="input-group"><label>Date</label><input type="text" value={new Date().toLocaleDateString('en-GB')} readOnly style={{ background: '#f1f5f9' }} /></div>
                                     <div className="input-group">
                                         <label>Consignment</label>
                                         <select {...register('consignmentNo')}>

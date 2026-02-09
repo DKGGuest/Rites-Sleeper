@@ -100,7 +100,7 @@ const WaterTesting = ({ onBack }) => {
     ];
 
     const historyColumns = [
-        { key: 'testDate', label: 'Date' },
+        { key: 'testDate', label: 'Date', render: (val) => val ? val.split('-').reverse().join('/') : '' },
         { key: 'ph', label: 'PH Value' },
         { key: 'tds', label: 'TDS Result' },
         {
@@ -200,7 +200,7 @@ const WaterTesting = ({ onBack }) => {
                                 <div className="form-grid">
                                     <div className="input-group">
                                         <label>Date of Testing <span className="required">*</span></label>
-                                        <input type="date" {...register('testDate', { required: true })} />
+                                        <input type="text" value={new Date().toLocaleDateString('en-GB')} readOnly style={{ background: '#f1f5f9' }} />
                                     </div>
                                     <div className="input-group">
                                         <label>pH Value <span className="required">*</span></label>

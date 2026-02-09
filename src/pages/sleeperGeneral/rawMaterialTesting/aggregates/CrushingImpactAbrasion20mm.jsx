@@ -85,8 +85,7 @@ export default function CrushingImpactAbrasion20mm({ onSave, onCancel, consignme
                     <div className="form-grid">
                         <div className="input-group">
                             <label>Date of Testing <span className="required">*</span></label>
-                            <input type="date" {...register("date", { required: "Required" })} />
-                            {errors.date && <span className="hint-text" style={{ color: 'red' }}>{errors.date.message}</span>}
+                            <input type="text" value={new Date().toLocaleDateString('en-GB')} readOnly style={{ background: '#f1f5f9' }} />
                         </div>
 
                         {!consignment && (
