@@ -111,14 +111,9 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
         return dateStr;
     };
 
-    // Convert date to dd/MM/yyyy for BACKEND (Backend expects dd/MM/yyyy based on parsing error at index 2)
-    const formatDateForBackend = (dateStr) => {
+    // Convert date to dd/MM/yyyy for BACKEND (Matches index 2 parsing requirement)
+    const formatToBackendDate = (dateStr) => {
         if (!dateStr) return null;
-
-        // If already dd/MM/yyyy, return as is
-        if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
-            return dateStr;
-        }
 
         // If yyyy-MM-dd (HTML date input), convert to dd/MM/yyyy
         if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
@@ -131,6 +126,11 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
             return dateStr.replace(/-/g, '/');
         }
 
+        // If already dd/MM/yyyy, return as is
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+            return dateStr;
+        }
+
         return dateStr;
     };
 
@@ -140,51 +140,58 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
             return;
         }
 
-        // Transform defective sleepers - Backend requires at least one object (even if empty)
-        const mappedDefectiveSleepers = formData.defectiveSleeperDetails.length > 0
+        // Map status values to Backend Expected Constants (matching logs)
+        const visualCheckMapped = formData.visualCheck || "All OK";
+        const dimCheckMapped = formData.dimCheck || "All OK";
+
+        // Transform defective sleepers
+        let mappedDefectiveSleepers = (formData.defectiveSleeperDetails && formData.defectiveSleeperDetails.length > 0)
             ? formData.defectiveSleeperDetails.map(item => ({
-                benchGangNo: item.benchNo || "",
+                benchGangNo: item.benchNo ? String(item.benchNo) : "",
                 sequenceNo: item.sequence || "",
                 sleeperNo: item.sleeperNo || "",
                 visualReason: item.visualReason || "",
                 dimReason: item.dimReason || ""
             }))
-            : [
-                {
-                    benchGangNo: "",
-                    sequenceNo: "",
-                    sleeperNo: "",
-                    visualReason: "",
-                    dimReason: ""
-                }
-            ];
+            : [];
 
-        // Map status values to Backend Expected Constants
-        const processStatusMapped = formData.processSatisfactory === 'Satisfactory' ? 'OK' : 'REJECTED';
-        const visualCheckMapped = formData.visualCheck === 'All OK' ? 'YES' : 'NO';
-        const dimCheckMapped = formData.dimCheck === 'All OK' ? 'YES' : 'NO';
+        // Backend requirement: defectiveSleepers must not be empty
+        if (mappedDefectiveSleepers.length === 0) {
+            mappedDefectiveSleepers = [{
+                benchGangNo: "",
+                sequenceNo: "",
+                sleeperNo: "",
+                visualReason: "",
+                dimReason: ""
+            }];
+        }
 
-        // Construct Payload matching DTO
+        // VALIDATION: If checks are not "All OK", at least one defect detail is required
+        if ((visualCheckMapped !== 'All OK' || dimCheckMapped !== 'All OK') && mappedDefectiveSleepers.length === 0) {
+            alert('Please add details for the defective sleepers found during inspection.');
+            return;
+        }
+
+        // Construct Payload matching DTO precisely (Per User Latest Instructions)
         const payload = {
-            lineShedNo: shedNo,
-            inspectionDate: formatToBackendDDMMYYYY(formData.date), // dd/MM/yyyy
+            lineShedNo: activeContainer?.name || "",
+            inspectionDate: formatToBackendDate(formData.date),
             inspectionTime: formData.time,
-            castingDate: formatToBackendDDMMYYYY(formData.dateOfCasting), // dd/MM/yyyy
-            batchNo: formData.batchNo,
-            benchNo: formData.benchNo,
-            sleeperType: formData.sleeperType,
-            processStatus: processStatusMapped,
-            visualCheck: visualCheckMapped,
-            dimCheck: dimCheckMapped,
-            overallRemarks: formData.remarks,
+            castingDate: formatToBackendDate(formData.dateOfCasting),
+            batchNo: String(formData.batchNo || ""),
+            benchNo: String(formData.benchNo || ""),
+            sleeperType: formData.sleeperType || "",
+            processStatus: formData.processSatisfactory || "",
+            visualCheck: visualCheckMapped || "",
+            dimCheck: dimCheckMapped || "",
+            overallRemarks: formData.remarks || "",
             createdBy: "Urvi",
             updatedBy: "Urvi",
             defectiveSleepers: mappedDefectiveSleepers
         };
 
         // DEBUG LOGGING
-        console.log('📋 DemouldingForm - Preparing to save...');
-        console.log("Date:", payload.inspectionDate);
+        console.log('📋 DemouldingForm - Preparing Payload...');
         console.log(JSON.stringify(payload, null, 2));
 
         onSave(payload);
@@ -206,41 +213,41 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
         <div className="form-container" style={{ padding: '20px' }}>
             <div className="form-grid-standard" style={{ marginBottom: '20px' }}>
                 <div className="form-field">
-                    <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Line / Shed No.</label>
+                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', marginBottom: '4px', display: 'block' }}>Line / Shed No.</span>
                     <div className="form-info-card">
                         {activeContainer?.name || 'N/A'}
                     </div>
                 </div>
 
                 <div className="form-field">
-                    <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Date</label>
+                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', marginBottom: '4px', display: 'block' }}>Date</span>
                     <div className="form-info-card">
-                        {formatDateForBackend(formData.date)}
+                        {formatToBackendDate(formData.date)}
                     </div>
                 </div>
 
                 <div className="form-field">
                     <label htmlFor="demould-time" style={{ fontSize: '11px', fontWeight: '700' }}>Time <span className="required">*</span></label>
-                    <input id="demould-time" type="time" className="form-input-standard" value={formData.time} onChange={e => handleChange('time', e.target.value)} />
+                    <input id="demould-time" name="time" type="time" className="form-input-standard" value={formData.time} onChange={e => handleChange('time', e.target.value)} />
                 </div>
 
                 <div className="form-field">
                     <label htmlFor="casting-date" style={{ fontSize: '11px', fontWeight: '700' }}>Date of Casting <span className="required">*</span></label>
-                    <input id="casting-date" type="date" className="form-input-standard" value={formData.dateOfCasting} onChange={e => handleChange('dateOfCasting', e.target.value)} />
+                    <input id="casting-date" name="dateOfCasting" type="date" className="form-input-standard" value={formData.dateOfCasting} onChange={e => handleChange('dateOfCasting', e.target.value)} />
                 </div>
 
                 <div className="form-field">
                     <label htmlFor="batch-no" style={{ fontSize: '11px', fontWeight: '700' }}>Batch No. <span className="required">*</span></label>
-                    <input id="batch-no" type="number" placeholder="Batch No" className="form-input-standard" value={formData.batchNo} onChange={e => handleChange('batchNo', e.target.value)} />
+                    <input id="batch-no" name="batchNo" type="number" placeholder="Batch No" className="form-input-standard" value={formData.batchNo} onChange={e => handleChange('batchNo', e.target.value)} />
                 </div>
 
                 <div className="form-field">
                     <label htmlFor="demould-bench" style={{ fontSize: '11px', fontWeight: '700' }}>{fieldLabel} No. <span className="required">*</span></label>
-                    <input id="demould-bench" type="number" min="0" placeholder={`${fieldLabel} No`} className="form-input-standard" value={formData.benchNo} onChange={e => handleChange('benchNo', e.target.value)} />
+                    <input id="demould-bench" name="benchNo" type="number" min="0" placeholder={`${fieldLabel} No`} className="form-input-standard" value={formData.benchNo} onChange={e => handleChange('benchNo', e.target.value)} />
                 </div>
 
                 <div className="form-field">
-                    <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Type of Sleeper</label>
+                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', marginBottom: '4px', display: 'block' }}>Type of Sleeper</span>
                     <div className="form-info-card" style={{ background: '#f8fafc', color: '#64748b', fontWeight: '600' }}>
                         {formData.sleeperType || 'N/A'}
                     </div>
@@ -248,7 +255,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
 
                 <div className="form-field">
                     <label htmlFor="process-status" style={{ fontSize: '11px', fontWeight: '700' }}>Process Status <span className="required">*</span></label>
-                    <select id="process-status" name="processStatus" value={formData.processSatisfactory} className="form-input-standard" onChange={e => handleChange('processSatisfactory', e.target.value)}>
+                    <select id="process-status" name="processSatisfactory" value={formData.processSatisfactory} className="form-input-standard" onChange={e => handleChange('processSatisfactory', e.target.value)}>
                         <option value="">-- Select --</option>
                         <option value="Satisfactory">Satisfactory</option>
                         <option value="Not Satisfactory">Not Satisfactory</option>
@@ -257,7 +264,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
 
                 <div className="form-field">
                     <label htmlFor="visual-check" style={{ fontSize: '11px', fontWeight: '700' }}>Visual Check <span className="required">*</span></label>
-                    <select id="visual-check" value={formData.visualCheck} className="form-input-standard" onChange={e => handleChange('visualCheck', e.target.value)}>
+                    <select id="visual-check" name="visualCheck" value={formData.visualCheck} className="form-input-standard" onChange={e => handleChange('visualCheck', e.target.value)}>
                         <option value="">-- Select --</option>
                         <option value="All OK">All OK</option>
                         <option value="Partially OK">Partially OK</option>
@@ -267,7 +274,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
 
                 <div className="form-field">
                     <label htmlFor="dim-check" style={{ fontSize: '11px', fontWeight: '700' }}>Dim. Check <span className="required">*</span></label>
-                    <select id="dim-check" value={formData.dimCheck} className="form-input-standard" onChange={e => handleChange('dimCheck', e.target.value)}>
+                    <select id="dim-check" name="dimCheck" value={formData.dimCheck} className="form-input-standard" onChange={e => handleChange('dimCheck', e.target.value)}>
                         <option value="">-- Select --</option>
                         <option value="All OK">All OK</option>
                         <option value="Partially OK">Partially OK</option>
@@ -277,7 +284,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
 
                 <div className="form-field form-field-full">
                     <label htmlFor="demould-remarks" style={{ fontSize: '11px', fontWeight: '700' }}>Overall Findings / Remarks <span className="required">*</span></label>
-                    <input id="demould-remarks" type="text" placeholder="Enter observations" className="form-input-standard" value={formData.remarks} onChange={e => handleChange('remarks', e.target.value)} />
+                    <input id="demould-remarks" name="remarks" type="text" placeholder="Enter observations" className="form-input-standard" value={formData.remarks} onChange={e => handleChange('remarks', e.target.value)} />
                 </div>
             </div>
 
@@ -305,7 +312,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                                 <label htmlFor={`sleeper-bench-${idx}`} style={{ fontSize: '10px' }}>Bench/Gang No.</label>
                                 <input
                                     id={`sleeper-bench-${idx}`}
-                                    name={`sleeper-bench-${idx}`}
+                                    name={`sleeper-bench-no-${idx}`}
                                     type="number"
                                     min="0"
                                     className="form-input-standard"
@@ -319,7 +326,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                                 <label htmlFor={`sleeper-seq-${idx}`} style={{ fontSize: '10px' }}>Sequence</label>
                                 <select
                                     id={`sleeper-seq-${idx}`}
-                                    name={`sleeper-seq-${idx}`}
+                                    name={`sleeper-sequence-${idx}`}
                                     value={sleeper.sequence}
                                     className="form-input-standard"
                                     onChange={e => updateDefectiveSleeper(idx, 'sequence', e.target.value)}
@@ -330,18 +337,20 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                                 </select>
                             </div>
                             <div className="form-field">
-                                <label style={{ fontSize: '10px' }}>Sleeper No.</label>
-                                <div style={{
-                                    padding: '6px 10px',
-                                    fontSize: '12px',
-                                    fontWeight: '700',
-                                    color: sleeper.sleeperNo ? '#42818c' : '#94a3b8',
-                                    background: '#fff',
-                                    border: '1px solid #e2e8f0',
-                                    borderRadius: '6px',
-                                    minWidth: '80px',
-                                    textAlign: 'center'
-                                }}>
+                                <span style={{ fontSize: '10px', color: '#64748b', fontWeight: '700', marginBottom: '4px', display: 'block' }}>Sleeper No.</span>
+                                <div
+                                    style={{
+                                        padding: '6px 10px',
+                                        fontSize: '12px',
+                                        fontWeight: '700',
+                                        color: sleeper.sleeperNo ? '#42818c' : '#94a3b8',
+                                        background: '#fff',
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: '6px',
+                                        minWidth: '80px',
+                                        textAlign: 'center'
+                                    }}
+                                >
                                     {sleeper.sleeperNo || '--'}
                                 </div>
                             </div>
@@ -350,7 +359,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                                 <label htmlFor={`sleeper-type-${idx}`} style={{ fontSize: '10px' }}>Defect Type</label>
                                 <select
                                     id={`sleeper-type-${idx}`}
-                                    name={`sleeper-type-${idx}`}
+                                    name={`sleeper-defect-type-${idx}`}
                                     value={sleeper.defectType || ''}
                                     className="form-input-standard"
                                     onChange={e => {
@@ -378,7 +387,14 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                             <div className="form-field">
                                 <label htmlFor={`sleeper-reason-${idx}`} style={{ fontSize: '10px' }}>Defect Reason</label>
                                 {sleeper.defectType === 'Visual' ? (
-                                    <select id={`sleeper-reason-${idx}`} name={`sleeper-reason-${idx}`} value={sleeper.visualReason} className="form-input-standard" onChange={e => updateDefectiveSleeper(idx, 'visualReason', e.target.value)} style={{ padding: '6px', fontSize: '12px' }}>
+                                    <select
+                                        id={`sleeper-reason-${idx}`}
+                                        name={`sleeper-visual-reason-${idx}`}
+                                        value={sleeper.visualReason}
+                                        className="form-input-standard"
+                                        onChange={e => updateDefectiveSleeper(idx, 'visualReason', e.target.value)}
+                                        style={{ padding: '6px', fontSize: '12px' }}
+                                    >
                                         <option value="">-- Visual Reason --</option>
                                         <option value="Cracks">Cracks</option>
                                         <option value="Honey Combing">Honey Combing</option>
@@ -387,7 +403,14 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                                         <option value="Other">Other</option>
                                     </select>
                                 ) : sleeper.defectType === 'Dimensional' ? (
-                                    <select id={`sleeper-reason-${idx}`} name={`sleeper-reason-${idx}`} value={sleeper.dimReason} className="form-input-standard" onChange={e => updateDefectiveSleeper(idx, 'dimReason', e.target.value)} style={{ padding: '6px', fontSize: '12px' }}>
+                                    <select
+                                        id={`sleeper-reason-${idx}`}
+                                        name={`sleeper-dim-reason-${idx}`}
+                                        value={sleeper.dimReason}
+                                        className="form-input-standard"
+                                        onChange={e => updateDefectiveSleeper(idx, 'dimReason', e.target.value)}
+                                        style={{ padding: '6px', fontSize: '12px' }}
+                                    >
                                         <option value="">-- Dim. Reason --</option>
                                         <option value="Length deviation">Length deviation</option>
                                         <option value="Width deviation">Width deviation</option>
@@ -400,7 +423,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                             </div>
 
                             <div style={{ minWidth: '40px', textAlign: 'right' }}>
-                                <button onClick={() => removeDefectiveSleeper(idx)} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', padding: '6px', cursor: 'pointer', height: '32px', width: '32px' }}>×</button>
+                                <button onClick={() => removeDefectiveSleeper(idx)} type="button" aria-label="Remove Sleeper" style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', padding: '6px', cursor: 'pointer', height: '32px', width: '32px' }}>×</button>
                             </div>
                         </div>
                     ))}
@@ -413,10 +436,10 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
             )}
 
             <div className="form-actions-row">
-                <button className="toggle-btn" onClick={handleSave}>
+                <button className="toggle-btn" type="button" onClick={handleSave}>
                     {initialData ? 'Update Record' : 'Save Record'}
                 </button>
-                {initialData && <button className="toggle-btn secondary" onClick={onCancel}>Cancel</button>}
+                {initialData && <button className="toggle-btn secondary" type="button" onClick={onCancel}>Cancel</button>}
             </div>
         </div>
 
