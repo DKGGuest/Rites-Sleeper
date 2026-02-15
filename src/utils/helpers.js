@@ -28,6 +28,39 @@ export const formatDate = (date) => {
 };
 
 /**
+ * Format date to dd-MM-yyyy for Backend
+ */
+export const formatDateForBackend = (date) => {
+  if (!date) return null;
+
+  // If it matches yyyy-MM-dd (Standard ISO) -> Return as is
+  if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return date;
+  }
+
+  // If it matches dd-MM-yyyy (e.g. 14-02-2026) -> Convert to yyyy-MM-dd
+  if (typeof date === 'string' && /^\d{2}-\d{2}-\d{4}$/.test(date)) {
+    const [day, month, year] = date.split('-');
+    return `${year}-${month}-${day}`;
+  }
+
+  // If it matches dd/MM/yyyy (e.g. 14/02/2026) -> Convert to yyyy-MM-dd
+  if (typeof date === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(date)) {
+    const [day, month, year] = date.split('/');
+    return `${year}-${month}-${day}`;
+  }
+
+  // Fallback if it's a Date object or other string
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return null;
+
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const yearStr = d.getFullYear();
+  return `${yearStr}-${month}-${day}`;
+};
+
+/**
  * Format date and time to dd/MM/yyyy HH:mm
  */
 export const formatDateTime = (date) => {
@@ -64,7 +97,7 @@ export const getRelativeTime = (date) => {
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffMinutes = Math.floor(diffMs / (1000 * 60));
-  
+
   if (diffMinutes < 60) return `${diffMinutes} minutes ago`;
   if (diffHours < 24) return `${diffHours} hours ago`;
   if (diffDays === 0) return 'Today';
@@ -118,7 +151,7 @@ export const sortByField = (items, field, direction = 'asc') => {
   return [...items].sort((a, b) => {
     const aVal = field.split('.').reduce((obj, key) => obj?.[key], a);
     const bVal = field.split('.').reduce((obj, key) => obj?.[key], b);
-    
+
     if (aVal === bVal) return 0;
     if (direction === 'asc') {
       return aVal > bVal ? 1 : -1;
@@ -149,18 +182,18 @@ export const calculatePercentage = (value, total) => {
  */
 export const exportToCSV = (data, filename) => {
   if (!data || data.length === 0) return;
-  
+
   const headers = Object.keys(data[0]);
   const csvContent = [
     headers.join(','),
     ...data.map(row => headers.map(header => {
       const value = row[header];
-      return typeof value === 'string' && value.includes(',') 
-        ? `"${value}"` 
+      return typeof value === 'string' && value.includes(',')
+        ? `"${value}"`
         : value;
     }).join(','))
   ].join('\n');
-  
+
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);

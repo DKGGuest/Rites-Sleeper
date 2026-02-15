@@ -22,13 +22,20 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
 
     React.useEffect(() => {
         if (initialData) {
+            // Helper function to convert backend value to Yes/No
+            const convertToYesNo = (value) => {
+                if (value === 1 || value === true || value === 'Yes') return 'Yes';
+                if (value === 0 || value === false || value === 'No') return 'No';
+                return '';
+            };
+
             setFormData({
                 date: initialData.date || new Date().toLocaleDateString('en-GB'),
                 time: initialData.time,
                 batchNo: initialData.batchNo || '',
                 benchNo: initialData.benchNo,
-                lumpsFree: initialData.lumpsFree === true ? 'Yes' : (initialData.lumpsFree === false ? 'No' : (initialData.lumpsFree || '')),
-                oilApplied: initialData.oilApplied === true ? 'Yes' : (initialData.oilApplied === false ? 'No' : (initialData.oilApplied || '')),
+                lumpsFree: convertToYesNo(initialData.lumpsFree),
+                oilApplied: convertToYesNo(initialData.oilApplied),
                 remarks: initialData.remarks || ''
             });
         }
@@ -56,7 +63,20 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
             return;
         }
 
-        onSave(formData);
+        // Convert Yes/No to 1/0 for backend
+        const payload = {
+            ...formData,
+            lumpsFree: formData.lumpsFree === 'Yes' ? 1 : 0,
+            oilApplied: formData.oilApplied === 'Yes' ? 1 : 0
+        };
+
+        console.log('🔧 MouldPrepForm - Converting Yes/No to numeric values');
+        console.log('Original values:', { lumpsFree: formData.lumpsFree, oilApplied: formData.oilApplied });
+        console.log('Converted values:', { lumpsFree: payload.lumpsFree, oilApplied: payload.oilApplied });
+        console.log('Full payload:', payload);
+
+        onSave(payload);
+
         // Reset specific fields after save
         // Reset fields after save to ensure dropdowns go back to "-- Select --"
         setFormData(prev => ({

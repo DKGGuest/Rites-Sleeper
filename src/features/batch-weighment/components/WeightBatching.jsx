@@ -65,11 +65,12 @@ const WeightBatching = ({ onWitness, batches = [], selectedBatchNo }) => {
 
     const fetchScadaData = async ({ page, size, batch }) => {
         try {
-            const apiRes = await apiService.getScadaRecords(page, size, batch);
+            const response = await apiService.getScadaRecords(page, size, batch);
+            const apiRes = response?.responseData;
             if (apiRes) {
                 return {
-                    rows: apiRes.rows.map(r => ({ ...r, action: renderAction(r) })),
-                    total: apiRes.total
+                    rows: (apiRes.rows || []).map(r => ({ ...r, action: renderAction(r) })),
+                    total: apiRes.total || 0
                 };
             }
         } catch (e) {

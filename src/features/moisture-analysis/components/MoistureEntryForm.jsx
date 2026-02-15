@@ -16,7 +16,6 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
     const [activeSection, setActiveSection] = useState('ca1');
 
     // Common Form Section Data
-    // Common Form Section Data
     const [commonData, setCommonData] = useState({
         date: initialData?.date || new Date().toISOString().split('T')[0],
         shift: initialData?.shift || 'A',
@@ -36,8 +35,7 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
         userDryCement: initialData?.userDryCement || '',
 
         designAC: initialData?.designAC || '',
-        designWC: initialData?.designWC || '',
-        designValues: initialData?.designValues || null
+        designWC: initialData?.designWC || ''
     });
 
     // Aggregate Data for CA1, CA2, FA
@@ -201,16 +199,18 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
 
                 <div className="moisture-grid">
                     <div className="form-field">
-                        <label>Time <span className="required">*</span></label>
-                        <input type="time" value={commonData.timing} onChange={e => handleCommonChange('timing', e.target.value)} />
+                        <label htmlFor="moisture-timing">Time <span className="required">*</span></label>
+                        <input id="moisture-timing" name="timing" type="time" value={commonData.timing} onChange={e => handleCommonChange('timing', e.target.value)} />
                     </div>
                     <div className="form-field">
-                        <label>Batch No. <span className="required">*</span></label>
-                        <input type="number" min="0" value={commonData.batchNo} onChange={e => handleCommonChange('batchNo', e.target.value)} placeholder="000" />
+                        <label htmlFor="moisture-batch">Batch No. <span className="required">*</span></label>
+                        <input id="moisture-batch" name="batchNo" type="number" min="0" value={commonData.batchNo} onChange={e => handleCommonChange('batchNo', e.target.value)} placeholder="000" />
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 2' }}>
-                        <label>Approved Mix Design <span className="required">*</span></label>
+                        <label htmlFor="moisture-mix-design">Approved Mix Design <span className="required">*</span></label>
                         <select
+                            id="moisture-mix-design"
+                            name="mixDesignId"
                             value={commonData.mixDesignId}
                             onChange={e => handleCommonChange('mixDesignId', e.target.value)}
                             className="highlight-select"
@@ -264,22 +264,22 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                                 <div className="cell data-cell calculated-cell">--</div>
                                 <div className="cell data-cell calculated-cell">--</div>
                                 <div className="cell data-cell">
-                                    <input type="number" step="0.01" value={commonData.userDryCement} onChange={e => handleCommonChange('userDryCement', e.target.value)} placeholder="0.00" />
+                                    <input id="moisture-actual-cement" name="actualCement" type="number" step="0.01" value={commonData.userDryCement} onChange={e => handleCommonChange('userDryCement', e.target.value)} placeholder="0.00" aria-label="Actual Cement Weight" />
                                 </div>
                                 <div className="cell data-cell">
-                                    <input type="number" step="0.01" value={commonData.userDryCA1} onChange={e => handleCommonChange('userDryCA1', e.target.value)} placeholder="0.00" />
+                                    <input id="moisture-actual-ca1" name="actualCA1" type="number" step="0.01" value={commonData.userDryCA1} onChange={e => handleCommonChange('userDryCA1', e.target.value)} placeholder="0.00" aria-label="Actual CA1 Weight" />
                                 </div>
                                 <div className="cell data-cell">
-                                    <input type="number" step="0.01" value={commonData.userDryCA2} onChange={e => handleCommonChange('userDryCA2', e.target.value)} placeholder="0.00" />
+                                    <input id="moisture-actual-ca2" name="actualCA2" type="number" step="0.01" value={commonData.userDryCA2} onChange={e => handleCommonChange('userDryCA2', e.target.value)} placeholder="0.00" aria-label="Actual CA2 Weight" />
                                 </div>
                                 <div className="cell data-cell">
-                                    <input type="number" step="0.01" value={commonData.userDryFA} onChange={e => handleCommonChange('userDryFA', e.target.value)} placeholder="0.00" />
+                                    <input id="moisture-actual-fa" name="actualFA" type="number" step="0.01" value={commonData.userDryFA} onChange={e => handleCommonChange('userDryFA', e.target.value)} placeholder="0.00" aria-label="Actual FA Weight" />
                                 </div>
                                 <div className="cell data-cell">
-                                    <input type="number" step="0.01" value={commonData.userDryWater} onChange={e => handleCommonChange('userDryWater', e.target.value)} placeholder="0.00" />
+                                    <input id="moisture-actual-water" name="actualWater" type="number" step="0.01" value={commonData.userDryWater} onChange={e => handleCommonChange('userDryWater', e.target.value)} placeholder="0.00" aria-label="Actual Water Weight" />
                                 </div>
                                 <div className="cell data-cell">
-                                    <input type="number" step="0.01" value={commonData.userDryAdmix} onChange={e => handleCommonChange('userDryAdmix', e.target.value)} placeholder="0.00" />
+                                    <input id="moisture-actual-admix" name="actualAdmix" type="number" step="0.01" value={commonData.userDryAdmix} onChange={e => handleCommonChange('userDryAdmix', e.target.value)} placeholder="0.00" aria-label="Actual Admix Weight" />
                                 </div>
                             </div>
                         </div>
@@ -344,8 +344,10 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
 
                 <div className="moisture-details-grid">
                     <div className="form-field">
-                        <label>Wet Sample (Gms) <span className="required">*</span></label>
+                        <label htmlFor="agg-wet-sample">Wet Sample (Gms) <span className="required">*</span></label>
                         <input
+                            id="agg-wet-sample"
+                            name="wetSample"
                             type="number"
                             min="0"
                             step="0.01"
@@ -355,8 +357,10 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                         />
                     </div>
                     <div className="form-field">
-                        <label>Dried Sample (Gms) <span className="required">*</span></label>
+                        <label htmlFor="agg-dried-sample">Dried Sample (Gms) <span className="required">*</span></label>
                         <input
+                            id="agg-dried-sample"
+                            name="driedSample"
                             type="number"
                             min="0"
                             step="0.01"
@@ -366,8 +370,10 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                         />
                     </div>
                     <div className="form-field">
-                        <label>Absorption % <span className="required">*</span></label>
+                        <label htmlFor="agg-absorption">Absorption % <span className="required">*</span></label>
                         <input
+                            id="agg-absorption"
+                            name="absorption"
                             type="number"
                             min="0"
                             step="0.01"

@@ -95,47 +95,47 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
                     </div>
                     <div className="form-grid" style={{ gap: small ? '1rem' : '1.25rem 2rem' }}>
                         <div className="form-field">
-                            <label style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Shed / Line No.</label>
-                            <input type="text" readOnly value={activeContainer?.name || ''} className="readOnly" style={{ background: '#f8fafc', height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }} />
+                            <label htmlFor="manual-shed" style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Shed / Line No.</label>
+                            <input id="manual-shed" name="lineShed" type="text" readOnly value={activeContainer?.name || ''} className="readOnly" style={{ background: '#f8fafc', height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }} />
                         </div>
                         <div className="form-field">
-                            <label style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Date</label>
-                            <input type="text" readOnly value={formData.date ? formData.date.split('-').reverse().join('/') : ''} style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem', background: '#f8fafc' }} />
+                            <label htmlFor="manual-date" style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Date</label>
+                            <input id="manual-date" name="date" type="text" readOnly value={formData.date ? formData.date.split('-').reverse().join('/') : ''} style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem', background: '#f8fafc' }} />
                         </div>
                         <div className="form-field">
-                            <label style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Time</label>
-                            <input type="time" name="time" value={formData.time} onChange={handleChange} style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }} />
+                            <label htmlFor="manual-time" style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Time</label>
+                            <input id="manual-time" type="time" name="time" value={formData.time} onChange={handleChange} style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }} />
                         </div>
                         <div className="form-field">
-                            <label style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Batch No.</label>
-                            <select name="batchNo" value={formData.batchNo} onChange={handleChange} style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }}>
+                            <label htmlFor="manual-batch" style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Batch No.</label>
+                            <select id="manual-batch" name="batchNo" value={formData.batchNo} onChange={handleChange} style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }}>
                                 <option value="">-- Select --</option>
                                 {batches.map(b => <option key={b.id || b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
                             </select>
                         </div>
                         <div className="form-field">
-                            <label style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>CA1 - Actual Wt. (Kg)</label>
-                            <input type="number" name="ca1" value={formData.ca1} onChange={handleChange} placeholder="Kgs" style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }} />
+                            <label htmlFor="manual-ca1" style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>CA1 - Actual Wt. (Kg)</label>
+                            <input id="manual-ca1" type="number" name="ca1" value={formData.ca1} onChange={handleChange} placeholder="Kgs" style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }} />
                         </div>
                         <div className="form-field">
-                            <label style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>CA2 - Actual Wt. (Kg)</label>
-                            <input type="number" name="ca2" value={formData.ca2} onChange={handleChange} placeholder="Kgs" style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }} />
+                            <label htmlFor="manual-ca2" style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>CA2 - Actual Wt. (Kg)</label>
+                            <input id="manual-ca2" type="number" name="ca2" value={formData.ca2} onChange={handleChange} placeholder="Kgs" style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }} />
                         </div>
                         <div className="form-field">
-                            <label style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>FA - Actual Wt. (Kg)</label>
-                            <input type="number" name="fa" value={formData.fa} onChange={handleChange} placeholder="Sand Kgs" style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }} />
+                            <label htmlFor="manual-fa" style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>FA - Actual Wt. (Kg)</label>
+                            <input id="manual-fa" type="number" name="fa" value={formData.fa} onChange={handleChange} placeholder="Sand Kgs" style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }} />
                         </div>
                         <div className="form-field">
-                            <label style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Cement - Actual Wt. (Kg)</label>
-                            <input type="number" name="cement" value={formData.cement} onChange={handleChange} placeholder="Kgs" style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }} />
+                            <label htmlFor="manual-cement" style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Cement - Actual Wt. (Kg)</label>
+                            <input id="manual-cement" type="number" name="cement" value={formData.cement} onChange={handleChange} placeholder="Kgs" style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }} />
                         </div>
                         <div className="form-field">
-                            <label style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Water (L) - Actual</label>
-                            <input type="number" name="water" value={formData.water} onChange={handleChange} placeholder="Ltrs" style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }} />
+                            <label htmlFor="manual-water" style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Water (L) - Actual</label>
+                            <input id="manual-water" type="number" name="water" value={formData.water} onChange={handleChange} placeholder="Ltrs" style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }} />
                         </div>
                         <div className="form-field">
-                            <label style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Admix - Actual Wt. (Kg)</label>
-                            <input type="number" name="admixture" value={formData.admixture} onChange={handleChange} placeholder="Kgs" style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }} />
+                            <label htmlFor="manual-admix" style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Admix - Actual Wt. (Kg)</label>
+                            <input id="manual-admix" type="number" name="admixture" value={formData.admixture} onChange={handleChange} placeholder="Kgs" style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }} />
                         </div>
                     </div>
 

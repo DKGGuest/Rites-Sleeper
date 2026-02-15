@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import MoistureEntryForm from './components/MoistureEntryForm';
+import { apiService } from '../../services/api';
 
 /**
  * MoistureAnalysis Component
@@ -14,15 +15,24 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
         return diffMs < (1 * 60 * 60 * 1000); // 1 hour window
     };
 
-    const handleSaveEntry = (newEntry) => {
-        if (editRecord) {
-            setRecords(prev => prev.map(r => r.id === editRecord.id ? { ...newEntry, id: r.id, timestamp: r.timestamp } : r));
-        } else {
-            setRecords(prev => [{ ...newEntry, id: Date.now(), timestamp: new Date().toISOString() }, ...prev].slice(0, 10)); // Keep only 10
+    const handleSaveEntry = async (newEntry) => {
+        try {
+            if (editRecord) {
+                const response = await apiService.updateMoistureAnalysis(editRecord.id, newEntry);
+                const updated = response?.responseData;
+                setRecords(prev => prev.map(r => r.id === editRecord.id ? (updated || { ...newEntry, id: r.id, timestamp: r.timestamp }) : r));
+            } else {
+                const response = await apiService.createMoistureAnalysis(newEntry);
+                const created = response?.responseData;
+                setRecords(prev => [(created || { ...newEntry, id: Date.now(), timestamp: new Date().toISOString() }), ...prev].slice(0, 10)); // Keep only 10
+            }
+            setView('list');
+            setEditRecord(null);
+            onSave();
+        } catch (error) {
+            console.error("Error saving moisture analysis:", error);
+            alert("Failed to save moisture analysis. Please try again.");
         }
-        setView('list');
-        setEditRecord(null);
-        onSave();
     };
 
     const handleEdit = (record) => {

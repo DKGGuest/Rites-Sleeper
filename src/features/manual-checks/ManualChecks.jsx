@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import MouldPrepForm from './components/MouldPrepForm';
 import HTSWireForm from './components/HTSWireForm';
 import DemouldingForm from './components/DemouldingForm';
+import { apiService } from '../../services/api';
 import './ManualChecks.css';
 
 /**
@@ -21,8 +22,10 @@ const SubCard = ({ id, title, color, count, isActive, onClick, onAdd, alert }) =
             onClick={onClick}
             className={`manual-sub-card ${isActive ? 'active' : ''}`}
             style={{
-                borderColor: isActive ? color : '#e2e8f0',
                 borderTopColor: color,
+                borderRightColor: isActive ? color : '#e2e8f0',
+                borderBottomColor: isActive ? color : '#e2e8f0',
+                borderLeftColor: isActive ? color : '#e2e8f0',
                 boxShadow: isActive ? `0 4px 12px ${color}20` : 'none',
                 position: 'relative'
             }}
@@ -78,33 +81,102 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
         if (initialSubModule) setActiveModule(initialSubModule);
     }, [initialSubModule]);
 
-    const handleSave = (subModule, data) => {
+    const handleSave = async (subModule, data) => {
+        // Prepare the payload with location data
         const enrichedData = {
             ...data,
             location: activeContainer?.name || 'N/A',
             locationType: activeContainer?.type || 'Location'
         };
-        if (editingEntry) {
-            setEntries(prev => ({
-                ...prev,
-                [subModule]: prev[subModule].map(e => e.id === editingEntry.id ? { ...enrichedData, id: editingEntry.id, timestamp: editingEntry.timestamp } : e)
-            }));
-        } else {
-            setEntries(prev => ({
-                ...prev,
-                [subModule]: [{ ...enrichedData, id: Date.now(), timestamp: new Date().toISOString() }, ...prev[subModule]]
-            }));
+
+        // Special handling for demoulding inspection
+        if (subModule === 'demoulding') {
+            // Ensure defectiveSleeperDetails is always included (empty array if no defects)
+            if (!enrichedData.defectiveSleeperDetails) {
+                enrichedData.defectiveSleeperDetails = [];
+            }
+
+            // Debug logging for demoulding
+            console.log('=== DEMOULDING INSPECTION PAYLOAD ===');
+            console.log('Full Payload:', JSON.stringify(enrichedData, null, 2));
+            console.log('Defective Sleeper Details:', enrichedData.defectiveSleeperDetails);
+            console.log('Number of defective sleepers:', enrichedData.defectiveSleeperDetails.length);
+            console.log('=====================================');
         }
-        setEditingEntry(null);
-        setViewMode('dashboard');
+
+        try {
+            if (editingEntry) {
+                // UPDATE existing entry
+                let response;
+                if (subModule === 'mouldPrep') {
+                    response = await apiService.updateMouldPreparation(editingEntry.id, enrichedData);
+                } else if (subModule === 'htsWire') {
+                    response = await apiService.updateHtsWirePlacement(editingEntry.id, enrichedData);
+                } else if (subModule === 'demoulding') {
+                    console.log('Updating demoulding inspection ID:', editingEntry.id);
+                    response = await apiService.updateDemouldingInspection(editingEntry.id, enrichedData);
+                    console.log('Update response:', response);
+                }
+
+                const updated = response?.responseData;
+                setEntries(prev => ({
+                    ...prev,
+                    [subModule]: prev[subModule].map(e => e.id === editingEntry.id ? (updated || { ...enrichedData, id: editingEntry.id, timestamp: editingEntry.timestamp }) : e)
+                }));
+            } else {
+                // CREATE new entry
+                let response;
+                if (subModule === 'mouldPrep') {
+                    response = await apiService.createMouldPreparation(enrichedData);
+                } else if (subModule === 'htsWire') {
+                    response = await apiService.createHtsWirePlacement(enrichedData);
+                } else if (subModule === 'demoulding') {
+                    console.log('Creating new demoulding inspection...');
+                    response = await apiService.createDemouldingInspection(enrichedData);
+                    console.log('Create response:', response);
+                }
+
+                const created = response?.responseData;
+                setEntries(prev => ({
+                    ...prev,
+                    [subModule]: [(created || { ...enrichedData, id: Date.now(), timestamp: new Date().toISOString() }), ...prev[subModule]]
+                }));
+            }
+
+            setEditingEntry(null);
+            setViewMode('dashboard');
+
+            if (subModule === 'demoulding') {
+                console.log('✅ Demoulding inspection saved successfully!');
+            }
+        } catch (error) {
+            console.error(`❌ Error saving ${subModule}:`, error);
+            console.error('Error details:', error.message);
+            console.error('Full error object:', error);
+
+            if (subModule === 'demoulding') {
+                console.error('Failed payload was:', enrichedData);
+            }
+
+            alert(`Failed to save ${subModule}. Check console for details.`);
+        }
     };
 
-    const handleDelete = (subModule, entryId) => {
+    const handleDelete = async (subModule, entryId) => {
         if (window.confirm('Delete this record?')) {
-            setEntries(prev => ({
-                ...prev,
-                [subModule]: prev[subModule].filter(e => e.id !== entryId)
-            }));
+            try {
+                if (subModule === 'mouldPrep') await apiService.deleteMouldPreparation(entryId);
+                else if (subModule === 'htsWire') await apiService.deleteHtsWirePlacement(entryId);
+                else if (subModule === 'demoulding') await apiService.deleteDemouldingInspection(entryId);
+
+                setEntries(prev => ({
+                    ...prev,
+                    [subModule]: prev[subModule].filter(e => e.id !== entryId)
+                }));
+            } catch (error) {
+                console.error(`Error deleting ${subModule}:`, error);
+                alert(`Failed to delete ${subModule}.`);
+            }
         }
     };
 

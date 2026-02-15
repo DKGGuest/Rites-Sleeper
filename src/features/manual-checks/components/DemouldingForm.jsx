@@ -1,34 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import '../../../components/common/Checkbox.css';
+import { formatDateForBackend } from '../../../utils/helpers';
 
 const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initialData, activeContainer }) => {
+    const getTodayDateISO = () => {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     const [formData, setFormData] = useState({
-        date: new Date().toLocaleDateString('en-GB'),
+        date: getTodayDateISO(),
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-        dateOfCasting: new Date().toLocaleDateString('en-GB'),
+        dateOfCasting: getTodayDateISO(),
         batchNo: '',
         benchNo: '',
         sleeperType: '',
         processSatisfactory: '',
         visualCheck: '',
         dimCheck: '',
-        defectiveSleepers: [],
+        defectiveSleeperDetails: [],
         remarks: ''
     });
 
     useEffect(() => {
         if (initialData) {
             setFormData({
-                date: initialData.date || new Date().toLocaleDateString('en-GB'),
+                date: initialData.date || getTodayDateISO(),
                 time: initialData.time || '',
-                dateOfCasting: initialData.dateOfCasting || new Date().toLocaleDateString('en-GB'),
+                dateOfCasting: initialData.dateOfCasting || getTodayDateISO(),
                 batchNo: initialData.batchNo || '',
                 benchNo: initialData.benchNo || '',
                 sleeperType: initialData.sleeperType || '',
                 processSatisfactory: initialData.processSatisfactory || '',
                 visualCheck: initialData.visualCheck || '',
                 dimCheck: initialData.dimCheck || '',
-                defectiveSleepers: initialData.defectiveSleepers || [],
+                defectiveSleeperDetails: initialData.defectiveSleeperDetails || [],
                 remarks: initialData.remarks || ''
             });
         }
@@ -46,7 +55,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
             const newState = { ...prev, [field]: value };
             // If both checks go back to All OK, clear the defective list (optional, but cleaner)
             if (newState.visualCheck === 'All OK' && newState.dimCheck === 'All OK') {
-                newState.defectiveSleepers = [];
+                newState.defectiveSleeperDetails = [];
             }
             return newState;
         });
@@ -55,13 +64,13 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
     const addDefectiveSleeper = () => {
         setFormData(prev => ({
             ...prev,
-            defectiveSleepers: [...prev.defectiveSleepers, { benchNo: '', sequence: '', sleeperNo: '', visualReason: '', dimReason: '' }]
+            defectiveSleeperDetails: [...prev.defectiveSleeperDetails, { benchNo: '', sequence: '', sleeperNo: '', visualReason: '', dimReason: '' }]
         }));
     };
 
     const updateDefectiveSleeper = (index, field, value) => {
         setFormData(prev => {
-            const updated = [...prev.defectiveSleepers];
+            const updated = [...prev.defectiveSleeperDetails];
             updated[index] = { ...updated[index], [field]: value };
 
             // Auto-generate sleeperNo when benchNo or sequence changes
@@ -71,15 +80,58 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                 updated[index].sleeperNo = (benchNo && sequence) ? `${benchNo}-${sequence}` : '';
             }
 
-            return { ...prev, defectiveSleepers: updated };
+            return { ...prev, defectiveSleeperDetails: updated };
         });
     };
 
     const removeDefectiveSleeper = (index) => {
         setFormData(prev => ({
             ...prev,
-            defectiveSleepers: prev.defectiveSleepers.filter((_, i) => i !== index)
+            defectiveSleeperDetails: prev.defectiveSleeperDetails.filter((_, i) => i !== index)
         }));
+    };
+
+
+    const convertToDDMMYYYY = (dateStr) => {
+        if (!dateStr) return "";
+        // If already dd/MM/yyyy, return as is
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return dateStr;
+
+        // If yyyy-MM-dd (standard HTML date input), convert it
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            const [year, month, day] = dateStr.split("-");
+            return `${day}/${month}/${year}`;
+        }
+
+        // If dd-MM-yyyy, convert to slashes
+        if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+            return dateStr.replace(/-/g, '/');
+        }
+
+        return dateStr;
+    };
+
+    // Convert date to dd/MM/yyyy for BACKEND (Backend expects dd/MM/yyyy based on parsing error at index 2)
+    const formatDateForBackend = (dateStr) => {
+        if (!dateStr) return null;
+
+        // If already dd/MM/yyyy, return as is
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+            return dateStr;
+        }
+
+        // If yyyy-MM-dd (HTML date input), convert to dd/MM/yyyy
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            const [year, month, day] = dateStr.split("-");
+            return `${day}/${month}/${year}`;
+        }
+
+        // If dd-MM-yyyy, convert to dd/MM/yyyy
+        if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+            return dateStr.replace(/-/g, '/');
+        }
+
+        return dateStr;
     };
 
     const handleSave = () => {
@@ -88,20 +140,62 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
             return;
         }
 
-        const isDefectRecordNeeded = formData.visualCheck !== 'All OK' || formData.dimCheck !== 'All OK';
-        if (isDefectRecordNeeded && formData.defectiveSleepers.length === 0) {
-            alert('Please add at least one defective sleeper detail as check is not "All OK".');
-            return;
-        }
+        // Transform defective sleepers - Backend requires at least one object (even if empty)
+        const mappedDefectiveSleepers = formData.defectiveSleeperDetails.length > 0
+            ? formData.defectiveSleeperDetails.map(item => ({
+                benchGangNo: item.benchNo || "",
+                sequenceNo: item.sequence || "",
+                sleeperNo: item.sleeperNo || "",
+                visualReason: item.visualReason || "",
+                dimReason: item.dimReason || ""
+            }))
+            : [
+                {
+                    benchGangNo: "",
+                    sequenceNo: "",
+                    sleeperNo: "",
+                    visualReason: "",
+                    dimReason: ""
+                }
+            ];
 
-        onSave(formData);
+        // Map status values to Backend Expected Constants
+        const processStatusMapped = formData.processSatisfactory === 'Satisfactory' ? 'OK' : 'REJECTED';
+        const visualCheckMapped = formData.visualCheck === 'All OK' ? 'YES' : 'NO';
+        const dimCheckMapped = formData.dimCheck === 'All OK' ? 'YES' : 'NO';
+
+        // Construct Payload matching DTO
+        const payload = {
+            lineShedNo: shedNo,
+            inspectionDate: formatToBackendDDMMYYYY(formData.date), // dd/MM/yyyy
+            inspectionTime: formData.time,
+            castingDate: formatToBackendDDMMYYYY(formData.dateOfCasting), // dd/MM/yyyy
+            batchNo: formData.batchNo,
+            benchNo: formData.benchNo,
+            sleeperType: formData.sleeperType,
+            processStatus: processStatusMapped,
+            visualCheck: visualCheckMapped,
+            dimCheck: dimCheckMapped,
+            overallRemarks: formData.remarks,
+            createdBy: "Urvi",
+            updatedBy: "Urvi",
+            defectiveSleepers: mappedDefectiveSleepers
+        };
+
+        // DEBUG LOGGING
+        console.log('📋 DemouldingForm - Preparing to save...');
+        console.log("Date:", payload.inspectionDate);
+        console.log(JSON.stringify(payload, null, 2));
+
+        onSave(payload);
+
         setFormData(prev => ({
             ...prev,
             benchNo: '',
             processSatisfactory: '',
             visualCheck: '',
             dimCheck: '',
-            defectiveSleepers: [],
+            defectiveSleeperDetails: [],
             remarks: ''
         }));
     };
@@ -121,7 +215,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                 <div className="form-field">
                     <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Date</label>
                     <div className="form-info-card">
-                        {formData.date}
+                        {formatDateForBackend(formData.date)}
                     </div>
                 </div>
 
@@ -132,7 +226,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
 
                 <div className="form-field">
                     <label htmlFor="casting-date" style={{ fontSize: '11px', fontWeight: '700' }}>Date of Casting <span className="required">*</span></label>
-                    <input id="casting-date" type="text" placeholder="DD/MM/YYYY" className="form-input-standard" value={formData.dateOfCasting} onChange={e => handleChange('dateOfCasting', e.target.value)} />
+                    <input id="casting-date" type="date" className="form-input-standard" value={formData.dateOfCasting} onChange={e => handleChange('dateOfCasting', e.target.value)} />
                 </div>
 
                 <div className="form-field">
@@ -153,8 +247,8 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                 </div>
 
                 <div className="form-field">
-                    <label style={{ fontSize: '11px', fontWeight: '700' }}>Process Status <span className="required">*</span></label>
-                    <select value={formData.processSatisfactory} className="form-input-standard" onChange={e => handleChange('processSatisfactory', e.target.value)}>
+                    <label htmlFor="process-status" style={{ fontSize: '11px', fontWeight: '700' }}>Process Status <span className="required">*</span></label>
+                    <select id="process-status" name="processStatus" value={formData.processSatisfactory} className="form-input-standard" onChange={e => handleChange('processSatisfactory', e.target.value)}>
                         <option value="">-- Select --</option>
                         <option value="Satisfactory">Satisfactory</option>
                         <option value="Not Satisfactory">Not Satisfactory</option>
@@ -195,7 +289,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                         <button className="toggle-btn mini" onClick={addDefectiveSleeper} style={{ padding: '4px 12px' }}>+ Add Sleeper</button>
                     </div>
 
-                    {formData.defectiveSleepers.map((sleeper, idx) => (
+                    {formData.defectiveSleeperDetails.map((sleeper, idx) => (
                         <div key={idx} style={{
                             display: 'grid',
                             gridTemplateColumns: 'auto auto auto 1fr 1fr auto',
@@ -208,8 +302,10 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                             border: '1px solid #f1f5f9'
                         }}>
                             <div className="form-field">
-                                <label style={{ fontSize: '10px' }}>Bench/Gang No.</label>
+                                <label htmlFor={`sleeper-bench-${idx}`} style={{ fontSize: '10px' }}>Bench/Gang No.</label>
                                 <input
+                                    id={`sleeper-bench-${idx}`}
+                                    name={`sleeper-bench-${idx}`}
                                     type="number"
                                     min="0"
                                     className="form-input-standard"
@@ -220,8 +316,10 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                                 />
                             </div>
                             <div className="form-field">
-                                <label style={{ fontSize: '10px' }}>Sequence</label>
+                                <label htmlFor={`sleeper-seq-${idx}`} style={{ fontSize: '10px' }}>Sequence</label>
                                 <select
+                                    id={`sleeper-seq-${idx}`}
+                                    name={`sleeper-seq-${idx}`}
                                     value={sleeper.sequence}
                                     className="form-input-standard"
                                     onChange={e => updateDefectiveSleeper(idx, 'sequence', e.target.value)}
@@ -249,22 +347,24 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                             </div>
 
                             <div className="form-field">
-                                <label style={{ fontSize: '10px' }}>Defect Type</label>
+                                <label htmlFor={`sleeper-type-${idx}`} style={{ fontSize: '10px' }}>Defect Type</label>
                                 <select
+                                    id={`sleeper-type-${idx}`}
+                                    name={`sleeper-type-${idx}`}
                                     value={sleeper.defectType || ''}
                                     className="form-input-standard"
                                     onChange={e => {
                                         const type = e.target.value;
                                         // Reset reasons when type changes
                                         setFormData(prev => {
-                                            const updated = [...prev.defectiveSleepers];
+                                            const updated = [...prev.defectiveSleeperDetails];
                                             updated[idx] = {
                                                 ...updated[idx],
                                                 defectType: type,
                                                 visualReason: '',
                                                 dimReason: ''
                                             };
-                                            return { ...prev, defectiveSleepers: updated };
+                                            return { ...prev, defectiveSleeperDetails: updated };
                                         });
                                     }}
                                     style={{ padding: '6px', fontSize: '12px' }}
@@ -276,9 +376,9 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                             </div>
 
                             <div className="form-field">
-                                <label style={{ fontSize: '10px' }}>Defect Reason</label>
+                                <label htmlFor={`sleeper-reason-${idx}`} style={{ fontSize: '10px' }}>Defect Reason</label>
                                 {sleeper.defectType === 'Visual' ? (
-                                    <select value={sleeper.visualReason} className="form-input-standard" onChange={e => updateDefectiveSleeper(idx, 'visualReason', e.target.value)} style={{ padding: '6px', fontSize: '12px' }}>
+                                    <select id={`sleeper-reason-${idx}`} name={`sleeper-reason-${idx}`} value={sleeper.visualReason} className="form-input-standard" onChange={e => updateDefectiveSleeper(idx, 'visualReason', e.target.value)} style={{ padding: '6px', fontSize: '12px' }}>
                                         <option value="">-- Visual Reason --</option>
                                         <option value="Cracks">Cracks</option>
                                         <option value="Honey Combing">Honey Combing</option>
@@ -287,7 +387,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                                         <option value="Other">Other</option>
                                     </select>
                                 ) : sleeper.defectType === 'Dimensional' ? (
-                                    <select value={sleeper.dimReason} className="form-input-standard" onChange={e => updateDefectiveSleeper(idx, 'dimReason', e.target.value)} style={{ padding: '6px', fontSize: '12px' }}>
+                                    <select id={`sleeper-reason-${idx}`} name={`sleeper-reason-${idx}`} value={sleeper.dimReason} className="form-input-standard" onChange={e => updateDefectiveSleeper(idx, 'dimReason', e.target.value)} style={{ padding: '6px', fontSize: '12px' }}>
                                         <option value="">-- Dim. Reason --</option>
                                         <option value="Length deviation">Length deviation</option>
                                         <option value="Width deviation">Width deviation</option>
@@ -295,7 +395,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                                         <option value="Insert Misalignment">Insert Misalignment</option>
                                     </select>
                                 ) : (
-                                    <div style={{ padding: '6px', fontSize: '12px', color: '#94a3b8', fontStyle: 'italic', background: '#e2e8f0', borderRadius: '6px' }}>Select Type First</div>
+                                    <div id={`sleeper-reason-${idx}`} style={{ padding: '6px', fontSize: '12px', color: '#94a3b8', fontStyle: 'italic', background: '#e2e8f0', borderRadius: '6px' }}>Select Type First</div>
                                 )}
                             </div>
 
@@ -304,7 +404,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                             </div>
                         </div>
                     ))}
-                    {formData.defectiveSleepers.length === 0 && (
+                    {formData.defectiveSleeperDetails.length === 0 && (
                         <div style={{ textAlign: 'center', padding: '12px', color: '#94a3b8', fontSize: '12px', fontStyle: 'italic' }}>
                             No sleeper details added yet. Click "+ Add Sleeper" to record defects.
                         </div>

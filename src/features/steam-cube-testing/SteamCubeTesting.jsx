@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import EnhancedDataTable from '../../components/common/EnhancedDataTable';
+import { apiService } from '../../services/api';
 import './SteamCubeTesting.css';
+import { formatDateForBackend } from '../../utils/helpers';
 
 const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedRecords: propSetTestedRecords }) => {
     const [viewMode, setViewMode] = useState('statistics'); // 'statistics', 'declared', 'tested'
@@ -8,70 +10,39 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
     const [showTestModal, setShowTestModal] = useState(false);
     const [selectedSample, setSelectedSample] = useState(null);
     const [isModifying, setIsModifying] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
-    // Mock initial data for samples declared but not yet tested
-    const [declaredSamples, setDeclaredSamples] = useState([
-        {
-            id: 1,
-            lineNumber: 'Line-1',
-            batchNo: 610,
-            chamberNo: 1,
-            castDate: '2026-01-29',
-            castTime: '10:30',
-            lbcTime: '10:30',
-            grade: 'M-55',
-            cubes: [
-                { benchNo: 401, sequence: 'A', cubeNo: '401A' },
-                { benchNo: 401, sequence: 'B', cubeNo: '401B' }
-            ],
-            otherBenches: [402, 403],
-            createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString()
-        },
-        {
-            id: 2,
-            lineNumber: 'Shed-3',
-            batchNo: 611,
-            chamberNo: 2,
-            castDate: '2026-01-30',
-            castTime: '09:15',
-            lbcTime: '09:15',
-            grade: 'M-60',
-            cubes: [
-                { benchNo: 405, sequence: 'H', cubeNo: '405H' }
-            ],
-            otherBenches: [406],
-            createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString()
-        }
-    ]);
-
-    const [localTestedRecords, setLocalTestedRecords] = useState([
-        {
-            id: 101,
-            lineNumber: 'Line-1',
-            batchNo: 608,
-            chamberNo: 3,
-            grade: 'M-55',
-            castDate: '2026-01-30',
-            castTime: '10:00',
-            testDate: '2026-01-30',
-            testTime: '11:00',
-            cubeResults: [
-                {
-                    cubeNo: '301B',
-                    weight: 8.1,
-                    load: 956,
-                    strength: 42.50,
-                    ageHrs: 25.0
-                }
-            ],
-            avgStrength: 42.50,
-            result: 'OK',
-            timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString()
-        }
-    ]);
+    // Initial data for samples declared but not yet tested
+    const [declaredSamples, setDeclaredSamples] = useState([]);
+    const [localTestedRecords, setLocalTestedRecords] = useState([]);
 
     const testedRecords = propTestedRecords || localTestedRecords;
     const setTestedRecords = propSetTestedRecords || setLocalTestedRecords;
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        setIsLoading(true);
+        try {
+            const response = await apiService.getAllSteamCubes();
+            if (response && response.responseData) {
+                const allRecords = response.responseData;
+                // Separate declared but not tested from completed tests
+                // A record is "tested" if it has strength data or test results
+                const tested = allRecords.filter(r => r.avgStrength || (r.cubeResults && r.cubeResults.length > 0 && r.cubeResults.some(cr => cr.strength)));
+                const declared = allRecords.filter(r => !tested.find(t => t.id === r.id));
+
+                setDeclaredSamples(declared);
+                setTestedRecords(tested);
+            }
+        } catch (error) {
+            console.error('Error loading Steam Cube data:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     // Statistics Calculation
     const stats = useMemo(() => {
@@ -118,18 +89,30 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
         setShowTestModal(true);
     };
 
-    const saveDeclaration = (formData) => {
-        if (isModifying) {
-            setDeclaredSamples(prev => prev.map(s => s.id === selectedSample.id ? { ...s, ...formData } : s));
-        } else {
-            const newSample = {
+    const saveDeclaration = async (formData) => {
+        try {
+            const payload = {
                 ...formData,
-                id: Date.now(),
-                createdAt: new Date().toISOString()
+                castDate: formatDateForBackend(formData.castDate),
+                // Transform otherBenches from [1, 2] to [{benchNo: "1"}, {benchNo: "2"}]
+                otherBenches: (formData.otherBenches || []).map(bench => ({
+                    benchNo: String(bench),
+                    sleeperSequence: "",
+                    cubeCode: ""
+                }))
             };
-            setDeclaredSamples(prev => [newSample, ...prev]);
+
+            if (isModifying) {
+                await apiService.updateSteamCube(selectedSample.id, payload);
+            } else {
+                await apiService.createSteamCube(payload);
+            }
+            await loadData();
+            setShowDeclareModal(false);
+        } catch (error) {
+            console.error('Error saving declaration:', error);
+            alert('Failed to save declaration. Please try again.');
         }
-        setShowDeclareModal(false);
     };
 
     const handleEditTest = (record) => {
@@ -138,27 +121,39 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
         setShowTestModal(true);
     };
 
-    const saveTestDetails = (testData) => {
+    const saveTestDetails = async (testData) => {
         const completedTest = {
             ...selectedSample,
             ...testData,
+            castDate: formatDateForBackend(selectedSample.castDate), // Ensure castDate is also formatted if it's being resent
+            testDate: formatDateForBackend(testData.testDate),
+            cubeResults: testData.cubeResults.map(cube => ({
+                ...cube,
+                testDate: formatDateForBackend(cube.testDate)
+            })),
             timestamp: selectedSample.timestamp || new Date().toISOString()
         };
 
-        if (isModifying) {
-            setTestedRecords(prev => prev.map(r => r.id === selectedSample.id ? completedTest : r));
-        } else {
-            setTestedRecords(prev => [completedTest, ...prev]);
-            setDeclaredSamples(prev => prev.filter(s => s.id !== selectedSample.id));
+        try {
+            await apiService.updateSteamCube(selectedSample.id, completedTest);
+            await loadData();
+            setShowTestModal(false);
+            setIsModifying(false);
+        } catch (error) {
+            console.error('Error saving test details:', error);
+            alert('Failed to save test details. Please try again.');
         }
-
-        setShowTestModal(false);
-        setIsModifying(false);
     };
 
-    const handleDeleteTest = (id) => {
+    const handleDeleteTest = async (id) => {
         if (window.confirm('Are you sure you want to delete this test record?')) {
-            setTestedRecords(prev => prev.filter(r => r.id !== id));
+            try {
+                await apiService.deleteSteamCube(id);
+                await loadData();
+            } catch (error) {
+                console.error('Error deleting test record:', error);
+                alert('Failed to delete test record.');
+            }
         }
     };
 
@@ -193,10 +188,13 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
             label: 'Actions',
             render: (_, row) => (
                 <div style={{ display: 'flex', gap: '8px' }}>
-                    {isWithinHour(row.createdAt) && (
+                    {(isWithinHour(row.createdAt) || isWithinHour(row.timestamp)) && (
                         <button className="btn-save" style={{ fontSize: '10px', padding: '4px 8px' }} onClick={() => handleModifySample(row)}>Modify</button>
                     )}
                     <button className="btn-verify" style={{ fontSize: '10px', padding: '4px 8px' }} onClick={() => handleEnterTestDetails(row)}>Enter Test Details</button>
+                    {(isWithinHour(row.createdAt) || isWithinHour(row.timestamp)) && (
+                        <button className="btn-action" style={{ fontSize: '10px', padding: '4px 8px', background: '#fee2e2', color: '#ef4444' }} onClick={() => handleDeleteTest(row.id)}>Delete</button>
+                    )}
                 </div>
             )
         }
@@ -283,7 +281,21 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
                 </div>
             </div>
 
-            <div className="tab-content" style={{ animation: 'fadeIn 0.3s ease' }}>
+            <div className="tab-content" style={{ animation: 'fadeIn 0.3s ease', position: 'relative' }}>
+                {isLoading && (
+                    <div style={{
+                        position: 'absolute',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(255,255,255,0.7)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 10,
+                        borderRadius: '12px'
+                    }}>
+                        <div className="loading-spinner">Loading...</div>
+                    </div>
+                )}
                 {viewMode === 'statistics' && (
                     <div className="fade-in">
                         <div className="steam-cube-stats-grid">
