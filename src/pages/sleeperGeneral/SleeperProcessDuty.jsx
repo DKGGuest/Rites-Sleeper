@@ -157,12 +157,12 @@ const SleeperProcessDuty = () => {
                     {activeTab === 'Wire Tensioning' && (
                         <div style={{ width: '100%' }}>
                             <WireTensioning
-                                isInline={true}
+                                displayMode="inline"
                                 onBack={() => { }}
                                 batches={batchDeclarations}
                                 sharedState={{ tensionRecords, setAllTensionRecords }}
-                                showEntryForm={showWireTensionForm}
-                                setShowEntryForm={setShowWireTensionForm}
+                                showForm={showWireTensionForm}
+                                setShowForm={setShowWireTensionForm}
                             />
                         </div>
                     )}

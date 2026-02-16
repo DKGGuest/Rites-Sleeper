@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:8080/sleeper-backend/api';
+const BASE_URL = 'http://localhost:8080/sarthi-backend/api';
 
 const api = axios.create({
     baseURL: BASE_URL,
@@ -51,5 +51,12 @@ export const apiService = {
     createSteamCube: (payload) => api.post('/SteamCube/create', payload),
     updateSteamCube: (id, payload) => api.put(`/SteamCube/update/${id}`, payload),
     deleteSteamCube: (id) => api.delete(`/SteamCube/delete/${id}`),
+
+    // ================= Bench Mould Inspection =================
+    getAllBenchMouldInspections: () => api.get('/bench-mould-inspection/get-all'),
+    getBenchMouldInspectionById: (id) => api.get(`/bench-mould-inspection/get/${id}`),
+    createBenchMouldInspection: (payload) => api.post('/bench-mould-inspection/create', payload),
+    updateBenchMouldInspection: (id, payload) => api.put(`/bench-mould-inspection/update/${id}`, payload),
+    deleteBenchMouldInspection: (id) => api.delete(`/bench-mould-inspection/delete/${id}`),
 };
 

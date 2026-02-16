@@ -18,11 +18,19 @@ const FeatureToolbar = ({ activeTab, witnessedRecordsCount, setShowBatchEntryFor
                 )}
                 {activeTab === 'Wire Tensioning' && (
                     <button className="toggle-btn" onClick={() => setShowWireTensionForm(true)}>
-                        + Add New Entry
+                        Add New Analysis
                     </button>
                 )}
                 {!(activeTab === 'Mould & Bench Checking' || activeTab === 'Manual Checks' || activeTab === 'Steam Cube Testing' || activeTab === 'Batch Weighment' || activeTab === 'Wire Tensioning' || activeTab === 'Compaction of Concrete (Vibrator Report)' || activeTab === 'Steam Curing') && (
-                    <button className="toggle-btn" style={{ fontSize: '0.7rem' }} onClick={() => { setViewMode('entry'); setDetailView('detail_modal'); }}>
+                    <button
+                        className="toggle-btn"
+                        style={{ fontSize: '0.7rem' }}
+                        onClick={() => {
+                            if (activeTab === 'Raw Material Inventory') return; // No action
+                            setViewMode('entry');
+                            setDetailView('detail_modal');
+                        }}
+                    >
                         {activeTab === 'Raw Material Inventory' ? 'Open Inventory Console' :
                             activeTab === 'Moisture Analysis' ? 'New Analysis Entry' : 'New Entry'}
                     </button>

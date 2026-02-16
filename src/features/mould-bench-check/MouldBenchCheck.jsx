@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import CollapsibleSection from '../../components/common/CollapsibleSection';
+import { apiService } from '../../services/api';
 import './MouldBenchCheck.css';
 
 /**
@@ -57,6 +58,26 @@ const DateUtils = {
     isWithinHour: (timestamp) => {
         if (!timestamp) return false;
         return (Date.now() - new Date(timestamp).getTime()) < (60 * 60 * 1000);
+    },
+    formatToBackend: (dateStr) => {
+        if (!dateStr) return null;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            const [y, m, d] = dateStr.split('-');
+            return `${d}/${m}/${y}`;
+        }
+        return dateStr;
+    },
+    formatFromBackend: (dateStr) => {
+        if (!dateStr) return null;
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+            const [d, m, y] = dateStr.split('/');
+            return `${y}-${m}-${d}`;
+        }
+        if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+            const [d, m, y] = dateStr.split('-');
+            return `${y}-${m}-${d}`;
+        }
+        return dateStr;
     }
 };
 
@@ -427,33 +448,110 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
         remarks: ''
     });
 
+    const normalizedRecords = useMemo(() => {
+        return records.map(record => ({
+            ...record,
+            assetNo: record.benchGangNo || record.assetNo,
+            location: record.lineShedNo || record.location,
+            dateOfChecking: DateUtils.formatFromBackend(record.checkingDate || record.dateOfChecking),
+            lastCasting: DateUtils.formatFromBackend(record.latestCastingDate || record.lastCasting),
+            remarks: record.combinedRemarks || record.remarks,
+            timestamp: record.createdAt || record.timestamp,
+            checkTime: record.createdAt ? new Date(record.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : record.checkTime,
+            benchOverall: (record.benchVisualResult === 'ok' && record.benchDimensionalResult === 'ok') ? 'OK' : (record.benchOverall || 'FAIL'),
+            mouldOverall: (record.mouldVisualResult === 'ok' && record.mouldDimensionalResult === 'ok') ? 'OK' : (record.mouldOverall || 'FAIL'),
+            overallResult: (record.benchVisualResult === 'ok' && record.benchDimensionalResult === 'ok' && record.mouldVisualResult === 'ok' && record.mouldDimensionalResult === 'ok') ? 'OK' : (record.overallResult || 'FAIL'),
+        }));
+    }, [records]);
+
     useEffect(() => {
         if (editingEntry) {
-            // Support legacy format if necessary or assume new format
-            setFormState({ ...editingEntry });
+            setFormState({
+                assetNo: editingEntry.benchGangNo || editingEntry.assetNo || '',
+                location: editingEntry.lineShedNo || editingEntry.location || '',
+                lastCasting: DateUtils.formatFromBackend(editingEntry.latestCastingDate || editingEntry.lastCasting) || '2025-01-31',
+                sleeperType: editingEntry.sleeperType || 'RT-1234',
+                dateOfChecking: DateUtils.formatFromBackend(editingEntry.checkingDate || editingEntry.dateOfChecking) || DateUtils.getNowISO(),
+                bench: {
+                    visualResult: editingEntry.benchVisualResult || (editingEntry.bench?.visualResult) || '',
+                    visualReason: editingEntry.benchVisualReason || (editingEntry.bench?.visualReason) || '',
+                    dimensionResult: editingEntry.benchDimensionalResult || (editingEntry.bench?.dimensionResult) || '',
+                    dimensionReason: editingEntry.benchDimensionReason || (editingEntry.bench?.dimensionReason) || ''
+                },
+                mould: {
+                    visualResult: editingEntry.mouldVisualResult || (editingEntry.mould?.visualResult) || '',
+                    visualReason: editingEntry.mouldVisualReason || (editingEntry.mould?.visualReason) || '',
+                    dimensionResult: editingEntry.mouldDimensionalResult || (editingEntry.mould?.dimensionResult) || '',
+                    dimensionReason: editingEntry.mouldDimensionReason || (editingEntry.mould?.dimensionReason) || ''
+                },
+                remarks: editingEntry.combinedRemarks || editingEntry.remarks || ''
+            });
         } else if (activeContainer?.name) {
             setFormState(prev => ({ ...prev, location: activeContainer.name }));
         }
     }, [editingEntry, activeContainer]);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!formState.assetNo) return alert('Please enter Bench/Gang No.');
 
-        const benchOverall = (formState.bench.visualResult === 'ok' && formState.bench.dimensionResult === 'ok') ? 'OK' : 'FAIL';
-        const mouldOverall = (formState.mould.visualResult === 'ok' && formState.mould.dimensionResult === 'ok') ? 'OK' : 'FAIL';
-
-        const newRecord = {
-            ...formState,
-            id: editingEntry ? editingEntry.id : Date.now(),
-            timestamp: editingEntry ? editingEntry.timestamp : new Date().toISOString(),
-            checkTime: DateUtils.getNowTime(),
-            benchOverall,
-            mouldOverall,
-            overallResult: (benchOverall === 'OK' && mouldOverall === 'OK') ? 'OK' : 'FAIL'
+        const payload = {
+            lineShedNo: formState.location,
+            location: formState.location, // Added redundant location field
+            checkingDate: DateUtils.formatToBackend(formState.dateOfChecking),
+            benchGangNo: formState.assetNo,
+            sleeperType: formState.sleeperType,
+            latestCastingDate: DateUtils.formatToBackend(formState.lastCasting),
+            benchVisualResult: formState.bench.visualResult,
+            benchVisualReason: formState.bench.visualReason,
+            benchDimensionalResult: formState.bench.dimensionResult,
+            benchDimensionReason: formState.bench.dimensionReason,
+            mouldVisualResult: formState.mould.visualResult,
+            mouldVisualReason: formState.mould.visualReason,
+            mouldDimensionalResult: formState.mould.dimensionResult,
+            mouldDimensionReason: formState.mould.dimensionReason,
+            combinedRemarks: formState.remarks,
+            createdBy: 'Admin',
+            updatedBy: 'Admin'
         };
 
-        setRecords(prev => editingEntry ? prev.map(r => r.id === editingEntry.id ? newRecord : r) : [newRecord, ...prev]);
-        handleCloseForm();
+        try {
+            let response;
+            if (editingEntry?.id) {
+                response = await apiService.updateBenchMouldInspection(editingEntry.id, payload);
+            } else {
+                response = await apiService.createBenchMouldInspection(payload);
+            }
+
+            // More robust success check
+            if (response && (response.success === true || response.responseData || response.id)) {
+                const updatedData = await apiService.getAllBenchMouldInspections();
+                if (updatedData?.responseData) {
+                    setRecords(updatedData.responseData);
+                }
+                handleCloseForm();
+            } else {
+                alert(response?.message || "Failed to save record. Structure: " + JSON.stringify(response));
+            }
+        } catch (error) {
+            console.error("Error saving record:", error);
+            alert("Error saving record: " + error.message);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this record?")) return;
+        try {
+            const response = await apiService.deleteBenchMouldInspection(id);
+            if (response.success) {
+                const refreshed = await apiService.getAllBenchMouldInspections();
+                if (refreshed?.responseData) setRecords(refreshed.responseData);
+            } else {
+                alert(response.message || "Failed to delete");
+            }
+        } catch (error) {
+            console.error("Delete error:", error);
+            alert("Delete error: " + error.message);
+        }
     };
 
     const handleAdd = () => {
@@ -502,9 +600,9 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
             </div>
 
             <div className="mould-bench-content-area">
-                {activeModule === 'summary' && <AssetSummary allAssets={allAssets} records={records} />}
-                {activeModule === 'checked' && <HistoryLogs records={records} onAdd={handleAdd} onModify={(r) => { setEditingEntry(r); if (setShowForm) setShowForm(true); else setViewMode('form'); }} onDelete={(id) => setRecords(p => p.filter(r => r.id !== id))} />}
-                {activeModule === 'allAssets' && <AssetMasterList allAssets={allAssets} records={records} />}
+                {activeModule === 'summary' && <AssetSummary allAssets={allAssets} records={normalizedRecords} />}
+                {activeModule === 'checked' && <HistoryLogs records={normalizedRecords} onAdd={handleAdd} onModify={(r) => { setEditingEntry(r); if (setShowForm) setShowForm(true); else setViewMode('form'); }} onDelete={handleDelete} />}
+                {activeModule === 'allAssets' && <AssetMasterList allAssets={allAssets} records={normalizedRecords} />}
 
                 {effectiveShowForm && (
                     <div style={{ marginTop: '32px' }}>

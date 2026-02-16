@@ -30,13 +30,19 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
             };
 
             setFormData({
-                date: initialData.date || new Date().toLocaleDateString('en-GB'),
-                time: initialData.time,
-                batchNo: initialData.batchNo || '',
-                benchNo: initialData.benchNo,
+                date: initialData.date || initialData.preparationDate || new Date().toLocaleDateString('en-GB'),
+                time: initialData.time || initialData.preparationTime || '',
+                batchNo: initialData.batchNo || initialData.batch_no || '',
+                benchNo: initialData.benchNo || initialData.bench_no || initialData.benchGangNo || '',
                 lumpsFree: convertToYesNo(initialData.lumpsFree),
                 oilApplied: convertToYesNo(initialData.oilApplied),
                 remarks: initialData.remarks || ''
+            });
+
+            console.log('📋 MouldPrepForm - Populated from initialData:', {
+                benchNo: initialData.benchNo || initialData.benchGangNo,
+                batchNo: initialData.batchNo,
+                time: initialData.time
             });
         }
     }, [initialData]);
@@ -46,15 +52,29 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
     };
 
     const handleSave = () => {
-        if (!formData.time || !formData.benchNo || !formData.batchNo || !formData.lumpsFree || !formData.oilApplied) {
-            alert('Please fill in all required fields (Batch No, Time, Number and Dropdowns).');
+        // Debug logging to see exactly what is in the state
+        console.log('🚀 MouldPrepForm - Validation Check:', formData);
+
+        const { time, benchNo, batchNo, lumpsFree, oilApplied } = formData;
+
+        // Check for missing values specifically
+        const missingFields = [];
+        if (!time) missingFields.push('Time');
+        if (benchNo === '' || benchNo === null || benchNo === undefined) missingFields.push('Bench/Gang No');
+        if (batchNo === '' || batchNo === null || batchNo === undefined) missingFields.push('Batch No');
+        if (!lumpsFree) missingFields.push('Mould Cleaned');
+        if (!oilApplied) missingFields.push('Oil Applied');
+
+        if (missingFields.length > 0) {
+            console.warn('❌ Validation failed! Missing:', missingFields);
+            alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
             return;
         }
 
         // Strict Duplicate Check (Bench/Batch)
         const isDuplicate = (existingEntries || []).some(entry =>
-            entry.benchNo === formData.benchNo &&
-            entry.batchNo === formData.batchNo &&
+            (String(entry.benchNo) === String(formData.benchNo) || String(entry.benchGangNo) === String(formData.benchNo)) &&
+            String(entry.batchNo) === String(formData.batchNo) &&
             entry.id !== initialData?.id
         );
         if (isDuplicate) {
@@ -67,17 +87,14 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
         const payload = {
             ...formData,
             lumpsFree: formData.lumpsFree === 'Yes' ? 1 : 0,
-            oilApplied: formData.oilApplied === 'Yes' ? 1 : 0
+            oilApplied: formData.oilApplied === 'Yes' ? 1 : 0,
+            benchNo: String(formData.benchNo), // Ensure strings for consistency
+            batchNo: String(formData.batchNo)
         };
 
-        console.log('🔧 MouldPrepForm - Converting Yes/No to numeric values');
-        console.log('Original values:', { lumpsFree: formData.lumpsFree, oilApplied: formData.oilApplied });
-        console.log('Converted values:', { lumpsFree: payload.lumpsFree, oilApplied: payload.oilApplied });
-        console.log('Full payload:', payload);
-
+        console.log('✅ Success - Final Payload:', payload);
         onSave(payload);
 
-        // Reset specific fields after save
         // Reset fields after save to ensure dropdowns go back to "-- Select --"
         setFormData(prev => ({
             ...prev,

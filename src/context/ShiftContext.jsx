@@ -74,11 +74,12 @@ export const ShiftProvider = ({ children }) => {
 
     const loadShiftData = async () => {
         try {
-            const [moisture, mouldPrep, htsWire, demoulding] = await Promise.all([
+            const [moisture, mouldPrep, htsWire, demoulding, benchMould] = await Promise.all([
                 apiService.getAllMoistureAnalysis(),
                 apiService.getAllMouldPreparations(),
                 apiService.getAllHtsWirePlacement(),
-                apiService.getAllDemouldingInspection()
+                apiService.getAllDemouldingInspection(),
+                apiService.getAllBenchMouldInspections()
             ]);
 
             if (moisture?.responseData) setMoistureRecords(moisture.responseData);
@@ -87,6 +88,7 @@ export const ShiftProvider = ({ children }) => {
                 htsWire: htsWire?.responseData || [],
                 demoulding: demoulding?.responseData || []
             });
+            if (benchMould?.responseData) setBenchMouldCheckRecords(benchMould.responseData);
         } catch (error) {
             console.error("Error loading shift data:", error);
         }

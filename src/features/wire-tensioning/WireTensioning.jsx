@@ -8,7 +8,7 @@ import { useWireTensionStats } from '../../hooks/useStats';
  * Handles integration of SCADA tensioning data and manual pressure logs.
  */
 const TensionSubCard = ({ id, title, color, statusDetail, isActive, onClick }) => {
-    const label = id === 'stats' ? 'ANALYSIS' : id === 'witnessed' ? 'HISTORY' : 'SCADA';
+    const label = id === 'stats' ? 'OVERVIEW' : id === 'witnessed' ? 'HISTORY' : 'SCADA';
     return (
         <div
             onClick={onClick}
@@ -44,7 +44,7 @@ const TensionSubCard = ({ id, title, color, statusDetail, isActive, onClick }) =
 
 const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'modal', showForm: propsShowForm, setShowForm: propsSetShowForm }) => {
     const { tensionRecords, setTensionRecords } = sharedState;
-    const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard', 'stats', 'witnessed', 'scada'
+    const [viewMode, setViewMode] = useState('witnessed'); // Default to History/Logs
     const [localShowForm, setLocalShowForm] = useState(false);
 
     const showForm = propsShowForm !== undefined ? propsShowForm : localShowForm;
@@ -89,6 +89,24 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
             setFormData(prev => ({ ...prev, type: types[parseInt(formData.benchNo) % 3] || 'RT-1234' }));
         }
     }, [formData.benchNo]);
+
+    // Reset form when opened via toolbar for New Entry (not edit)
+    useEffect(() => {
+        if (showForm && !editId) {
+            setFormData(prev => ({
+                ...prev,
+                benchNo: '',
+                wireLength: '',
+                crossSection: '',
+                modulus: '',
+                measuredElongation: '',
+                forceElongation: '',
+                totalLoad: '',
+                finalLoad: '',
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+            }));
+        }
+    }, [showForm, editId]);
 
     const handleFormChange = (e) => {
         const { name, value } = e.target;
@@ -171,40 +189,23 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
         if (setShowForm) setShowForm(true); else setViewMode('form');
     };
 
-    const renderDashboard = () => (
-        <div style={{ padding: '1rem' }}>
-            {/* Entry button moved to main toolbar in inline mode */}
-            {displayMode !== 'inline' && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '2rem' }}>
-                    <button
-                        className="toggle-btn"
-                        onClick={() => {
-                            setEditId(null);
-                            setFormData(prev => ({ ...prev, benchNo: '', finalLoad: '' }));
-                            setViewMode('form');
-                        }}
-                    >
-                        + Add New Entry
-                    </button>
-                </div>
-            )}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                {[
-                    { id: 'stats', label: 'Statistics', color: '#3b82f6', desc: 'View tensioning distribution and variations.' },
-                    { id: 'witnessed', label: 'Current Witness Logs', color: '#10b981', desc: 'Manage witnessed and manual records.' },
-                    { id: 'scada', label: 'Scada Data', color: '#f59e0b', desc: 'Raw data from PLC tensioning system.' }
-                ].map(tab => (
-                    <TensionSubCard
-                        key={tab.id}
-                        id={tab.id}
-                        title={tab.label}
-                        color={tab.color}
-                        statusDetail={tab.desc}
-                        isActive={viewMode === tab.id}
-                        onClick={() => setViewMode(tab.id)}
-                    />
-                ))}
-            </div>
+    const renderCards = () => (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '2rem' }}>
+            {[
+                { id: 'stats', label: 'Statistics', color: '#3b82f6', desc: 'View tensioning distribution and variations.' },
+                { id: 'witnessed', label: 'Current Witness Logs', color: '#10b981', desc: 'Manage witnessed and manual records.' },
+                { id: 'scada', label: 'Scada Data', color: '#f59e0b', desc: 'Raw data from PLC tensioning system.' }
+            ].map(tab => (
+                <TensionSubCard
+                    key={tab.id}
+                    id={tab.id}
+                    title={tab.label}
+                    color={tab.color}
+                    statusDetail={tab.desc}
+                    isActive={viewMode === tab.id}
+                    onClick={() => setViewMode(tab.id)}
+                />
+            ))}
         </div>
     );
 
@@ -576,15 +577,26 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                 </header>
 
                 <div className="modal-body" style={{ flexGrow: 1, overflowY: 'auto', padding: '1.5rem', background: '#f8fafc' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
+                        <button
+                            className="toggle-btn"
+                            onClick={() => {
+                                setEditId(null);
+                                setShowForm(true);
+                            }}
+                        >
+                            Add New Analysis
+                        </button>
+                    </div>
 
-                    {viewMode === 'dashboard' && renderDashboard()}
+                    {renderCards()}
 
                     {viewMode === 'stats' && (
                         <div className="fade-in">
-                            <h3 style={{ marginBottom: '1.5rem' }}>Tensioning Statistical Analysis</h3>
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{ marginRight: '10px' }}>Select Batch:</label>
-                                <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
+                            <h3 style={{ marginBottom: '1.5rem', fontSize: '1rem', fontWeight: '800' }}>Tensioning Statistical Overview</h3>
+                            <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <label style={{ fontSize: '0.8125rem', fontWeight: '700', color: '#64748b' }}>Select Batch:</label>
+                                <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
                                     <option value="">-- Select --</option>
                                     {batches.map(b => <option key={b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
                                 </select>
@@ -595,11 +607,8 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
 
                     {viewMode === 'witnessed' && (
                         <div className="fade-in">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                <h3 style={{ margin: 0 }}>Current Witness Logs</h3>
-                                <button className="toggle-btn" onClick={() => setViewMode('form')}>+ Add New Entry</button>
-                            </div>
-                            <div className="table-outer-wrapper" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                            <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1rem', fontWeight: '800' }}>Current Witness Logs</h3>
+                            <div className="table-outer-wrapper" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1rem' }}>
                                 <table className="ui-table">
                                     <thead>
                                         <tr>
@@ -633,11 +642,11 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                                                     <td>{entry.measuredElongation || '-'}</td>
                                                     <td>{entry.forceElongation || '-'}</td>
                                                     <td>{entry.totalLoad || '-'}</td>
-                                                    <td><strong>{entry.finalLoad} KN</strong></td>
+                                                    <td><strong style={{ color: '#0f172a' }}>{entry.finalLoad} KN</strong></td>
                                                     <td>
                                                         <div style={{ display: 'flex', gap: '8px' }}>
-                                                            {entry.source === 'Manual' && <button className="btn-action" onClick={() => handleEdit(entry)}>Edit</button>}
-                                                            <button className="btn-action" style={{ background: '#fee2e2', color: '#ef4444', border: 'none' }} onClick={() => handleDelete(entry.id)}>Delete</button>
+                                                            {entry.source === 'Manual' && <button className="btn-action mini" onClick={() => handleEdit(entry)}>Edit</button>}
+                                                            <button className="btn-action mini danger" style={{ background: '#fee2e2', color: '#ef4444', border: 'none' }} onClick={() => handleDelete(entry.id)}>Delete</button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -651,11 +660,12 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
 
                     {viewMode === 'scada' && (
                         <div className="fade-in">
-                            <h3 style={{ marginBottom: '1.5rem' }}>Scada Data (Raw Feed)</h3>
+                            <h3 style={{ marginBottom: '1.5rem', fontSize: '1rem', fontWeight: '800' }}>Scada Data (Raw Feed)</h3>
                             <div style={{ background: '#fff', borderRadius: '12px', padding: '1.5rem', border: '1px solid #e2e8f0' }}>
-                                <div style={{ marginBottom: '1.5rem' }}>
-                                    <label style={{ marginRight: '10px' }}>Filter Batch:</label>
-                                    <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
+                                <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    <label style={{ fontSize: '0.8125rem', fontWeight: '700', color: '#64748b' }}>Filter Batch:</label>
+                                    <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                                        <option value="">-- Select --</option>
                                         {batches.map(b => <option key={b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
                                     </select>
                                 </div>
@@ -675,27 +685,31 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {scadaRecords.filter(r => r.batchNo === selectedBatch).map(r => (
-                                            <tr key={r.id}>
-                                                <td>{r.time}</td>
-                                                <td><strong>{r.benchNo}</strong></td>
-                                                <td>{r.wireLength}</td>
-                                                <td>{r.crossSection}</td>
-                                                <td>{r.modulus}</td>
-                                                <td>{r.measuredElongation}</td>
-                                                <td>{r.forceElongation}</td>
-                                                <td>{r.totalLoad}</td>
-                                                <td style={{ fontWeight: '700' }}>{r.finalLoad} KN</td>
-                                                <td><span style={{ fontSize: '10px', color: '#10b981', fontWeight: 'bold' }}>PENDING WITNESS</span></td>
-                                            </tr>
-                                        ))}
+                                        {scadaRecords.filter(r => r.batchNo === selectedBatch).length === 0 ? (
+                                            <tr><td colSpan="10" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No pending SCADA data.</td></tr>
+                                        ) : (
+                                            scadaRecords.filter(r => r.batchNo === selectedBatch).map(r => (
+                                                <tr key={r.id}>
+                                                    <td>{r.time}</td>
+                                                    <td><strong>{r.benchNo}</strong></td>
+                                                    <td>{r.wireLength}</td>
+                                                    <td>{r.crossSection}</td>
+                                                    <td>{r.modulus}</td>
+                                                    <td>{r.measuredElongation}</td>
+                                                    <td>{r.forceElongation}</td>
+                                                    <td>{r.totalLoad}</td>
+                                                    <td style={{ fontWeight: '700' }}>{r.finalLoad} KN</td>
+                                                    <td><span style={{ fontSize: '10px', color: '#10b981', fontWeight: 'bold' }}>PENDING WITNESS</span></td>
+                                                </tr>
+                                            ))
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                     )}
 
-                    {viewMode === 'form' && renderForm()}
+                    {showForm && renderForm()}
                 </div>
             </div>
         </div>
