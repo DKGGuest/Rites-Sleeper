@@ -46,12 +46,21 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
 
     const [scadaCycles, setScadaCycles] = useState([
         {
-            id: 1, batchNo: '610', chamberNo: '1', date: '2026-02-02', benches: '401, 402', grade: 'M55',
+            id: 1, batchNo: '610', chamberNo: '1', date: '2026-02-02', time: '08:00', benches: '401, 402', grade: 'M55',
             pre: { start: '08:00', end: '10:15', dur: 2.25 },
             rise: { start: '10:15', end: '12:30', startTemp: 28, endTemp: 58, dur: 2.25, rate: 13.3 },
             const: { start: '12:30', end: '16:30', tempRange: '58-60', dur: 4.0 },
             cool: { start: '16:30', end: '19:00', startTemp: 58, endTemp: 30, dur: 2.5, rate: 11.2 },
-            final: { start: '19:00', end: '20:30', dur: 1.5 }
+            final: { start: '19:00', end: '20:30', dur: 1.5 },
+            batchWeight: {
+                ca1: { set: 950, actual: 948 },
+                ca2: { set: 320, actual: 322 },
+                fa: { set: 680, actual: 679 },
+                cement: { set: 420, actual: 421 },
+                water: { set: 168, actual: 167 },
+                admixture: { set: 4.2, actual: 4.1 },
+                total: { set: 2542.2, actual: 2541.1 }
+            }
         }
     ]);
 
@@ -174,7 +183,7 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
 
     const renderForm = () => (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setShowForm(false)}>
-            <div className="fade-in" style={{ width: '100%', maxWidth: '820px', maxHeight: '92vh', background: '#fff', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+            <div className="fade-in" style={{ width: '100%', maxWidth: '1280px', maxHeight: '92vh', background: '#fff', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
                 {/* Header - Cream Background */}
                 <div style={{ background: '#FFF8E7', padding: '1rem 1.5rem', borderBottom: '1px solid #F3E8FF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                     <div>
@@ -204,16 +213,61 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                                 <span style={{ background: '#d97706', color: '#fff', fontSize: '10px', fontWeight: '800', width: '20px', height: '20px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>2</span>
                                 <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#78350f', fontWeight: '800' }}>Scada Fetched Values</h4>
                             </div>
-                            {activeRecord ? (
-                                <table className="ui-table" style={{ background: '#fff', fontSize: '12px' }}>
-                                    <thead><tr><th>Phase</th><th>Start</th><th>End</th><th>Parameters</th><th>Action</th></tr></thead>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table className="ui-table" style={{ width: '100%', minWidth: '1000px', background: '#fff', fontSize: '11px', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                        <tr>
+                                            <th rowSpan={2}>S.No</th>
+                                            <th rowSpan={2}>Action</th>
+                                            <th rowSpan={2}>Date</th>
+                                            <th rowSpan={2}>Time</th>
+                                            <th rowSpan={2}>Batch</th>
+                                            <th colSpan={2} style={{ background: '#eff6ff' }}>20mm (CA1)</th>
+                                            <th colSpan={2} style={{ background: '#f0fdf4' }}>10mm (CA2)</th>
+                                            <th colSpan={2} style={{ background: '#fffbeb' }}>Sand (FA)</th>
+                                            <th colSpan={2} style={{ background: '#fdf4ff' }}>Cement</th>
+                                            <th colSpan={2} style={{ background: '#eff6ff' }}>Water</th>
+                                            <th colSpan={2} style={{ background: '#fff1f2' }}>Admixture</th>
+                                            <th colSpan={2} style={{ background: '#f8fafc' }}>Total</th>
+                                        </tr>
+                                        <tr>
+                                            {['ca1', 'ca2', 'fa', 'cement', 'water', 'admixture', 'total'].map(k => (
+                                                <React.Fragment key={k}>
+                                                    <th>Set</th>
+                                                    <th>Actual</th>
+                                                </React.Fragment>
+                                            ))}
+                                        </tr>
+                                    </thead>
                                     <tbody>
-                                        <tr><td>Rising</td><td>{activeRecord.rise.start}</td><td>{activeRecord.rise.end}</td><td>{activeRecord.rise.rate}°C/h</td><td rowSpan="3"><button className="btn-action" onClick={() => handleWitness(activeRecord)}>Witness Cycle</button></td></tr>
-                                        <tr><td>Constant</td><td>{activeRecord.const.start}</td><td>{activeRecord.const.end}</td><td>{activeRecord.const.tempRange}°C</td></tr>
-                                        <tr><td>Cooling</td><td>{activeRecord.cool.start}</td><td>{activeRecord.cool.end}</td><td>{activeRecord.cool.rate}°C/h</td></tr>
+                                        {scadaCycles.map((r, idx) => {
+                                            const bw = r.batchWeight || {};
+                                            return (
+                                                <tr key={r.id}>
+                                                    <td style={{ textAlign: 'center' }}>{idx + 1}</td>
+                                                    <td style={{ textAlign: 'center' }}>
+                                                        <button className="btn-action" onClick={() => handleWitness(r)}>Witness</button>
+                                                    </td>
+                                                    <td style={{ whiteSpace: 'nowrap' }}>{r.date ? r.date.split('-').reverse().join('/') : ''}</td>
+                                                    <td>{r.time || '-'}</td>
+                                                    <td style={{ fontWeight: '700' }}>{r.batchNo}</td>
+                                                    {['ca1', 'ca2', 'fa', 'cement', 'water', 'admixture', 'total'].map(key => (
+                                                        <React.Fragment key={key}>
+                                                            <td style={{ textAlign: 'center', color: '#64748b' }}>{bw[key]?.set ?? '-'}</td>
+                                                            <td style={{ textAlign: 'center', fontWeight: '600', color: '#1e293b' }}>{bw[key]?.actual ?? '-'}</td>
+                                                        </React.Fragment>
+                                                    ))}
+                                                </tr>
+                                            );
+                                        })}
+                                        {scadaCycles.length === 0 && (
+                                            <tr>
+                                                <td colSpan={19} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No pending SCADA data.</td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
-                            ) : <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>No pending SCADA data.</p>}
+                            </div>
                         </div>
 
                         <div style={{ background: '#f0fdf4', padding: '1.25rem', borderRadius: '8px', border: '1px solid #dcfce7' }}>
@@ -229,8 +283,8 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                                     <input
                                         style={{
                                             padding: '6px',
-                                            backgroundColor: isTempInvalid(manualForm.minConstTemp) ? '#ffe4e6' : '#ffffff', // Red-100/200ish
-                                            borderColor: isTempInvalid(manualForm.minConstTemp) ? '#ef4444' : '#cbd5e1', // Red-500
+                                            backgroundColor: isTempInvalid(manualForm.minConstTemp) ? '#ffe4e6' : '#ffffff',
+                                            borderColor: isTempInvalid(manualForm.minConstTemp) ? '#ef4444' : '#cbd5e1',
                                             borderWidth: isTempInvalid(manualForm.minConstTemp) ? '2px' : '1px',
                                             borderStyle: 'solid',
                                             color: isTempInvalid(manualForm.minConstTemp) ? '#991b1b' : '#1e293b',
@@ -335,16 +389,58 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                 {viewMode === 'scada' && (
                     <div className="fade-in">
                         <h3>Raw SCADA Data Feed</h3>
-                        <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                            <table className="ui-table">
-                                <thead><tr><th>Batch</th><th>Chamber</th><th>Date</th><th>Benches</th><th>Range</th><th>Action</th></tr></thead>
+                        <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', overflowX: 'auto' }}>
+                            <table className="ui-table" style={{ minWidth: '1100px', borderCollapse: 'collapse', fontSize: '12px' }}>
+                                <thead>
+                                    <tr>
+                                        <th rowSpan={2} style={{ textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>S.No</th>
+                                        <th rowSpan={2} style={{ textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>Action</th>
+                                        <th rowSpan={2} style={{ textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>Date</th>
+                                        <th rowSpan={2} style={{ textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>Time</th>
+                                        <th rowSpan={2} style={{ textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>Batch</th>
+                                        <th colSpan={2} style={{ textAlign: 'center', background: '#eff6ff' }}>20mm (CA1)</th>
+                                        <th colSpan={2} style={{ textAlign: 'center', background: '#f0fdf4' }}>10mm (CA2)</th>
+                                        <th colSpan={2} style={{ textAlign: 'center', background: '#fffbeb' }}>Sand (FA)</th>
+                                        <th colSpan={2} style={{ textAlign: 'center', background: '#fdf4ff' }}>Cement</th>
+                                        <th colSpan={2} style={{ textAlign: 'center', background: '#eff6ff' }}>Water</th>
+                                        <th colSpan={2} style={{ textAlign: 'center', background: '#fff1f2' }}>Admixture</th>
+                                        <th colSpan={2} style={{ textAlign: 'center', background: '#f8fafc' }}>Total</th>
+                                    </tr>
+                                    <tr>
+                                        {['ca1', 'ca2', 'fa', 'cement', 'water', 'admixture', 'total'].map(key => (
+                                            <React.Fragment key={key}>
+                                                <th style={{ textAlign: 'center', fontWeight: '700', fontSize: '11px' }}>Set</th>
+                                                <th style={{ textAlign: 'center', fontWeight: '700', fontSize: '11px' }}>Actual</th>
+                                            </React.Fragment>
+                                        ))}
+                                    </tr>
+                                </thead>
                                 <tbody>
-                                    {scadaCycles.map(r => (
-                                        <tr key={r.id}>
-                                            <td>{r.batchNo}</td><td><strong>{r.chamberNo}</strong></td><td>{r.date ? r.date.split('-').reverse().join('/') : ''}</td><td>{r.benches}</td><td>{r.const.tempRange}°C</td>
-                                            <td><button className="btn-action" onClick={() => handleWitness(r)}>Witness</button></td>
+                                    {scadaCycles.map((r, idx) => {
+                                        const bw = r.batchWeight || {};
+                                        return (
+                                            <tr key={r.id}>
+                                                <td style={{ textAlign: 'center' }}>{idx + 1}</td>
+                                                <td style={{ textAlign: 'center' }}>
+                                                    <button className="btn-action" onClick={() => handleWitness(r)}>Witness</button>
+                                                </td>
+                                                <td style={{ whiteSpace: 'nowrap' }}>{r.date ? r.date.split('-').reverse().join('/') : ''}</td>
+                                                <td style={{ whiteSpace: 'nowrap' }}>{r.time || '-'}</td>
+                                                <td style={{ fontWeight: '700' }}>{r.batchNo}</td>
+                                                {['ca1', 'ca2', 'fa', 'cement', 'water', 'admixture', 'total'].map(key => (
+                                                    <React.Fragment key={key}>
+                                                        <td style={{ textAlign: 'center', color: '#475569' }}>{bw[key]?.set ?? '-'}</td>
+                                                        <td style={{ textAlign: 'center', fontWeight: '600', color: '#1e293b' }}>{bw[key]?.actual ?? '-'}</td>
+                                                    </React.Fragment>
+                                                ))}
+                                            </tr>
+                                        );
+                                    })}
+                                    {scadaCycles.length === 0 && (
+                                        <tr>
+                                            <td colSpan={19} style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem', fontSize: '13px' }}>No pending SCADA records.</td>
                                         </tr>
-                                    ))}
+                                    )}
                                 </tbody>
                             </table>
                         </div>
