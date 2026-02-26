@@ -1,28 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../../../components/common/Checkbox.css';
 
-/**
- * MouldPrepForm Component
- * Refactored to follow enterprise standards:
- * - Functional component with hooks
- * - Clear props and state management
- * - Responsive layout support (via CSS classes)
- * - Separation of concerns
- */
 const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initialData, activeContainer }) => {
+    const getLocalISOString = () => {
+        const now = new Date();
+        const offset = now.getTimezoneOffset() * 60000;
+        return (new Date(now - offset)).toISOString().slice(0, 16);
+    };
+
     const [formData, setFormData] = useState({
-        date: new Date().toLocaleDateString('en-GB'), // Auto date
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+        location: activeContainer?.name || 'N/A',
+        dateTime: getLocalISOString(),
         batchNo: '',
         benchNo: '',
-        lumpsFree: '',
+        sleeperType: '',
+        mouldCleaned: '',
         oilApplied: '',
         remarks: ''
     });
 
-    React.useEffect(() => {
+    const formatFromBackendDatePart = (dateStr) => {
+        if (!dateStr) return '';
+        if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr.substring(0, 10);
+        if (/^\d{2}\/\d{2}\/\d{4}/.test(dateStr)) {
+            const [d, m, y] = dateStr.split('/');
+            return `${y}-${m}-${d}`;
+        }
+        return dateStr;
+    };
+
+    const formatForInput = (dt, time) => {
+        if (!dt) return getLocalISOString();
+        if (dt.includes('T')) return dt.substring(0, 16);
+        const datePart = formatFromBackendDatePart(dt);
+        const timePart = time || '00:00';
+        return `${datePart}T${timePart.substring(0, 5)}`;
+    };
+
+    useEffect(() => {
         if (initialData) {
-            // Helper function to convert backend value to Yes/No
             const convertToYesNo = (value) => {
                 if (value === 1 || value === true || value === 'Yes') return 'Yes';
                 if (value === 0 || value === false || value === 'No') return 'No';
@@ -30,76 +46,67 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
             };
 
             setFormData({
-                date: initialData.date || initialData.preparationDate || new Date().toLocaleDateString('en-GB'),
-                time: initialData.time || initialData.preparationTime || '',
-                batchNo: initialData.batchNo || initialData.batch_no || '',
-                benchNo: initialData.benchNo || initialData.bench_no || initialData.benchGangNo || '',
-                lumpsFree: convertToYesNo(initialData.lumpsFree),
-                oilApplied: convertToYesNo(initialData.oilApplied),
-                remarks: initialData.remarks || ''
+                ...initialData,
+                location: initialData.lineShedNo || initialData.location || activeContainer?.name || 'N/A',
+                dateTime: formatForInput(initialData.dateTime || initialData.preparationDate || initialData.date || initialData.createdDate, initialData.preparationTime || initialData.time),
+                batchNo: initialData.batchNo || initialData.batch || '',
+                benchNo: initialData.benchNo || initialData.benchGangNo || '',
+                mouldCleaned: convertToYesNo(initialData.mouldCleaned !== undefined ? initialData.mouldCleaned : initialData.lumpsFree),
+                oilApplied: convertToYesNo(initialData.oilApplied)
             });
-
-            console.log('📋 MouldPrepForm - Populated from initialData:', {
-                benchNo: initialData.benchNo || initialData.benchGangNo,
-                batchNo: initialData.batchNo,
-                time: initialData.time
-            });
+            console.log('📋 MouldPrepForm - Prefilled from:', initialData);
         }
-    }, [initialData]);
+    }, [initialData, activeContainer]);
+
+    // Auto-fetch Sleeper Type derivation
+    useEffect(() => {
+        if (formData.benchNo && !initialData) {
+            const types = ['RT-1234', 'RT-5678', 'RT-9012'];
+            const type = types[parseInt(formData.benchNo) % 3] || 'RT-1234';
+            setFormData(prev => ({ ...prev, sleeperType: type }));
+        }
+    }, [formData.benchNo, initialData]);
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
+    const formatToBackendDate = (dateStr) => {
+        if (!dateStr) return null;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            const [year, month, day] = dateStr.split("-");
+            return `${day}/${month}/${year}`;
+        }
+        return dateStr;
+    };
+
     const handleSave = () => {
-        // Debug logging to see exactly what is in the state
-        console.log('🚀 MouldPrepForm - Validation Check:', formData);
-
-        const { time, benchNo, batchNo, lumpsFree, oilApplied } = formData;
-
-        // Check for missing values specifically
-        const missingFields = [];
-        if (!time) missingFields.push('Time');
-        if (benchNo === '' || benchNo === null || benchNo === undefined) missingFields.push('Bench/Gang No');
-        if (batchNo === '' || batchNo === null || batchNo === undefined) missingFields.push('Batch No');
-        if (!lumpsFree) missingFields.push('Mould Cleaned');
-        if (!oilApplied) missingFields.push('Oil Applied');
-
-        if (missingFields.length > 0) {
-            console.warn('❌ Validation failed! Missing:', missingFields);
-            alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
+        if (!formData.benchNo || !formData.batchNo || !formData.mouldCleaned || !formData.oilApplied) {
+            alert('Please fill in all required fields (Batch, Bench, Cleaning & Oiling).');
             return;
         }
 
-        // Strict Duplicate Check (Bench/Batch)
-        const isDuplicate = (existingEntries || []).some(entry =>
-            (String(entry.benchNo) === String(formData.benchNo) || String(entry.benchGangNo) === String(formData.benchNo)) &&
-            String(entry.batchNo) === String(formData.batchNo) &&
-            entry.id !== initialData?.id
-        );
-        if (isDuplicate) {
-            const fieldLabel = isLongLine ? 'Gang' : 'Bench';
-            alert(`${fieldLabel} No. ${formData.benchNo} for Batch ${formData.batchNo} has already been entered. Duplicate entries are not allowed.`);
-            return;
-        }
-
-        // Convert Yes/No to 1/0 for backend
+        // Payload matching mould-preparation-controller schema exactly
         const payload = {
-            ...formData,
-            lumpsFree: formData.lumpsFree === 'Yes' ? 1 : 0,
-            oilApplied: formData.oilApplied === 'Yes' ? 1 : 0,
-            benchNo: String(formData.benchNo), // Ensure strings for consistency
-            batchNo: String(formData.batchNo)
+            lineShedNo: formData.location || activeContainer?.name || 'N/A',
+            preparationDate: formatToBackendDate(formData.dateTime.split('T')[0]),
+            preparationTime: formData.dateTime.split('T')[1],
+            batchNo: parseInt(formData.batchNo) || 0,
+            benchNo: parseInt(formData.benchNo) || 0,
+            mouldCleaned: formData.mouldCleaned === 'Yes',
+            oilApplied: formData.oilApplied === 'Yes',
+            remarks: formData.remarks || '',
+            createdBy: 0,
+            updateBy: 0
         };
 
-        console.log('✅ Success - Final Payload:', payload);
         onSave(payload);
 
-        // Reset fields after save to ensure dropdowns go back to "-- Select --"
+        // Reset fields after save
         setFormData(prev => ({
             ...prev,
             benchNo: '',
-            lumpsFree: '',
+            mouldCleaned: '',
             oilApplied: '',
             remarks: ''
         }));
@@ -110,39 +117,26 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
     return (
         <div className="form-container" style={{ padding: '20px' }}>
             <div className="form-grid-standard">
-                {/* 1. Line/Shed No (Auto) */}
                 <div className="form-field">
-                    <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Line / Shed No.</label>
-                    <div className="form-info-card">
-                        {activeContainer?.name || 'N/A'}
-                    </div>
+                    <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Location</label>
+                    <div className="form-info-card">{formData.location}</div>
                 </div>
 
-                {/* 2. Date (Auto) */}
                 <div className="form-field">
-                    <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Date</label>
-                    <div className="form-info-card">
-                        {formData.date}
-                    </div>
-                </div>
-
-                {/* 3. Time */}
-                <div className="form-field">
-                    <label htmlFor="prep-time" style={{ fontSize: '11px', fontWeight: '700' }}>Time <span className="required">*</span></label>
+                    <label htmlFor="prep-datetime" style={{ fontSize: '11px', fontWeight: '700' }}>Date & Time <span className="required">*</span></label>
                     <input
-                        id="prep-time"
-                        type="time"
+                        id="prep-datetime"
+                        type="datetime-local"
                         className="form-input-standard"
-                        value={formData.time}
-                        onChange={e => handleChange('time', e.target.value)}
+                        value={formData.dateTime}
+                        onChange={e => handleChange('dateTime', e.target.value)}
                     />
                 </div>
 
-                {/* 4. Batch No (Int) */}
                 <div className="form-field">
-                    <label htmlFor="batch-no" style={{ fontSize: '11px', fontWeight: '700' }}>Batch No. <span className="required">*</span></label>
+                    <label htmlFor="batchNo" style={{ fontSize: '11px', fontWeight: '700' }}>Batch No. <span className="required">*</span></label>
                     <input
-                        id="batch-no"
+                        id="batchNo"
                         type="number"
                         placeholder="Batch No"
                         className="form-input-standard"
@@ -151,11 +145,10 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
                     />
                 </div>
 
-                {/* 5. Bench/Gang No (Int) */}
                 <div className="form-field">
-                    <label htmlFor="bench-no" style={{ fontSize: '11px', fontWeight: '700' }}>{fieldLabel} No. <span className="required">*</span></label>
+                    <label htmlFor="benchNo" style={{ fontSize: '11px', fontWeight: '700' }}>{fieldLabel} No. <span className="required">*</span></label>
                     <input
-                        id="bench-no"
+                        id="benchNo"
                         type="number"
                         placeholder={`${fieldLabel} No`}
                         className="form-input-standard"
@@ -164,13 +157,19 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
                     />
                 </div>
 
-                {/* 6. Lumps Free (Dropdown) */}
+                <div className="form-field">
+                    <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Sleeper Type</label>
+                    <div className="form-info-card" style={{ background: '#f8fafc', color: '#64748b', fontWeight: '600' }}>
+                        {formData.sleeperType || 'N/A'}
+                    </div>
+                </div>
+
                 <div className="form-field">
                     <label style={{ fontSize: '11px', fontWeight: '700' }}>Mould Cleaned? <span className="required">*</span></label>
                     <select
                         className="form-input-standard"
-                        value={formData.lumpsFree}
-                        onChange={e => handleChange('lumpsFree', e.target.value)}
+                        value={formData.mouldCleaned}
+                        onChange={e => handleChange('mouldCleaned', e.target.value)}
                     >
                         <option value="">-- Select --</option>
                         <option value="Yes">Yes (Lumps Free)</option>
@@ -178,7 +177,6 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
                     </select>
                 </div>
 
-                {/* 7. Mould Oil (Dropdown) */}
                 <div className="form-field">
                     <label style={{ fontSize: '11px', fontWeight: '700' }}>Oil Applied? <span className="required">*</span></label>
                     <select
@@ -192,7 +190,6 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
                     </select>
                 </div>
 
-                {/* Remarks - Span wider if possible */}
                 <div className="form-field form-field-full">
                     <label htmlFor="remarks" style={{ fontSize: '11px', fontWeight: '700' }}>Remarks</label>
                     <input
@@ -208,14 +205,11 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
 
             <div className="form-actions-row">
                 <button className="toggle-btn" onClick={handleSave}>
-                    {initialData ? 'Update Entry' : 'Save Entry'}
+                    {initialData ? 'Update Record' : 'Save Record'}
                 </button>
-                {initialData && (
-                    <button className="toggle-btn secondary" onClick={onCancel}>Cancel</button>
-                )}
+                {initialData && <button className="toggle-btn secondary" onClick={onCancel}>Cancel</button>}
             </div>
         </div>
-
     );
 };
 

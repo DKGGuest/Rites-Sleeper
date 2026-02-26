@@ -15,11 +15,24 @@ const MIX_DESIGNS = [
 const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
     const [activeSection, setActiveSection] = useState('ca1');
 
+    const getLocalTimeData = () => {
+        const now = new Date();
+        const offset = now.getTimezoneOffset() * 60000;
+        const local = new Date(now - offset);
+        const iso = local.toISOString();
+        return {
+            date: iso.slice(0, 10),
+            time: iso.slice(11, 16)
+        };
+    };
+
+    const localInit = getLocalTimeData();
+
     // Common Form Section Data
     const [commonData, setCommonData] = useState({
-        date: initialData?.date || new Date().toISOString().split('T')[0],
+        date: initialData?.date || localInit.date,
         shift: initialData?.shift || 'A',
-        timing: initialData?.timing || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+        timing: initialData?.timing || localInit.time,
         batchNo: initialData?.batchNo || '',
         mixDesignId: initialData?.mixDesignId || '',
 
@@ -161,13 +174,22 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
         onSave({
             id: initialData?.id || Date.now(),
             ...commonData,
+            // Aggregate Results
+            ca1Result: ca1Calc,
+            ca2Result: ca2Calc,
+            faResult: faCalc,
+
+            // Shared Stats
+            totalFree: totalFreeMoisture,
+            adjustedWater: adjustedWater,
+            wcRatio: wcRatio,
+            acRatio: acRatio,
+
+            // Legacy/UI props
             ca1Free: ca1Calc.freeMoisturePct,
             ca2Free: ca2Calc.freeMoisturePct,
             faFree: faCalc.freeMoisturePct,
-            totalFree: totalFreeMoisture,
-            ca1Details: aggData.ca1,
-            ca2Details: aggData.ca2,
-            faDetails: aggData.fa,
+
             timestamp: initialData?.timestamp || new Date().toISOString()
         });
     };

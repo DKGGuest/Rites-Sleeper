@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { apiService } from '../../services/api';
 import WireTensionStats from './components/WireTensionStats';
 import CollapsibleSection from '../../components/common/CollapsibleSection';
 import { useWireTensionStats } from '../../hooks/useStats';
@@ -42,7 +43,7 @@ const TensionSubCard = ({ id, title, color, statusDetail, isActive, onClick }) =
     );
 };
 
-const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'modal', showForm: propsShowForm, setShowForm: propsSetShowForm }) => {
+const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'modal', showForm: propsShowForm, setShowForm: propsSetShowForm, loadShiftData }) => {
     const { tensionRecords, setTensionRecords } = sharedState;
     const [viewMode, setViewMode] = useState('witnessed'); // Default to History/Logs
     const [localShowForm, setLocalShowForm] = useState(false);
@@ -50,10 +51,6 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
     const showForm = propsShowForm !== undefined ? propsShowForm : localShowForm;
     const setShowForm = propsSetShowForm !== undefined ? propsSetShowForm : setLocalShowForm;
     const [selectedBatch, setSelectedBatch] = useState('');
-    const [wiresPerSleeper] = useState(18);
-    const [editId, setEditId] = useState(null);
-
-    // Mock SCADA records
     const [scadaRecords, setScadaRecords] = useState([
         { id: 201, time: '11:05', batchNo: '601', benchNo: '411', wireLength: 32000, crossSection: 154, modulus: 195, measuredElongation: 195, forceElongation: 725, totalLoad: 730, finalLoad: 733 },
         { id: 202, time: '11:12', batchNo: '601', benchNo: '412', wireLength: 32000, crossSection: 154, modulus: 195, measuredElongation: 192, forceElongation: 720, totalLoad: 725, finalLoad: 729 },
@@ -68,6 +65,28 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
     ]);
 
     const wireTensionStats = useWireTensionStats(tensionRecords, selectedBatch);
+    const [wiresPerSleeper] = useState(18);
+    const [editId, setEditId] = useState(null);
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Dynamic Batch List: Merge declared batches with those found in SCADA or existing logs
+    const availableBatches = useMemo(() => {
+        const bSet = new Set();
+        // From declaration prop
+        if (Array.isArray(batches)) {
+            batches.forEach(b => { if (b.batchNo) bSet.add(String(b.batchNo)); });
+        }
+        // From raw Scada feed
+        if (scadaRecords) {
+            scadaRecords.forEach(r => { if (r.batchNo) bSet.add(String(r.batchNo)); });
+        }
+        // From existing logs
+        if (tensionRecords) {
+            tensionRecords.forEach(r => { if (r.batchNo) bSet.add(String(r.batchNo)); });
+        }
+
+        return Array.from(bSet).sort();
+    }, [batches, scadaRecords, tensionRecords]);
 
     const [formData, setFormData] = useState({
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
@@ -82,6 +101,11 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
         finalLoad: '',
         type: 'RT-1234'
     });
+
+    // Keep formData batch in sync with selection
+    useEffect(() => {
+        setFormData(prev => ({ ...prev, batchNo: selectedBatch }));
+    }, [selectedBatch]);
 
     useEffect(() => {
         if (formData.benchNo) {
@@ -128,9 +152,107 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
         alert(`Record for Bench ${record.benchNo} witnessed.`);
     };
 
-    const handleDelete = (id) => {
-        if (window.confirm('Are you sure you want to delete this record?')) {
-            setTensionRecords(prev => prev.filter(r => r.id !== id));
+    const handleDelete = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this record?')) return;
+
+        // Find the record before removing from state
+        const recordToDelete = tensionRecords.find(r => r.id === id);
+
+        // Remove locally
+        setTensionRecords(prev => prev.filter(r => r.id !== id));
+
+        // If it's a persistent record (not a new local id), sync with backend
+        if (recordToDelete && typeof id === 'number' && id < 1000000000) {
+            try {
+                const batchNo = recordToDelete.batchNo;
+                const allResponse = await apiService.getAllWireTensioning();
+                const existingBatch = (allResponse?.responseData || []).find(b => String(b.batchNo) === String(batchNo));
+
+                if (existingBatch) {
+                    const payload = {
+                        ...existingBatch,
+                        manualRecords: (existingBatch.manualRecords || []).filter(r => r.id !== id),
+                        scadaRecords: (existingBatch.scadaRecords || []).filter(r => r.id !== id)
+                    };
+                    await apiService.updateWireTensioning(existingBatch.id, payload);
+                    if (loadShiftData) await loadShiftData();
+                }
+            } catch (error) {
+                console.error("Delete sync failed:", error);
+                alert("Deleted locally, but failed to sync change to backend.");
+            }
+        }
+    };
+
+    const handleFinalSave = async () => {
+        if (!selectedBatch) {
+            alert("Please select a batch first.");
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            // 1. Prepare records for this batch
+            const batchTensionRecords = tensionRecords.filter(r => String(r.batchNo) === String(selectedBatch));
+
+            const manualRecords = batchTensionRecords
+                .filter(r => r.source === 'Manual')
+                .map(r => ({
+                    id: typeof r.id === 'string' || r.id > 1000000000 ? 0 : r.id, // Use 0 for new local records (Date.now() are usually large)
+                    batchNo: String(r.batchNo),
+                    benchNo: String(r.benchNo),
+                    time: r.time,
+                    wireLength: parseFloat(r.wireLength) || 0,
+                    crossSection: parseFloat(r.crossSection) || 0,
+                    youngsModulus: parseFloat(r.youngsModulus || r.modulus) || 0,
+                    measuredElongation: parseFloat(r.measuredElongation) || 0,
+                    forceElongation: parseFloat(r.forceElongation) || 0,
+                    totalLoad: parseFloat(r.totalLoad) || 0,
+                    finalLoad: parseFloat(r.finalLoad) || 0
+                }));
+
+            const witnessedScadaRecords = batchTensionRecords
+                .filter(r => r.source === 'Scada')
+                .map(r => ({
+                    id: typeof r.id === 'string' || r.id > 1000000000 ? 0 : r.id,
+                    plcTime: r.time,
+                    benchNo: String(r.benchNo),
+                    wireLength: parseFloat(r.wireLength) || 0,
+                    crossSection: parseFloat(r.crossSection) || 0,
+                    youngsModulus: parseFloat(r.youngsModulus || r.modulus) || 0,
+                    measuredElongation: parseFloat(r.measuredElongation) || 0,
+                    forceElongation: parseFloat(r.forceElongation) || 0,
+                    totalLoad: parseFloat(r.totalLoad) || 0,
+                    finalLoad: parseFloat(r.finalLoad) || 0
+                }));
+
+            const payload = {
+                batchNo: String(selectedBatch),
+                sleeperType: "RT-1234", // Should be derived from declaration if available
+                wiresPerSleeper: parseInt(wiresPerSleeper),
+                targetLoadKn: 730,
+                manualRecords,
+                scadaRecords: witnessedScadaRecords
+            };
+
+            // 2. Check if record exists (by batchNo)
+            const allResponse = await apiService.getAllWireTensioning();
+            const existingBatch = (allResponse?.responseData || []).find(b => String(b.batchNo) === String(selectedBatch));
+
+            if (existingBatch) {
+                await apiService.updateWireTensioning(existingBatch.id, payload);
+                alert("Batch tensioning updated successfully.");
+            } else {
+                await apiService.createWireTensioning(payload);
+                alert("Batch tensioning created successfully.");
+            }
+            if (loadShiftData) await loadShiftData();
+            setShowForm(false);
+        } catch (error) {
+            console.error("Save failed:", error);
+            alert("Failed to save to backend. Your data remains in the local session.");
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -236,7 +358,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                                     <label>Batch No.</label>
                                     <select value={selectedBatch} onChange={(e) => setSelectedBatch(e.target.value)} style={{ padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', width: '100%' }}>
                                         <option value="">-- Select --</option>
-                                        {batches.map(b => <option key={b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
+                                        {availableBatches.map(b => <option key={b} value={b}>{b}</option>)}
                                     </select>
                                 </div>
                                 <div className="form-field">
@@ -403,10 +525,20 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
                             <button
                                 className="toggle-btn"
-                                onClick={() => setShowForm(false)}
-                                style={{ background: '#0f172a', color: '#fff', padding: '12px 32px', borderRadius: '8px', fontWeight: '800', border: 'none', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+                                onClick={handleFinalSave}
+                                disabled={isSaving}
+                                style={{
+                                    background: isSaving ? '#64748b' : '#0f172a',
+                                    color: '#fff',
+                                    padding: '12px 32px',
+                                    borderRadius: '8px',
+                                    fontWeight: '800',
+                                    border: 'none',
+                                    cursor: isSaving ? 'not-allowed' : 'pointer',
+                                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+                                }}
                             >
-                                Save / Finish Batch
+                                {isSaving ? 'Processing...' : 'Save / Finish Batch'}
                             </button>
                         </div>
 
@@ -451,9 +583,9 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                         <div className="fade-in">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
                                 <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b' }}>Select Batch:</label>
-                                <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}>
+                                <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
                                     <option value="">-- Select --</option>
-                                    {batches.map(b => <option key={b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
+                                    {availableBatches.map(b => <option key={b} value={b}>{b}</option>)}
                                 </select>
                             </div>
                             <WireTensionStats stats={wireTensionStats} />
@@ -516,43 +648,61 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                     {viewMode === 'scada' && (
                         <div className="fade-in">
                             <div style={{ background: '#fff', borderRadius: '12px', padding: '1.5rem', border: '1px solid #e2e8f0' }}>
-                                <div style={{ marginBottom: '1.5rem' }}>
-                                    <label style={{ marginRight: '10px' }}>Filter Batch:</label>
-                                    <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
-                                        <option value="">-- Select --</option>
-                                        {batches.map(b => <option key={b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
-                                    </select>
+                                <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div>
+                                        <label style={{ marginRight: '10px', fontSize: '0.8rem', fontWeight: 'bold' }}>Filter Batch:</label>
+                                        <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
+                                            <option value="">-- All Batches --</option>
+                                            {availableBatches.map(b => <option key={b} value={b}>{b}</option>)}
+                                        </select>
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>
+                                        <span style={{ color: '#10b981' }}>● Verified By Witness</span> | <span style={{ color: '#f59e0b' }}>● Pending Validation</span>
+                                    </div>
                                 </div>
                                 <table className="ui-table">
                                     <thead>
                                         <tr>
                                             <th>PLC Time</th>
+                                            <th>Batch No.</th>
                                             <th>Bench</th>
-                                            <th>Wire Length</th>
-                                            <th>Cross Section</th>
-                                            <th>Modulus</th>
-                                            <th>Measured Elong.</th>
-                                            <th>Force (Elong.)</th>
                                             <th>Total Load</th>
                                             <th>Final Load</th>
                                             <th>Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {scadaRecords.filter(r => r.batchNo === selectedBatch).map(r => (
-                                            <tr key={r.id}>
-                                                <td>{r.time}</td>
-                                                <td><strong>{r.benchNo}</strong></td>
-                                                <td>{r.wireLength}</td>
-                                                <td>{r.crossSection}</td>
-                                                <td>{r.modulus}</td>
-                                                <td>{r.measuredElongation}</td>
-                                                <td>{r.forceElongation}</td>
-                                                <td>{r.totalLoad}</td>
-                                                <td style={{ fontWeight: '700' }}>{r.finalLoad} KN</td>
-                                                <td><span style={{ fontSize: '10px', color: '#10b981', fontWeight: 'bold' }}>PENDING WITNESS</span></td>
-                                            </tr>
-                                        ))}
+                                        {[
+                                            ...scadaRecords.map(r => ({ ...r, status: 'PENDING' })),
+                                            ...(tensionRecords || []).filter(r => r.source === 'Scada').map(r => ({ ...r, status: 'VERIFIED' }))
+                                        ]
+                                            .filter(r => !selectedBatch || String(r.batchNo) === String(selectedBatch))
+                                            .sort((a, b) => b.id - a.id)
+                                            .map((r, idx) => (
+                                                <tr key={idx}>
+                                                    <td>{r.time || r.plcTime}</td>
+                                                    <td>{r.batchNo}</td>
+                                                    <td><strong>{r.benchNo}</strong></td>
+                                                    <td>{r.totalLoad}</td>
+                                                    <td style={{ fontWeight: '700' }}>{r.finalLoad} KN</td>
+                                                    <td>
+                                                        <span style={{
+                                                            fontSize: '10px',
+                                                            color: r.status === 'VERIFIED' ? '#10b981' : '#f59e0b',
+                                                            fontWeight: 'bold',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '10px',
+                                                            background: r.status === 'VERIFIED' ? '#ecfdf5' : '#fffbeb',
+                                                            border: `1px solid ${r.status === 'VERIFIED' ? '#10b98130' : '#f59e0b30'}`
+                                                        }}>
+                                                            {r.status === 'VERIFIED' ? 'VERIFIED' : 'PENDING WITNESS'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        {scadaRecords.length === 0 && tensionRecords.filter(r => r.source === 'Scada').length === 0 && (
+                                            <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No SCADA data available.</td></tr>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -596,9 +746,9 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                             <h3 style={{ marginBottom: '1.5rem', fontSize: '1rem', fontWeight: '800' }}>Tensioning Statistical Overview</h3>
                             <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                 <label style={{ fontSize: '0.8125rem', fontWeight: '700', color: '#64748b' }}>Select Batch:</label>
-                                <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                                <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
                                     <option value="">-- Select --</option>
-                                    {batches.map(b => <option key={b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
+                                    {availableBatches.map(b => <option key={b} value={b}>{b}</option>)}
                                 </select>
                             </div>
                             <WireTensionStats stats={wireTensionStats} />
@@ -662,46 +812,60 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                         <div className="fade-in">
                             <h3 style={{ marginBottom: '1.5rem', fontSize: '1rem', fontWeight: '800' }}>Scada Data (Raw Feed)</h3>
                             <div style={{ background: '#fff', borderRadius: '12px', padding: '1.5rem', border: '1px solid #e2e8f0' }}>
-                                <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                    <label style={{ fontSize: '0.8125rem', fontWeight: '700', color: '#64748b' }}>Filter Batch:</label>
-                                    <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-                                        <option value="">-- Select --</option>
-                                        {batches.map(b => <option key={b.batchNo} value={b.batchNo}>{b.batchNo}</option>)}
-                                    </select>
+                                <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div>
+                                        <label style={{ marginRight: '10px', fontSize: '0.8125rem', fontWeight: '700', color: '#64748b' }}>Filter Batch:</label>
+                                        <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
+                                            <option value="">-- All Batches --</option>
+                                            {availableBatches.map(b => <option key={b} value={b}>{b}</option>)}
+                                        </select>
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>
+                                        <span style={{ color: '#10b981' }}>● Verified By Witness</span> | <span style={{ color: '#f59e0b' }}>● Pending Validation</span>
+                                    </div>
                                 </div>
                                 <table className="ui-table">
                                     <thead>
                                         <tr>
                                             <th>PLC Time</th>
+                                            <th>Batch No.</th>
                                             <th>Bench</th>
-                                            <th>Wire Length</th>
-                                            <th>Cross Section</th>
-                                            <th>Modulus</th>
-                                            <th>Measured Elong.</th>
-                                            <th>Force (Elong.)</th>
                                             <th>Total Load</th>
                                             <th>Final Load</th>
                                             <th>Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {scadaRecords.filter(r => r.batchNo === selectedBatch).length === 0 ? (
-                                            <tr><td colSpan="10" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No pending SCADA data.</td></tr>
-                                        ) : (
-                                            scadaRecords.filter(r => r.batchNo === selectedBatch).map(r => (
-                                                <tr key={r.id}>
-                                                    <td>{r.time}</td>
+                                        {[
+                                            ...scadaRecords.map(r => ({ ...r, status: 'PENDING' })),
+                                            ...(tensionRecords || []).filter(r => r.source === 'Scada').map(r => ({ ...r, status: 'VERIFIED' }))
+                                        ]
+                                            .filter(r => !selectedBatch || String(r.batchNo) === String(selectedBatch))
+                                            .sort((a, b) => b.id - a.id)
+                                            .map((r, idx) => (
+                                                <tr key={idx}>
+                                                    <td>{r.time || r.plcTime}</td>
+                                                    <td>{r.batchNo}</td>
                                                     <td><strong>{r.benchNo}</strong></td>
-                                                    <td>{r.wireLength}</td>
-                                                    <td>{r.crossSection}</td>
-                                                    <td>{r.modulus}</td>
-                                                    <td>{r.measuredElongation}</td>
-                                                    <td>{r.forceElongation}</td>
                                                     <td>{r.totalLoad}</td>
                                                     <td style={{ fontWeight: '700' }}>{r.finalLoad} KN</td>
-                                                    <td><span style={{ fontSize: '10px', color: '#10b981', fontWeight: 'bold' }}>PENDING WITNESS</span></td>
+                                                    <td>
+                                                        <span style={{
+                                                            fontSize: '10px',
+                                                            color: r.status === 'VERIFIED' ? '#10b981' : '#f59e0b',
+                                                            fontWeight: 'bold',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '10px',
+                                                            background: r.status === 'VERIFIED' ? '#ecfdf5' : '#fffbeb',
+                                                            border: `1px solid ${r.status === 'VERIFIED' ? '#10b98130' : '#f59e0b30'}`
+                                                        }}>
+                                                            {r.status === 'VERIFIED' ? 'VERIFIED' : 'PENDING WITNESS'}
+                                                        </span>
+                                                    </td>
                                                 </tr>
-                                            ))
+                                            ))}
+                                        {scadaRecords.length === 0 && tensionRecords.filter(r => r.source === 'Scada').length === 0 && (
+                                            <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No SCADA data available.</td></tr>
                                         )}
                                     </tbody>
                                 </table>

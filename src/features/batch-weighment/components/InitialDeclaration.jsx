@@ -5,14 +5,20 @@ import { apiService } from '../../../services/api';
  * InitialDeclaration Component
  * Configures sensors and batch set values for the shift.
  */
-const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate }) => {
-    const [sensors, setSensors] = useState({
+const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate, onSensorUpdate, activeContainer, loadShiftData, initialSensors }) => {
+    const [sensors, setSensors] = useState(initialSensors || {
         sensorStatus: 'working', // 'working', 'notAvailable', 'notWorking'
         sandType: ''
     });
 
     const [batches, setBatches] = useState(externalBatches || []);
     const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        if (externalBatches && externalBatches.length > 0) {
+            setBatches(externalBatches);
+        }
+    }, [externalBatches]);
 
     const handleSensorChange = (e) => {
         const { name, value, type } = e.target;
@@ -65,10 +71,48 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate }) => {
     const handleSaveDeclaration = async () => {
         setSaving(true);
         try {
-            await apiService.saveDeclaration({ sensors, batches });
-            alert("Declaration saved successfully!");
+            // Mapping frontend state to BatchWeighmentRequestDto
+            const payload = {
+                lineNo: activeContainer?.name || "Line I",
+                entryDate: new Date().toLocaleDateString('en-GB'),
+                sandType: sensors.sandType || "River Sand",
+                moistureSensorStatus: sensors.sensorStatus.toUpperCase(),
+                verifiedBy: "Operator", // Should come from auth/user
+                remarks: "Initial declaration",
+                entryMode: "MANUAL",
+                batchDetails: batches.map(b => ({
+                    batchNo: String(b.batchNo),
+                    proportionStatus: b.proportionMatch,
+                    ca1Ref: b.adjustedWeights.ca1,
+                    ca2Ref: b.adjustedWeights.ca2,
+                    faRef: b.adjustedWeights.fa,
+                    cementRef: b.adjustedWeights.cement,
+                    waterRef: b.adjustedWeights.water,
+                    admixtureRef: b.adjustedWeights.admixture,
+                    ca1Set: b.setValues.ca1,
+                    ca2Set: b.setValues.ca2,
+                    faSet: b.setValues.fa,
+                    cementSet: b.setValues.cement,
+                    waterSet: b.setValues.water,
+                    admixtureSet: b.setValues.admixture
+                })),
+                scadaRecords: [],
+                manualRecords: []
+            };
+
+            const allResponse = await apiService.getAllBatchWeighment();
+            const existing = (allResponse?.responseData || []).find(b => b.lineNo === payload.lineNo && b.entryDate === payload.entryDate);
+
+            if (existing) {
+                await apiService.updateBatchWeighment(existing.id, payload);
+            } else {
+                await apiService.createBatchWeighment(payload);
+            }
+            if (loadShiftData) await loadShiftData();
+            alert("Declaration saved to backend successfully!");
         } catch (error) {
-            alert("API currently unavailable. Data saved to local session.");
+            console.error("Save error:", error);
+            alert(`Failed to save to backend: ${error.message}. Data preserved in local session.`);
         } finally {
             setSaving(false);
         }
@@ -83,6 +127,12 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate }) => {
             clearTimeout(handler);
         };
     }, [batches, onBatchUpdate]);
+
+    useEffect(() => {
+        if (onSensorUpdate) {
+            onSensorUpdate(sensors);
+        }
+    }, [sensors, onSensorUpdate]);
 
     return (
         <div className="declaration-flow">

@@ -176,12 +176,12 @@ const HistoryLogs = ({ records, onAdd, onModify, onDelete }) => (
                                 </td>
                                 <td><span className={`fw-800 ${record.overallResult === 'OK' ? 'text-success' : 'text-danger'}`}>{record.overallResult}</span></td>
                                 <td className="text-center">
-                                    {DateUtils.isWithinHour(record.timestamp) ? (
-                                        <div className="btn-group-center">
-                                            <button className="btn-action mini" onClick={() => onModify(record)}>Modify</button>
-                                            <button className="btn-action mini danger" onClick={() => onDelete(record.id)}>Delete</button>
-                                        </div>
-                                    ) : <span className="locked-text">Locked</span>}
+                                    <div className="btn-group-center">
+                                        <button className="btn-action mini" style={{ background: '#3b82f6' }} onClick={() => onModify(record)}>
+                                            {DateUtils.isWithinHour(record.timestamp) ? 'Modify' : 'Details / Edit'}
+                                        </button>
+                                        <button className="btn-action mini danger" onClick={() => onDelete(record.id)}>Delete</button>
+                                    </div>
                                 </td>
                             </tr>
                         ))
@@ -266,7 +266,7 @@ const InspectionForm = ({ formState, setFormState, onSave, onCancel, editingEntr
                 <div className="title-with-accent">
                     <div className="accent-line"></div>
                     <h3 className="m-0 form-main-title">
-                        {editingEntry ? 'Modify' : 'New'} Joint Asset Inspection (Bench & Mould)
+                        {editingEntry ? (DateUtils.isWithinHour(editingEntry.timestamp) ? 'Modify' : 'Inspection Details') : 'New'} Joint Asset Inspection (Bench & Mould)
                     </h3>
                 </div>
                 <button className="toggle-btn secondary mini" onClick={onCancel}>← Cancel Entry</button>
@@ -494,22 +494,32 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
     const handleSave = async () => {
         if (!formState.assetNo) return alert('Please enter Bench/Gang No.');
 
+        // Consolidate reasons into remarks if they aren't supported as separate fields in the DTO
+        let autoRemarks = formState.remarks || '';
+        if (formState.bench.visualResult === 'not-ok' && formState.bench.visualReason) {
+            autoRemarks += ` [Bench Visual: ${formState.bench.visualReason}]`;
+        }
+        if (formState.bench.dimensionResult === 'not-ok' && formState.bench.dimensionReason) {
+            autoRemarks += ` [Bench Dim: ${formState.bench.dimensionReason}]`;
+        }
+        if (formState.mould.visualResult === 'not-ok' && formState.mould.visualReason) {
+            autoRemarks += ` [Mould Visual: ${formState.mould.visualReason}]`;
+        }
+        if (formState.mould.dimensionResult === 'not-ok' && formState.mould.dimensionReason) {
+            autoRemarks += ` [Mould Dim: ${formState.mould.dimensionReason}]`;
+        }
+
         const payload = {
             lineShedNo: formState.location,
-            location: formState.location, // Added redundant location field
             checkingDate: DateUtils.formatToBackend(formState.dateOfChecking),
             benchGangNo: formState.assetNo,
             sleeperType: formState.sleeperType,
             latestCastingDate: DateUtils.formatToBackend(formState.lastCasting),
             benchVisualResult: formState.bench.visualResult,
-            benchVisualReason: formState.bench.visualReason,
             benchDimensionalResult: formState.bench.dimensionResult,
-            benchDimensionReason: formState.bench.dimensionReason,
             mouldVisualResult: formState.mould.visualResult,
-            mouldVisualReason: formState.mould.visualReason,
             mouldDimensionalResult: formState.mould.dimensionResult,
-            mouldDimensionReason: formState.mould.dimensionReason,
-            combinedRemarks: formState.remarks,
+            combinedRemarks: autoRemarks.trim(),
             createdBy: 'Admin',
             updatedBy: 'Admin'
         };
@@ -522,15 +532,16 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
                 response = await apiService.createBenchMouldInspection(payload);
             }
 
-            // More robust success check
-            if (response && (response.success === true || response.responseData || response.id)) {
+            // Success check for backend's responseStatus wrapper
+            if (response && (response.success === true || response.responseStatus?.statusCode === 0 || response.responseData)) {
                 const updatedData = await apiService.getAllBenchMouldInspections();
                 if (updatedData?.responseData) {
                     setRecords(updatedData.responseData);
                 }
                 handleCloseForm();
             } else {
-                alert(response?.message || "Failed to save record. Structure: " + JSON.stringify(response));
+                const errorMsg = response?.responseStatus?.message || response?.message || "Unknown Error";
+                alert("Failed to save record: " + errorMsg);
             }
         } catch (error) {
             console.error("Error saving record:", error);
@@ -542,11 +553,13 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
         if (!window.confirm("Are you sure you want to delete this record?")) return;
         try {
             const response = await apiService.deleteBenchMouldInspection(id);
-            if (response.success) {
+            // Handle both boolean success and statusCode: 0 patterns
+            if (response && (response.success || response.responseStatus?.statusCode === 0)) {
                 const refreshed = await apiService.getAllBenchMouldInspections();
                 if (refreshed?.responseData) setRecords(refreshed.responseData);
             } else {
-                alert(response.message || "Failed to delete");
+                const errorMsg = response?.responseStatus?.message || response?.message || "Failed to delete";
+                alert(errorMsg);
             }
         } catch (error) {
             console.error("Delete error:", error);

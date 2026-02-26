@@ -2,6 +2,48 @@ import React, { useState } from 'react';
 import MoistureEntryForm from './components/MoistureEntryForm';
 import { apiService } from '../../services/api';
 
+const formatDateForDisplay = (dateStr) => {
+    if (!dateStr) return "-";
+    if (typeof dateStr !== 'string') return "-";
+
+    // If it's already in DD/MM/YYYY format, return it as is
+    if (dateStr.includes('/') && !dateStr.includes('-')) {
+        return dateStr;
+    }
+
+    // Handle ISO format (2025-02-26T...) or simple YYYY-MM-DD
+    let parts = dateStr.split('T')[0].split('-');
+    if (parts.length === 3) {
+        const [y, m, d] = parts;
+        return `${d}/${m}/${y}`;
+    }
+
+    return dateStr;
+};
+
+const formatToBackendDate = (dateStr) => {
+    if (!dateStr) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        const [year, month, day] = dateStr.split("-");
+        return `${day}/${month}/${year}`;
+    }
+    return dateStr;
+};
+
+const extractTime = (dateTimeStr) => {
+    if (!dateTimeStr) return "-";
+    // Handle ISO strings (e.g., 2026-02-24T14:13:00)
+    if (dateTimeStr.includes('T')) return dateTimeStr.substring(11, 16);
+    // Handle simple time strings (e.g., 14:13:00 or 14:13)
+    if (dateTimeStr.includes(':')) {
+        const parts = dateTimeStr.split(':');
+        if (parts.length >= 2) {
+            return `${parts[0].trim().padStart(2, '0')}:${parts[1].trim().padStart(2, '0')}`;
+        }
+    }
+    return dateTimeStr;
+};
+
 /**
  * MoistureAnalysis Component
  * Displays moisture analysis statistics, trend chart, and recent entries.
@@ -9,29 +51,130 @@ import { apiService } from '../../services/api';
 const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], setRecords, displayMode = 'modal' }) => {
     const [view, setView] = useState(initialView);
     const [editRecord, setEditRecord] = useState(null);
+    const [saving, setSaving] = useState(false);
+
+    // Group records by batch number and date to show unified rows in UI
+    const groupRecordsByBatch = (flatRecords) => {
+        const groups = {};
+        flatRecords.forEach(r => {
+            const key = `${r.batchNo}_${r.createdDate?.split('T')[0] || r.entryDate}`;
+            if (!groups[key]) {
+                groups[key] = {
+                    id: r.id,
+                    batchNo: r.batchNo,
+                    date: r.entryDate || r.createdDate?.split('T')[0],
+                    shift: r.shift,
+                    timing: r.entryTime || r.createdDate?.substring(11, 16),
+                    ca1Free: r.sectionType === 'CA1' ? r.freeMoisturePercent : '-',
+                    ca2Free: r.sectionType === 'CA2' ? r.freeMoisturePercent : '-',
+                    faFree: r.sectionType === 'FA' ? r.freeMoisturePercent : '-',
+                    totalFree: r.totalFreeMoisture,
+                    timestamp: r.createdDate || new Date().toISOString(),
+                    records: [r]
+                };
+            } else {
+                if (r.sectionType === 'CA1') groups[key].ca1Free = r.freeMoisturePercent;
+                if (r.sectionType === 'CA2') groups[key].ca2Free = r.freeMoisturePercent;
+                if (r.sectionType === 'FA') groups[key].faFree = r.freeMoisturePercent;
+                groups[key].records.push(r);
+                // Keep the "best" batch level metrics
+                if (r.totalFreeMoisture) groups[key].totalFree = r.totalFreeMoisture;
+            }
+        });
+        return Object.values(groups).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    };
 
     const isRecordEditable = (timestamp) => {
         const diffMs = Date.now() - new Date(timestamp).getTime();
-        return diffMs < (1 * 60 * 60 * 1000); // 1 hour window
+        return diffMs < (24 * 60 * 60 * 1000); // 24 hour window
     };
 
-    const handleSaveEntry = async (newEntry) => {
+    const handleSaveEntry = async (uiData) => {
+        setSaving(true);
         try {
+            const aggregates = [
+                { type: 'CA1', result: uiData.ca1Result },
+                { type: 'CA2', result: uiData.ca2Result },
+                { type: 'FA', result: uiData.faResult }
+            ];
+
+            const batchInfo = {
+                entryDate: formatToBackendDate(uiData.date),
+                shift: uiData.shift,
+                entryTime: uiData.timing,
+                batchNo: String(uiData.batchNo),
+                batchWtDryCa1: parseFloat(uiData.userDryCA1) || 0,
+                batchWtDryCa2: parseFloat(uiData.userDryCA2) || 0,
+                batchWtDryFa: parseFloat(uiData.userDryFA) || 0,
+                batchWtDryWater: parseFloat(uiData.userDryWater) || 0,
+                batchWtDryAdmix: parseFloat(uiData.userDryAdmix) || 0,
+                batchWtDryCement: parseFloat(uiData.userDryCement) || 0,
+                wtAdoptedCa1: parseFloat(uiData.ca1Result.wtAdopted) || 0,
+                wtAdoptedCa2: parseFloat(uiData.ca2Result.wtAdopted) || 0,
+                wtAdoptedFa: parseFloat(uiData.faResult.wtAdopted) || 0,
+                totalFreeMoisture: parseFloat(uiData.totalFree) || 0,
+                adjustedWaterWt: parseFloat(uiData.adjustedWater) || 0,
+                wcRatio: parseFloat(uiData.wcRatio) || 0,
+                acRatio: parseFloat(uiData.acRatio) || 0,
+                createdBy: 0,
+                updatedBy: 0
+            };
+
             if (editRecord) {
-                const response = await apiService.updateMoistureAnalysis(editRecord.id, newEntry);
-                const updated = response?.responseData;
-                setRecords(prev => prev.map(r => r.id === editRecord.id ? (updated || { ...newEntry, id: r.id, timestamp: r.timestamp }) : r));
+                // If editing, we update all technical records associated with this batch group
+                // For simplicity, we create three updates (the backend will handle them)
+                await Promise.all(aggregates.map(agg => {
+                    const payload = {
+                        ...batchInfo,
+                        sectionType: agg.type,
+                        wtWetSample: parseFloat(agg.result.wetSample) || 0,
+                        wtDriedSample: parseFloat(agg.result.driedSample) || 0,
+                        wtMoistureSample: parseFloat(agg.result.moistureInSample) || 0,
+                        moisturePercent: parseFloat(agg.result.moisturePct) || 0,
+                        absorptionPercent: parseFloat(agg.result.absorption) || 0,
+                        freeMoisturePercent: parseFloat(agg.result.freeMoisturePct) || 0,
+                        batchWtDry: parseFloat(agg.result.batchWtDry) || 0,
+                        freeMoistureKg: parseFloat(agg.result.freeMoistureKg) || 0,
+                        adjustedWeight: parseFloat(agg.result.adjustedWt) || 0,
+                        adoptedWeight: parseFloat(agg.result.wtAdopted) || 0,
+                    };
+
+                    // Match by section type if possible from group
+                    const existingRecord = editRecord.records?.find(r => r.sectionType === agg.type);
+                    if (existingRecord) {
+                        return apiService.updateMoistureAnalysis(existingRecord.id, payload);
+                    }
+                    return apiService.createMoistureAnalysis(payload);
+                }));
             } else {
-                const response = await apiService.createMoistureAnalysis(newEntry);
-                const created = response?.responseData;
-                setRecords(prev => [(created || { ...newEntry, id: Date.now(), timestamp: new Date().toISOString() }), ...prev].slice(0, 10)); // Keep only 10
+                // For new entries, create 3 separate records as per schema constraints
+                await Promise.all(aggregates.map(agg => {
+                    const payload = {
+                        ...batchInfo,
+                        sectionType: agg.type,
+                        wtWetSample: parseFloat(agg.result.wetSample) || 0,
+                        wtDriedSample: parseFloat(agg.result.driedSample) || 0,
+                        wtMoistureSample: parseFloat(agg.result.moistureInSample) || 0,
+                        moisturePercent: parseFloat(agg.result.moisturePct) || 0,
+                        absorptionPercent: parseFloat(agg.result.absorption) || 0,
+                        freeMoisturePercent: parseFloat(agg.result.freeMoisturePct) || 0,
+                        batchWtDry: parseFloat(agg.result.batchWtDry) || 0,
+                        freeMoistureKg: parseFloat(agg.result.freeMoistureKg) || 0,
+                        adjustedWeight: parseFloat(agg.result.adjustedWt) || 0,
+                        adoptedWeight: parseFloat(agg.result.wtAdopted) || 0,
+                    };
+                    return apiService.createMoistureAnalysis(payload);
+                }));
             }
+
             setView('list');
             setEditRecord(null);
-            onSave();
+            onSave(); // Refetch logs
         } catch (error) {
             console.error("Error saving moisture analysis:", error);
-            alert("Failed to save moisture analysis. Please try again.");
+            alert("Failed to save moisture analysis. Payload check triggered.");
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -40,24 +183,24 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
         setView('entry');
     };
 
-    // Calculate statistics
-    const avgCA1 = records.length > 0 ? (records.reduce((sum, r) => sum + parseFloat(r.ca1Free), 0) / records.length).toFixed(2) : '0.00';
-    const avgCA2 = records.length > 0 ? (records.reduce((sum, r) => sum + parseFloat(r.ca2Free), 0) / records.length).toFixed(2) : '0.00';
-    const avgFA = records.length > 0 ? (records.reduce((sum, r) => sum + parseFloat(r.faFree), 0) / records.length).toFixed(2) : '0.00';
-    const avgTotal = records.length > 0 ? (records.reduce((sum, r) => sum + parseFloat(r.totalFree), 0) / records.length).toFixed(2) : '0.00';
+    // Calculate statistics based on section types
+    const ca1Records = records.filter(r => r.sectionType === 'CA1');
+    const ca2Records = records.filter(r => r.sectionType === 'CA2');
+    const faRecords = records.filter(r => r.sectionType === 'FA');
 
-    // Mock data if no records exist
-    const initialRecords = records.length > 0 ? records : [
-        { id: 101, date: '2026-01-30', shift: 'A', timing: '08:30', ca1Free: '1.20', ca2Free: '0.80', faFree: '3.20', totalFree: '5.20', timestamp: new Date('2026-01-30T08:30:00').toISOString() },
-        { id: 102, date: '2026-01-30', shift: 'A', timing: '07:15', ca1Free: '1.10', ca2Free: '0.95', faFree: '2.90', totalFree: '4.95', timestamp: new Date('2026-01-30T07:15:00').toISOString() },
-        { id: 103, date: '2026-01-29', shift: 'C', timing: '20:15', ca1Free: '1.35', ca2Free: '0.75', faFree: '3.40', totalFree: '5.50', timestamp: new Date('2026-01-29T20:15:00').toISOString() },
-        { id: 104, date: '2026-01-29', shift: 'B', timing: '14:00', ca1Free: '1.25', ca2Free: '0.85', faFree: '3.10', totalFree: '5.20', timestamp: new Date('2026-01-29T14:00:00').toISOString() }
-    ];
+    const avgCA1 = ca1Records.length > 0 ? (ca1Records.reduce((sum, r) => sum + (parseFloat(r.freeMoisturePercent) || 0), 0) / ca1Records.length).toFixed(2) : '0.00';
+    const avgCA2 = ca2Records.length > 0 ? (ca2Records.reduce((sum, r) => sum + (parseFloat(r.freeMoisturePercent) || 0), 0) / ca2Records.length).toFixed(2) : '0.00';
+    const avgFA = faRecords.length > 0 ? (faRecords.reduce((sum, r) => sum + (parseFloat(r.freeMoisturePercent) || 0), 0) / faRecords.length).toFixed(2) : '0.00';
+    const avgTotal = records.length > 0 ? (records.filter(r => r.totalFreeMoisture).reduce((sum, r) => sum + (parseFloat(r.totalFreeMoisture) || 0), 0) / records.filter(r => r.totalFreeMoisture).length).toFixed(2) : '0.00';
 
     // Sort records by timestamp (latest first)
-    const sortedRecords = [...initialRecords].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const sortedRecords = [...records].sort((a, b) => {
+        const timeA = new Date(a.createdDate || a.timestamp || 0).getTime();
+        const timeB = new Date(b.createdDate || b.timestamp || 0).getTime();
+        return timeB - timeA;
+    });
 
-    // ... logic remains same ...
+    const displayRecords = groupRecordsByBatch(sortedRecords);
 
     const content = (
         <div className={displayMode === 'modal' ? "modal-body" : "inline-container"} style={{ padding: displayMode === 'modal' ? '1.5rem' : '0', width: '100%' }}>
@@ -96,23 +239,27 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                                 ))}
                                 {['ca1Free', 'ca2Free', 'faFree'].map((key, kIdx) => {
                                     const colors = ['#3b82f6', '#8b5cf6', '#f59e0b'];
-                                    const chartData = sortedRecords.slice(0, 10).reverse();
-                                    if (chartData.length < 2) return null;
-                                    const step = 1000 / (chartData.length - 1);
-                                    const points = chartData.map((r, i) => `${i * step},${200 - (parseFloat(r[key]) / 5) * 200}`).join(' ');
+                                    const groups = displayRecords.slice(0, 10).reverse();
+                                    if (groups.length < 2) return null;
+                                    const step = 1000 / (groups.length - 1);
+                                    const points = groups.map((g, i) => {
+                                        const val = parseFloat(g[key]) || 0;
+                                        return `${i * step},${200 - (val / 5) * 200}`;
+                                    }).join(' ');
                                     return (
                                         <g key={key}>
                                             <polyline fill="none" stroke={colors[kIdx]} strokeWidth="3" strokeLinecap="round" points={points} style={{ transition: 'all 0.3s ease' }} />
-                                            {chartData.map((r, i) => (
-                                                <circle key={i} cx={i * step} cy={200 - (parseFloat(r[key]) / 5) * 200} r="4" fill="#fff" stroke={colors[kIdx]} strokeWidth="2" />
-                                            ))}
+                                            {groups.map((g, i) => {
+                                                const val = parseFloat(g[key]) || 0;
+                                                return <circle key={i} cx={i * step} cy={200 - (val / 5) * 200} r="4" fill="#fff" stroke={colors[kIdx]} strokeWidth="2" />;
+                                            })}
                                         </g>
                                     );
                                 })}
                             </svg>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-                                {sortedRecords.slice(0, 10).reverse().map((r, i) => (
-                                    <span key={i} style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: '700' }}>{r.timing}</span>
+                                {displayRecords.slice(0, 10).reverse().map((g, i) => (
+                                    <span key={i} style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: '700' }}>{g.timing}</span>
                                 ))}
                             </div>
                         </div>
@@ -135,17 +282,42 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                                 </tr>
                             </thead>
                             <tbody style={{ fontSize: '0.8rem' }}>
-                                {sortedRecords.map((r, index) => (
-                                    <tr key={r.id}>
-                                        <td>{r.date} ({r.shift})</td>
-                                        <td><strong>{r.timing}</strong></td>
-                                        <td style={{ color: '#3b82f6', fontWeight: '700' }}>{r.ca1Free}%</td>
-                                        <td style={{ color: '#8b5cf6', fontWeight: '700' }}>{r.ca2Free}%</td>
-                                        <td style={{ color: '#f59e0b', fontWeight: '700' }}>{r.faFree}%</td>
-                                        <td style={{ fontWeight: '700' }}>{r.totalFree} Kg</td>
+                                {displayRecords.map((group, index) => (
+                                    <tr key={index}>
+                                        <td>{formatDateForDisplay(group.date)} ({group.shift})</td>
+                                        <td><strong>{extractTime(group.timing)}</strong></td>
+                                        <td style={{ color: '#3b82f6', fontWeight: '700' }}>{group.ca1Free !== '-' ? `${group.ca1Free}%` : '-'}</td>
+                                        <td style={{ color: '#8b5cf6', fontWeight: '700' }}>{group.ca2Free !== '-' ? `${group.ca2Free}%` : '-'}</td>
+                                        <td style={{ color: '#f59e0b', fontWeight: '700' }}>{group.faFree !== '-' ? `${group.faFree}%` : '-'}</td>
+                                        <td style={{ fontWeight: '700' }}>{group.totalFree} Kg</td>
                                         <td>
-                                            {index < 2 ? (
-                                                <button className="btn-action" style={{ fontSize: '10px' }} onClick={() => handleEdit(r)}>Modify</button>
+                                            {isRecordEditable(group.timestamp) ? (
+                                                <button className="btn-action" style={{ fontSize: '10px' }} onClick={() => handleEdit({
+                                                    ...group,
+                                                    id: group.id,
+                                                    // Map group back to UI state for editing
+                                                    ca1Details: {
+                                                        wetSample: group.records.find(r => r.sectionType === 'CA1')?.wtWetSample || '',
+                                                        driedSample: group.records.find(r => r.sectionType === 'CA1')?.wtDriedSample || '',
+                                                        absorption: group.records.find(r => r.sectionType === 'CA1')?.absorptionPercent || ''
+                                                    },
+                                                    ca2Details: {
+                                                        wetSample: group.records.find(r => r.sectionType === 'CA2')?.wtWetSample || '',
+                                                        driedSample: group.records.find(r => r.sectionType === 'CA2')?.wtDriedSample || '',
+                                                        absorption: group.records.find(r => r.sectionType === 'CA2')?.absorptionPercent || ''
+                                                    },
+                                                    faDetails: {
+                                                        wetSample: group.records.find(r => r.sectionType === 'FA')?.wtWetSample || '',
+                                                        driedSample: group.records.find(r => r.sectionType === 'FA')?.wtDriedSample || '',
+                                                        absorption: group.records.find(r => r.sectionType === 'FA')?.absorptionPercent || ''
+                                                    },
+                                                    userDryCA1: group.records[0]?.batchWtDryCa1 || '',
+                                                    userDryCA2: group.records[0]?.batchWtDryCa2 || '',
+                                                    userDryFA: group.records[0]?.batchWtDryFa || '',
+                                                    userDryWater: group.records[0]?.batchWtDryWater || '',
+                                                    userDryCement: group.records[0]?.batchWtDryCement || '',
+                                                    userDryAdmix: group.records[0]?.batchWtDryAdmix || '1.44'
+                                                })}>Modify</button>
                                             ) : (
                                                 <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: '700' }}>LOCKED</span>
                                             )}

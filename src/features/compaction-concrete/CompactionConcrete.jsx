@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { apiService } from '../../services/api';
 import './CompactionConcrete.css';
 
 const CompactionSubCard = ({ id, title, color, statusDetail, isActive, onClick }) => {
@@ -25,32 +26,58 @@ const CompactionSubCard = ({ id, title, color, statusDetail, isActive, onClick }
     );
 };
 
-const CompactionConcrete = ({ onBack, onSave, displayMode = 'modal' }) => {
+const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = 'modal', showForm: propsShowForm, setShowForm: propsSetShowForm }) => {
+    const { compactionRecords: entries, setAllCompactionRecords: setEntries } = sharedState;
     const [viewMode, setViewMode] = useState('witnessed'); // Default to 'witnessed'
+    const [localShowForm, setLocalShowForm] = useState(false);
+    const showForm = propsShowForm !== undefined ? propsShowForm : localShowForm;
+    const setShowForm = propsSetShowForm !== undefined ? propsSetShowForm : setLocalShowForm;
+
     const [selectedBatch, setSelectedBatch] = useState('');
-    const [showForm, setShowForm] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
-    // Mock SCADA Data
+    // Mock SCADA Data - In production this would come from an API or live feed
     const [scadaRecords, setScadaRecords] = useState([
-        { id: 101, time: '10:15:00', batchNo: '615', benchNo: '12', v1_rpm: 9000, v2_rpm: 8950, v3_rpm: 9100, v4_rpm: 8800, duration: 42 },
-        { id: 102, time: '10:18:30', batchNo: '615', benchNo: '13', v1_rpm: 8850, v2_rpm: 9200, v3_rpm: 9050, v4_rpm: 8900, duration: 45 },
-        { id: 103, time: '10:22:15', batchNo: '615', benchNo: '14', v1_rpm: 9150, v2_rpm: 8700, v3_rpm: 9250, v4_rpm: 9100, duration: 40 },
-        { id: 104, time: '10:25:45', batchNo: '615', benchNo: '15', v1_rpm: 9020, v2_rpm: 9080, v3_rpm: 8960, v4_rpm: 8880, duration: 48 },
-        { id: 105, time: '10:30:10', batchNo: '616', benchNo: '21', v1_rpm: 8900, v2_rpm: 9120, v3_rpm: 9020, v4_rpm: 8850, duration: 44 },
+        { id: 101, time: '10:15', batchNo: '615', benchNo: '12', v1_rpm: 9000, v2_rpm: 8950, v3_rpm: 9100, v4_rpm: 8800, duration: 42 },
+        { id: 102, time: '10:18', batchNo: '615', benchNo: '13', v1_rpm: 8850, v2_rpm: 9200, v3_rpm: 9050, v4_rpm: 8900, duration: 45 },
+        { id: 103, time: '10:22', batchNo: '615', benchNo: '14', v1_rpm: 9150, v2_rpm: 8700, v3_rpm: 9250, v4_rpm: 9100, duration: 40 },
+        { id: 104, time: '10:25', batchNo: '615', benchNo: '15', v1_rpm: 9020, v2_rpm: 9080, v3_rpm: 8960, v4_rpm: 8880, duration: 48 },
+        { id: 105, time: '10:30', batchNo: '616', benchNo: '21', v1_rpm: 8900, v2_rpm: 9120, v3_rpm: 9020, v4_rpm: 8850, duration: 44 },
     ]);
 
-    // Data List (Witnessed + Manual)
-    const [entries, setEntries] = useState([
-        { id: 1, date: '2026-02-02', time: '09:45', batchNo: '614', benchNo: '10', tachoCount: 4, workingTachos: 4, minRpm: 8800, maxRpm: 9200, duration: 45, source: 'Manual' }
-    ]);
+    // Dynamic Batch List
+    const availableBatches = useMemo(() => {
+        const bSet = new Set();
+        if (Array.isArray(batches)) {
+            batches.forEach(b => { if (b.batchNo) bSet.add(String(b.batchNo)); });
+        }
+        if (scadaRecords) {
+            scadaRecords.forEach(r => { if (r.batchNo) bSet.add(String(r.batchNo)); });
+        }
+        if (entries) {
+            entries.forEach(r => { if (r.batchNo) bSet.add(String(r.batchNo)); });
+        }
+        return Array.from(bSet).sort();
+    }, [batches, scadaRecords, entries]);
 
     const [manualForm, setManualForm] = useState({
         date: new Date().toISOString().split('T')[0],
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-        batchNo: '', benchNo: '', tachoCount: 4, workingTachos: 4, minRpm: '', maxRpm: '', duration: ''
+        batchNo: selectedBatch,
+        benchNo: '',
+        tachoCount: 4,
+        workingTachos: 4,
+        minRpm: '',
+        maxRpm: '',
+        duration: ''
     });
 
     const [editingId, setEditingId] = useState(null);
+
+    // Keep form batch in sync
+    useEffect(() => {
+        setManualForm(prev => ({ ...prev, batchNo: selectedBatch }));
+    }, [selectedBatch]);
 
     const handleWitness = (record) => {
         const rpms = [record.v1_rpm, record.v2_rpm, record.v3_rpm, record.v4_rpm];
@@ -65,12 +92,13 @@ const CompactionConcrete = ({ onBack, onSave, displayMode = 'modal' }) => {
             minRpm: Math.min(...rpms),
             maxRpm: Math.max(...rpms),
             duration: record.duration,
+            v1V4Rpm: record.v1_rpm, // Consistent with API field
             source: 'Scada',
             originalScadaId: record.id
         };
         setEntries(prev => [newEntry, ...prev]);
         setScadaRecords(prev => prev.filter(r => r.id !== record.id));
-        alert('Record witnessed.');
+        alert('Record witnessed and added to local session.');
     };
 
     const handleDelete = (id) => {
@@ -95,6 +123,64 @@ const CompactionConcrete = ({ onBack, onSave, displayMode = 'modal' }) => {
         setShowForm(true);
     };
 
+    const handleFinalSave = async () => {
+        if (!selectedBatch) {
+            alert("Please select a batch first.");
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const batchRecords = entries.filter(r => String(r.batchNo) === String(selectedBatch));
+
+            const manualRecords = batchRecords
+                .filter(r => r.source === 'Manual')
+                .map(r => ({
+                    id: typeof r.id === 'number' && r.id < 1000000000 ? r.id : 0,
+                    benchNo: String(r.benchNo),
+                    minRpm: parseInt(r.minRpm) || 0,
+                    maxRpm: parseInt(r.maxRpm) || 0,
+                    duration: parseInt(r.duration) || 0
+                }));
+
+            const scadaRecordsPayload = batchRecords
+                .filter(r => r.source === 'Scada')
+                .map(r => ({
+                    id: typeof r.id === 'number' && r.id < 1000000000 ? r.id : 0,
+                    time: (r.time || "").substring(0, 5), // Truncate HH:mm:ss to HH:mm to satisfy backend parsing
+                    benchNo: String(r.benchNo),
+                    v1V4Rpm: parseInt(r.v1V4Rpm || r.minRpm) || 0,
+                    duration: parseInt(r.duration) || 0
+                }));
+
+            const batchMeta = batches.find(b => String(b.batchNo) === String(selectedBatch));
+            const payload = {
+                batchNo: String(selectedBatch),
+                sleeperType: batchMeta?.sleeperType || "RT-1234",
+                entryDate: manualForm.date ? manualForm.date.split('-').reverse().join('/') : new Date().toLocaleDateString('en-GB'),
+                scadaRecords: scadaRecordsPayload,
+                manualRecords: manualRecords
+            };
+
+            const allResponse = await apiService.getAllCompaction();
+            const existing = (allResponse?.responseData || []).find(b => String(b.batchNo) === String(selectedBatch));
+
+            if (existing) {
+                await apiService.updateCompaction(existing.id, payload);
+                alert("Compaction data updated successfully.");
+            } else {
+                await apiService.createCompaction(payload);
+                alert("Compaction data created successfully.");
+            }
+            setShowForm(false);
+        } catch (error) {
+            console.error("Save failed:", error);
+            alert("Failed to sync with backend. Data remains in local session.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const handleSaveManual = () => {
         if (!manualForm.batchNo || !manualForm.benchNo) {
             alert('Batch and Bench required');
@@ -114,12 +200,11 @@ const CompactionConcrete = ({ onBack, onSave, displayMode = 'modal' }) => {
         }
         setManualForm({
             ...manualForm,
-            batchNo: '', benchNo: '', minRpm: '', maxRpm: '', duration: '',
+            batchNo: selectedBatch, benchNo: '', minRpm: '', maxRpm: '', duration: '',
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
         });
-        alert('Manual entry saved.');
+        alert('Manual entry saved to local session.');
         setShowForm(false);
-        if (onSave) onSave();
     };
 
     const tabs = [
@@ -163,7 +248,17 @@ const CompactionConcrete = ({ onBack, onSave, displayMode = 'modal' }) => {
                                 <h4>Initial Declaration</h4>
                             </div>
                             <div className="form-grid compact">
-                                <div className="form-field"><label>Batch No.</label><input value={selectedBatch} readOnly /></div>
+                                <div className="form-field">
+                                    <label>Batch No.</label>
+                                    <select
+                                        value={selectedBatch}
+                                        onChange={e => setSelectedBatch(e.target.value)}
+                                        style={{ padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
+                                    >
+                                        <option value="">-- Select --</option>
+                                        {availableBatches.map(b => <option key={b} value={b}>{b}</option>)}
+                                    </select>
+                                </div>
                                 <div className="form-field"><label>Sleeper Type</label><input value="RT-8746" readOnly /></div>
                                 <div className="form-field"><label>Date</label><input type="text" value={manualForm.date ? manualForm.date.split('-').reverse().join('/') : ''} readOnly /></div>
                             </div>
@@ -178,10 +273,10 @@ const CompactionConcrete = ({ onBack, onSave, displayMode = 'modal' }) => {
                                 <table className="ui-table compact">
                                     <thead><tr><th>Time</th><th>Bench</th><th>V1-V4 RPM</th><th>Dur.</th><th>Action</th></tr></thead>
                                     <tbody>
-                                        {scadaRecords.filter(r => r.batchNo === selectedBatch).length === 0 ? (
+                                        {scadaRecords.filter(r => !selectedBatch || String(r.batchNo) === String(selectedBatch)).length === 0 ? (
                                             <tr><td colSpan="5" className="empty-msg">No pending SCADA data.</td></tr>
                                         ) : (
-                                            scadaRecords.filter(r => r.batchNo === selectedBatch).map(r => (
+                                            scadaRecords.filter(r => !selectedBatch || String(r.batchNo) === String(selectedBatch)).map(r => (
                                                 <tr key={r.id}>
                                                     <td>{r.time}</td><td><strong>{r.benchNo}</strong></td><td>{r.v1_rpm}-{r.v4_rpm}</td><td>{r.duration}s</td>
                                                     <td><button className="btn-action" onClick={() => handleWitness(r)}>Witness</button></td>
@@ -203,23 +298,23 @@ const CompactionConcrete = ({ onBack, onSave, displayMode = 'modal' }) => {
                                 <div className="form-field"><label>Min RPM</label><input type="number" min="0" value={manualForm.minRpm} onChange={e => setManualForm({ ...manualForm, minRpm: e.target.value })} /></div>
                                 <div className="form-field"><label>Max RPM</label><input type="number" min="0" value={manualForm.maxRpm} onChange={e => setManualForm({ ...manualForm, maxRpm: e.target.value })} /></div>
                             </div>
-                            <div className="action-row-center"><button className="toggle-btn" onClick={handleSaveManual}>{editingId ? 'Update Record' : 'Save Manual Record'}</button></div>
+                            <div className="action-row-center" style={{ marginTop: '1rem' }}><button className="toggle-btn" onClick={handleSaveManual}>{editingId ? 'Update Record' : 'Save Manual Record'}</button></div>
                         </section>
 
-                        <section className="compaction-section section-slate">
+                        <section className="compaction-section section-slate" style={{ borderBottom: 'none' }}>
                             <div className="section-header">
                                 <span className="step-number slate-bg">4</span>
                                 <h4>Recent Witness Logs</h4>
                             </div>
                             <div className="table-responsive">
                                 <table className="ui-table compact">
-                                    <thead><tr><th>Source</th><th>Date</th><th>Time</th><th>Bench</th><th>RPM Range</th><th>Actions</th></tr></thead>
+                                    <thead><tr><th>Source</th><th>Date</th><th>Batch</th><th>Bench</th><th>RPM</th><th>Actions</th></tr></thead>
                                     <tbody>
-                                        {entries.slice(0, 5).map(e => (
+                                        {entries.filter(e => !selectedBatch || String(e.batchNo) === String(selectedBatch)).slice(0, 5).map(e => (
                                             <tr key={e.id}>
                                                 <td><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
                                                 <td>{e.date ? e.date.split('-').reverse().join('/') : ''}</td>
-                                                <td>{e.time}</td><td>{e.benchNo}</td><td>{e.minRpm}-{e.maxRpm}</td>
+                                                <td>{e.batchNo}</td><td>{e.benchNo}</td><td>{e.minRpm}-{e.maxRpm}</td>
                                                 <td>
                                                     <div className="btn-group">
                                                         {e.source === 'Manual' && <button className="btn-action" onClick={() => handleEdit(e)}>Edit</button>}
@@ -234,6 +329,22 @@ const CompactionConcrete = ({ onBack, onSave, displayMode = 'modal' }) => {
                         </section>
                     </div>
                 </div>
+
+                <div className="compaction-card-footer" style={{ padding: '1.5rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '1rem', background: '#f8fafc' }}>
+                    <button className="btn-action" onClick={() => setShowForm(false)} style={{ padding: '10px 20px' }}>Cancel</button>
+                    <button
+                        className="toggle-btn"
+                        onClick={handleFinalSave}
+                        disabled={isSaving || !selectedBatch}
+                        style={{
+                            padding: '10px 30px',
+                            background: isSaving || !selectedBatch ? '#94a3b8' : '#0f172a',
+                            cursor: isSaving || !selectedBatch ? 'not-allowed' : 'pointer'
+                        }}
+                    >
+                        {isSaving ? 'Processing...' : 'Save / Finish Batch'}
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -246,8 +357,49 @@ const CompactionConcrete = ({ onBack, onSave, displayMode = 'modal' }) => {
 
                 {viewMode === 'stats' && (
                     <div className="view-stats fade-in">
-                        <h3>Compaction Performance Statistics</h3>
-                        <div className="vibration-stats-placeholder">Vibration consistency metrics and RPM distribution...</div>
+                        <div className="content-title-row">
+                            <h3>Compaction Performance Analysis</h3>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b' }}>Batch:</label>
+                                <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
+                                    <option value="">-- All --</option>
+                                    {availableBatches.map(b => <option key={b} value={b}>{b}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        {(() => {
+                            const filtered = entries.filter(e => !selectedBatch || String(e.batchNo) === String(selectedBatch));
+                            const avgRpm = filtered.length ? Math.round(filtered.reduce((acc, curr) => acc + (parseInt(curr.minRpm) + parseInt(curr.maxRpm)) / 2, 0) / filtered.length) : 0;
+                            const avgDur = filtered.length ? Math.round(filtered.reduce((acc, curr) => acc + parseInt(curr.duration), 0) / filtered.length) : 0;
+                            const withinRange = filtered.filter(e => e.minRpm >= 8000 && e.maxRpm <= 10000).length;
+                            const consistency = filtered.length ? Math.round((withinRange / filtered.length) * 100) : 100;
+
+                            return (
+                                <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginTop: '1rem' }}>
+                                    <div className="stats-metric-card" style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', marginBottom: '0.5rem' }}>AVG VIBRATION SPEED</div>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0f172a' }}>{avgRpm} <small style={{ fontSize: '0.8rem', opacity: 0.6 }}>RPM</small></div>
+                                    </div>
+                                    <div className="stats-metric-card" style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', marginBottom: '0.5rem' }}>AVG CYCLE DURATION</div>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#10b981' }}>{avgDur}s <small style={{ fontSize: '0.8rem', opacity: 0.6 }}>TARGET: 45s</small></div>
+                                    </div>
+                                    <div className="stats-metric-card" style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', marginBottom: '0.5rem' }}>CONSISTENCY RATING</div>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: '800', color: consistency > 90 ? '#10b981' : consistency > 70 ? '#f59e0b' : '#ef4444' }}>{consistency}%</div>
+                                        <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '3px', marginTop: '10px', overflow: 'hidden' }}>
+                                            <div style={{ width: `${consistency}%`, height: '100%', background: consistency > 90 ? '#10b981' : consistency > 70 ? '#f59e0b' : '#ef4444', transition: 'width 0.5s ease' }}></div>
+                                        </div>
+                                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '6px' }}>Within 8k-10k RPM Bounds</div>
+                                    </div>
+                                    <div className="stats-metric-card" style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', marginBottom: '0.5rem' }}>TOTAL LOGS</div>
+                                        <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#3b82f6' }}>{filtered.length}</div>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
                 )}
 
@@ -255,26 +407,37 @@ const CompactionConcrete = ({ onBack, onSave, displayMode = 'modal' }) => {
                     <div className="view-witnessed fade-in">
                         <div className="content-title-row">
                             <h3>Witnessed Compaction Logs</h3>
-                            <button className="toggle-btn" onClick={() => setShowForm(true)}>+ Add New Entry</button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
+                                    <option value="">-- All Batches --</option>
+                                    {availableBatches.map(b => <option key={b} value={b}>{b}</option>)}
+                                </select>
+                                <button className="toggle-btn" onClick={() => setShowForm(true)}>+ Add New Entry</button>
+                            </div>
                         </div>
                         <div className="table-outer-wrapper">
                             <div className="table-responsive">
                                 <table className="ui-table">
                                     <thead><tr><th>Source</th><th>Date</th><th>Time</th><th>Batch</th><th>Bench</th><th>RPM Range</th><th>Duration</th><th>Actions</th></tr></thead>
                                     <tbody>
-                                        {entries.map(e => (
-                                            <tr key={e.id}>
-                                                <td><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
-                                                <td>{e.date ? e.date.split('-').reverse().join('/') : ''}</td>
-                                                <td>{e.time}</td><td>{e.batchNo}</td><td>{e.benchNo}</td><td>{e.minRpm}-{e.maxRpm}</td><td>{e.duration}s</td>
-                                                <td>
-                                                    <div className="btn-group">
-                                                        {e.source === 'Manual' && <button className="btn-action" onClick={() => handleEdit(e)}>Edit</button>}
-                                                        <button className="btn-action danger" onClick={() => handleDelete(e.id)}>Delete</button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {entries
+                                            .filter(e => !selectedBatch || String(e.batchNo) === String(selectedBatch))
+                                            .map(e => (
+                                                <tr key={e.id}>
+                                                    <td><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
+                                                    <td>{e.date ? e.date.split('-').reverse().join('/') : ''}</td>
+                                                    <td>{e.time}</td><td>{e.batchNo}</td><td>{e.benchNo}</td><td>{e.minRpm}-{e.maxRpm}</td><td>{e.duration}s</td>
+                                                    <td>
+                                                        <div className="btn-group">
+                                                            {e.source === 'Manual' && <button className="btn-action" onClick={() => handleEdit(e)}>Edit</button>}
+                                                            <button className="btn-action danger" onClick={() => handleDelete(e.id)}>Delete</button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        {entries.length === 0 && (
+                                            <tr><td colSpan="8" style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>No records found.</td></tr>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -284,18 +447,29 @@ const CompactionConcrete = ({ onBack, onSave, displayMode = 'modal' }) => {
 
                 {viewMode === 'scada' && (
                     <div className="view-scada fade-in">
-                        <h3>Raw SCADA Vibrator Feed</h3>
+                        <div className="content-title-row">
+                            <h3>Raw SCADA Vibrator Feed</h3>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Batch:</label>
+                                <select className="dash-select" value={selectedBatch} onChange={e => setSelectedBatch(e.target.value)}>
+                                    <option value="">-- All --</option>
+                                    {availableBatches.map(b => <option key={b} value={b}>{b}</option>)}
+                                </select>
+                            </div>
+                        </div>
                         <div className="table-outer-wrapper">
                             <div className="table-responsive">
                                 <table className="ui-table">
                                     <thead><tr><th>Time</th><th>Batch</th><th>Bench</th><th>V1 RPM</th><th>V2 RPM</th><th>V3 RPM</th><th>V4 RPM</th><th>Dur</th><th>Action</th></tr></thead>
                                     <tbody>
-                                        {scadaRecords.map(r => (
-                                            <tr key={r.id}>
-                                                <td>{r.time}</td><td>{r.batchNo}</td><td><strong>{r.benchNo}</strong></td><td>{r.v1_rpm}</td><td>{r.v2_rpm}</td><td>{r.v3_rpm}</td><td>{r.v4_rpm}</td><td>{r.duration}s</td>
-                                                <td><button className="btn-action" onClick={() => handleWitness(r)}>Witness</button></td>
-                                            </tr>
-                                        ))}
+                                        {scadaRecords
+                                            .filter(r => !selectedBatch || String(r.batchNo) === String(selectedBatch))
+                                            .map(r => (
+                                                <tr key={r.id}>
+                                                    <td>{r.time}</td><td>{r.batchNo}</td><td><strong>{r.benchNo}</strong></td><td>{r.v1_rpm}</td><td>{r.v2_rpm}</td><td>{r.v3_rpm}</td><td>{r.v4_rpm}</td><td>{r.duration}s</td>
+                                                    <td><button className="btn-action" onClick={() => handleWitness(r)}>Witness</button></td>
+                                                </tr>
+                                            ))}
                                     </tbody>
                                 </table>
                             </div>

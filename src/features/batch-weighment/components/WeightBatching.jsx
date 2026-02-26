@@ -94,6 +94,13 @@ const WeightBatching = ({ onWitness, batches = [], selectedBatchNo }) => {
                 cement: record.cement_actual,
                 water: record.water_actual,
                 admixture: record.admix_actual,
+                // Include set values for backend sync
+                ca1Set: record.mm20_set,
+                ca2Set: record.mm10_set,
+                faSet: record.sand_set,
+                cementSet: record.cement_set,
+                waterSet: record.water_set,
+                admixtureSet: record.admix_set,
                 time: record.time,
                 date: record.date
             })}
