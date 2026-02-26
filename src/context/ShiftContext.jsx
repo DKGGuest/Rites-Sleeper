@@ -20,15 +20,16 @@ export const ShiftProvider = ({ children }) => {
     const [allWitnessedRecords, setAllWitnessedRecords] = useState({ 1: [] });
     const [allTensionRecords, setAllTensionRecords] = useState({ 1: [] });
     const [allBatchDeclarations, setAllBatchDeclarations] = useState({ 1: [] });
+    const [allSessionConfigs, setAllSessionConfigs] = useState({ 1: { sandType: 'River Sand', sensorStatus: 'working' } });
+    const [allCompactionRecords, setAllCompactionRecords] = useState({ 1: [] });
+    const [htsData, setHtsData] = useState([]);
     const [manualCheckEntries, setManualCheckEntries] = useState({
         mouldPrep: [],
         htsWire: [],
         demoulding: []
     });
     const [moistureRecords, setMoistureRecords] = useState([]);
-    const [steamRecords, setSteamRecords] = useState([
-        { id: 1, batchNo: '601', chamberNo: '1', date: '2026-01-20', preDur: 2.25, risePeriod: 2.25, riseRate: 13.3, constTemp: 58, constDur: 4.0, coolDur: 2.5, coolRate: 11.2 },
-    ]);
+    const [steamRecords, setSteamRecords] = useState([]);
     const [testedRecords, setTestedRecords] = useState([]);
     const [benchMouldCheckRecords, setBenchMouldCheckRecords] = useState([
         { id: 1, type: 'Bench', assetNo: '210-A', location: 'Line I', dateOfChecking: '2026-01-30', checkTime: '10:30', visualResult: 'ok', dimensionResult: 'ok', overallResult: 'OK', timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(), lastCasting: '2026-01-25', sleeperType: 'RT-1234' },
@@ -74,18 +75,210 @@ export const ShiftProvider = ({ children }) => {
 
     const loadShiftData = async () => {
         try {
-            const [moisture, mouldPrep, htsWire, demoulding, benchMould] = await Promise.all([
+            const [moisture, mouldPrep, htsWireResponse, demoulding, benchMould, wireTensionResponse, compactionResponse, steamResponse, batchWeighmentResponse] = await Promise.all([
                 apiService.getAllMoistureAnalysis(),
                 apiService.getAllMouldPreparations(),
                 apiService.getAllHtsWirePlacement(),
                 apiService.getAllDemouldingInspection(),
-                apiService.getAllBenchMouldInspections()
+                apiService.getAllBenchMouldInspections(),
+                apiService.getAllWireTensioning(),
+                apiService.getAllCompaction(),
+                apiService.getAllSteamCuring(),
+                apiService.getAllBatchWeighment()
             ]);
 
             if (moisture?.responseData) setMoistureRecords(moisture.responseData);
+
+            // Mapping backend wire tensioning to frontend flat state
+            if (wireTensionResponse?.responseData) {
+                const flattenedRecords = [];
+                wireTensionResponse.responseData.forEach(batchRecord => {
+                    const { batchNo, sleeperType, wiresPerSleeper, targetLoadKn } = batchRecord;
+
+                    // Add manual records
+                    (batchRecord.manualRecords || []).forEach(m => {
+                        flattenedRecords.push({
+                            ...m,
+                            batchNo,
+                            modulus: m.modulus || m.youngsModulus, // Unified key for UI
+                            source: 'Manual',
+                            sleeperType,
+                            wiresPerSleeper,
+                            targetLoadKn
+                        });
+                    });
+
+                    // Add witnessed scada records (those already in the batch aggregate)
+                    (batchRecord.scadaRecords || []).forEach(s => {
+                        flattenedRecords.push({
+                            ...s,
+                            batchNo,
+                            time: s.time || s.plcTime, // Unified key for UI
+                            modulus: s.modulus || s.youngsModulus, // Unified key for UI
+                            source: 'Scada',
+                            sleeperType,
+                            wiresPerSleeper,
+                            targetLoadKn
+                        });
+                    });
+                });
+
+                setAllTensionRecords(prev => ({
+                    ...prev,
+                    [activeContainerId]: flattenedRecords
+                }));
+            }
+
+            // Mapping backend compaction to frontend flat state
+            if (compactionResponse?.responseData) {
+                const flattenedRecords = [];
+                compactionResponse.responseData.forEach(batchRecord => {
+                    const { batchNo, sleeperType, entryDate } = batchRecord;
+
+                    (batchRecord.manualRecords || []).forEach(m => {
+                        flattenedRecords.push({
+                            ...m,
+                            batchNo,
+                            date: entryDate,
+                            source: 'Manual',
+                            sleeperType
+                        });
+                    });
+
+                    (batchRecord.scadaRecords || []).forEach(s => {
+                        flattenedRecords.push({
+                            ...s,
+                            batchNo,
+                            date: entryDate,
+                            source: 'Scada',
+                            sleeperType
+                        });
+                    });
+                });
+
+                setAllCompactionRecords(prev => ({
+                    ...prev,
+                    [activeContainerId]: flattenedRecords
+                }));
+            }
+
+            // Mapping backend batch weighment to frontend state
+            if (batchWeighmentResponse?.responseData) {
+                const allDeclarations = {};
+                const allConfigs = {};
+                const allWitnessed = {};
+
+                batchWeighmentResponse.responseData.forEach(session => {
+                    const matchedContainer = containers.find(c => c.name === session.lineNo);
+                    const containerId = matchedContainer ? matchedContainer.id : 1;
+
+                    // Map Declarations
+                    allDeclarations[containerId] = (session.batchDetails || []).map(d => ({
+                        id: d.id,
+                        batchNo: d.batchNo,
+                        proportionMatch: d.proportionStatus,
+                        setValues: {
+                            ca1: d.ca1Set, ca2: d.ca2Set, fa: d.faSet,
+                            cement: d.cementSet, water: d.waterSet, admixture: d.admixtureSet
+                        },
+                        adjustedWeights: {
+                            ca1: d.ca1Ref, ca2: d.ca2Ref, fa: d.faRef,
+                            cement: d.cementRef, water: d.waterRef, admixture: d.admixtureRef
+                        }
+                    }));
+
+                    allConfigs[containerId] = {
+                        sandType: session.sandType,
+                        sensorStatus: (session.moistureSensorStatus || 'working').toLowerCase()
+                    };
+
+                    // Map Witnessed Records (Flattened)
+                    const witnessed = [];
+                    (session.scadaRecords || []).forEach(s => {
+                        witnessed.push({
+                            ...s,
+                            id: s.id, // Use numeric ID from backend
+                            source: 'Scada',
+                            type: 'weight-batching',
+                            // Normalize to frontend display keys
+                            ca1: s.ca1Actual,
+                            ca2: s.ca2Actual,
+                            fa: s.faActual,
+                            cement: s.cementActual,
+                            water: s.waterActual,
+                            admixture: s.admixtureActual
+                        });
+                    });
+                    (session.manualRecords || []).forEach(m => {
+                        witnessed.push({
+                            ...m,
+                            id: m.id, // Use numeric ID from backend
+                            source: 'Manual',
+                            type: 'weight-batching',
+                            // Normalize to frontend display keys
+                            ca1: m.ca1Actual,
+                            ca2: m.ca2Actual,
+                            fa: m.faActual,
+                            cement: m.cementActual,
+                            water: m.waterActual,
+                            admixture: m.admixtureActual
+                        });
+                    });
+                    allWitnessed[containerId] = witnessed;
+                });
+
+                setAllWitnessedRecords(allWitnessed);
+                setAllBatchDeclarations(allDeclarations);
+                setAllSessionConfigs(prev => ({ ...prev, ...allConfigs }));
+            }
+
+            // Mapping backend steam curing to frontend flat state
+            if (steamResponse?.responseData) {
+                const flattenedRecords = [];
+                steamResponse.responseData.forEach(batchRecord => {
+                    const { batchNo, chamber, grade, entryDate, id } = batchRecord;
+
+                    (batchRecord.manualRecords || []).forEach(m => {
+                        flattenedRecords.push({
+                            ...m,
+                            id: `${id}-m-${flattenedRecords.length}`,
+                            batchId: id,
+                            batchNo,
+                            chamberNo: chamber,
+                            date: entryDate,
+                            source: 'Manual',
+                            grade,
+                            minConstTemp: m.minTemp,
+                            maxConstTemp: m.maxTemp
+                        });
+                    });
+
+                    (batchRecord.scadaRecords || []).forEach(s => {
+                        flattenedRecords.push({
+                            ...s,
+                            id: `${id}-s-${flattenedRecords.length}`,
+                            batchId: id,
+                            batchNo,
+                            chamberNo: chamber,
+                            date: entryDate,
+                            source: 'Scada',
+                            grade,
+                            minConstTemp: s.minTemp || 0, // Backend doesn't have min/max in scadaRecords yet?
+                            maxConstTemp: s.maxTemp || 0
+                        });
+                    });
+                });
+                setSteamRecords(flattenedRecords);
+            }
+
+            const htsListData = htsWireResponse?.responseData || [];
+            if (htsWireResponse?.responseData) {
+                setHtsData(htsListData);
+            }
+
             setManualCheckEntries({
                 mouldPrep: mouldPrep?.responseData || [],
-                htsWire: htsWire?.responseData || [],
+                htsWire: htsListData,
                 demoulding: demoulding?.responseData || []
             });
             if (benchMould?.responseData) setBenchMouldCheckRecords(benchMould.responseData);
@@ -108,6 +301,12 @@ export const ShiftProvider = ({ children }) => {
         setAllTensionRecords,
         allBatchDeclarations,
         setAllBatchDeclarations,
+        allSessionConfigs,
+        setAllSessionConfigs,
+        allCompactionRecords,
+        setAllCompactionRecords,
+        htsData,
+        setHtsData,
         manualCheckEntries,
         setManualCheckEntries,
         moistureRecords,

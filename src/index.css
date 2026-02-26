@@ -1184,13 +1184,15 @@ textarea:focus {
 }
 
 .dash-select {
-    padding: 0.5rem 2rem 0.5rem 1rem;
+    padding: 0.6rem 2.5rem 0.6rem 1rem;
     border-radius: 8px;
     border: 1px solid var(--neutral-300);
     font-size: 0.875rem;
     color: var(--text-main);
     background-color: #fff;
     min-width: 180px;
+    height: auto;
+    line-height: 1.4;
     cursor: pointer;
     appearance: none;
     -webkit-appearance: none;

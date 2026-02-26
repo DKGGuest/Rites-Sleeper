@@ -40,10 +40,14 @@ const SleeperProcessDuty = () => {
         setManualCheckEntries,
         allBatchDeclarations,
         setAllBatchDeclarations,
+        allSessionConfigs,
+        setAllSessionConfigs,
         allWitnessedRecords,
         setAllWitnessedRecords,
         allTensionRecords,
         setAllTensionRecords,
+        allCompactionRecords,
+        setAllCompactionRecords,
         benchMouldCheckRecords,
         setBenchMouldCheckRecords,
         allBenchesMoulds,
@@ -68,11 +72,14 @@ const SleeperProcessDuty = () => {
     // Derived State for active container
     const witnessedRecords = allWitnessedRecords[activeContainerId] || [];
     const tensionRecords = allTensionRecords[activeContainerId] || [];
+    const compactionRecords = allCompactionRecords[activeContainerId] || [];
     const batchDeclarations = allBatchDeclarations[activeContainerId] || [];
+    const sessionConfig = allSessionConfigs[activeContainerId] || { sandType: 'River Sand', sensorStatus: 'working' };
 
     // Local Toggle states for forms
     const [showBatchEntryForm, setShowBatchEntryForm] = useState(false);
     const [showWireTensionForm, setShowWireTensionForm] = useState(false);
+    const [showCompactionForm, setShowCompactionForm] = useState(false);
     const [showMouldBenchForm, setShowMouldBenchForm] = useState(false);
 
     useEffect(() => {
@@ -137,6 +144,7 @@ const SleeperProcessDuty = () => {
                         witnessedRecordsCount={witnessedRecords.length}
                         setShowBatchEntryForm={setShowBatchEntryForm}
                         setShowWireTensionForm={setShowWireTensionForm}
+                        setShowCompactionForm={setShowCompactionForm}
                         setViewMode={setViewMode}
                         setDetailView={setDetailView}
                     />
@@ -146,10 +154,18 @@ const SleeperProcessDuty = () => {
                             <BatchWeighment
                                 displayMode="inline"
                                 onBack={() => { }}
-                                sharedState={{ batchDeclarations, setAllBatchDeclarations, witnessedRecords, setAllWitnessedRecords }}
+                                sharedState={{
+                                    batchDeclarations,
+                                    setAllBatchDeclarations: (data) => setAllBatchDeclarations(prev => ({ ...prev, [activeContainerId]: typeof data === 'function' ? data(prev[activeContainerId] || []) : data })),
+                                    sessionConfig,
+                                    setSessionConfig: (data) => setAllSessionConfigs(prev => ({ ...prev, [activeContainerId]: typeof data === 'function' ? data(prev[activeContainerId] || {}) : data })),
+                                    witnessedRecords,
+                                    setAllWitnessedRecords: (data) => setAllWitnessedRecords(prev => ({ ...prev, [activeContainerId]: typeof data === 'function' ? data(prev[activeContainerId] || []) : data }))
+                                }}
                                 activeContainer={activeContainer}
                                 showEntryForm={showBatchEntryForm}
                                 setShowEntryForm={setShowBatchEntryForm}
+                                loadShiftData={loadShiftData}
                             />
                         </div>
                     )}
@@ -160,9 +176,13 @@ const SleeperProcessDuty = () => {
                                 displayMode="inline"
                                 onBack={() => { }}
                                 batches={batchDeclarations}
-                                sharedState={{ tensionRecords, setAllTensionRecords }}
+                                sharedState={{
+                                    tensionRecords,
+                                    setTensionRecords: (data) => setAllTensionRecords(prev => ({ ...prev, [activeContainerId]: typeof data === 'function' ? data(prev[activeContainerId] || []) : data }))
+                                }}
                                 showForm={showWireTensionForm}
                                 setShowForm={setShowWireTensionForm}
+                                loadShiftData={loadShiftData}
                             />
                         </div>
                     )}
@@ -172,7 +192,10 @@ const SleeperProcessDuty = () => {
                             <MoistureAnalysis
                                 displayMode="inline"
                                 onBack={() => { }}
-                                onSave={() => setMoistureAlert(false)}
+                                onSave={() => {
+                                    setMoistureAlert(false);
+                                    loadShiftData();
+                                }}
                                 records={moistureRecords}
                                 setRecords={setMoistureRecords}
                             />
@@ -181,7 +204,17 @@ const SleeperProcessDuty = () => {
 
                     {activeTab === 'Compaction of Concrete (Vibrator Report)' && (
                         <div style={{ width: '100%', marginTop: '-1rem' }}>
-                            <CompactionConcrete displayMode="inline" onBack={() => { }} />
+                            <CompactionConcrete
+                                displayMode="inline"
+                                onBack={() => { }}
+                                batches={batchDeclarations}
+                                sharedState={{
+                                    compactionRecords,
+                                    setAllCompactionRecords: (data) => setAllCompactionRecords(prev => ({ ...prev, [activeContainerId]: typeof data === 'function' ? data(prev[activeContainerId] || []) : data }))
+                                }}
+                                showForm={showCompactionForm}
+                                setShowForm={setShowCompactionForm}
+                            />
                         </div>
                     )}
 
@@ -209,6 +242,7 @@ const SleeperProcessDuty = () => {
                                 onBack={() => { }}
                                 steamRecords={steamRecords}
                                 setSteamRecords={setSteamRecords}
+                                batches={batchDeclarations}
                             />
                         </div>
                     )}
@@ -245,8 +279,16 @@ const SleeperProcessDuty = () => {
                         {activeTab === 'Batch Weighment' ? (
                             <BatchWeighment
                                 onBack={() => setDetailView('dashboard')}
-                                sharedState={{ batchDeclarations, setAllBatchDeclarations, witnessedRecords, setAllWitnessedRecords }}
+                                sharedState={{
+                                    batchDeclarations,
+                                    setAllBatchDeclarations: (data) => setAllBatchDeclarations(prev => ({ ...prev, [activeContainerId]: typeof data === 'function' ? data(prev[activeContainerId] || []) : data })),
+                                    sessionConfig,
+                                    setSessionConfig: (data) => setAllSessionConfigs(prev => ({ ...prev, [activeContainerId]: typeof data === 'function' ? data(prev[activeContainerId] || {}) : data })),
+                                    witnessedRecords,
+                                    setAllWitnessedRecords: (data) => setAllWitnessedRecords(prev => ({ ...prev, [activeContainerId]: typeof data === 'function' ? data(prev[activeContainerId] || []) : data }))
+                                }}
                                 activeContainer={activeContainer}
+                                loadShiftData={loadShiftData}
                             />
                         ) : activeTab === 'Manual Checks' ? (
                             <ManualChecks
@@ -260,7 +302,10 @@ const SleeperProcessDuty = () => {
                         ) : activeTab === 'Moisture Analysis' ? (
                             <MoistureAnalysis
                                 onBack={() => setDetailView('dashboard')}
-                                onSave={() => setMoistureAlert(false)}
+                                onSave={() => {
+                                    setMoistureAlert(false);
+                                    loadShiftData();
+                                }}
                                 initialView={viewMode}
                                 records={moistureRecords}
                                 setRecords={setMoistureRecords}
@@ -269,7 +314,11 @@ const SleeperProcessDuty = () => {
                             <WireTensioning
                                 onBack={() => setDetailView('dashboard')}
                                 batches={batchDeclarations}
-                                sharedState={{ tensionRecords, setAllTensionRecords }}
+                                sharedState={{
+                                    tensionRecords,
+                                    setTensionRecords: (data) => setAllTensionRecords(prev => ({ ...prev, [activeContainerId]: typeof data === 'function' ? data(prev[activeContainerId] || []) : data }))
+                                }}
+                                loadShiftData={loadShiftData}
                             />
                         ) : activeTab === 'Compaction of Concrete (Vibrator Report)' ? (
                             <CompactionConcrete onBack={() => setDetailView('dashboard')} onSave={() => { }} />
@@ -289,6 +338,7 @@ const SleeperProcessDuty = () => {
                                 onBack={() => setDetailView('dashboard')}
                                 steamRecords={steamRecords}
                                 setSteamRecords={setSteamRecords}
+                                batches={batchDeclarations}
                             />
                         ) : activeTab === 'Steam Cube Testing' ? (
                             <SteamCubeTesting

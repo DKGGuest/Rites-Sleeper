@@ -3,6 +3,7 @@ import MouldPrepForm from './components/MouldPrepForm';
 import HTSWireForm from './components/HTSWireForm';
 import DemouldingForm from './components/DemouldingForm';
 import { apiService } from '../../services/api';
+import { useShift } from '../../context/ShiftContext';
 import './ManualChecks.css';
 
 /**
@@ -68,8 +69,68 @@ const SubCard = ({ id, title, color, count, isActive, onClick, onAdd, alert }) =
     );
 };
 
+const extractTime = (dateTimeStr) => {
+    if (!dateTimeStr) return "-";
+    // Handle ISO strings (e.g., 2026-02-24T14:13:00)
+    if (dateTimeStr.includes('T')) return dateTimeStr.substring(11, 16);
+    // Handle simple time strings (e.g., 14:13:00 or 14:13)
+    if (dateTimeStr.includes(':')) {
+        const parts = dateTimeStr.split(':');
+        if (parts.length >= 2) {
+            return `${parts[0].trim().padStart(2, '0')}:${parts[1].trim().padStart(2, '0')}`;
+        }
+    }
+    return dateTimeStr;
+};
+
+const formatDate = (dateStr) => {
+    if (!dateStr) return "-";
+    // Convert yyyy-MM-dd to dd/MM/yyyy if needed
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        const [y, m, d] = dateStr.split('-');
+        return `${d}/${m}/${y}`;
+    }
+    return dateStr;
+};
+
+const HTS_TABLE_MAPPING = [
+    {
+        Header: "Location",
+        accessor: (row) => row.lineShedNo || row.location || 'N/A'
+    },
+    {
+        Header: "Date & Time",
+        accessor: (row) => {
+            const date = row.placementDate || (row.createdDate ? row.createdDate.split('T')[0] : (row.inspectionDate || ''));
+            const time = row.placementTime || (row.createdDate ? row.createdDate.substring(11, 16) : (row.inspectionTime || ''));
+            return `${formatDate(date)} ${extractTime(time)}`.trim() || '-';
+        }
+    },
+    {
+        Header: "Batch",
+        accessor: "batchNo"
+    },
+    {
+        Header: "Gang No.",
+        accessor: "benchNo"
+    },
+    {
+        Header: "No. of Wires",
+        accessor: (row) => (row.noOfWiresUsed !== null && row.noOfWiresUsed !== undefined) ? row.noOfWiresUsed : (row.wiresUsed || '-')
+    },
+    {
+        Header: "Arrangement",
+        accessor: (row) => (row.arrangementOk !== null && row.arrangementOk !== undefined) ? (row.arrangementOk ? "OK" : "Not OK") : (row.htsArrangementCheck || '-')
+    },
+    {
+        Header: "Status",
+        accessor: (row) => row.overallStatus || row.status || '-'
+    }
+];
+
 const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMode, sharedState, initialEditData, isInline = false }) => {
     const { entries, setEntries } = sharedState;
+    const { loadShiftData } = useShift();
     const [viewMode, setViewMode] = useState(initialViewMode === 'form' ? 'form' : 'dashboard');
     const [activeModule, setActiveModule] = useState(initialSubModule || 'mouldPrep');
     const [editingEntry, setEditingEntry] = useState(initialEditData || null);
@@ -86,21 +147,15 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
         const enrichedData = {
             ...data,
             location: activeContainer?.name || 'N/A',
+            lineShedNo: activeContainer?.name || 'N/A', // 🔥 Ensure backend sees the correct key
             locationType: activeContainer?.type || 'Location'
         };
 
-        // Special handling for demoulding inspection
+        // Special handling for demoulding inspection (Debug Logging Only)
         if (subModule === 'demoulding') {
-            // Ensure defectiveSleeperDetails is always included (empty array if no defects)
-            if (!enrichedData.defectiveSleeperDetails) {
-                enrichedData.defectiveSleeperDetails = [];
-            }
-
-            // Debug logging for demoulding
             console.log('=== DEMOULDING INSPECTION PAYLOAD ===');
             console.log('Full Payload:', JSON.stringify(enrichedData, null, 2));
-            console.log('Defective Sleeper Details:', enrichedData.defectiveSleeperDetails);
-            console.log('Number of defective sleepers:', enrichedData.defectiveSleeperDetails.length);
+            console.log('Defective Sleepers Count:', enrichedData.defectiveSleepers?.length || 0);
             console.log('=====================================');
         }
 
@@ -143,6 +198,9 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                 }));
             }
 
+            // 7. After POST, PUT, and DELETE operations, re-fetch logs using await
+            await loadShiftData();
+
             setEditingEntry(null);
             setViewMode('dashboard');
 
@@ -173,6 +231,8 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                     ...prev,
                     [subModule]: prev[subModule].filter(e => e.id !== entryId)
                 }));
+                // 7. After operations, re-fetch
+                await loadShiftData();
             } catch (error) {
                 console.error(`Error deleting ${subModule}:`, error);
                 alert(`Failed to delete ${subModule}.`);
@@ -189,11 +249,12 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
         }
     };
 
+
+
     const renderLogs = (mod) => {
         const records = entries[mod] || [];
         return (
             <div className="table-outer-wrapper fade-in">
-                {/* History Header Removed as per requirement */}
                 <div className="table-responsive">
                     <table className="ui-table">
                         <thead>
@@ -204,29 +265,33 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                                         <th style={{ background: '#fffbeb' }}>Date & Time</th>
                                         <th style={{ background: '#fffbeb' }}>Batch</th>
                                         <th style={{ background: '#fffbeb' }}>{fieldLabel} No.</th>
-                                        <th style={{ background: '#fffbeb' }}>Type</th>
                                         <th style={{ background: '#fffbeb' }}>Mould Cleaned?</th>
                                         <th style={{ background: '#fffbeb' }}>Oil Applied?</th>
                                     </>
                                 ) : (
                                     <>
-                                        <th style={{ width: '80px', background: '#fffbeb' }}>Location</th>
-                                        <th style={{ background: '#fffbeb' }}>Date & Time</th>
-                                        <th style={{ background: '#fffbeb' }}>Batch</th>
-                                        <th style={{ background: '#fffbeb' }}>{fieldLabel} No.</th>
-                                        <th style={{ background: '#fffbeb' }}>Type</th>
-                                        {mod === 'htsWire' && (
+                                        {mod === 'htsWire' ? (
+                                            HTS_TABLE_MAPPING.map(col => (
+                                                <th key={col.Header} style={{ background: '#fffbeb' }}>{col.Header}</th>
+                                            ))
+                                        ) : (
                                             <>
-                                                <th style={{ background: '#fffbeb' }}>Wires</th>
-                                                <th style={{ background: '#fffbeb' }}>Arrangement</th>
-                                                <th style={{ background: '#fffbeb' }}>Status</th>
-                                            </>
-                                        )}
-                                        {mod === 'demoulding' && (
-                                            <>
-                                                <th style={{ background: '#fffbeb' }}>Casting</th>
-                                                <th style={{ background: '#fffbeb' }}>Process</th>
-                                                <th style={{ background: '#fffbeb' }}>Check Status</th>
+                                                <th style={{ width: '80px', background: '#fffbeb' }}>Location</th>
+                                                <th style={{ background: '#fffbeb' }}>Date</th>
+                                                <th style={{ background: '#fffbeb' }}>Batch</th>
+                                                {mod === 'demoulding' ? (
+                                                    <>
+                                                        <th style={{ background: '#fffbeb' }}>Bench No.</th>
+                                                        <th style={{ background: '#fffbeb' }}>Sleeper Type</th>
+                                                        <th style={{ background: '#fffbeb' }}>Casting</th>
+                                                        <th style={{ background: '#fffbeb' }}>Process</th>
+                                                        <th style={{ background: '#fffbeb' }}>Check Status</th>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <th style={{ background: '#fffbeb' }}>{fieldLabel} No.</th>
+                                                    </>
+                                                )}
                                             </>
                                         )}
                                     </>
@@ -242,66 +307,81 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                                     <tr key={entry.id} className="table-row-hover">
                                         {mod === 'mouldPrep' ? (
                                             <>
-                                                <td style={{ fontSize: '11px', color: '#64748b' }}>{entry.location || 'N/A'}</td>
+                                                <td style={{ fontSize: '11px', color: '#64748b' }}>{entry.lineShedNo || 'N/A'}</td>
                                                 <td>
-                                                    <div style={{ fontSize: '13px', fontWeight: '600' }}>{entry.time}</div>
-                                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>{entry.date || '-'}</div>
+                                                    <div style={{ fontSize: '13px', fontWeight: '600' }}>{extractTime(entry.preparationTime || (entry.createdDate ? entry.createdDate.substring(11, 16) : '-'))}</div>
+                                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>{formatDate(entry.preparationDate || (entry.createdDate ? entry.createdDate.split('T')[0] : '-'))}</div>
                                                 </td>
                                                 <td><span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '700' }}>{entry.batchNo || '-'}</span></td>
-                                                <td><strong>{entry.benchNo}</strong></td>
-                                                <td><small>{entry.sleeperType || '-'}</small></td>
+                                                <td><strong>{entry.benchNo || entry.benchGangNo}</strong></td>
                                                 <td>
                                                     <span style={{
-                                                        color: entry.lumpsFree === 'Yes' ? '#059669' : '#ef4444',
+                                                        color: (entry.mouldCleaned === 1 || entry.mouldCleaned === true || entry.mouldCleaned === 'Yes' || entry.lumpsFree === 1 || entry.lumpsFree === true || entry.lumpsFree === 'Yes') ? '#059669' : '#ef4444',
                                                         fontWeight: '700',
                                                         fontSize: '11px'
                                                     }}>
-                                                        {entry.lumpsFree === 'Yes' ? '✓ CLEAN' : '✗ DIRTY'}
+                                                        {(entry.mouldCleaned === 1 || entry.mouldCleaned === true || entry.mouldCleaned === 'Yes' || entry.lumpsFree === 1 || entry.lumpsFree === true || entry.lumpsFree === 'Yes') ? '✓ CLEAN' : '✗ DIRTY'}
                                                     </span>
                                                 </td>
                                                 <td>
                                                     <span style={{
-                                                        color: entry.oilApplied === 'Yes' ? '#059669' : '#ef4444',
+                                                        color: (entry.oilApplied === 1 || entry.oilApplied === true || entry.oilApplied === 'Yes') ? '#059669' : '#ef4444',
                                                         fontWeight: '700',
                                                         fontSize: '11px'
                                                     }}>
-                                                        {entry.oilApplied === 'Yes' ? '✓ APPLIED' : '✗ NO'}
+                                                        {(entry.oilApplied === 1 || entry.oilApplied === true || entry.oilApplied === 'Yes') ? '✓ APPLIED' : '✗ NO'}
                                                     </span>
                                                 </td>
                                             </>
+                                        ) : mod === 'htsWire' ? (
+                                            HTS_TABLE_MAPPING.map(col => (
+                                                <td key={col.Header}>
+                                                    {typeof col.accessor === 'function' ? (
+                                                        col.accessor(entry)
+                                                    ) : col.Header === 'Status' ? (
+                                                        <span className={`status-pill ${entry[col.accessor] === 'OK' ? 'witnessed' : 'manual'}`} style={{ fontSize: '10px' }}>
+                                                            {entry[col.accessor] || '-'}
+                                                        </span>
+                                                    ) : col.Header === 'Batch' ? (
+                                                        <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '700' }}>{entry[col.accessor] || '-'}</span>
+                                                    ) : (
+                                                        entry[col.accessor] || '-'
+                                                    )}
+                                                </td>
+                                            ))
                                         ) : (
                                             <>
-                                                <td style={{ fontSize: '11px', color: '#64748b' }}>{entry.location || 'N/A'}</td>
+                                                <td style={{ fontSize: '11px', color: '#64748b' }}>{entry.lineShedNo || entry.location || 'N/A'}</td>
                                                 <td>
-                                                    <div style={{ fontSize: '13px', fontWeight: '800' }}>{entry.time}</div>
-                                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>{entry.date}</div>
+                                                    <div style={{ fontSize: '13px', fontWeight: '700' }}>
+                                                        {formatDate(entry.inspectionDate || entry.checkingDate || (entry.createdDate ? entry.createdDate.split('T')[0] : entry.date))}
+                                                    </div>
                                                 </td>
-                                                <td><span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '700' }}>{entry.batchNo || '-'}</span></td>
-                                                <td><strong>{entry.benchNo}</strong></td>
-                                                <td><small>{entry.sleeperType}</small></td>
+                                                <td>
+                                                    <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '700' }}>
+                                                        {entry.batchNo || entry.batch || '-'}
+                                                    </span>
+                                                </td>
 
-                                                {mod === 'htsWire' && (
+                                                {mod === 'demoulding' ? (
                                                     <>
-                                                        <td>{entry.wiresUsed}</td>
-                                                        <td>{entry.htsArrangementCheck}</td>
-                                                        <td>
-                                                            <span className={`status-pill ${entry.overallStatus === 'OK' ? 'witnessed' : 'manual'}`} style={{ fontSize: '10px' }}>
-                                                                {entry.overallStatus}
-                                                            </span>
-                                                        </td>
-                                                    </>
-                                                )}
-                                                {mod === 'demoulding' && (
-                                                    <>
-                                                        <td><small>{entry.dateOfCasting ? new Date(entry.dateOfCasting).toLocaleDateString('en-GB') : '-'}</small></td>
-                                                        <td style={{ fontSize: '11px' }}>{entry.processSatisfactory}</td>
+                                                        <td><strong>{entry.benchNo || entry.benchGangNo || '-'}</strong></td>
+                                                        <td style={{ fontSize: '11px' }}>{entry.sleeperType || '-'}</td>
+                                                        <td><span style={{ fontSize: '10px' }}>{formatDate(entry.castingDate || entry.latestCastingDate || (entry.createdDate ? entry.createdDate.split('T')[0] : '-'))}</span></td>
+                                                        <td style={{ fontSize: '11px' }}>{entry.processStatus || entry.process || '-'}</td>
                                                         <td>
                                                             <div style={{ fontSize: '10px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                                <span style={{ color: entry.visualCheck === 'All OK' ? '#059669' : '#dc2626' }}>V: {entry.visualCheck}</span>
-                                                                <span style={{ color: entry.dimCheck === 'All OK' ? '#059669' : '#dc2626' }}>D: {entry.dimCheck}</span>
+                                                                <span style={{ color: (['ok', 'YES', 'All OK'].includes(entry.visualCheck) || entry.benchVisualResult === 'ok') ? '#059669' : '#dc2626' }}>
+                                                                    V: {entry.visualCheck || entry.benchVisualResult || '-'}
+                                                                </span>
+                                                                <span style={{ color: (['ok', 'YES', 'All OK'].includes(entry.dimCheck) || entry.benchDimensionalResult === 'ok') ? '#059669' : '#dc2626' }}>
+                                                                    D: {entry.dimCheck || entry.benchDimensionalResult || '-'}
+                                                                </span>
                                                             </div>
                                                         </td>
                                                     </>
+                                                ) : (
+                                                    <td><strong>{entry.benchNo || entry.benchGangNo || '-'}</strong></td>
                                                 )}
                                             </>
                                         )}

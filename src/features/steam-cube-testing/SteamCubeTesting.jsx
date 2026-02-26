@@ -4,7 +4,7 @@ import { apiService } from '../../services/api';
 import './SteamCubeTesting.css';
 import { formatDateForBackend } from '../../utils/helpers';
 
-const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedRecords: propSetTestedRecords }) => {
+const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedRecords: propSetTestedRecords, activeContainer }) => {
     const [viewMode, setViewMode] = useState('statistics'); // 'statistics', 'declared', 'tested'
     const [showDeclareModal, setShowDeclareModal] = useState(false);
     const [showTestModal, setShowTestModal] = useState(false);
@@ -158,9 +158,9 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
     };
 
     const columnsDeclared = [
-        { key: 'lineNumber', label: 'Shed No. / Line No.' },
+        { key: 'lineNumber', label: activeContainer?.type === 'Shed' ? 'Shed No.' : 'Line No.' },
         { key: 'batchNo', label: 'Batch No.' },
-        { key: 'chamberNo', label: 'Chamber No.' },
+        { key: 'chamberNo', label: activeContainer?.type === 'Shed' ? 'Shed Area' : 'Chamber No.' },
         {
             key: 'castDateTime',
             label: 'Date & Time of Casting',
@@ -174,7 +174,7 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
         },
         {
             key: 'benches',
-            label: 'Benches in Chamber',
+            label: activeContainer?.type === 'Shed' ? 'Gangs in Shed' : 'Benches in Chamber',
             render: (_, row) => {
                 const allBenches = [...new Set([
                     ...row.cubes.map(c => c.benchNo),
@@ -201,9 +201,9 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
     ];
 
     const columnsTested = [
-        { key: 'lineNumber', label: 'Shed No. / Line No.' },
+        { key: 'lineNumber', label: activeContainer?.type === 'Shed' ? 'Shed No.' : 'Line No.' },
         { key: 'batchNo', label: 'Batch No.' },
-        { key: 'chamberNo', label: 'Chamber No.' },
+        { key: 'chamberNo', label: activeContainer?.type === 'Shed' ? 'Shed Area' : 'Chamber No.' },
         { key: 'grade', label: 'Concrete Grade' },
         {
             key: 'castDateTime',
@@ -361,6 +361,7 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
                     isModifying={isModifying}
                     onClose={() => setShowDeclareModal(false)}
                     onSave={saveDeclaration}
+                    activeContainer={activeContainer}
                 />
             )}
 
@@ -370,6 +371,7 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
                     onClose={() => setShowTestModal(false)}
                     onSave={saveTestDetails}
                     isModifying={isModifying}
+                    activeContainer={activeContainer}
                 />
             )}
         </div>
@@ -399,9 +401,11 @@ const StatCard = ({ label, value, unit = '', color = '#1e293b' }) => (
     </div>
 );
 
-const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => {
+const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave, activeContainer }) => {
+    const isShed = activeContainer?.type === 'Shed';
+
     const [formData, setFormData] = useState(sample || {
-        lineNumber: 'Line-1', // Auto from SCADA
+        lineNumber: activeContainer?.name || 'Line-1', // Auto from active container
         castDate: new Date().toISOString().split('T')[0],
         batchNo: '',
         lbcTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
@@ -459,9 +463,9 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => {
                 <div className="form-modal-body">
                     <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                         <div className="input-group">
-                            <label>Shed No. / Line No.</label>
+                            <label>{isShed ? 'Shed No.' : 'Line No.'}</label>
                             <input type="text" readOnly value={formData.lineNumber} className="readOnly" style={{ background: '#f8fafc' }} />
-                            <span style={{ fontSize: '9px', color: '#94a3b8' }}>Auto-filled from SCADA</span>
+                            <span style={{ fontSize: '9px', color: '#94a3b8' }}>Auto-filled from Dashboard</span>
                         </div>
                         <div className="input-group">
                             <label>Date of Casting</label>
@@ -484,8 +488,8 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => {
                             </select>
                         </div>
                         <div className="input-group">
-                            <label>Chamber No. <span style={{ fontSize: '9px', color: '#94a3b8' }}>(for Stress Bench)</span></label>
-                            <input type="number" min="0" value={formData.chamberNo} onChange={e => setFormData({ ...formData, chamberNo: e.target.value })} />
+                            <label>{isShed ? 'Shed Area / Location' : 'Chamber No.'} <span style={{ fontSize: '9px', color: '#94a3b8' }}>{isShed ? '' : '(for Stress Bench)'}</span></label>
+                            <input type={isShed ? 'text' : 'number'} min="0" value={formData.chamberNo} onChange={e => setFormData({ ...formData, chamberNo: e.target.value })} />
                         </div>
                     </div>
 
@@ -494,13 +498,13 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => {
                         <h4 style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#475569', fontWeight: '700' }}>Add Cubes</h4>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '12px', alignItems: 'end' }}>
                             <div className="input-group">
-                                <label>Bench or Gang No.</label>
+                                <label>{isShed ? 'Gang No.' : 'Bench or Gang No.'}</label>
                                 <input
                                     type="number"
                                     min="0"
                                     value={currentCube.benchNo}
                                     onChange={e => setCurrentCube({ ...currentCube, benchNo: e.target.value })}
-                                    placeholder="e.g., 401"
+                                    placeholder={isShed ? "e.g., 201" : "e.g., 401"}
                                 />
                             </div>
                             <div className="input-group">
@@ -551,19 +555,19 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => {
 
                     {/* Other Benches Section */}
                     <div style={{ marginTop: '16px', padding: '20px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                        <h4 style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#475569', fontWeight: '700' }}>Other Bench No. Present in Chamber</h4>
+                        <h4 style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#475569', fontWeight: '700' }}>Other {isShed ? 'Gang' : 'Bench'} No. Present in {isShed ? 'Shed' : 'Chamber'}</h4>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'end' }}>
                             <div className="input-group">
-                                <label>Bench No.</label>
+                                <label>{isShed ? 'Gang No.' : 'Bench No.'}</label>
                                 <input
                                     type="number"
                                     min="0"
                                     value={otherBenchInput}
                                     onChange={e => setOtherBenchInput(e.target.value)}
-                                    placeholder="e.g., 402"
+                                    placeholder={isShed ? "e.g., 202" : "e.g., 402"}
                                 />
                             </div>
-                            <button className="btn-save" onClick={addOtherBench} style={{ height: '40px' }}>+ Add Bench</button>
+                            <button className="btn-save" onClick={addOtherBench} style={{ height: '40px' }}>+ Add {isShed ? 'Gang' : 'Bench'}</button>
                         </div>
 
                         {formData.otherBenches.length > 0 && (
@@ -622,7 +626,8 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => {
     );
 };
 
-const TestDetailsModal = ({ sample, onClose, onSave, isModifying }) => {
+const TestDetailsModal = ({ sample, onClose, onSave, isModifying, activeContainer }) => {
+    const isShed = activeContainer?.type === 'Shed';
     const [testData, setTestData] = useState({
         testDate: sample.testDate || new Date().toISOString().split('T')[0],
         testTime: sample.testTime || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
@@ -706,12 +711,12 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying }) => {
                     <div style={{ marginBottom: '20px' }}>
                         <label className="mini-label" style={{ color: '#42818c', fontSize: '11px' }}>PRE-FILLED INFORMATION</label>
                         <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
-                            <div><div style={{ fontSize: '10px', color: '#64748b' }}>Shed No. / Line No.</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.lineNumber}</div></div>
+                            <div><div style={{ fontSize: '10px', color: '#64748b' }}>{isShed ? 'Shed No.' : 'Line No.'}</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.lineNumber}</div></div>
                             <div><div style={{ fontSize: '10px', color: '#64748b' }}>Date of Casting</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.castDate ? sample.castDate.split('-').reverse().join('/') : ''}</div></div>
                             <div><div style={{ fontSize: '10px', color: '#64748b' }}>Batch No.</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.batchNo}</div></div>
                             <div><div style={{ fontSize: '10px', color: '#64748b' }}>LBC Time</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.lbcTime || sample.castTime}</div></div>
                             <div><div style={{ fontSize: '10px', color: '#64748b' }}>Concrete Grade</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.grade}</div></div>
-                            <div><div style={{ fontSize: '10px', color: '#64748b' }}>Other Bench No.</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.otherBenches?.join(', ') || 'N/A'}</div></div>
+                            <div><div style={{ fontSize: '10px', color: '#64748b' }}>Other {isShed ? 'Gang' : 'Bench'} No.</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.otherBenches?.join(', ') || 'N/A'}</div></div>
                         </div>
                     </div>
 

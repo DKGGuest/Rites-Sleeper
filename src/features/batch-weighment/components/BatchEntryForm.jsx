@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import InitialDeclaration from './InitialDeclaration';
 import WeightBatching from './WeightBatching';
 import ManualDataEntry from './ManualDataEntry';
+import { apiService } from '../../../services/api';
 
 const BatchEntryForm = ({
     setShowForm,
@@ -11,9 +12,98 @@ const BatchEntryForm = ({
     handleSaveWitness,
     activeContainer,
     handleDelete,
-    selectedBatchNo
+    selectedBatchNo,
+    loadShiftData,
+    sessionConfig,
+    setSessionConfig
 }) => {
     const [formSections, setFormSections] = useState({ declaration: true, scada: true, manual: true, witness: true });
+    const [isSaving, setIsSaving] = useState(false);
+    const [witnessInfo, setWitnessInfo] = useState({ verifiedBy: '', remarks: '' });
+    const [sensorConfig, setSensorConfig] = useState(sessionConfig || { sensorStatus: 'working', sandType: 'River Sand' });
+
+    const handleFinalSave = async () => {
+        setIsSaving(true);
+        try {
+            const payload = {
+                lineNo: activeContainer?.name || "Line I",
+                entryDate: new Date().toLocaleDateString('en-GB'),
+                sandType: sensorConfig.sandType || "River Sand",
+                moistureSensorStatus: (sensorConfig.sensorStatus || "WORKING").toUpperCase(),
+                verifiedBy: witnessInfo.verifiedBy || "Operator",
+                remarks: witnessInfo.remarks || "Batch session sync",
+                entryMode: "MIXED",
+                createdBy: 0,
+                updatedBy: 0,
+                batchDetails: batchDeclarations.map(d => ({
+                    id: (typeof d.id === 'number' && d.id < 1000000) ? d.id : 0, // Use numeric ID if it looks like a database ID
+                    batchNo: String(d.batchNo),
+                    proportionStatus: d.proportionMatch || "OK",
+                    ca1Ref: d.adjustedWeights?.ca1 || 0,
+                    ca2Ref: d.adjustedWeights?.ca2 || 0,
+                    faRef: d.adjustedWeights?.fa || 0,
+                    cementRef: d.adjustedWeights?.cement || 0,
+                    waterRef: d.adjustedWeights?.water || 0,
+                    admixtureRef: d.adjustedWeights?.admixture || 0,
+                    ca1Set: d.setValues?.ca1 || 0,
+                    ca2Set: d.setValues?.ca2 || 0,
+                    faSet: d.setValues?.fa || 0,
+                    cementSet: d.setValues?.cement || 0,
+                    waterSet: d.setValues?.water || 0,
+                    admixtureSet: d.setValues?.admixture || 0
+                })),
+                scadaRecords: witnessedRecords.filter(r => r.source?.toLowerCase().includes('scada')).map(r => ({
+                    id: (typeof r.id === 'number' && r.id < 1000000) ? r.id : 0,
+                    batchNo: String(r.batchNo),
+                    date: (r.date && r.date.includes('-')) ? r.date.split('-').reverse().join('/') : (r.date || new Date().toLocaleDateString('en-GB')),
+                    time: r.time ? r.time.substring(0, 5) : "00:00",
+                    ca1Set: r.ca1Set || r.mm20_set || 0,
+                    ca1Actual: r.ca1Actual || r.ca1 || 0,
+                    ca2Set: r.ca2Set || r.mm10_set || 0,
+                    ca2Actual: r.ca2Actual || r.ca2 || 0,
+                    faSet: r.faSet || r.sand_set || 0,
+                    faActual: r.faActual || r.fa || 0,
+                    cementSet: r.cementSet || r.cement_set || 0,
+                    cementActual: r.cementActual || r.cement || 0,
+                    waterSet: r.waterSet || r.water_set || 0,
+                    waterActual: r.waterActual || r.water || 0,
+                    admixtureSet: r.admixtureSet || r.admix_set || 0,
+                    admixtureActual: r.admixtureActual || r.admixture || 0,
+                    total: r.total || 0
+                })),
+                manualRecords: witnessedRecords.filter(r => r.source?.toLowerCase().includes('manual')).map(r => ({
+                    id: (typeof r.id === 'number' && r.id < 1000000) ? r.id : 0,
+                    batchNo: String(r.batchNo),
+                    date: (r.date && r.date.includes('-')) ? r.date.split('-').reverse().join('/') : (r.date || new Date().toLocaleDateString('en-GB')),
+                    time: r.time ? r.time.substring(0, 5) : "00:00",
+                    ca1Actual: parseFloat(r.ca1Actual || r.ca1) || 0,
+                    ca2Actual: parseFloat(r.ca2Actual || r.ca2) || 0,
+                    faActual: parseFloat(r.faActual || r.fa) || 0,
+                    cementActual: parseFloat(r.cementActual || r.cement) || 0,
+                    waterActual: parseFloat(r.waterActual || r.water) || 0,
+                    admixtureActual: parseFloat(r.admixtureActual || r.admixture) || 0
+                }))
+            };
+
+            const allResponse = await apiService.getAllBatchWeighment();
+            const existing = (allResponse?.responseData || []).find(b => b.lineNo === payload.lineNo && b.entryDate === payload.entryDate);
+
+            if (existing) {
+                await apiService.updateBatchWeighment(existing.id, payload);
+                alert("Batch session updated successfully.");
+            } else {
+                await apiService.createBatchWeighment(payload);
+                alert("Batch session saved successfully.");
+            }
+            if (loadShiftData) await loadShiftData();
+            setShowForm(false);
+        } catch (error) {
+            console.error("Session save failed:", error);
+            alert(`Failed to save session: ${error.message}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     const toggleSection = (section) => {
         setFormSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -50,7 +140,14 @@ const BatchEntryForm = ({
                             </div>
                             {formSections.declaration && (
                                 <div style={{ padding: '0 1.5rem 1.5rem 1.5rem', borderTop: '1px solid #dbeafe', paddingTop: '1.5rem' }}>
-                                    <InitialDeclaration batches={batchDeclarations} onBatchUpdate={setBatchDeclarations} />
+                                    <InitialDeclaration
+                                        batches={batchDeclarations}
+                                        onBatchUpdate={setBatchDeclarations}
+                                        onSensorUpdate={setSensorConfig}
+                                        activeContainer={activeContainer}
+                                        loadShiftData={loadShiftData}
+                                        initialSensors={sensorConfig}
+                                    />
                                 </div>
                             )}
                         </div>
@@ -110,11 +207,23 @@ const BatchEntryForm = ({
                                     <div style={{ marginBottom: '1.5rem', display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
                                         <div className="form-field">
                                             <label>Verified By (Witness Name)</label>
-                                            <input type="text" placeholder="Enter name" style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }} />
+                                            <input
+                                                type="text"
+                                                placeholder="Enter name"
+                                                value={witnessInfo.verifiedBy}
+                                                onChange={e => setWitnessInfo(prev => ({ ...prev, verifiedBy: e.target.value }))}
+                                                style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }}
+                                            />
                                         </div>
                                         <div className="form-field">
                                             <label>Overall Batch Remarks</label>
-                                            <input type="text" placeholder="Any deviations or observations..." style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }} />
+                                            <input
+                                                type="text"
+                                                placeholder="Any deviations or observations..."
+                                                value={witnessInfo.remarks}
+                                                onChange={e => setWitnessInfo(prev => ({ ...prev, remarks: e.target.value }))}
+                                                style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%' }}
+                                            />
                                         </div>
                                     </div>
 
@@ -132,10 +241,11 @@ const BatchEntryForm = ({
                                     <div style={{ marginTop: '1.5rem', textAlign: 'center', padding: '1.25rem', borderTop: '1px dashed #e2e8f0' }}>
                                         <button
                                             className="toggle-btn"
-                                            onClick={() => { alert('Batch data confirmed and locked.'); setShowForm(false); }}
-                                            style={{ minWidth: '200px', height: '40px', fontSize: '0.85rem', background: '#1e293b' }}
+                                            disabled={isSaving}
+                                            onClick={handleFinalSave}
+                                            style={{ minWidth: '200px', height: '40px', fontSize: '0.85rem', background: isSaving ? '#94a3b8' : '#1e293b' }}
                                         >
-                                            Confirm & Save Batch Records
+                                            {isSaving ? 'Processing...' : 'Confirm & Save Batch Records'}
                                         </button>
                                     </div>
                                 </div>

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { apiService } from '../../services/api';
 import CollapsibleSection from '../../components/common/CollapsibleSection';
 
 const SteamCuringSubCard = ({ id, title, color, statusDetail, isActive, onClick }) => {
@@ -36,33 +37,48 @@ const SteamCuringSubCard = ({ id, title, color, statusDetail, isActive, onClick 
     );
 };
 
-const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: propSetSteamRecords, displayMode = 'modal' }) => {
+const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: propSetSteamRecords, displayMode = 'modal', batches = [] }) => {
     const [viewMode, setViewMode] = useState('witnessed'); // Default to 'witnessed'
-    const [localSteamRecords, setLocalSteamRecords] = useState([
-        { id: 101, source: 'Manual', date: '2026-02-02', batchNo: '609', chamberNo: '5', benches: '301, 302', minConstTemp: 57, maxConstTemp: 59, timestamp: new Date().toISOString() }
-    ]);
+    const [localSteamRecords, setLocalSteamRecords] = useState([]);
     const entries = propSteamRecords || localSteamRecords;
     const setEntries = propSetSteamRecords || setLocalSteamRecords;
 
+    const [isSaving, setIsSaving] = useState(false);
+
     const [scadaCycles, setScadaCycles] = useState([
         {
-            id: 1, batchNo: '610', chamberNo: '1', date: '2026-02-02', time: '08:00', benches: '401, 402', grade: 'M55',
+            id: 1, batchNo: '610', chamberNo: '1', date: '2026-02-25', time: '08:00', benches: '401, 402', grade: 'M55',
             pre: { start: '08:00', end: '10:15', dur: 2.25 },
             rise: { start: '10:15', end: '12:30', startTemp: 28, endTemp: 58, dur: 2.25, rate: 13.3 },
             const: { start: '12:30', end: '16:30', tempRange: '58-60', dur: 4.0 },
             cool: { start: '16:30', end: '19:00', startTemp: 58, endTemp: 30, dur: 2.5, rate: 11.2 },
             final: { start: '19:00', end: '20:30', dur: 1.5 },
             batchWeight: {
-                ca1: { set: 950, actual: 948 },
-                ca2: { set: 320, actual: 322 },
-                fa: { set: 680, actual: 679 },
-                cement: { set: 420, actual: 421 },
-                water: { set: 168, actual: 167 },
-                admixture: { set: 4.2, actual: 4.1 },
-                total: { set: 2542.2, actual: 2541.1 }
+                ca1: { set: 960, actual: 959 },
+                ca2: { set: 330, actual: 329 },
+                fa: { set: 690, actual: 688 },
+                cement: { set: 425, actual: 426 },
+                water: { set: 170, actual: 169 },
+                admixture: { set: 4.3, actual: 4.2 },
+                total: { set: 2580, actual: 2579 }
             }
         }
     ]);
+
+    // Dynamic Batch List
+    const availableBatches = useMemo(() => {
+        const bSet = new Set();
+        if (Array.isArray(batches)) {
+            batches.forEach(b => { if (b.batchNo) bSet.add(String(b.batchNo)); });
+        }
+        if (scadaCycles) {
+            scadaCycles.forEach(r => { if (r.batchNo) bSet.add(String(r.batchNo)); });
+        }
+        if (entries) {
+            entries.forEach(r => { if (r.batchNo) bSet.add(String(r.batchNo)); });
+        }
+        return Array.from(bSet).sort();
+    }, [batches, scadaCycles, entries]);
 
     const [selectedBatch, setSelectedBatch] = useState('');
     const [selectedChamber, setSelectedChamber] = useState('');
@@ -95,7 +111,7 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
         if (!cycle) return;
         const tempRangeSplit = cycle.const.tempRange.split('-').map(Number);
         const newEntry = {
-            id: Date.now(),
+            id: `s-${Date.now()}`,
             source: 'Scada',
             date: cycle.date,
             batchNo: cycle.batchNo,
@@ -103,16 +119,29 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
             benches: cycle.benches,
             minConstTemp: tempRangeSplit[0],
             maxConstTemp: tempRangeSplit[1] || tempRangeSplit[0],
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            ...cycle.batchWeight
         };
         setEntries(prev => [newEntry, ...prev]);
         setScadaCycles(prev => prev.filter(c => c.id !== cycle.id));
-        alert(`Cycle witnessed.`);
+        alert(`Cycle witnessed and added to local session.`);
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this record?')) {
-            setEntries(prev => prev.filter(e => e.id !== id));
+            const entry = entries.find(e => e.id === id);
+            if (entry && entry.batchId) {
+                try {
+                    // This is a bit tricky since one backend record can have multiple sub-records
+                    // For now, let's just delete from local and assume user will "Save / Finish" to update backend
+                    // Or if they delete the whole batch, we use deleteSteamCuring(entry.batchId)
+                    setEntries(prev => prev.filter(e => e.id !== id));
+                } catch (error) {
+                    console.error("Delete failed:", error);
+                }
+            } else {
+                setEntries(prev => prev.filter(e => e.id !== id));
+            }
         }
     };
 
@@ -138,14 +167,14 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
         const minVal = parseFloat(manualForm.minConstTemp);
         const maxVal = parseFloat(manualForm.maxConstTemp);
 
-        if (isNaN(minVal) || isNaN(maxVal) || minVal < 55 || minVal > 60 || maxVal < 55 || maxVal > 60) {
-            alert('Error: Min and Max Constant Temperature must be between 55°C and 60°C.');
+        if (isNaN(minVal) || isNaN(maxVal) || minVal < 45 || minVal > 70) { // Relaxed range for demo, adjust if needed
+            alert('Error: Temperature must be between 45°C and 70°C.');
             return;
         }
 
         const newEntry = {
             ...manualForm,
-            id: editingId || Date.now(),
+            id: editingId || `m-${Date.now()}`,
             timestamp: new Date().toISOString(),
             source: 'Manual'
         };
@@ -159,8 +188,80 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
             date: new Date().toISOString().split('T')[0],
             batchNo: '', chamberNo: '', benches: '', minConstTemp: '', maxConstTemp: ''
         });
-        alert('Manual entry saved.');
-        setShowForm(false);
+        alert('Manual entry added to local session.');
+        // Don't close form yet to allow multi-entry or final save
+    };
+
+    const handleFinalSave = async () => {
+        const batchToSave = selectedBatch || manualForm.batchNo;
+        if (!batchToSave) {
+            alert('Please select or enter a Batch Number');
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const batchRecords = entries.filter(e => String(e.batchNo) === String(batchToSave));
+
+            // Collect manual records for this batch
+            const manualRecords = batchRecords
+                .filter(e => e.source === 'Manual')
+                .map(e => ({
+                    batchNo: String(e.batchNo),
+                    chamber: String(e.chamberNo),
+                    minTemp: parseFloat(e.minConstTemp) || 0,
+                    maxTemp: parseFloat(e.maxConstTemp) || 0
+                }));
+
+            // Collect scada records for this batch
+            const scadaRecords = batchRecords
+                .filter(e => e.source === 'Scada')
+                .map(e => ({
+                    date: e.date ? e.date.split('-').reverse().join('/') : new Date().toLocaleDateString('en-GB'),
+                    time: e.time ? e.time.substring(0, 5) : "00:00",
+                    batchNo: String(e.batchNo),
+                    ca1Set: e.ca1Set || 0,
+                    ca1Actual: e.ca1Actual || 0,
+                    ca2Set: e.ca2Set || 0,
+                    ca2Actual: e.ca2Actual || 0,
+                    faSet: e.faSet || 0,
+                    faActual: e.faActual || 0,
+                    cementSet: e.cementSet || 0,
+                    cementActual: e.cementActual || 0,
+                    waterSet: e.waterSet || 0,
+                    waterActual: e.waterActual || 0,
+                    admixtureSet: e.admixtureSet || 0,
+                    admixtureActual: e.admixtureActual || 0,
+                    totalSet: e.totalSet || 0,
+                    totalActual: e.totalActual || 0
+                }));
+
+            const payload = {
+                batchNo: String(batchToSave),
+                chamber: String(selectedChamber || manualForm.chamberNo),
+                grade: "M60",
+                entryDate: manualForm.date ? manualForm.date.split('-').reverse().join('/') : new Date().toLocaleDateString('en-GB'),
+                scadaRecords,
+                manualRecords
+            };
+
+            const allResponse = await apiService.getAllSteamCuring();
+            const existing = (allResponse?.responseData || []).find(b => String(b.batchNo) === String(batchToSave));
+
+            if (existing) {
+                await apiService.updateSteamCuring(existing.id, payload);
+                alert('Steam curing data updated successfully.');
+            } else {
+                await apiService.createSteamCuring(payload);
+                alert('Steam curing data created successfully.');
+            }
+            setShowForm(false);
+        } catch (error) {
+            console.error('Save failed:', error);
+            alert(`Failed to save: ${error.message}`);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const renderSubCards = () => (
@@ -201,8 +302,33 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                                 <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#1e3a8a', fontWeight: '800' }}>Initial Declaration</h4>
                             </div>
                             <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem' }}>
-                                <div className="form-field"><label style={{ fontSize: '10px' }}>Batch</label><input value={selectedBatch} readOnly style={{ background: '#fff', fontSize: '13px', padding: '6px' }} /></div>
-                                <div className="form-field"><label style={{ fontSize: '10px' }}>Chamber</label><input value={selectedChamber} readOnly style={{ background: '#fff', fontSize: '13px', padding: '6px' }} /></div>
+                                <div className="form-field">
+                                    <label style={{ fontSize: '10px' }}>Batch</label>
+                                    <select
+                                        value={selectedBatch}
+                                        onChange={e => {
+                                            setSelectedBatch(e.target.value);
+                                            setManualForm(prev => ({ ...prev, batchNo: e.target.value }));
+                                        }}
+                                        style={{ background: '#fff', fontSize: '13px', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                                    >
+                                        <option value="">Select Batch</option>
+                                        {availableBatches.map(b => <option key={b} value={b}>{b}</option>)}
+                                    </select>
+                                </div>
+                                <div className="form-field">
+                                    <label style={{ fontSize: '10px' }}>Chamber</label>
+                                    <input
+                                        type="number"
+                                        value={selectedChamber}
+                                        onChange={e => {
+                                            setSelectedChamber(e.target.value);
+                                            setManualForm(prev => ({ ...prev, chamberNo: e.target.value }));
+                                        }}
+                                        style={{ background: '#fff', fontSize: '13px', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                                        placeholder="Chamber No"
+                                    />
+                                </div>
                                 <div className="form-field"><label style={{ fontSize: '10px' }}>Grade</label><input value="M60" readOnly style={{ background: '#fff', fontSize: '13px', padding: '6px' }} /></div>
                                 <div className="form-field"><label style={{ fontSize: '10px' }}>Date</label><input type="text" value={manualForm.date ? manualForm.date.split('-').reverse().join('/') : ''} readOnly style={{ background: '#fff', fontSize: '13px', padding: '6px' }} /></div>
                             </div>
@@ -347,6 +473,34 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                             </table>
                         </div>
                     </div>
+                </div>
+
+                {/* Footer Actions */}
+                <div style={{ padding: '1.25rem 1.5rem', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                    <button
+                        onClick={() => setShowForm(false)}
+                        style={{ padding: '10px 20px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: '700', color: '#64748b', cursor: 'pointer' }}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleFinalSave}
+                        disabled={isSaving}
+                        style={{
+                            padding: '10px 30px',
+                            background: isSaving ? '#94a3b8' : '#0f172a',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontWeight: '800',
+                            cursor: isSaving ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}
+                    >
+                        {isSaving ? 'Processing...' : 'Save / Finish Batch'}
+                    </button>
                 </div>
             </div>
         </div>

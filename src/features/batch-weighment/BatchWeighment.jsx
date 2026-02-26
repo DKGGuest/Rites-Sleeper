@@ -52,9 +52,10 @@ const BatchWeighment = ({
     activeContainer,
     displayMode = 'modal',
     showEntryForm: propsShowForm,
-    setShowEntryForm: propsSetShowForm
+    setShowEntryForm: propsSetShowForm,
+    loadShiftData
 }) => {
-    const { batchDeclarations, setAllBatchDeclarations, witnessedRecords, setAllWitnessedRecords } = sharedState;
+    const { batchDeclarations, setAllBatchDeclarations, sessionConfig, setSessionConfig, witnessedRecords, setAllWitnessedRecords } = sharedState;
     const [viewMode, setViewMode] = useState('witnessed');
     const [localShowForm, setLocalShowForm] = useState(false);
 
@@ -69,32 +70,15 @@ const BatchWeighment = ({
 
     const batchStats = useBatchStats(records, declarations, selectedBatchNo);
 
-    useEffect(() => {
-        const loadHistory = async () => {
-            try {
-                const response = await apiService.getWitnessedRecords();
-                const history = response?.responseData || [];
-                if (history?.length > 0) setAllWitnessedRecords(history);
-            } catch (e) {
-                console.warn("History fetch failed, using local state.");
-            }
-        };
-        loadHistory();
-    }, [setAllWitnessedRecords]);
+    // Load history via ShiftContext's loadShiftData or individual fetch if needed
 
     const handleSaveWitness = async (record) => {
-        try {
-            await apiService.saveWitnessRecord(record);
-        } catch (error) {
-            console.warn("API unavailable, syncing locally.");
-        }
-
         setAllWitnessedRecords(prev => {
             const currentRecords = Array.isArray(prev) ? prev : [];
             const exists = currentRecords.find(r => r.id === record.id);
             return exists ? currentRecords.map(r => r.id === record.id ? record : r) : [record, ...currentRecords];
         });
-        alert('Record saved successfully.');
+        alert('Record added to local session. Click "Confirm & Save" in section 4 to sync with backend.');
     };
 
     const handleDelete = (id) => {
@@ -151,11 +135,14 @@ const BatchWeighment = ({
                             setShowForm={setShowForm}
                             batchDeclarations={declarations}
                             setBatchDeclarations={setAllBatchDeclarations}
+                            sessionConfig={sessionConfig}
+                            setSessionConfig={setSessionConfig}
                             witnessedRecords={records}
                             handleSaveWitness={handleSaveWitness}
                             activeContainer={activeContainer}
                             handleDelete={handleDelete}
                             selectedBatchNo={selectedBatchNo}
+                            loadShiftData={loadShiftData}
                         />
                     )}
                     {renderContent()}
@@ -205,11 +192,14 @@ const BatchWeighment = ({
                             setShowForm={setShowForm}
                             batchDeclarations={declarations}
                             setBatchDeclarations={setAllBatchDeclarations}
+                            sessionConfig={sessionConfig}
+                            setSessionConfig={setSessionConfig}
                             witnessedRecords={records}
                             handleSaveWitness={handleSaveWitness}
                             activeContainer={activeContainer}
                             handleDelete={handleDelete}
                             selectedBatchNo={selectedBatchNo}
+                            loadShiftData={loadShiftData}
                         />
                     )}
                     {renderContent()}

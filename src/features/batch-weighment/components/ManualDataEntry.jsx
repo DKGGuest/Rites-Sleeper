@@ -63,16 +63,10 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
             location: activeContainer?.name || 'N/A'
         };
 
-        try {
-            await apiService.saveWitnessRecord(record);
-            onSave(record);
-            setFormData(defaultFormData);
-            setEditingId(null);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setSaving(false);
-        }
+        onSave(record);
+        setFormData(defaultFormData);
+        setEditingId(null);
+        setSaving(false);
     };
 
     const isRecordEditable = (timestamp) => {
@@ -157,7 +151,7 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
                             <h4 style={{ margin: 0, color: '#1e293b', fontSize: small ? '0.75rem' : '0.9rem', fontWeight: '800' }}>Historical Witnessed Logs</h4>
                         </div>
                         <span style={{ fontSize: small ? '0.65rem' : '0.75rem', color: '#64748b', fontWeight: '700', background: '#fff', padding: small ? '2px 8px' : '4px 12px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
-                            {witnessedRecords.length} Records Found
+                            {witnessedRecords.length} {witnessedRecords.length === 1 ? 'Record' : 'Records'} Found
                         </span>
                     </div>
                     <div className="table-responsive">
@@ -203,24 +197,22 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
                                             </td>
                                             <td data-label="Actions" style={{ fontSize: small ? '0.65rem' : '0.8rem', padding: small ? '0.25rem' : '0.5rem 0.25rem' }}>
                                                 <div style={{ display: 'flex', gap: small ? '4px' : '8px', justifyContent: 'center' }}>
-                                                    {isRecordEditable(record.timestamp || record.id) && (
-                                                        <>
-                                                            <button
-                                                                onClick={() => handleEdit(record)}
-                                                                className="btn-action mini"
-                                                                style={{ padding: small ? '2px 8px' : '4px 10px', fontSize: small ? '0.65rem' : '0.7rem', background: '#3b82f6' }}
-                                                            >
-                                                                Edit
-                                                            </button>
-                                                            <button
-                                                                onClick={() => onDelete(record.id)}
-                                                                className="btn-action danger mini"
-                                                                style={{ padding: small ? '2px 8px' : '4px 10px', fontSize: small ? '0.65rem' : '0.7rem' }}
-                                                            >
-                                                                Delete
-                                                            </button>
-                                                        </>
-                                                    )}
+                                                    <button
+                                                        onClick={() => handleEdit(record)}
+                                                        className="btn-action mini"
+                                                        title="Edit this record"
+                                                        style={{ padding: small ? '2px 8px' : '4px 10px', fontSize: small ? '0.65rem' : '0.7rem', background: '#3b82f6', color: '#fff' }}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => onDelete(record.id)}
+                                                        className="btn-action danger mini"
+                                                        title="Delete this record"
+                                                        style={{ padding: small ? '2px 8px' : '4px 10px', fontSize: small ? '0.65rem' : '0.7rem', background: '#ef4444', color: '#fff' }}
+                                                    >
+                                                        Delete
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
