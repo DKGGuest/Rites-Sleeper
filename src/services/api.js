@@ -22,6 +22,7 @@ api.interceptors.response.use(
 export const apiService = {
     // ================= Moisture Analysis =================
     getAllMoistureAnalysis: () => api.get('/MoistureAnalysis/all'),
+    getMoistureAnalysisById: (id) => api.get(`/MoistureAnalysis/${id}`),
     createMoistureAnalysis: (payload) => api.post('/MoistureAnalysis/create', payload),
     updateMoistureAnalysis: (id, payload) => api.put(`/MoistureAnalysis/update/${id}`, payload),
     deleteMoistureAnalysis: (id) => api.delete(`/MoistureAnalysis/delete/${id}`),
@@ -42,6 +43,7 @@ export const apiService = {
 
     // ================= Mould Preparation =================
     getAllMouldPreparations: () => api.get('/MouldPreparation/all'),
+    getMouldPreparationById: (id) => api.get(`/MouldPreparation/${id}`),
     createMouldPreparation: (data) => api.post('/MouldPreparation/create', data),
     updateMouldPreparation: (id, payload) => api.put(`/MouldPreparation/update/${id}`, payload),
     deleteMouldPreparation: (id) => api.delete(`/MouldPreparation/delete/${id}`),

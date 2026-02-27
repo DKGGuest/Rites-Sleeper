@@ -243,6 +243,7 @@ const SleeperProcessDuty = () => {
                                 steamRecords={steamRecords}
                                 setSteamRecords={setSteamRecords}
                                 batches={batchDeclarations}
+                                activeContainer={activeContainer}
                             />
                         </div>
                     )}
@@ -339,6 +340,7 @@ const SleeperProcessDuty = () => {
                                 steamRecords={steamRecords}
                                 setSteamRecords={setSteamRecords}
                                 batches={batchDeclarations}
+                                activeContainer={activeContainer}
                             />
                         ) : activeTab === 'Steam Cube Testing' ? (
                             <SteamCubeTesting

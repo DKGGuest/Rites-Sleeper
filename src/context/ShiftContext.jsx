@@ -21,6 +21,8 @@ export const ShiftProvider = ({ children }) => {
     const [allTensionRecords, setAllTensionRecords] = useState({ 1: [] });
     const [allBatchDeclarations, setAllBatchDeclarations] = useState({ 1: [] });
     const [allSessionConfigs, setAllSessionConfigs] = useState({ 1: { sandType: 'River Sand', sensorStatus: 'working' } });
+    const [sharedBatchNo, setSharedBatchNo] = useState('');
+    const [sharedBenchNo, setSharedBenchNo] = useState('');
     const [allCompactionRecords, setAllCompactionRecords] = useState({ 1: [] });
     const [htsData, setHtsData] = useState([]);
     const [manualCheckEntries, setManualCheckEntries] = useState({
@@ -324,6 +326,10 @@ export const ShiftProvider = ({ children }) => {
         containerValues,
         handleAddContainer,
         handleDeleteContainer,
+        sharedBatchNo,
+        setSharedBatchNo,
+        sharedBenchNo,
+        setSharedBenchNo,
         loadShiftData
     };
 

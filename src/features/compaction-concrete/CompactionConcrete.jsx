@@ -107,20 +107,45 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
         }
     };
 
-    const handleEdit = (entry) => {
-        setEditingId(entry.id);
-        setManualForm({
-            date: entry.date,
-            time: entry.time,
-            batchNo: entry.batchNo,
-            benchNo: entry.benchNo,
-            tachoCount: entry.tachoCount,
-            workingTachos: entry.workingTachos,
-            minRpm: entry.minRpm,
-            maxRpm: entry.maxRpm,
-            duration: entry.duration
-        });
-        setShowForm(true);
+    const handleEdit = async (entry) => {
+        try {
+            let fetchedData = entry;
+            // Check if it's a real backend numeric ID (vibration records might use Date.now() for local ones)
+            if (entry.id && !isNaN(entry.id) && !String(entry.id).includes('-')) {
+                const response = await apiService.getCompactionById(entry.id);
+                fetchedData = response?.responseData || entry;
+            }
+
+            setEditingId(fetchedData.id);
+            setManualForm({
+                date: fetchedData.date,
+                time: fetchedData.time,
+                batchNo: fetchedData.batchNo,
+                benchNo: fetchedData.benchNo,
+                tachoCount: fetchedData.tachoCount,
+                workingTachos: fetchedData.workingTachos,
+                minRpm: fetchedData.minRpm,
+                maxRpm: fetchedData.maxRpm,
+                duration: fetchedData.duration
+            });
+            setShowForm(true);
+        } catch (error) {
+            console.error("Error fetching compaction details:", error);
+            // Fallback
+            setEditingId(entry.id);
+            setManualForm({
+                date: entry.date,
+                time: entry.time,
+                batchNo: entry.batchNo,
+                benchNo: entry.benchNo,
+                tachoCount: entry.tachoCount,
+                workingTachos: entry.workingTachos,
+                minRpm: entry.minRpm,
+                maxRpm: entry.maxRpm,
+                duration: entry.duration
+            });
+            setShowForm(true);
+        }
     };
 
     const handleFinalSave = async () => {

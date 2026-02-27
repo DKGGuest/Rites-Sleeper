@@ -37,26 +37,6 @@ export const WaterCubeStats = () => {
                     <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#1e293b', margin: 0 }}>Cube Integrity Analytics</h3>
                     <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0 0 0' }}>Real-time strength metrics and testing readiness tracking</p>
                 </div>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                    <div className="filter-group">
-                        <select
-                            className="dash-select"
-                            style={{ padding: '6px 12px', fontSize: '12px' }}
-                            value={filters.grade}
-                            onChange={(e) => setFilters({ ...filters, grade: e.target.value })}
-                        >
-                            <option>All Grades</option>
-                            <option>M55</option>
-                            <option>M60</option>
-                        </select>
-                    </div>
-                    <input
-                        type="date"
-                        className="dash-select"
-                        style={{ padding: '6px 12px', fontSize: '12px' }}
-                        onChange={(e) => setFilters({ ...filters, dateRange: e.target.value })}
-                    />
-                </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '16px' }}>

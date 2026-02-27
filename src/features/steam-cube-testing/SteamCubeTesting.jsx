@@ -78,10 +78,23 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
         setShowDeclareModal(true);
     };
 
-    const handleModifySample = (sample) => {
-        setSelectedSample(sample);
-        setIsModifying(true);
-        setShowDeclareModal(true);
+    const handleModifySample = async (sample) => {
+        try {
+            let fetchedData = sample;
+            // Only fetch from backend if ID is a real numeric ID (not a local timestamp or string)
+            if (sample.id && !isNaN(sample.id) && !String(sample.id).includes('-')) {
+                const response = await apiService.getSteamCubeById(sample.id);
+                fetchedData = response?.responseData || sample;
+            }
+            setSelectedSample(fetchedData);
+            setIsModifying(true);
+            setShowDeclareModal(true);
+        } catch (error) {
+            console.error("Error fetching steam cube declaration details:", error);
+            setSelectedSample(sample);
+            setIsModifying(true);
+            setShowDeclareModal(true);
+        }
     };
 
     const handleEnterTestDetails = (sample) => {
@@ -94,11 +107,11 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
             const payload = {
                 ...formData,
                 castDate: formatDateForBackend(formData.castDate),
-                // Transform otherBenches from [1, 2] to [{benchNo: "1"}, {benchNo: "2"}]
-                otherBenches: (formData.otherBenches || []).map(bench => ({
-                    benchNo: String(bench),
-                    sleeperSequence: "",
-                    cubeCode: ""
+                // cubes transformed for backend
+                cubes: (formData.cubes || []).map(cube => ({
+                    benchNo: String(cube.benchNo),
+                    sleeperSequence: String(cube.sequence),
+                    cubeCode: String(cube.cubeNo)
                 }))
             };
 
@@ -115,10 +128,23 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
         }
     };
 
-    const handleEditTest = (record) => {
-        setSelectedSample(record);
-        setIsModifying(true);
-        setShowTestModal(true);
+    const handleEditTest = async (record) => {
+        try {
+            let fetchedData = record;
+            // Only fetch from backend if ID is a real numeric ID (not a local timestamp or string)
+            if (record.id && !isNaN(record.id) && !String(record.id).includes('-')) {
+                const response = await apiService.getSteamCubeById(record.id);
+                fetchedData = response?.responseData || record;
+            }
+            setSelectedSample(fetchedData);
+            setIsModifying(true);
+            setShowTestModal(true);
+        } catch (error) {
+            console.error("Error fetching steam cube test details:", error);
+            setSelectedSample(record);
+            setIsModifying(true);
+            setShowTestModal(true);
+        }
     };
 
     const saveTestDetails = async (testData) => {
@@ -160,7 +186,6 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
     const columnsDeclared = [
         { key: 'lineNumber', label: activeContainer?.type === 'Shed' ? 'Shed No.' : 'Line No.' },
         { key: 'batchNo', label: 'Batch No.' },
-        { key: 'chamberNo', label: activeContainer?.type === 'Shed' ? 'Shed Area' : 'Chamber No.' },
         {
             key: 'castDateTime',
             label: 'Date & Time of Casting',
@@ -174,11 +199,10 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
         },
         {
             key: 'benches',
-            label: activeContainer?.type === 'Shed' ? 'Gangs in Shed' : 'Benches in Chamber',
+            label: activeContainer?.type === 'Shed' ? 'Gangs in Shed' : 'Benches Involved',
             render: (_, row) => {
                 const allBenches = [...new Set([
-                    ...row.cubes.map(c => c.benchNo),
-                    ...(row.otherBenches || [])
+                    ...(row.cubes || []).map(c => c.benchNo)
                 ])].sort((a, b) => a - b);
                 return allBenches.join(', ');
             }
@@ -203,7 +227,6 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
     const columnsTested = [
         { key: 'lineNumber', label: activeContainer?.type === 'Shed' ? 'Shed No.' : 'Line No.' },
         { key: 'batchNo', label: 'Batch No.' },
-        { key: 'chamberNo', label: activeContainer?.type === 'Shed' ? 'Shed Area' : 'Chamber No.' },
         { key: 'grade', label: 'Concrete Grade' },
         {
             key: 'castDateTime',
@@ -404,19 +427,18 @@ const StatCard = ({ label, value, unit = '', color = '#1e293b' }) => (
 const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave, activeContainer }) => {
     const isShed = activeContainer?.type === 'Shed';
 
-    const [formData, setFormData] = useState(sample || {
-        lineNumber: activeContainer?.name || 'Line-1', // Auto from active container
-        castDate: new Date().toISOString().split('T')[0],
-        batchNo: '',
-        lbcTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-        grade: '',
-        cubes: [],
-        chamberNo: '',
-        otherBenches: []
+    const [formData, setFormData] = useState({
+        ...(sample || {
+            castDate: new Date().toISOString().split('T')[0],
+            batchNo: '',
+            lbcTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+            grade: '',
+            cubes: []
+        }),
+        lineNumber: activeContainer?.name || sample?.lineNumber || 'Line-1'
     });
 
     const [currentCube, setCurrentCube] = useState({ benchNo: '', sequence: '' });
-    const [otherBenchInput, setOtherBenchInput] = useState('');
 
     const addCube = () => {
         if (currentCube.benchNo && currentCube.sequence) {
@@ -433,23 +455,6 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave, activeCo
         setFormData({
             ...formData,
             cubes: formData.cubes.filter((_, i) => i !== index)
-        });
-    };
-
-    const addOtherBench = () => {
-        if (otherBenchInput && !formData.otherBenches.includes(parseInt(otherBenchInput))) {
-            setFormData({
-                ...formData,
-                otherBenches: [...formData.otherBenches, parseInt(otherBenchInput)]
-            });
-            setOtherBenchInput('');
-        }
-    };
-
-    const removeOtherBench = (bench) => {
-        setFormData({
-            ...formData,
-            otherBenches: formData.otherBenches.filter(b => b !== bench)
         });
     };
 
@@ -486,10 +491,6 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave, activeCo
                                 <option>M-55</option>
                                 <option>M-60</option>
                             </select>
-                        </div>
-                        <div className="input-group">
-                            <label>{isShed ? 'Shed Area / Location' : 'Chamber No.'} <span style={{ fontSize: '9px', color: '#94a3b8' }}>{isShed ? '' : '(for Stress Bench)'}</span></label>
-                            <input type={isShed ? 'text' : 'number'} min="0" value={formData.chamberNo} onChange={e => setFormData({ ...formData, chamberNo: e.target.value })} />
                         </div>
                     </div>
 
@@ -553,58 +554,6 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave, activeCo
                         )}
                     </div>
 
-                    {/* Other Benches Section */}
-                    <div style={{ marginTop: '16px', padding: '20px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                        <h4 style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#475569', fontWeight: '700' }}>Other {isShed ? 'Gang' : 'Bench'} No. Present in {isShed ? 'Shed' : 'Chamber'}</h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'end' }}>
-                            <div className="input-group">
-                                <label>{isShed ? 'Gang No.' : 'Bench No.'}</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    value={otherBenchInput}
-                                    onChange={e => setOtherBenchInput(e.target.value)}
-                                    placeholder={isShed ? "e.g., 202" : "e.g., 402"}
-                                />
-                            </div>
-                            <button className="btn-save" onClick={addOtherBench} style={{ height: '40px' }}>+ Add {isShed ? 'Gang' : 'Bench'}</button>
-                        </div>
-
-                        {formData.otherBenches.length > 0 && (
-                            <div style={{ marginTop: '16px' }}>
-                                <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', marginBottom: '8px', display: 'block' }}>Other Benches:</label>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                                    {formData.otherBenches.map((bench, idx) => (
-                                        <div key={idx} style={{
-                                            background: '#f8fafc',
-                                            padding: '8px 12px',
-                                            borderRadius: '8px',
-                                            border: '1px solid #e2e8f0',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '8px'
-                                        }}>
-                                            <span style={{ fontWeight: '700', color: '#1e293b' }}>{bench}</span>
-                                            <button
-                                                onClick={() => removeOtherBench(bench)}
-                                                style={{
-                                                    background: '#fee2e2',
-                                                    color: '#ef4444',
-                                                    border: 'none',
-                                                    borderRadius: '4px',
-                                                    padding: '2px 6px',
-                                                    fontSize: '10px',
-                                                    cursor: 'pointer',
-                                                    fontWeight: '700'
-                                                }}
-                                            >×</button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        <p style={{ fontSize: '9px', color: '#94a3b8', marginTop: '8px', marginBottom: 0 }}>Can be auto-fetched from SCADA data</p>
-                    </div>
 
                     <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
                         <button
@@ -716,7 +665,6 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying, activeContaine
                             <div><div style={{ fontSize: '10px', color: '#64748b' }}>Batch No.</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.batchNo}</div></div>
                             <div><div style={{ fontSize: '10px', color: '#64748b' }}>LBC Time</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.lbcTime || sample.castTime}</div></div>
                             <div><div style={{ fontSize: '10px', color: '#64748b' }}>Concrete Grade</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.grade}</div></div>
-                            <div><div style={{ fontSize: '10px', color: '#64748b' }}>Other {isShed ? 'Gang' : 'Bench'} No.</div><div style={{ fontWeight: '700', fontSize: '13px' }}>{sample.otherBenches?.join(', ') || 'N/A'}</div></div>
                         </div>
                     </div>
 

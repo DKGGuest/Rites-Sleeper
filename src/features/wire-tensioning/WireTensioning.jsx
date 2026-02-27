@@ -293,22 +293,49 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
         }));
     };
 
-    const handleEdit = (record) => {
-        setFormData({
-            time: record.time,
-            batchNo: record.batchNo,
-            benchNo: record.benchNo,
-            wireLength: record.wireLength || '',
-            crossSection: record.crossSection || '',
-            modulus: record.modulus || '',
-            measuredElongation: record.measuredElongation || '',
-            forceElongation: record.forceElongation || '',
-            totalLoad: record.totalLoad || '',
-            finalLoad: record.finalLoad,
-            type: record.type || 'RT-1234'
-        });
-        setEditId(record.id);
-        if (setShowForm) setShowForm(true); else setViewMode('form');
+    const handleEdit = async (record) => {
+        try {
+            let fetchedData = record;
+            // Only fetch from backend if ID is a real numeric ID (not a local timestamp or string)
+            if (record.id && !isNaN(record.id) && !String(record.id).includes('-')) {
+                const response = await apiService.getWireTensioningById(record.id);
+                fetchedData = response?.responseData || record;
+            }
+
+            setFormData({
+                time: fetchedData.time,
+                batchNo: fetchedData.batchNo,
+                benchNo: fetchedData.benchNo,
+                wireLength: fetchedData.wireLength || '',
+                crossSection: fetchedData.crossSection || '',
+                modulus: fetchedData.modulus || '',
+                measuredElongation: fetchedData.measuredElongation || '',
+                forceElongation: fetchedData.forceElongation || '',
+                totalLoad: fetchedData.totalLoad || '',
+                finalLoad: fetchedData.finalLoad,
+                type: fetchedData.type || 'RT-1234'
+            });
+            setEditId(fetchedData.id);
+            if (setShowForm) setShowForm(true); else setViewMode('form');
+        } catch (error) {
+            console.error("Error fetching wire tensioning details:", error);
+            // Fallback
+            setFormData({
+                time: record.time,
+                batchNo: record.batchNo,
+                benchNo: record.benchNo,
+                wireLength: record.wireLength || '',
+                crossSection: record.crossSection || '',
+                modulus: record.modulus || '',
+                measuredElongation: record.measuredElongation || '',
+                forceElongation: record.forceElongation || '',
+                totalLoad: record.totalLoad || '',
+                finalLoad: record.finalLoad,
+                type: record.type || 'RT-1234'
+            });
+            setEditId(record.id);
+            if (setShowForm) setShowForm(true); else setViewMode('form');
+        }
     };
 
     const renderCards = () => (

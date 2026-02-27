@@ -22,30 +22,50 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleEdit = (record) => {
-        setFormData({
-            date: record.date || new Date().toISOString().split('T')[0],
-            time: record.time,
-            batchNo: record.batchNo,
-            ca1: record.ca1, ca2: record.ca2, fa: record.fa,
-            cement: record.cement, water: record.water, admixture: record.admixture
-        });
-        setEditingId(record.id);
-
-        // Scroll to form and add visual highlight
-        setTimeout(() => {
-            const manualSection = document.getElementById('manual-entry-section');
-            if (manualSection) {
-                manualSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                // Add temporary highlight
-                manualSection.style.border = '3px solid #fbbf24';
-                manualSection.style.borderRadius = '12px';
-                setTimeout(() => {
-                    manualSection.style.border = '';
-                    manualSection.style.borderRadius = '';
-                }, 2000);
+    const handleEdit = async (record) => {
+        try {
+            let fetchedData = record;
+            // Only fetch from backend if ID is a real numeric ID (not a local timestamp or string)
+            if (record.id && !isNaN(record.id) && !String(record.id).includes('-')) {
+                const response = await apiService.getBatchWeighmentById(record.id);
+                fetchedData = response?.responseData || record;
             }
-        }, 100);
+
+            setFormData({
+                date: fetchedData.date || new Date().toISOString().split('T')[0],
+                time: fetchedData.time,
+                batchNo: fetchedData.batchNo,
+                ca1: fetchedData.ca1, ca2: fetchedData.ca2, fa: fetchedData.fa,
+                cement: fetchedData.cement, water: fetchedData.water, admixture: fetchedData.admixture
+            });
+            setEditingId(fetchedData.id);
+
+            // Scroll to form and add visual highlight
+            setTimeout(() => {
+                const manualSection = document.getElementById('manual-entry-section');
+                if (manualSection) {
+                    manualSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Add temporary highlight
+                    manualSection.style.border = '3px solid #fbbf24';
+                    manualSection.style.borderRadius = '12px';
+                    setTimeout(() => {
+                        manualSection.style.border = '';
+                        manualSection.style.borderRadius = '';
+                    }, 2000);
+                }
+            }, 100);
+        } catch (error) {
+            console.error("Error fetching batch weighment details:", error);
+            // Fallback
+            setFormData({
+                date: record.date || new Date().toISOString().split('T')[0],
+                time: record.time,
+                batchNo: record.batchNo,
+                ca1: record.ca1, ca2: record.ca2, fa: record.fa,
+                cement: record.cement, water: record.water, admixture: record.admixture
+            });
+            setEditingId(record.id);
+        }
     };
 
     const handleSave = async () => {

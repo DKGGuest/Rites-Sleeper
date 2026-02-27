@@ -130,13 +130,18 @@ const HTS_TABLE_MAPPING = [
 
 const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMode, sharedState, initialEditData, isInline = false }) => {
     const { entries, setEntries } = sharedState;
-    const { loadShiftData } = useShift();
+    const { loadShiftData, sharedBatchNo, setSharedBatchNo, sharedBenchNo, setSharedBenchNo } = useShift();
     const [viewMode, setViewMode] = useState(initialViewMode === 'form' ? 'form' : 'dashboard');
     const [activeModule, setActiveModule] = useState(initialSubModule || 'mouldPrep');
     const [editingEntry, setEditingEntry] = useState(initialEditData || null);
 
     const isLongLine = activeContainer?.type === 'Line';
     const fieldLabel = isLongLine ? 'Gang' : 'Bench';
+
+    const handleShiftFieldChange = (field, value) => {
+        if (field === 'batchNo') setSharedBatchNo(value);
+        if (field === 'benchNo') setSharedBenchNo(value);
+    };
 
     useEffect(() => {
         if (initialSubModule) setActiveModule(initialSubModule);
@@ -251,6 +256,27 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
 
 
 
+    const handleModify = async (mod, entry) => {
+        try {
+            let response;
+            // Only fetch from backend if ID is a real numeric ID (not a local timestamp or string)
+            if (entry.id && !isNaN(entry.id) && !String(entry.id).includes('-')) {
+                if (mod === 'mouldPrep') response = await apiService.getMouldPreparationById(entry.id);
+                else if (mod === 'htsWire') response = await apiService.getHtsWirePlacementById(entry.id);
+                else if (mod === 'demoulding') response = await apiService.getDemouldingInspectionById(entry.id);
+            }
+
+            const fetchedData = response?.responseData || entry;
+            setEditingEntry(fetchedData);
+            setViewMode('form');
+        } catch (error) {
+            console.error(`Error fetching ${mod} details:`, error);
+            // Fallback to local entry if API fails
+            setEditingEntry(entry);
+            setViewMode('form');
+        }
+    };
+
     const renderLogs = (mod) => {
         const records = entries[mod] || [];
         return (
@@ -278,9 +304,10 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                                             <>
                                                 <th style={{ width: '80px', background: '#fffbeb' }}>Location</th>
                                                 <th style={{ background: '#fffbeb' }}>Date</th>
-                                                <th style={{ background: '#fffbeb' }}>Batch</th>
                                                 {mod === 'demoulding' ? (
                                                     <>
+                                                        <th style={{ background: '#fffbeb' }}>Time</th>
+                                                        <th style={{ background: '#fffbeb' }}>Batch</th>
                                                         <th style={{ background: '#fffbeb' }}>Bench No.</th>
                                                         <th style={{ background: '#fffbeb' }}>Sleeper Type</th>
                                                         <th style={{ background: '#fffbeb' }}>Casting</th>
@@ -357,6 +384,13 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                                                         {formatDate(entry.inspectionDate || entry.checkingDate || (entry.createdDate ? entry.createdDate.split('T')[0] : entry.date))}
                                                     </div>
                                                 </td>
+                                                {mod === 'demoulding' && (
+                                                    <td>
+                                                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b' }}>
+                                                            {extractTime(entry.inspectionTime || entry.checkingTime || entry.checkedTime || entry.createdDate)}
+                                                        </div>
+                                                    </td>
+                                                )}
                                                 <td>
                                                     <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '700' }}>
                                                         {entry.batchNo || entry.batch || '-'}
@@ -387,7 +421,7 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                                         )}
                                         <td className="text-center">
                                             <div className="btn-group-center">
-                                                <button className="btn-action mini" onClick={() => { setEditingEntry(entry); setViewMode('form'); }}>Modify</button>
+                                                <button className="btn-action mini" onClick={() => handleModify(mod, entry)}>Modify</button>
                                                 <button className="btn-action mini danger" onClick={() => handleDelete(mod, entry.id)}>Delete</button>
                                             </div>
                                         </td>
@@ -459,6 +493,9 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                                 existingEntries={entries.mouldPrep}
                                 initialData={editingEntry}
                                 activeContainer={activeContainer}
+                                sharedBatchNo={sharedBatchNo}
+                                sharedBenchNo={sharedBenchNo}
+                                onShiftFieldChange={handleShiftFieldChange}
                             />
                         )}
                         {activeModule === 'htsWire' && (
@@ -469,6 +506,9 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                                 existingEntries={entries.htsWire}
                                 initialData={editingEntry}
                                 activeContainer={activeContainer}
+                                sharedBatchNo={sharedBatchNo}
+                                sharedBenchNo={sharedBenchNo}
+                                onShiftFieldChange={handleShiftFieldChange}
                             />
                         )}
                         {activeModule === 'demoulding' && (
@@ -479,6 +519,9 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                                 existingEntries={entries.demoulding}
                                 initialData={editingEntry}
                                 activeContainer={activeContainer}
+                                sharedBatchNo={sharedBatchNo}
+                                sharedBenchNo={sharedBenchNo}
+                                onShiftFieldChange={handleShiftFieldChange}
                             />
                         )}
                     </div>

@@ -155,6 +155,11 @@
     background: white;
 }
 
+.form-input-error {
+    border-color: #ef4444 !important;
+    background-color: #fef2f2 !important;
+}
+
 @media (max-width: 768px) {
     .sub-cards-grid {
         grid-template-columns: 1fr;
