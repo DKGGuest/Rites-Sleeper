@@ -270,6 +270,7 @@ const IncomingVerificationDashboard = () => {
                     <EnhancedDataTable
                         columns={getMainColumns(selectedMaterial)}
                         data={currentData}
+                        selectable={false}
                         emptyMessage={`No ${statusFilter === 'Unverified' ? 'pending' : statusFilter.toLowerCase()} records found for ${materials.find(m => m.id === selectedMaterial).title}.`}
                     />
                 </div>

@@ -142,7 +142,10 @@ const AggregateTesting = ({ onBack }) => {
         <div className="aggregate-testing-root cement-forms-scope fade-in">
             <div className="content-title-row" style={{ marginBottom: '24px' }}>
                 <h2 style={{ margin: 0 }}>Aggregate Quality Control</h2>
-                <button className="toggle-btn secondary mini" onClick={onBack}>Back to Dashboard</button>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                    <button className="toggle-btn mini" onClick={() => { setActiveFormSection(1); setShowForm(true); }}>+ Add New</button>
+                    <button className="toggle-btn secondary mini" onClick={onBack}>Back to Dashboard</button>
+                </div>
             </div>
 
             <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap' }}>
@@ -190,7 +193,7 @@ const AggregateTesting = ({ onBack }) => {
 
             {showForm && (
                 <div className="form-modal-overlay" onClick={() => setShowForm(false)}>
-                    <div className="form-modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1000px' }}>
+                    <div className="form-modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '80%', width: '80%' }}>
                         <div className="form-modal-header">
                             <span className="form-modal-header-title">Aggregate Quality Test Record</span>
                             <button className="form-modal-close" onClick={() => setShowForm(false)}>✕</button>

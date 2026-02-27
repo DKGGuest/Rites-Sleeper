@@ -1,22 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import '../../../components/common/Checkbox.css';
 
-const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initialData, activeContainer }) => {
+const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initialData, activeContainer, sharedBatchNo, sharedBenchNo, onShiftFieldChange }) => {
     // 1. Exact State Mapping as requested by User
-    const getLocalISOString = (isDateOnly = false) => {
-        const now = new Date();
-        const offset = now.getTimezoneOffset() * 60000;
-        const local = (new Date(now - offset)).toISOString();
-        return isDateOnly ? local.slice(0, 10) : local.slice(0, 16);
+    // Helper for safe date/time (Forcing Asia/Kolkata to stop 12:54/UTC issues)
+    const getSafeToday = () => {
+        try {
+            return new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Kolkata',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).format(new Date()); // Returns YYYY-MM-DD
+        } catch (e) {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+    };
+
+    const getSafeNowTime = () => {
+        try {
+            return new Intl.DateTimeFormat('en-GB', {
+                timeZone: 'Asia/Kolkata',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            }).format(new Date());
+        } catch (e) {
+            const d = new Date();
+            return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        }
     };
 
     const [formData, setFormData] = useState({
         location: activeContainer?.name || 'N/A',
-        dateTime: getLocalISOString(true),
-        batch: '',
-        gangNo: '',
+        inspectionDate: getSafeToday(),
+        inspectionTime: getSafeNowTime(),
+        batch: sharedBatchNo || '',
+        gangNo: sharedBenchNo || '',
         type: '',
-        casting: getLocalISOString(true),
+        casting: getSafeToday(),
         process: '',
         visualCheck: 'All OK',
         dimCheck: 'All OK',
@@ -36,7 +59,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
     };
 
     const formatDateTimeForInput = (dt, time) => {
-        if (!dt) return getLocalISOString();
+        if (!dt) return "";
         if (dt.includes('T')) return dt.substring(0, 16);
         const datePart = formatFromBackendDatePart(dt);
         const timePart = time || '00:00';
@@ -44,7 +67,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
     };
 
     const formatDateForInput = (d) => {
-        if (!d) return getLocalISOString(true);
+        if (!d) return "";
         if (d.includes('T')) return d.substring(0, 10);
         return d;
     };
@@ -52,14 +75,16 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
     // 5. Modify Must Spread Full Row
     useEffect(() => {
         if (initialData) {
+            console.log("Fetched Time:", initialData.inspectionTime);
             setFormData({
                 ...initialData,
                 location: initialData.lineShedNo || initialData.location || activeContainer?.name || 'N/A',
-                dateTime: formatFromBackendDatePart(initialData.inspectionDate || (initialData.dateTime ? initialData.dateTime.split('T')[0] : '') || initialData.date || ''),
+                inspectionDate: formatFromBackendDatePart(initialData.inspectionDate || (initialData.dateTime ? initialData.dateTime.split('T')[0] : '') || initialData.date || ''),
+                inspectionTime: initialData.inspectionTime?.slice(0, 5) || "",
                 batch: initialData.batch || initialData.batchNo || '',
                 gangNo: initialData.gangNo || initialData.benchNo || '',
                 type: initialData.sleeperType || initialData.type || '',
-                casting: formatDateForInput(initialData.castingDate || initialData.casting || initialData.dateOfCasting),
+                casting: formatFromBackendDatePart(initialData.castingDate || initialData.casting || initialData.dateOfCasting),
                 process: initialData.processStatus || initialData.process || '',
                 visualCheck: initialData.visualCheck || 'All OK',
                 dimCheck: initialData.dimCheck || 'All OK',
@@ -73,9 +98,15 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                     defectType: d.visualReason ? "Visual" : (d.dimReason ? "Dimensional" : "")
                 }))
             });
-            console.log('📋 DemouldingForm - Prefilled with Schema-aware mapping:', initialData);
+        } else {
+            // sync with shared shift data
+            setFormData(prev => ({
+                ...prev,
+                batch: sharedBatchNo || prev.batch,
+                gangNo: sharedBenchNo || prev.gangNo
+            }));
         }
-    }, [initialData, activeContainer]);
+    }, [initialData, activeContainer, sharedBatchNo, sharedBenchNo]);
 
     // Auto-Type logic
     useEffect(() => {
@@ -94,6 +125,10 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
             }
             return newState;
         });
+
+        // 🔥 Shared Shift logic: Update parent state when batch or bench changes
+        if (field === 'batch') onShiftFieldChange('batchNo', value);
+        if (field === 'gangNo') onShiftFieldChange('benchNo', value);
     };
 
     const formatToBackendDate = (dateStr) => {
@@ -112,10 +147,6 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
         }
 
         // Transform defective sleepers for backend sub-object
-        // "make sure defect in visual and dimesnion id not compuslory"
-        // BACKEND UPDATE: The backend returned "Defective sleeper details required".
-        // This implies the list cannot be truly empty. We send a dummy object with empty strings.
-        // Sanitize defective sleepers based on top-level check status
         const mappedDefectiveSleepers = formData.defectiveSleeperDetails.length > 0
             ? formData.defectiveSleeperDetails.map(item => ({
                 benchGangNo: String(item.benchNo || ""),
@@ -133,11 +164,14 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                 dimReason: ""
             }];
 
+        console.log("Saving Date:", formData.inspectionDate);
+        console.log("Saving Time:", formData.inspectionTime);
+
         // Payload matching demoulding-inspection-controller schema exactly
         const payload = {
             lineShedNo: formData.location || activeContainer?.name || 'N/A',
-            inspectionDate: formatToBackendDate(formData.dateTime),
-            inspectionTime: '00:00',
+            inspectionDate: formatToBackendDate(formData.inspectionDate),
+            inspectionTime: formData.inspectionTime,
             castingDate: formatToBackendDate(formData.casting),
             batchNo: parseInt(formData.batch) || 0,
             benchNo: parseInt(formData.gangNo) || 0,
@@ -153,10 +187,11 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
 
         onSave(payload);
 
-        // Reset
+        // Reset non-shared fields
         setFormData(prev => ({
             ...prev,
-            gangNo: '',
+            inspectionDate: getSafeToday(),
+            inspectionTime: getSafeNowTime(),
             process: '',
             visualCheck: 'All OK',
             dimCheck: 'All OK',
@@ -204,13 +239,25 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
 
                 {/* 2. Properly Bound using VALUE and ONCHANGE */}
                 <div className="form-field">
-                    <label htmlFor="dim-dateTime" style={{ fontSize: '11px', fontWeight: '700' }}>Date <span className="required">*</span></label>
+                    <label htmlFor="dim-inspectionDate" style={{ fontSize: '11px', fontWeight: '700' }}>Date <span className="required">*</span></label>
                     <input
-                        id="dim-dateTime"
+                        id="dim-inspectionDate"
                         type="date"
                         className="form-input-standard"
-                        value={formData.dateTime}
-                        onChange={e => handleChange('dateTime', e.target.value)}
+                        value={formData.inspectionDate}
+                        onChange={e => handleChange('inspectionDate', e.target.value)}
+                    />
+                </div>
+
+                <div className="form-field">
+                    <label htmlFor="dim-inspectionTime" style={{ fontSize: '11px', fontWeight: '700' }}>Time <span className="required">*</span></label>
+                    <input
+                        id="dim-inspectionTime"
+                        type="time"
+                        className="form-input-standard"
+                        value={formData.inspectionTime}
+                        onChange={e => handleChange('inspectionTime', e.target.value)}
+                        required
                     />
                 </div>
 

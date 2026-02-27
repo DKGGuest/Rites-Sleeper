@@ -206,7 +206,7 @@ const HtsWireTesting = ({ onBack }) => {
 
             {showForm && (
                 <div className="form-modal-overlay" onClick={() => setShowForm(false)}>
-                    <div className="form-modal-container" onClick={(e) => e.stopPropagation()}>
+                    <div className="form-modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '80%', width: '80%' }}>
                         <div className="form-modal-header">
                             <span className="form-modal-header-title">HTS Wire Test Record</span>
                             <button className="form-modal-close" onClick={() => setShowForm(false)}>✕</button>

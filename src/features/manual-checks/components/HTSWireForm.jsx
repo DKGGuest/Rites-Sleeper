@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../../../components/common/Checkbox.css';
 
-const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initialData, activeContainer }) => {
+const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initialData, activeContainer, sharedBatchNo, sharedBenchNo, onShiftFieldChange }) => {
     // 1. dateTime, noOfWires, and arrangement Stored in form state
     const getLocalISOString = () => {
         const now = new Date();
@@ -12,8 +12,8 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
     const [formData, setFormData] = useState({
         location: activeContainer?.name || 'N/A',
         dateTime: getLocalISOString(),
-        batch: '',
-        gangNo: '',
+        batch: sharedBatchNo || '',
+        gangNo: sharedBenchNo || '',
         sleeperType: '',
         noOfWires: '',
         wireDia: '',
@@ -59,8 +59,15 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
                 remarks: initialData.remarks || ''
             });
             console.log('📋 HTSWireForm - Prefilled from:', initialData);
+        } else {
+            // sync with shared shift data
+            setFormData(prev => ({
+                ...prev,
+                batch: sharedBatchNo || prev.batch,
+                gangNo: sharedBenchNo || prev.gangNo
+            }));
         }
-    }, [initialData, activeContainer]);
+    }, [initialData, activeContainer, sharedBatchNo, sharedBenchNo]);
 
     // Validation Mapping
     const SLEEPER_RULES = {
@@ -94,6 +101,9 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+        // 🔥 Shared Shift logic: Update parent state when batch or bench changes
+        if (field === 'batch') onShiftFieldChange('batchNo', value);
+        if (field === 'gangNo') onShiftFieldChange('benchNo', value);
     };
 
     const formatToBackendDate = (dateStr) => {
@@ -111,10 +121,25 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
             return;
         }
 
-        // Numeric validation for Lay Length (Strict Tolerance: 72-108mm)
+        const rules = SLEEPER_RULES[formData.sleeperType] || { wires: 18, diaMin: 2.97, diaMax: 3.03 };
         const layLenNum = parseFloat(formData.layLength);
+        const diaNum = parseFloat(formData.wireDia);
+        const wiresNum = parseInt(formData.noOfWires);
+
+        // Hard validation — block save if any value is out of range
+        const errors = [];
+        if (wiresNum !== rules.wires) {
+            errors.push(`• No. of Wires: ${wiresNum} (Required: ${rules.wires})`);
+        }
+        if (diaNum < rules.diaMin || diaNum > rules.diaMax) {
+            errors.push(`• Wire Dia: ${diaNum}mm (Required: ${rules.diaMin}–${rules.diaMax}mm)`);
+        }
         if (layLenNum < 72 || layLenNum > 108) {
-            alert(`Lay Length error: ${layLenNum}mm is out of tolerance. Required range is 72mm to 108mm.`);
+            errors.push(`• Lay Length: ${layLenNum}mm (Required: 72–108mm)`);
+        }
+
+        if (errors.length > 0) {
+            alert(`❌ Cannot save — the following values are out of the accepted range:\n\n${errors.join('\n')}\n\nPlease correct the values before saving.`);
             return;
         }
 
@@ -126,8 +151,8 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
             batchNo: parseInt(formData.batch) || 0,
             benchNo: parseInt(formData.gangNo) || 0,
             sleeperType: formData.sleeperType || 'RT-1234',
-            noOfWiresUsed: parseInt(formData.noOfWires) || 0,
-            htsWireDiaMm: parseFloat(formData.wireDia) || 0,
+            noOfWiresUsed: wiresNum || 0,
+            htsWireDiaMm: diaNum || 0,
             layLengthMm: layLenNum,
             arrangementOk: formData.arrangement === 'OK',
             overallStatus: formData.status,
@@ -138,10 +163,9 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
 
         onSave(payload);
 
-        // Reset fields after save (keeping location and dateTime for next entry)
+        // Reset fields after save (keeping location and dateTime and shared fields)
         setFormData(prev => ({
             ...prev,
-            gangNo: '',
             noOfWires: '',
             wireDia: '',
             layLength: '',
@@ -152,7 +176,7 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
     };
 
     const fieldLabel = isLongLine ? 'Gang' : 'Bench';
-    const currentRules = SLEEPER_RULES[formData.sleeperType] || { wires: '...', diaMin: '...', diaMax: '...' };
+    const currentRules = SLEEPER_RULES[formData.sleeperType] || { wires: '18/20/24', diaMin: 2.97, diaMax: 3.03 };
 
     return (
         <div className="form-container" style={{ padding: '20px' }}>
@@ -213,11 +237,11 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
                         type="number"
                         min="0"
                         placeholder="Integer"
-                        className="form-input-standard"
+                        className={`form-input-standard ${formData.noOfWires && (parseInt(formData.noOfWires) !== currentRules.wires) ? 'form-input-error' : ''}`}
                         value={formData.noOfWires}
                         onChange={e => handleChange('noOfWires', e.target.value)}
                     />
-                    <div style={{ fontSize: '9px', marginTop: '4px', color: formData.noOfWires && (parseInt(formData.noOfWires) !== currentRules.wires) ? '#ef4444' : '#64748b' }}>
+                    <div style={{ fontSize: '11px', marginTop: '4px', color: formData.noOfWires && (parseInt(formData.noOfWires) !== currentRules.wires) ? '#ef4444' : '#64748b' }}>
                         Required: {currentRules.wires} wires
                     </div>
                 </div>
@@ -229,10 +253,13 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
                         type="number"
                         step="0.01"
                         placeholder="3.00"
-                        className="form-input-standard"
+                        className={`form-input-standard ${formData.wireDia && (parseFloat(formData.wireDia) < currentRules.diaMin || parseFloat(formData.wireDia) > currentRules.diaMax) ? 'form-input-error' : ''}`}
                         value={formData.wireDia}
                         onChange={e => handleChange('wireDia', e.target.value)}
                     />
+                    <div style={{ fontSize: '11px', marginTop: '4px', color: formData.wireDia && (parseFloat(formData.wireDia) < currentRules.diaMin || parseFloat(formData.wireDia) > currentRules.diaMax) ? '#ef4444' : '#64748b' }}>
+                        Required: {currentRules.diaMin}-{currentRules.diaMax} mm
+                    </div>
                 </div>
 
                 <div className="form-field">
@@ -242,11 +269,11 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
                         type="number"
                         step="0.1"
                         placeholder="e.g. 100.0"
-                        className="form-input-standard"
+                        className={`form-input-standard ${formData.layLength && (parseFloat(formData.layLength) < 72 || parseFloat(formData.layLength) > 108) ? 'form-input-error' : ''}`}
                         value={formData.layLength}
                         onChange={e => handleChange('layLength', e.target.value)}
                     />
-                    <div style={{ fontSize: '9px', marginTop: '4px', color: formData.layLength && (parseFloat(formData.layLength) < 72 || parseFloat(formData.layLength) > 108) ? '#ef4444' : '#64748b' }}>
+                    <div style={{ fontSize: '11px', marginTop: '4px', color: formData.layLength && (parseFloat(formData.layLength) < 72 || parseFloat(formData.layLength) > 108) ? '#ef4444' : '#64748b' }}>
                         Required: 72-108 mm
                     </div>
                 </div>

@@ -614,7 +614,22 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
 
             <div className="mould-bench-content-area">
                 {activeModule === 'summary' && <AssetSummary allAssets={allAssets} records={normalizedRecords} />}
-                {activeModule === 'checked' && <HistoryLogs records={normalizedRecords} onAdd={handleAdd} onModify={(r) => { setEditingEntry(r); if (setShowForm) setShowForm(true); else setViewMode('form'); }} onDelete={handleDelete} />}
+                {activeModule === 'checked' && <HistoryLogs records={normalizedRecords} onAdd={handleAdd} onModify={async (r) => {
+                    try {
+                        let fetchedData = r;
+                        // Only fetch from backend if ID is a real numeric ID (not a local timestamp or string)
+                        if (r.id && !isNaN(r.id) && !String(r.id).includes('-')) {
+                            const response = await apiService.getBenchMouldInspectionById(r.id);
+                            fetchedData = response?.responseData || r;
+                        }
+                        setEditingEntry(fetchedData);
+                        if (setShowForm) setShowForm(true); else setViewMode('form');
+                    } catch (error) {
+                        console.error("Error fetching inspection details:", error);
+                        setEditingEntry(r);
+                        if (setShowForm) setShowForm(true); else setViewMode('form');
+                    }
+                }} onDelete={handleDelete} />}
                 {activeModule === 'allAssets' && <AssetMasterList allAssets={allAssets} records={normalizedRecords} />}
 
                 {effectiveShowForm && (

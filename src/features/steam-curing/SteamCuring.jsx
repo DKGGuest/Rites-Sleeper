@@ -37,7 +37,7 @@ const SteamCuringSubCard = ({ id, title, color, statusDetail, isActive, onClick 
     );
 };
 
-const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: propSetSteamRecords, displayMode = 'modal', batches = [] }) => {
+const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: propSetSteamRecords, displayMode = 'modal', batches = [], activeContainer }) => {
     const [viewMode, setViewMode] = useState('witnessed'); // Default to 'witnessed'
     const [localSteamRecords, setLocalSteamRecords] = useState([]);
     const entries = propSteamRecords || localSteamRecords;
@@ -120,7 +120,8 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
             minConstTemp: tempRangeSplit[0],
             maxConstTemp: tempRangeSplit[1] || tempRangeSplit[0],
             timestamp: new Date().toISOString(),
-            ...cycle.batchWeight
+            ...cycle.batchWeight,
+            status: (tempRangeSplit[0] >= 55 && tempRangeSplit[1] <= 60) ? 'OK' : 'NOT OK'
         };
         setEntries(prev => [newEntry, ...prev]);
         setScadaCycles(prev => prev.filter(c => c.id !== cycle.id));
@@ -145,17 +146,39 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
         }
     };
 
-    const handleEdit = (entry) => {
-        setEditingId(entry.id);
-        setManualForm({
-            date: entry.date,
-            batchNo: entry.batchNo,
-            chamberNo: entry.chamberNo,
-            benches: entry.benches,
-            minConstTemp: entry.minConstTemp,
-            maxConstTemp: entry.maxConstTemp
-        });
-        setShowForm(true);
+    const handleEdit = async (entry) => {
+        try {
+            let fetchedData = entry;
+            // Only fetch if it's a real numeric backend ID and not a local string ID (like m-123 or 3-m-1)
+            if (entry.id && !isNaN(entry.id) && !String(entry.id).includes('-')) {
+                const response = await apiService.getSteamCuringById(entry.id);
+                fetchedData = response?.responseData || entry;
+            }
+
+            setEditingId(fetchedData.id);
+            setManualForm({
+                date: fetchedData.date,
+                batchNo: fetchedData.batchNo,
+                chamberNo: fetchedData.chamberNo,
+                benches: fetchedData.benches,
+                minConstTemp: fetchedData.minConstTemp,
+                maxConstTemp: fetchedData.maxConstTemp
+            });
+            setShowForm(true);
+        } catch (error) {
+            console.error("Error fetching steam curing details:", error);
+            // Fallback
+            setEditingId(entry.id);
+            setManualForm({
+                date: entry.date,
+                batchNo: entry.batchNo,
+                chamberNo: entry.chamberNo,
+                benches: entry.benches,
+                minConstTemp: entry.minConstTemp,
+                maxConstTemp: entry.maxConstTemp
+            });
+            setShowForm(true);
+        }
     };
 
     const handleSaveManual = () => {
@@ -176,7 +199,8 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
             ...manualForm,
             id: editingId || `m-${Date.now()}`,
             timestamp: new Date().toISOString(),
-            source: 'Manual'
+            source: 'Manual',
+            status: (minVal >= 55 && maxVal <= 60) ? 'OK' : 'NOT OK'
         };
         if (editingId) {
             setEntries(prev => prev.map(e => e.id === editingId ? newEntry : e));
@@ -454,13 +478,25 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                                 <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#1e293b', fontWeight: '800' }}>Recent Witness Logs</h4>
                             </div>
                             <table className="ui-table" style={{ background: '#fff', fontSize: '12px' }}>
-                                <thead><tr><th>Source</th><th>Date</th><th>Batch</th><th>Chamber</th><th>Temp Range</th><th>Actions</th></tr></thead>
+                                <thead><tr><th>Source</th><th>Date</th><th>Batch</th><th>Chamber</th><th>Temp Range</th><th>Status</th><th>Actions</th></tr></thead>
                                 <tbody>
                                     {entries.slice(0, 5).map(e => (
                                         <tr key={e.id}>
                                             <td><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
                                             <td>{e.date ? e.date.split('-').reverse().join('/') : ''}</td>
                                             <td>{e.batchNo}</td><td>{e.chamberNo}</td><td>{e.minConstTemp}-{e.maxConstTemp}°C</td>
+                                            <td>
+                                                <span style={{
+                                                    padding: '2px 8px',
+                                                    borderRadius: '4px',
+                                                    fontSize: '10px',
+                                                    fontWeight: '800',
+                                                    background: e.status === 'OK' ? '#ecfdf5' : '#fef2f2',
+                                                    color: e.status === 'OK' ? '#059669' : '#dc2626'
+                                                }}>
+                                                    {e.status || 'OK'}
+                                                </span>
+                                            </td>
                                             <td>
                                                 <div style={{ display: 'flex', gap: '8px' }}>
                                                     {e.source === 'Manual' && <button className="btn-action" onClick={() => handleEdit(e)}>Edit</button>}
@@ -521,12 +557,24 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                         </div>
                         <div className="table-outer-wrapper" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                             <table className="ui-table">
-                                <thead><tr><th>Source</th><th>Date</th><th>Batch</th><th>Chamber</th><th>Benches</th><th>Temp Range</th><th>Actions</th></tr></thead>
+                                <thead><tr><th>Source</th><th>Date</th><th>Batch</th><th>Chamber</th><th>Temp Range</th><th>Status</th><th>Actions</th></tr></thead>
                                 <tbody>
                                     {entries.map(e => (
                                         <tr key={e.id}>
                                             <td><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
-                                            <td>{e.date ? e.date.split('-').reverse().join('/') : ''}</td><td>{e.batchNo}</td><td>{e.chamberNo}</td><td>{e.benches}</td><td>{e.minConstTemp}-{e.maxConstTemp}°C</td>
+                                            <td>{e.date ? e.date.split('-').reverse().join('/') : ''}</td><td>{e.batchNo}</td><td>{e.chamberNo}</td><td>{e.minConstTemp}-{e.maxConstTemp}°C</td>
+                                            <td>
+                                                <span style={{
+                                                    padding: '2px 8px',
+                                                    borderRadius: '4px',
+                                                    fontSize: '10px',
+                                                    fontWeight: '800',
+                                                    background: e.status === 'OK' ? '#ecfdf5' : '#fef2f2',
+                                                    color: e.status === 'OK' ? '#059669' : '#dc2626'
+                                                }}>
+                                                    {e.status || 'OK'}
+                                                </span>
+                                            </td>
                                             <td>
                                                 <div style={{ display: 'flex', gap: '8px' }}>
                                                     {e.source === 'Manual' && <button className="btn-action" onClick={() => handleEdit(e)}>Edit</button>}

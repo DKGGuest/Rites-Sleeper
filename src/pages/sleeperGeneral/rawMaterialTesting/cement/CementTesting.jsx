@@ -159,7 +159,10 @@ const CementTesting = ({ onBack }) => {
         <div className="cement-testing-root cement-forms-scope fade-in">
             <div className="content-title-row" style={{ marginBottom: '24px' }}>
                 <h2 style={{ margin: 0 }}>Cement Quality Control</h2>
-                <button className="toggle-btn secondary mini" onClick={onBack}>Back to Dashboard</button>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                    <button className="toggle-btn mini" onClick={() => { setActiveFormSection(1); setShowForm(true); }}>+ Add New (Periodic)</button>
+                    <button className="toggle-btn secondary mini" onClick={onBack}>Back to Dashboard</button>
+                </div>
             </div>
 
             {/* Sub-Card Navigation */}
@@ -227,7 +230,7 @@ const CementTesting = ({ onBack }) => {
             {/* Form Modal */}
             {showForm && (
                 <div className="form-modal-overlay" onClick={() => setShowForm(false)}>
-                    <div className="form-modal-container" onClick={(e) => e.stopPropagation()}>
+                    <div className="form-modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '80%', width: '80%' }}>
                         <div className="form-modal-header">
                             <span className="form-modal-header-title">Cement Quality Test Record</span>
                             <button className="form-modal-close" onClick={() => setShowForm(false)}>✕</button>

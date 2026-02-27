@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../../../components/common/Checkbox.css';
 
-const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initialData, activeContainer }) => {
+const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initialData, activeContainer, sharedBatchNo, sharedBenchNo, onShiftFieldChange }) => {
     const getLocalISOString = () => {
         const now = new Date();
         const offset = now.getTimezoneOffset() * 60000;
@@ -11,8 +11,8 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
     const [formData, setFormData] = useState({
         location: activeContainer?.name || 'N/A',
         dateTime: getLocalISOString(),
-        batchNo: '',
-        benchNo: '',
+        batchNo: sharedBatchNo || '',
+        benchNo: sharedBenchNo || '',
         sleeperType: '',
         mouldCleaned: '',
         oilApplied: '',
@@ -55,8 +55,15 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
                 oilApplied: convertToYesNo(initialData.oilApplied)
             });
             console.log('📋 MouldPrepForm - Prefilled from:', initialData);
+        } else {
+            // If not editing, sync with shared shift data
+            setFormData(prev => ({
+                ...prev,
+                batchNo: sharedBatchNo || prev.batchNo,
+                benchNo: sharedBenchNo || prev.benchNo
+            }));
         }
-    }, [initialData, activeContainer]);
+    }, [initialData, activeContainer, sharedBatchNo, sharedBenchNo]);
 
     // Auto-fetch Sleeper Type derivation
     useEffect(() => {
@@ -69,6 +76,10 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+        // 🔥 Shared Shift logic: Update parent state when batch or bench changes
+        if (field === 'batchNo' || field === 'benchNo') {
+            onShiftFieldChange(field, value);
+        }
     };
 
     const formatToBackendDate = (dateStr) => {
@@ -102,10 +113,9 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
 
         onSave(payload);
 
-        // Reset fields after save
+        // Reset non-shared fields after save
         setFormData(prev => ({
             ...prev,
-            benchNo: '',
             mouldCleaned: '',
             oilApplied: '',
             remarks: ''
