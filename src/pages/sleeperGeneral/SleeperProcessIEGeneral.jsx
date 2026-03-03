@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import RawMaterialDashboard from './rawMaterialTesting/RawMaterialDashboard';
 import FinalInspectionDashboard from './finalInspection/FinalInspectionDashboard';
 import IncomingVerificationDashboard from './rawMaterialVerification/IncomingVerificationDashboard';
+import PlantDeclarationVerification from '../ProcessIE/PlantDeclarationVerification';
+import '../ProcessIE/PlantDeclarationVerification.css';
 
 const SleeperProcessIEGeneral = () => {
-    const [activeSubView, setActiveSubView] = useState('incoming-verification');
+    const [activeSubView, setActiveSubView] = useState('plant-declaration-verification');
 
     const subColumns = [
+        { id: 'plant-declaration-verification', label: 'Plant Declaration Verification', description: '' },
         { id: 'incoming-verification', label: 'Incoming Verification', description: 'Verify raw material inventory' },
         { id: 'inventory', label: 'Raw Material Inventory', description: 'Stock Levels & Consumption' },
         { id: 'raw-material', label: 'Raw Material Testing', description: 'Monitor incoming material quality' },
@@ -21,7 +24,7 @@ const SleeperProcessIEGeneral = () => {
                 <p style={{ margin: 0, color: '#64748b', fontSize: 'var(--fs-sm)' }}>Quality monitoring and calibration control</p>
             </header>
 
-            {/* Sub-navigation Row (4 Columns) */}
+            {/* Sub-navigation Row (Horizontal Grid Columns) */}
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -58,7 +61,13 @@ const SleeperProcessIEGeneral = () => {
             </div>
 
             {/* Dynamic Content Area */}
-            <div className="sub-view-content fade-in" style={{ animation: 'fadeIn 0.4s ease' }}>
+            <div className="sub-view-content fade-in">
+                {activeSubView === 'plant-declaration-verification' && (
+                    <div className="fade-in" style={{ marginTop: '-24px' }}>
+                        <PlantDeclarationVerification />
+                    </div>
+                )}
+
                 {activeSubView === 'incoming-verification' && <IncomingVerificationDashboard />}
 
                 {activeSubView === 'inventory' && (
@@ -73,51 +82,32 @@ const SleeperProcessIEGeneral = () => {
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
-                            <div style={{ borderLeft: '4px solid #8b5cf6', padding: '24px', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
-                                <div style={{ fontSize: '0.65rem', color: '#64748b', marginBottom: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Cement (OPC-53)</div>
-                                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '8px' }}>120.5 MT</div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></span>
-                                    <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: '500' }}>Enough for 3 days</span>
+                            {[
+                                { label: 'Cement (OPC-53)', value: '120.5 MT', status: 'Enough for 3 days', color: '#8b5cf6', health: '#10b981' },
+                                { label: '20mm Aggregate', value: '450.0 MT', status: 'Full Capacity', color: '#3b82f6', health: '#10b981' },
+                                { label: '10mm Aggregate', value: '320.3 MT', status: 'Low Stock Concern', color: '#f59e0b', health: '#f59e0b' },
+                                { label: 'Admixture', value: '2,400 L', status: 'Stock Healthy', color: '#10b981', health: '#10b981' }
+                            ].map((item, idx) => (
+                                <div key={idx} style={{ borderLeft: `4px solid ${item.color}`, padding: '24px', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ fontSize: '0.65rem', color: '#64748b', marginBottom: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{item.label}</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '8px' }}>{item.value}</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.health }}></span>
+                                        <span style={{ fontSize: '0.65rem', color: item.health, fontWeight: '500' }}>{item.status}</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div style={{ borderLeft: '4px solid #3b82f6', padding: '24px', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
-                                <div style={{ fontSize: '0.65rem', color: '#64748b', marginBottom: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>20mm Aggregate</div>
-                                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '8px' }}>450.0 MT</div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></span>
-                                    <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: '500' }}>Full Capacity</span>
-                                </div>
-                            </div>
-                            <div style={{ borderLeft: '4px solid #f59e0b', padding: '24px', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
-                                <div style={{ fontSize: '0.65rem', color: '#64748b', marginBottom: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>10mm Aggregate</div>
-                                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '8px' }}>320.3 MT</div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b' }}></span>
-                                    <span style={{ fontSize: '0.65rem', color: '#f59e0b', fontWeight: '500' }}>Low Stock Concern</span>
-                                </div>
-                            </div>
-                            <div style={{ borderLeft: '4px solid #10b981', padding: '24px', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
-                                <div style={{ fontSize: '0.65rem', color: '#64748b', marginBottom: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Admixture</div>
-                                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '8px' }}>2,400 L</div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></span>
-                                    <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: '500' }}>Stock Healthy</span>
-                                </div>
-                            </div>
+                            ))}
                         </div>
                     </div>
                 )}
 
                 {activeSubView === 'raw-material' && <RawMaterialDashboard />}
-
                 {activeSubView === 'final-inspection' && <FinalInspectionDashboard />}
 
                 {activeSubView === 'calibration' && (
                     <div style={{ textAlign: 'center', padding: '100px 0', color: '#94a3b8', background: '#fff', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
-                        <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#94a3b8', marginBottom: '16px' }}>SCALES</div>
-                        <h3>Calibration Module</h3>
-                        <p>Equipment calibration tracking will be available here soon.</p>
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#94a3b8', marginBottom: '16px' }}>Calibration Module</h3>
+                        <p style={{ fontSize: '1rem', color: '#94a3b8' }}>Equipment calibration tracking will be available here soon.</p>
                     </div>
                 )}
             </div>

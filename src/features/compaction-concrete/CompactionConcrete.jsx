@@ -485,13 +485,13 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                         <div className="table-outer-wrapper">
                             <div className="table-responsive">
                                 <table className="ui-table">
-                                    <thead><tr><th>Time</th><th>Batch</th><th>Bench</th><th>V1 RPM</th><th>V2 RPM</th><th>V3 RPM</th><th>V4 RPM</th><th>Dur</th><th>Action</th></tr></thead>
+                                    <thead><tr><th>Time</th><th>Bench</th><th>V1 RPM</th><th>V2 RPM</th><th>V3 RPM</th><th>V4 RPM</th><th>Dur</th><th>Action</th></tr></thead>
                                     <tbody>
                                         {scadaRecords
                                             .filter(r => !selectedBatch || String(r.batchNo) === String(selectedBatch))
                                             .map(r => (
                                                 <tr key={r.id}>
-                                                    <td>{r.time}</td><td>{r.batchNo}</td><td><strong>{r.benchNo}</strong></td><td>{r.v1_rpm}</td><td>{r.v2_rpm}</td><td>{r.v3_rpm}</td><td>{r.v4_rpm}</td><td>{r.duration}s</td>
+                                                    <td>{r.time}</td><td><strong>{r.benchNo}</strong></td><td>{r.v1_rpm}</td><td>{r.v2_rpm}</td><td>{r.v3_rpm}</td><td>{r.v4_rpm}</td><td>{r.duration}s</td>
                                                     <td><button className="btn-action" onClick={() => handleWitness(r)}>Witness</button></td>
                                                 </tr>
                                             ))}

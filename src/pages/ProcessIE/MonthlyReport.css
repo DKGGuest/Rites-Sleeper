@@ -1,0 +1,304 @@
+/* MonthlyReport.css */
+
+.report-container {
+    padding: 2.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    min-height: calc(100vh - 72px);
+    background: #f8fafc;
+}
+
+.report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid var(--accent-bg);
+    padding-bottom: 1.5rem;
+}
+
+.btn-back {
+    padding: 0.6rem 1.25rem;
+    background: transparent;
+    border: 1px solid var(--neutral-300);
+    border-radius: 50px;
+    color: var(--text-muted);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-back:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.report-header h2 {
+    margin: 0;
+    font-family: var(--font-secondary);
+    font-size: var(--fs-2xl);
+    color: var(--rites-dark);
+}
+
+.filter-bar {
+    display: flex;
+    gap: 1.5rem;
+    background: #fff;
+    padding: 0.8rem 1.5rem;
+    border-radius: 50px;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.filter-input {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.filter-input label {
+    font-size: var(--fs-xxs);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 700;
+}
+
+.filter-input input {
+    height: 32px;
+    padding: 0 8px;
+    border: 1.5px solid var(--neutral-300);
+    border-radius: 6px;
+    font-size: var(--fs-xs);
+    outline: none;
+}
+
+/* KPI ROW */
+.kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.kpi-card {
+    background: #fff;
+    padding: 1.8rem 1.5rem;
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-color);
+    border-bottom: 4px solid var(--neutral-400);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.kpi-card label {
+    font-size: var(--fs-xxs);
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 0.8rem;
+}
+
+.kpi-card .value {
+    font-size: var(--fs-2xl);
+    font-weight: 800;
+    color: var(--rites-dark);
+    font-family: var(--font-secondary);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.kpi-card .sub-stat {
+    font-size: var(--fs-xxs);
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.kpi-card.success {
+    border-bottom-color: var(--color-success);
+}
+
+.kpi-card.danger {
+    border-bottom-color: var(--color-danger);
+}
+
+.kpi-card.dark {
+    border-bottom-color: var(--rites-dark);
+}
+
+.trend-up {
+    color: var(--color-danger);
+    /* Unit cost up is bad, but UI trend color */
+}
+
+/* Main Grid */
+.report-main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+}
+
+.report-section {
+    background: #fff;
+    padding: 2rem;
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-color);
+}
+
+.section-header h3 {
+    margin: 0 0 1.5rem 0;
+    font-family: var(--font-secondary);
+    color: var(--rites-dark);
+    font-size: var(--fs-lg);
+}
+
+/* Donut Chart Sim */
+.chart-placeholder {
+    display: flex;
+    align-items: center;
+    gap: 3rem;
+    padding: 1rem 0;
+}
+
+.donut-sim {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: conic-gradient(#3b82f6 0% 35%,
+            #f59e0b 35% 65%,
+            #ef4444 65% 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.donut-center {
+    width: 90px;
+    height: 90px;
+    background: #fff;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.donut-center strong {
+    font-size: var(--fs-lg);
+    color: var(--rites-dark);
+    line-height: 1;
+}
+
+.donut-center span {
+    font-size: var(--fs-xxs);
+    color: var(--text-muted);
+}
+
+.legend {
+    list-style: none;
+    padding: 0;
+    flex: 1;
+}
+
+.legend li {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 0.8rem;
+}
+
+.legend .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.legend .label {
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+    flex: 1;
+}
+
+.legend strong {
+    font-size: var(--fs-sm);
+    color: var(--text-main);
+}
+
+/* RM Health */
+.rm-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.rm-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: #f8fafc;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.25s;
+}
+
+.rm-item.alert {
+    background: #fff1f2;
+    border-color: #fecdd3;
+}
+
+.rm-item h4 {
+    margin: 0;
+    font-size: var(--fs-sm);
+    color: var(--text-main);
+    font-weight: 700;
+}
+
+.rm-status {
+    font-size: var(--fs-xxs);
+    font-weight: 700;
+    color: var(--text-muted);
+    display: block;
+    margin-top: 0.2rem;
+}
+
+.rm-data {
+    text-align: right;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.rm-stock {
+    font-size: var(--fs-sm);
+    font-weight: 800;
+    color: var(--rites-dark);
+}
+
+.alert-icon {
+    font-size: 1.2rem;
+}
+
+@media (max-width: 1100px) {
+    .kpi-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .report-main-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .kpi-row {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-bar {
+        flex-direction: column;
+        border-radius: 12px;
+    }
+}

@@ -691,11 +691,15 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                                     <thead>
                                         <tr>
                                             <th>PLC Time</th>
-                                            <th>Batch No.</th>
                                             <th>Bench</th>
+                                            <th>Wire Length</th>
+                                            <th>Cross Section</th>
+                                            <th>Modulus</th>
+                                            <th>Measured Elongation</th>
+                                            <th>Force (Elong.)</th>
                                             <th>Total Load</th>
                                             <th>Final Load</th>
-                                            <th>Status</th>
+                                            <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -708,27 +712,33 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                                             .map((r, idx) => (
                                                 <tr key={idx}>
                                                     <td>{r.time || r.plcTime}</td>
-                                                    <td>{r.batchNo}</td>
                                                     <td><strong>{r.benchNo}</strong></td>
-                                                    <td>{r.totalLoad}</td>
-                                                    <td style={{ fontWeight: '700' }}>{r.finalLoad} KN</td>
+                                                    <td>{r.wireLength || '-'}</td>
+                                                    <td>{r.crossSection || '-'}</td>
+                                                    <td>{r.modulus || r.youngsModulus || '-'}</td>
+                                                    <td>{r.measuredElongation || '-'}</td>
+                                                    <td>{r.forceElongation || '-'}</td>
+                                                    <td>{r.totalLoad || '-'}</td>
+                                                    <td style={{ fontWeight: '700', color: '#42818c' }}>{r.finalLoad} KN</td>
                                                     <td>
-                                                        <span style={{
-                                                            fontSize: '10px',
-                                                            color: r.status === 'VERIFIED' ? '#10b981' : '#f59e0b',
-                                                            fontWeight: 'bold',
-                                                            padding: '2px 8px',
-                                                            borderRadius: '10px',
-                                                            background: r.status === 'VERIFIED' ? '#ecfdf5' : '#fffbeb',
-                                                            border: `1px solid ${r.status === 'VERIFIED' ? '#10b98130' : '#f59e0b30'}`
-                                                        }}>
-                                                            {r.status === 'VERIFIED' ? 'VERIFIED' : 'PENDING WITNESS'}
-                                                        </span>
+                                                        {r.status === 'PENDING' ? (
+                                                            <button className="btn-action" onClick={() => handleWitness(r)}>Witness</button>
+                                                        ) : (
+                                                            <span style={{
+                                                                fontSize: '10px',
+                                                                color: '#10b981',
+                                                                fontWeight: 'bold',
+                                                                padding: '2px 8px',
+                                                                borderRadius: '10px',
+                                                                background: '#ecfdf5',
+                                                                border: '1px solid #10b98130'
+                                                            }}>Verified ✓</span>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             ))}
                                         {scadaRecords.length === 0 && tensionRecords.filter(r => r.source === 'Scada').length === 0 && (
-                                            <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No SCADA data available.</td></tr>
+                                            <tr><td colSpan="10" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No SCADA data available.</td></tr>
                                         )}
                                     </tbody>
                                 </table>

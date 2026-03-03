@@ -1,0 +1,178 @@
+/* BatchWiseSleeperReport.css */
+
+.report-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    min-height: calc(100vh - 72px);
+    background: #f8fafc;
+}
+
+.report-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid var(--accent-bg);
+    padding-bottom: 1rem;
+}
+
+.report-header h2 {
+    margin: 0;
+    font-family: var(--font-secondary);
+    font-size: var(--fs-2xl);
+    color: var(--rites-dark);
+}
+
+.btn-back {
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: 1px solid var(--neutral-300);
+    border-radius: 50px;
+    color: var(--text-muted);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-back:hover {
+    background: var(--neutral-100);
+    color: var(--text-main);
+}
+
+.search-section {
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 2rem;
+}
+
+.search-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.search-input {
+    flex: 1;
+    max-width: 300px;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: 1.5px solid var(--neutral-300);
+    font-size: var(--fs-md);
+    outline: none;
+}
+
+.search-input:focus {
+    border-color: var(--primary-color);
+}
+
+.btn-submit {
+    padding: 0.5rem 2rem;
+    background: var(--primary-color);
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-submit:hover:not(:disabled) {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.btn-submit:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+/* Lifecycle View */
+.report-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.report-card {
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.report-card h3 {
+    margin: 0 0 1rem 0;
+    font-size: var(--fs-md);
+    color: var(--rites-dark);
+    font-weight: 700;
+    border-bottom: 1.5px solid var(--accent-bg);
+    padding-bottom: 0.5rem;
+}
+
+.card-data p {
+    margin: 0.5rem 0;
+    font-size: var(--fs-sm);
+    color: var(--text-main);
+}
+
+.test-links {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.btn-link {
+    padding: 0.4rem 0.8rem;
+    background: var(--accent-bg);
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    border-radius: 4px;
+    font-size: var(--fs-xxs);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* Sleeper List Table */
+.sleeper-list-section {
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.sleeper-list-section h3 {
+    margin: 0 0 1rem 0;
+    font-family: var(--font-secondary);
+    color: var(--rites-dark);
+}
+
+.status-badge {
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-size: var(--fs-xxs);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-badge.good {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-badge.rejected {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+@media (max-width: 640px) {
+    .report-grid {
+        grid-template-columns: 1fr;
+    }
+}
