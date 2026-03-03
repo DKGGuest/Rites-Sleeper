@@ -655,13 +655,13 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                         </div>
                         <div className="table-outer-wrapper" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                             <table className="ui-table">
-                                <thead><tr><th>Source</th><th>Date</th><th>Batch</th><th>Chamber</th><th>Benches</th><th>Temp Range</th><th>Status</th><th>Actions</th></tr></thead>
+                                <thead><tr><th>Source</th><th>Date</th><th>Batch</th><th>Chamber</th><th>Temp Range</th><th>Status</th><th>Actions</th></tr></thead>
                                 <tbody>
                                     {entries.map(e => (
                                         <tr key={e.id}>
                                             <td><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
                                             <td>{e.date ? e.date.split('-').reverse().join('/') : ''}</td>
-                                            <td>{e.batchNo}</td><td>{e.chamberNo}</td><td>{e.benches || '—'}</td>
+                                            <td>{e.batchNo}</td><td>{e.chamberNo}</td>
                                             <td>{e.minConstTemp}–{e.maxConstTemp}°C</td>
                                             <td>
                                                 <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: '800', background: e.status === 'OK' ? '#ecfdf5' : '#fef2f2', color: e.status === 'OK' ? '#059669' : '#dc2626' }}>

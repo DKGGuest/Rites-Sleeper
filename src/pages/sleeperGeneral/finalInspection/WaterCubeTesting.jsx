@@ -209,10 +209,70 @@ const WaterCubeTesting = () => {
                 )}
 
                 {activeTab === 'done' && (
-                    <div className="fade-in" style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '100px 24px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '3rem', marginBottom: '20px' }}>📊</div>
-                        <h4 style={{ color: '#1e293b', fontWeight: '800', marginBottom: '8px' }}>Historical Strength Logs</h4>
-                        <p style={{ color: '#94a3b8', fontSize: '13px', maxWidth: '400px', margin: '0 auto' }}>All verified water cube testing records will be archived here for performance auditing.</p>
+                    <div className="fade-in" style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                        <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h4 style={{ margin: 0, color: '#1e293b', fontWeight: '800' }}>Historical Strength Logs</h4>
+                            <div style={{ fontSize: '12px', color: '#64748b' }}>Individual cube strengths shown in detail</div>
+                        </div>
+                        <EnhancedDataTable
+                            columns={[
+                                { key: 'batchNo', label: 'Batch' },
+                                { key: 'castingDate', label: 'Cast Date' },
+                                { key: 'testDate', label: 'Test Date' },
+                                {
+                                    key: 's1Strengths',
+                                    label: 'Sample 1 Strengths',
+                                    render: (_, row) => (
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                            {row.sample1Results?.map((s, i) => (
+                                                <span key={i} style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: '700' }}>{s.toFixed(1)}</span>
+                                            ))}
+                                        </div>
+                                    )
+                                },
+                                {
+                                    key: 's2Strengths',
+                                    label: 'Sample 2 Strengths',
+                                    render: (_, row) => (
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                            {row.sample2Results?.map((s, i) => (
+                                                <span key={i} style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: '700' }}>{s.toFixed(1)}</span>
+                                            ))}
+                                        </div>
+                                    )
+                                },
+                                { key: 'avgStrength', label: 'Avg Strength', render: (val) => <strong>{val.toFixed(2)}</strong> },
+                                {
+                                    key: 'status',
+                                    label: 'Result',
+                                    render: (val) => (
+                                        <span style={{
+                                            padding: '4px 8px',
+                                            borderRadius: '6px',
+                                            fontSize: '10px',
+                                            fontWeight: '800',
+                                            background: val === 'PASS' ? '#ecfdf5' : '#fee2e2',
+                                            color: val === 'PASS' ? '#059669' : '#b91c1c'
+                                        }}>
+                                            {val}
+                                        </span>
+                                    )
+                                }
+                            ]}
+                            data={[
+                                {
+                                    batchNo: 'B-680', castingDate: '2026-01-10', testDate: '2026-01-25',
+                                    sample1Results: [62.4, 61.8, 63.1], sample2Results: [59.8, 60.5, 61.2],
+                                    avgStrength: 61.47, status: 'PASS'
+                                },
+                                {
+                                    batchNo: 'B-675', castingDate: '2026-01-08', testDate: '2026-01-23',
+                                    sample1Results: [58.2, 57.5, 59.1], sample2Results: [56.4, 55.8, 57.2],
+                                    avgStrength: 57.37, status: 'PASS'
+                                }
+                            ]}
+                            selectable={false}
+                        />
                     </div>
                 )}
             </div>

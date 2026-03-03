@@ -240,12 +240,32 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
         },
         {
             key: 'avgStrength',
-            label: 'Strength (N/mm²)',
-            render: (val) => parseFloat(val).toFixed(2)
+            label: 'Avg Strength (N/mm²)',
+            render: (val) => <strong>{parseFloat(val).toFixed(2)}</strong>
+        },
+        {
+            key: 'cubeResults',
+            label: 'Individual Strengths',
+            render: (results) => (
+                <div style={{ display: 'flex', gap: '4px' }}>
+                    {results?.map((r, i) => (
+                        <span key={i} style={{
+                            background: '#f1f5f9',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '10px',
+                            fontWeight: '700',
+                            color: '#475569'
+                        }}>
+                            {parseFloat(r.strength || 0).toFixed(1)}
+                        </span>
+                    ))}
+                </div>
+            )
         },
         {
             key: 'result',
-            label: 'Result of Testing',
+            label: 'Result',
             render: (val) => (
                 <span className={`status-pill ${val === 'OK' ? 'witnessed' : 'manual'}`}>{val}</span>
             )
