@@ -1374,3 +1374,32 @@ textarea:focus {
     border: 1px solid #ef4444 !important;
     outline: 2px solid #ef4444 !important;
 }
+
+/* ── Global Animations ── */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ── Page-level container utility ── */
+.app-page {
+    padding: 1.5rem;
+    width: 100%;
+}
+
+@media (max-width: 640px) {
+    .app-page {
+        padding: 1rem;
+    }
+}

@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import EnhancedDataTable from '../../../components/common/EnhancedDataTable';
-import { MOCK_INVENTORY } from '../../../utils/rawMaterialMockData';
+import { apiService } from '../../../services/api';
 
 const IncomingVerificationDashboard = () => {
     const [selectedMaterial, setSelectedMaterial] = useState(null); // 'CEMENT', 'HTS', etc.
     const [viewModal, setViewModal] = useState(false);
     const [selectedEntry, setSelectedEntry] = useState(null);
-    const [inventory, setInventory] = useState(MOCK_INVENTORY);
-    const [statusFilter, setStatusFilter] = useState('Unverified'); // 'Unverified', 'Verified', 'Rejected'
+    const [statusFilter, setStatusFilter] = useState('Unverified');
 
     const materials = [
         { id: 'CEMENT', title: 'Cement', unit: 'MT' },
@@ -21,51 +20,97 @@ const IncomingVerificationDashboard = () => {
     const getStats = (matId) => {
         const items = inventory[matId] || [];
         const pending = items.filter(i => i.status === 'Unverified').length;
-        // Mock balance calculation (sum of qty string)
-        const total = items.reduce((acc, curr) => acc + parseFloat(curr.qty), 0);
+        const total = items.reduce((acc, curr) => acc + (parseFloat(curr.quantity) || 0), 0);
         return { pending, balance: `${total} ${materials.find(m => m.id === matId).unit}` };
     };
 
-    const handleVerify = () => {
-        if (!selectedEntry) return;
+    const [inventory, setInventory] = useState({ CEMENT: [], HTS: [], AGGREGATES: [], ADMIXTURE: [], SGCI: [], DOWEL: [] });
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        loadAllInventory();
+    }, []);
+
+    const loadAllInventory = async () => {
+        setLoading(true);
+        try {
+            const [cement, hts, aggregate, admixture, sgci] = await Promise.all([
+                apiService.getAllCementInventory().catch(() => ({ responseData: [] })),
+                apiService.getAllHtsWireInventory().catch(() => ({ responseData: [] })),
+                apiService.getAllAggregateInventory().catch(() => ({ responseData: [] })),
+                apiService.getAllAdmixtureInventory().catch(() => ({ responseData: [] })),
+                apiService.getAllSgciInventory().catch(() => ({ responseData: [] }))
+            ]);
+
+            setInventory({
+                CEMENT: cement.responseData || [],
+                HTS: hts.responseData || [],
+                AGGREGATES: aggregate.responseData || [],
+                ADMIXTURE: admixture.responseData || [],
+                SGCI: sgci.responseData || [],
+                DOWEL: [] // Placeholder
+            });
+        } catch (error) {
+            console.error("Failed to load verification inventory:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVerify = async () => {
+        if (!selectedEntry || !selectedMaterial) return;
 
         const now = new Date();
         const verificationInfo = {
+            ...selectedEntry,
             status: 'Verified',
             verifiedBy: 'Inspecting Engineer (IE)',
             verifiedAt: `${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
         };
 
-        updateInventoryStatus(verificationInfo);
-        alert('Inventory entry verified successfully.');
+        try {
+            await updateStatusOnBackend(verificationInfo);
+            alert('Inventory entry verified successfully.');
+            loadAllInventory();
+            setViewModal(false);
+        } catch (error) {
+            alert(`Verification failed: ${error.message}`);
+        }
     };
 
-    const handleReject = () => {
-        if (!selectedEntry) return;
+    const handleReject = async () => {
+        if (!selectedEntry || !selectedMaterial) return;
 
         const now = new Date();
         const rejectionInfo = {
+            ...selectedEntry,
             status: 'Rejected',
             verifiedBy: 'Inspecting Engineer (IE)',
             verifiedAt: `${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
         };
 
-        updateInventoryStatus(rejectionInfo);
-        alert('Inventory entry rejected.');
+        try {
+            await updateStatusOnBackend(rejectionInfo);
+            alert('Inventory entry rejected.');
+            loadAllInventory();
+            setViewModal(false);
+        } catch (error) {
+            alert(`Rejection failed: ${error.message}`);
+        }
     };
 
-    const updateInventoryStatus = (info) => {
-        const updatedInventory = {
-            ...inventory,
-            [selectedMaterial]: inventory[selectedMaterial].map(item =>
-                item.id === selectedEntry.id ? { ...item, ...info } : item
-            )
-        };
-
-        setInventory(updatedInventory);
-        setSelectedEntry({ ...selectedEntry, ...info });
-        setViewModal(false);
+    const updateStatusOnBackend = (payload) => {
+        const id = payload.id;
+        switch (selectedMaterial) {
+            case 'CEMENT': return apiService.updateCementInventory(id, payload);
+            case 'HTS': return apiService.updateHtsWireInventory(id, payload);
+            case 'AGGREGATES': return apiService.updateAggregateInventory(id, payload);
+            case 'ADMIXTURE': return apiService.updateAdmixtureInventory(id, payload);
+            case 'SGCI': return apiService.updateSgciInventory(id, payload);
+            default: return Promise.reject(new Error("Invalid material type"));
+        }
     };
+
 
     const getMainColumns = (matId) => {
         const baseColumns = [

@@ -155,14 +155,17 @@ const BatchWiseSleeperReport = ({ onBack }) => {
                                 <thead>
                                     <tr>
                                         <th>Sleeper ID</th>
+                                        <th>Date of Casting</th>
                                         <th>Status</th>
                                         <th>Rejection Reason</th>
                                     </tr>
+
                                 </thead>
                                 <tbody>
                                     {selectedBatch.sleeperData.map(s => (
                                         <tr key={s.id}>
                                             <td>{s.id}</td>
+                                            <td>{selectedBatch.genesis.date}</td>
                                             <td>
                                                 <span className={`status-badge ${s.status.toLowerCase()}`}>
                                                     {s.status}

@@ -127,11 +127,16 @@ const RejectionModal = ({ onConfirm, onCancel }) => {
                     <button className="btn-cancel" onClick={onCancel}>Cancel</button>
                     <button
                         className="btn-reject-confirm"
-                        onClick={() => onConfirm(remarks)}
+                        onClick={() => {
+                            if (window.confirm('Are you sure you want to submit this rejection?')) {
+                                onConfirm(remarks);
+                            }
+                        }}
                         disabled={!remarks.trim()}
                     >
                         Confirm Rejection
                     </button>
+
                 </div>
             </div>
         </div>
@@ -159,17 +164,38 @@ const RemarksViewModal = ({ remarks, onClose }) => (
 const ActionButtons = ({ entry, onVerify, onReject, onUnlock, onViewRemarks }) => (
     <div className="pdv-action-group">
         {(entry.status === 'Pending' || entry.status === 'Unlocked') && (
-            <button className="pdv-btn pdv-btn-verify" onClick={() => onVerify(entry.id)}>
+            <button
+                className="pdv-btn pdv-btn-verify"
+                onClick={() => {
+                    if (window.confirm('Are you sure you want to verify this entry?')) {
+                        onVerify(entry.id);
+                    }
+                }}
+            >
                 Verify
             </button>
         )}
         {(entry.status === 'Pending' || entry.status === 'Unlocked') && (
-            <button className="pdv-btn pdv-btn-reject" onClick={() => onReject(entry.id)}>
+            <button
+                className="pdv-btn pdv-btn-reject"
+                onClick={() => {
+                    if (window.confirm('Are you sure you want to reject this entry?')) {
+                        onReject(entry.id);
+                    }
+                }}
+            >
                 Reject
             </button>
         )}
         {entry.status === 'Verified' && (
-            <button className="pdv-btn pdv-btn-unlock" onClick={() => onUnlock(entry.id)}>
+            <button
+                className="pdv-btn pdv-btn-unlock"
+                onClick={() => {
+                    if (window.confirm('Are you sure you want to unlock this entry for vendor modification?')) {
+                        onUnlock(entry.id);
+                    }
+                }}
+            >
                 Unlock
             </button>
         )}
@@ -180,6 +206,7 @@ const ActionButtons = ({ entry, onVerify, onReject, onUnlock, onViewRemarks }) =
         )}
     </div>
 );
+
 
 /* ─────────────────────────────────────────────────────────────
    TAB 1: Plant Profile Verification
@@ -323,19 +350,28 @@ const BenchMouldTab = () => {
             <div className="pdv-bulk-actions">
                 <button
                     className="pdv-btn pdv-btn-verify"
-                    onClick={verifySelected}
+                    onClick={() => {
+                        if (window.confirm(`Are you sure you want to verify all ${selected.size} selected entries?`)) {
+                            verifySelected();
+                        }
+                    }}
                     disabled={selected.size === 0}
                 >
                     Verify Selected ({selected.size})
                 </button>
                 <button
                     className="pdv-btn pdv-btn-verify"
-                    onClick={verifyAll}
+                    onClick={() => {
+                        if (window.confirm(`Are you sure you want to verify all ${pendingCount} pending entries at once?`)) {
+                            verifyAll();
+                        }
+                    }}
                     disabled={pendingCount === 0}
                 >
                     Verify All Pending
                 </button>
             </div>
+
 
             <div className="table-outer-wrapper">
                 <table className="ui-table">

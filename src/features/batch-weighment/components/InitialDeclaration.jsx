@@ -100,16 +100,14 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate, onSensorU
                 manualRecords: []
             };
 
-            const allResponse = await apiService.getAllBatchWeighment();
-            const existing = (allResponse?.responseData || []).find(b => b.lineNo === payload.lineNo && b.entryDate === payload.entryDate);
+            // Directly create – backend processes it.
+            await apiService.createBatchWeighment(payload);
 
-            if (existing) {
-                await apiService.updateBatchWeighment(existing.id, payload);
-            } else {
-                await apiService.createBatchWeighment(payload);
-            }
-            if (loadShiftData) await loadShiftData();
-            alert("Declaration saved to backend successfully!");
+            if (loadShiftData) loadShiftData().catch(() => { });
+            alert("Declaration deployed successfully!");
+            // Return to parent/dashboard immediately
+            if (onBatchUpdate) onBatchUpdate(batches);
+
         } catch (error) {
             console.error("Save error:", error);
             alert(`Failed to save to backend: ${error.message}. Data preserved in local session.`);

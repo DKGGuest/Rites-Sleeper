@@ -325,17 +325,11 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                 manualRecords
             };
 
-            const allResponse = await apiService.getAllSteamCuring();
-            const existing = (allResponse?.responseData || []).find(b => String(b.batchNo) === String(batchToSave));
+            // Call create directly – avoids fetching the entire history first
+            await apiService.createSteamCuring(payload);
 
-            if (existing) {
-                await apiService.updateSteamCuring(existing.id, payload);
-                alert('Steam curing data updated successfully.');
-            } else {
-                await apiService.createSteamCuring(payload);
-                alert('Steam curing data created successfully.');
-            }
             setShowForm(false);
+            alert('Steam curing data synced successfully.');
         } catch (error) {
             console.error('Save failed:', error);
             alert(`Failed to save: ${error.message}`);
@@ -343,6 +337,7 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
             setIsSaving(false);
         }
     };
+
 
     const renderSubCards = () => (
         <div style={{ marginBottom: '1.5rem' }}>

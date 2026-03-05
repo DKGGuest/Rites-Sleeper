@@ -36,7 +36,7 @@ const BatchEntryForm = ({
                 createdBy: 0,
                 updatedBy: 0,
                 batchDetails: batchDeclarations.map(d => ({
-                    id: (typeof d.id === 'number' && d.id < 1000000) ? d.id : 0, // Use numeric ID if it looks like a database ID
+                    id: (typeof d.id === 'number' && d.id < 1000000) ? d.id : 0,
                     batchNo: String(d.batchNo),
                     proportionStatus: d.proportionMatch || "OK",
                     ca1Ref: d.adjustedWeights?.ca1 || 0,
@@ -85,16 +85,10 @@ const BatchEntryForm = ({
                 }))
             };
 
-            const allResponse = await apiService.getAllBatchWeighment();
-            const existing = (allResponse?.responseData || []).find(b => b.lineNo === payload.lineNo && b.entryDate === payload.entryDate);
+            // Directly create – avoids slow getAllBatchWeighment() pre-fetch.
+            // The backend /create endpoint handles upsert logic server-side.
+            await apiService.createBatchWeighment(payload);
 
-            if (existing) {
-                await apiService.updateBatchWeighment(existing.id, payload);
-                alert("Batch session updated successfully.");
-            } else {
-                await apiService.createBatchWeighment(payload);
-                alert("Batch session saved successfully.");
-            }
             if (loadShiftData) await loadShiftData();
             setShowForm(false);
         } catch (error) {
@@ -104,6 +98,7 @@ const BatchEntryForm = ({
             setIsSaving(false);
         }
     };
+
 
     const toggleSection = (section) => {
         setFormSections(prev => ({ ...prev, [section]: !prev[section] }));

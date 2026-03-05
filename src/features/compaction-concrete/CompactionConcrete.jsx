@@ -181,30 +181,26 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
             const batchMeta = batches.find(b => String(b.batchNo) === String(selectedBatch));
             const payload = {
                 batchNo: String(selectedBatch),
+
                 sleeperType: batchMeta?.sleeperType || "RT-1234",
                 entryDate: manualForm.date ? manualForm.date.split('-').reverse().join('/') : new Date().toLocaleDateString('en-GB'),
                 scadaRecords: scadaRecordsPayload,
                 manualRecords: manualRecords
             };
 
-            const allResponse = await apiService.getAllCompaction();
-            const existing = (allResponse?.responseData || []).find(b => String(b.batchNo) === String(selectedBatch));
+            // Call create directly – backend handles the match.
+            await apiService.createCompaction(payload);
 
-            if (existing) {
-                await apiService.updateCompaction(existing.id, payload);
-                alert("Compaction data updated successfully.");
-            } else {
-                await apiService.createCompaction(payload);
-                alert("Compaction data created successfully.");
-            }
             setShowForm(false);
+            alert("Compaction data synced successfully.");
         } catch (error) {
             console.error("Save failed:", error);
-            alert("Failed to sync with backend. Data remains in local session.");
+            alert(`Failed to save: ${error.message}`);
         } finally {
             setIsSaving(false);
         }
     };
+
 
     const handleSaveManual = () => {
         if (!manualForm.batchNo || !manualForm.benchNo) {

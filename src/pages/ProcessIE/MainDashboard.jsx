@@ -3,114 +3,132 @@ import { useShift } from '../../context/ShiftContext';
 import './MainDashboard.css';
 
 /**
- * MainDashboard - Landing page for Process IE after login.
- * Displays four action cards and handles start/resume duty logic.
+ * MainDashboard – Landing page for Process IE after login.
+ * Four action cards + start/resume duty modal.
  */
+const DASHBOARD_CARDS = [
+    {
+        id: 'start-duty',
+        iconClass: 'card-icon card-icon--primary',
+        icon: '▶',
+        title: (hasActive) => hasActive ? 'Resume Duty' : 'Start Duty',
+        desc: (hasActive) => hasActive
+            ? 'Continue your current active data logging session.'
+            : 'Initialize your daily productivity and duty assignment.',
+    },
+    {
+        id: 'batch-report',
+        iconClass: 'card-icon card-icon--success',
+        icon: '📋',
+        title: () => 'Batch-wise Sleeper Report',
+        desc: () => 'End-to-end traceability and lifecycle summary of batches.',
+        target: 'BatchWiseSleeperReport',
+    },
+    {
+        id: 'shift-report',
+        iconClass: 'card-icon card-icon--warning',
+        icon: '⌛',
+        title: () => 'Last Shift Report',
+        desc: () => 'Immediate snapshot and alerts from the previous shift.',
+        target: 'LastShiftReport',
+    },
+    {
+        id: 'monthly-report',
+        iconClass: 'card-icon card-icon--dark',
+        icon: '📈',
+        title: () => 'Monthly Report',
+        desc: () => 'High-level plant-wide monthly KPI dashboard.',
+        target: 'MonthlyReport',
+    },
+];
+
 const MainDashboard = () => {
     const {
         dutyStarted,
+        setDutyStarted,
         activeContainerId,
         setActiveContainerId,
-        loadShiftData,
+        selectedShift,
+        setSelectedShift,
+        setDutyDate,
+        setDutyLocation,
+        containers
     } = useShift();
 
     const [showDutyForm, setShowDutyForm] = useState(false);
     const [formData, setFormData] = useState({
-        date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+        date: new Date().toISOString().split('T')[0],
         shift: '',
         location: '',
     });
 
-    // Check if there is an active duty (resume state)
-    const hasActiveDuty = dutyStarted && activeContainerId != null;
+    const hasActiveDuty = dutyStarted;
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Here you would call an API/Update context to create a new session
-        // For simulation, we generate a temp ID and set it
-        const newId = `session-${Date.now()}`;
-        setActiveContainerId(newId);
+
+        // Update Context State
+        setDutyStarted(true);
+        setSelectedShift(formData.shift);
+        setDutyDate(formData.date);
+        setDutyLocation(formData.location);
+
+        // Find or create container ID based on location
+        const matchedContainer = containers.find(c => c.name === formData.location);
+        if (matchedContainer) {
+            setActiveContainerId(matchedContainer.id);
+        } else {
+            setActiveContainerId(1); // Default to 1 if not matched
+        }
+
         setShowDutyForm(false);
         redirectToDutyDashboard(formData.shift);
     };
 
     const redirectToDutyDashboard = (shift) => {
         const target = shift === 'General' ? 'Sleeper process IE-General' : 'Sleeper process Duty';
-        const event = new CustomEvent('navigate', { detail: { target } });
-        window.dispatchEvent(event);
-    };
-
-    const handleStartResumeClick = () => {
-        if (hasActiveDuty) {
-            // Placeholder: determine if active duty was for Shift or General
-            // Defaulting to Shift duty for resume
-            redirectToDutyDashboard('Shift');
-        } else {
-            setShowDutyForm(true);
-        }
+        window.dispatchEvent(new CustomEvent('navigate', { detail: { target } }));
     };
 
     const navigateTo = (target) => {
-        const event = new CustomEvent('navigate', { detail: { target } });
-        window.dispatchEvent(event);
+        window.dispatchEvent(new CustomEvent('navigate', { detail: { target } }));
     };
+
+    const handleCardClick = (card) => {
+        if (card.id === 'start-duty') {
+            hasActiveDuty ? redirectToDutyDashboard(selectedShift) : setShowDutyForm(true);
+        } else if (card.target) {
+            navigateTo(card.target);
+        }
+    };
+
 
     return (
         <div className="main-dashboard fade-in">
             <h1 className="dashboard-title">Process IE – Portal Home</h1>
 
             <div className="card-grid">
-                {/* CARD 1: Start / Resume Duty */}
-                <div className="dashboard-card" onClick={handleStartResumeClick}>
-                    <div className="card-icon" style={{ backgroundColor: 'var(--primary-color)' }}>
-                        <span style={{ fontSize: '1.5rem', color: '#fff' }}>▶</span>
+                {DASHBOARD_CARDS.map(card => (
+                    <div
+                        key={card.id}
+                        className="dashboard-card"
+                        onClick={() => handleCardClick(card)}
+                    >
+                        <div className={card.iconClass}>
+                            <span className="card-icon-symbol">{card.icon}</span>
+                        </div>
+                        <h3>{card.title(hasActiveDuty)}</h3>
+                        <p className="dashboard-card-desc">{card.desc(hasActiveDuty)}</p>
                     </div>
-                    <h3>{hasActiveDuty ? 'Resume Active Duty' : 'Start New Duty'}</h3>
-                    <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
-                        {hasActiveDuty ? 'Go back to your current data logging session.' : 'Log in to start your shift or general duties.'}
-                    </p>
-                </div>
-
-                {/* CARD 2: Batch-wise Sleeper Report */}
-                <div className="dashboard-card" onClick={() => navigateTo('BatchWiseSleeperReport')}>
-                    <div className="card-icon" style={{ backgroundColor: 'var(--color-success)' }}>
-                        <span style={{ fontSize: '1.5rem', color: '#fff' }}>📋</span>
-                    </div>
-                    <h3>Batch-wise Report</h3>
-                    <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
-                        Complete end-to-end traceability for any batch.
-                    </p>
-                </div>
-
-                {/* CARD 3: Last Shift Report */}
-                <div className="dashboard-card" onClick={() => navigateTo('LastShiftReport')}>
-                    <div className="card-icon" style={{ backgroundColor: 'var(--color-warning)' }}>
-                        <span style={{ fontSize: '1.5rem', color: '#fff' }}>⌛</span>
-                    </div>
-                    <h3>Last Shift Snap</h3>
-                    <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
-                        Immediate snapshot of the previous shift activity.
-                    </p>
-                </div>
-
-                {/* CARD 4: Monthly Report */}
-                <div className="dashboard-card" onClick={() => navigateTo('MonthlyReport')}>
-                    <div className="card-icon" style={{ backgroundColor: 'var(--rites-dark)' }}>
-                        <span style={{ fontSize: '1.5rem', color: '#fff' }}>📈</span>
-                    </div>
-                    <h3>Monthly Overview</h3>
-                    <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)' }}>
-                        Plant-wide KPIs and performance indicators.
-                    </p>
-                </div>
+                ))}
             </div>
 
-            {/* MODAL POP-UP */}
+            {/* ── Start Duty Modal ── */}
             {showDutyForm && (
                 <div className="modal-overlay">
                     <div className="modal-content">
@@ -119,6 +137,7 @@ const MainDashboard = () => {
                         </div>
                         <div className="modal-body">
                             <form onSubmit={handleSubmit} className="duty-form">
+
                                 <label>
                                     Casting Date
                                     <input
@@ -172,10 +191,7 @@ const MainDashboard = () => {
                                     >
                                         Cancel
                                     </button>
-                                    <button
-                                        type="submit"
-                                        className="btn-submit"
-                                    >
+                                    <button type="submit" className="btn-submit">
                                         Begin Logging
                                     </button>
                                 </div>

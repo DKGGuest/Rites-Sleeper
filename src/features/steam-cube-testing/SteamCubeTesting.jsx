@@ -107,81 +107,76 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
             const payload = {
                 ...formData,
                 castDate: formatDateForBackend(formData.castDate),
-                // cubes transformed for backend
                 cubes: (formData.cubes || []).map(cube => ({
                     benchNo: String(cube.benchNo),
                     sleeperSequence: String(cube.sequence),
-                    cubeCode: String(cube.cubeNo)
+                    cubeNo: String(cube.cubeNo)
                 }))
             };
 
+            // Non-blocking save
             if (isModifying) {
                 await apiService.updateSteamCube(selectedSample.id, payload);
             } else {
                 await apiService.createSteamCube(payload);
             }
-            await loadData();
+
+            // Immediate UI feedback
             setShowDeclareModal(false);
+
+            // Background refresh without blocking the UI
+            loadData().catch(console.error);
         } catch (error) {
             console.error('Error saving declaration:', error);
-            alert('Failed to save declaration. Please try again.');
-        }
-    };
-
-    const handleEditTest = async (record) => {
-        try {
-            let fetchedData = record;
-            // Only fetch from backend if ID is a real numeric ID (not a local timestamp or string)
-            if (record.id && !isNaN(record.id) && !String(record.id).includes('-')) {
-                const response = await apiService.getSteamCubeById(record.id);
-                fetchedData = response?.responseData || record;
-            }
-            setSelectedSample(fetchedData);
-            setIsModifying(true);
-            setShowTestModal(true);
-        } catch (error) {
-            console.error("Error fetching steam cube test details:", error);
-            setSelectedSample(record);
-            setIsModifying(true);
-            setShowTestModal(true);
+            alert('Failed to save declaration: ' + error.message);
         }
     };
 
     const saveTestDetails = async (testData) => {
-        const completedTest = {
-            ...selectedSample,
-            ...testData,
-            castDate: formatDateForBackend(selectedSample.castDate), // Ensure castDate is also formatted if it's being resent
-            testDate: formatDateForBackend(testData.testDate),
-            cubeResults: testData.cubeResults.map(cube => ({
-                ...cube,
-                testDate: formatDateForBackend(cube.testDate)
-            })),
-            timestamp: selectedSample.timestamp || new Date().toISOString()
-        };
-
         try {
+            const completedTest = {
+                ...selectedSample,
+                ...testData,
+                castDate: formatDateForBackend(selectedSample.castDate),
+                testDate: formatDateForBackend(testData.testDate),
+                cubeResults: testData.cubeResults.map(cube => ({
+                    ...cube,
+                    testDate: formatDateForBackend(cube.testDate)
+                })),
+                timestamp: selectedSample.timestamp || new Date().toISOString()
+            };
+
             await apiService.updateSteamCube(selectedSample.id, completedTest);
-            await loadData();
+
+            // Immediate UI closure
             setShowTestModal(false);
             setIsModifying(false);
+
+            // Background refresh
+            loadData().catch(console.error);
         } catch (error) {
             console.error('Error saving test details:', error);
-            alert('Failed to save test details. Please try again.');
+            alert('Failed to save test details: ' + error.message);
         }
     };
 
     const handleDeleteTest = async (id) => {
         if (window.confirm('Are you sure you want to delete this test record?')) {
             try {
+                // Optimistic local update
+                setDeclaredSamples(prev => prev.filter(r => r.id !== id));
+                setTestedRecords(prev => prev.filter(r => r.id !== id));
+
                 await apiService.deleteSteamCube(id);
-                await loadData();
+                loadData().catch(console.error); // Sync in background
             } catch (error) {
                 console.error('Error deleting test record:', error);
-                alert('Failed to delete test record.');
+                alert('Failed to delete record. Refreshing...');
+                loadData();
             }
         }
     };
+
 
     const columnsDeclared = [
         { key: 'lineNumber', label: activeContainer?.type === 'Shed' ? 'Shed No.' : 'Line No.' },

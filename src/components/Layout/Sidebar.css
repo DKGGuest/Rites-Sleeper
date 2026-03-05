@@ -1,0 +1,77 @@
+/* Sidebar.css – Sidebar component specific styles */
+
+/* ── Brand subtitle ── */
+.sidebar-brand-sub {
+    font-size: 10px;
+    color: var(--neutral-400);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+    display: block;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.sidebar-root:hover .sidebar-brand-sub,
+.sidebar-root.expanded .sidebar-brand-sub {
+    opacity: 1;
+}
+
+/* ── Menu Icon ── */
+.menu-icon {
+    font-size: 0.6rem;
+    min-width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: var(--neutral-100);
+    color: var(--neutral-500);
+    border-radius: 6px;
+    font-weight: 700;
+    border: 1px solid var(--neutral-200);
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.menu-icon--active {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+}
+
+.menu-item:hover .menu-icon:not(.menu-icon--active) {
+    background: rgba(33, 128, 141, 0.1);
+    color: var(--primary-color);
+    border-color: rgba(33, 128, 141, 0.3);
+}
+
+/* ── Version footer ── */
+.sidebar-version {
+    padding: 14px 20px;
+    border-top: 1px solid var(--neutral-100);
+    font-size: var(--fs-xxs);
+    color: var(--neutral-400);
+    white-space: nowrap;
+}
+
+/* Full label visible only when expanded */
+.sidebar-version .menu-label {
+    display: none;
+}
+
+.sidebar-root:hover .sidebar-version .menu-label,
+.sidebar-root.expanded .sidebar-version .menu-label {
+    display: inline;
+}
+
+/* Short label hidden when expanded */
+.sidebar-version-short {
+    display: inline;
+}
+
+.sidebar-root:hover .sidebar-version-short,
+.sidebar-root.expanded .sidebar-version-short {
+    display: none;
+}

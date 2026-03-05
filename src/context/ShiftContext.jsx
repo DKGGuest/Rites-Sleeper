@@ -13,6 +13,10 @@ export const useShift = () => {
 
 export const ShiftProvider = ({ children }) => {
     const [dutyStarted, setDutyStarted] = useState(false);
+    const [selectedShift, setSelectedShift] = useState(''); // 'A', 'B', 'C', 'General'
+    const [dutyDate, setDutyDate] = useState(new Date().toISOString().split('T')[0]);
+    const [dutyLocation, setDutyLocation] = useState('');
+
     const [containers, setContainers] = useState([{ id: 1, type: 'Line', name: 'Line I' }]);
     const [activeContainerId, setActiveContainerId] = useState(1);
 
@@ -292,6 +296,12 @@ export const ShiftProvider = ({ children }) => {
     const value = {
         dutyStarted,
         setDutyStarted,
+        selectedShift,
+        setSelectedShift,
+        dutyDate,
+        setDutyDate,
+        dutyLocation,
+        setDutyLocation,
         containers,
         setContainers,
         activeContainerId,

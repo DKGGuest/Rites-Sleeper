@@ -7,13 +7,12 @@ import MainDashboard from './pages/ProcessIE/MainDashboard';
 import BatchWiseSleeperReport from './pages/ProcessIE/BatchWiseSleeperReport';
 import LastShiftReport from './pages/ProcessIE/LastShiftReport';
 import MonthlyReport from './pages/ProcessIE/MonthlyReport';
-import LoginPage from './pages/Login/LoginPage';
+
 
 /**
  * App Component - Main Entry Point
  */
 const App = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [mainView, setMainView] = useState('Main Dashboard');
 
   // Listen for navigation events dispatched from components
@@ -63,10 +62,6 @@ const App = () => {
         return <MainDashboard />;
     }
   };
-
-  if (!isAuthenticated) {
-    return <LoginPage onLogin={() => setIsAuthenticated(true)} />;
-  }
 
   return (
     <ShiftProvider>

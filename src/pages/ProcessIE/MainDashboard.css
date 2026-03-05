@@ -67,6 +67,46 @@
     font-weight: 600;
 }
 
+.dashboard-card-desc {
+    font-size: var(--fs-xs);
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ── Card icon circle ── */
+.card-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.card-icon--primary {
+    background-color: var(--primary-color);
+}
+
+.card-icon--success {
+    background-color: var(--color-success);
+}
+
+.card-icon--warning {
+    background-color: var(--color-warning);
+}
+
+.card-icon--dark {
+    background-color: var(--rites-dark);
+}
+
+.card-icon-symbol {
+    font-size: 1.5rem;
+    color: #fff;
+    line-height: 1;
+}
+
 /* Specific card accents */
 .dashboard-card:nth-child(1) {
     border-top: 4px solid var(--primary-color);

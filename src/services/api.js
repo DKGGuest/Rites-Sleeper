@@ -4,6 +4,7 @@ const BASE_URL = 'https://sarthibackendservice-bfe2eag3byfkbsa6.canadacentral-01
 
 const api = axios.create({
     baseURL: BASE_URL,
+    timeout: 30000, // 30-second timeout prevents hanging indefinitely
     headers: {
         'Content-Type': 'application/json',
     },
@@ -14,7 +15,7 @@ api.interceptors.response.use(
     (response) => response.data,
     (error) => {
         const message = error.response?.data?.message || error.message || 'An unexpected error occurred';
-        console.error('API Error:', message);
+        console.error('API Error:', message, error.config?.url);
         return Promise.reject(new Error(message));
     }
 );
@@ -89,5 +90,39 @@ export const apiService = {
     createBatchWeighment: (payload) => api.post('/batch-weighment/create', payload),
     updateBatchWeighment: (id, payload) => api.put(`/batch-weighment/update/${id}`, payload),
     deleteBatchWeighment: (id) => api.delete(`/batch-weighment/delete/${id}`),
-};
 
+    // ================= Inventory – Cement =================
+    getAllCementInventory: () => api.get('/inventory/cement/all'),
+    getCementInventoryById: (id) => api.get(`/inventory/cement/${id}`),
+    createCementInventory: (payload) => api.post('/inventory/cement/create', payload),
+    updateCementInventory: (id, payload) => api.put(`/inventory/cement/update/${id}`, payload),
+    deleteCementInventory: (id) => api.delete(`/inventory/cement/delete/${id}`),
+
+    // ================= Inventory – HTS Wire =================
+    getAllHtsWireInventory: () => api.get('/inventory/hts-wire/all'),
+    getHtsWireInventoryById: (id) => api.get(`/inventory/hts-wire/${id}`),
+    createHtsWireInventory: (payload) => api.post('/inventory/hts-wire/create', payload),
+    updateHtsWireInventory: (id, payload) => api.put(`/inventory/hts-wire/update/${id}`, payload),
+    deleteHtsWireInventory: (id) => api.delete(`/inventory/hts-wire/delete/${id}`),
+
+    // ================= Inventory – Aggregate =================
+    getAllAggregateInventory: () => api.get('/inventory/aggregate/all'),
+    getAggregateInventoryById: (id) => api.get(`/inventory/aggregate/${id}`),
+    createAggregateInventory: (payload) => api.post('/inventory/aggregate/create', payload),
+    updateAggregateInventory: (id, payload) => api.put(`/inventory/aggregate/update/${id}`, payload),
+    deleteAggregateInventory: (id) => api.delete(`/inventory/aggregate/delete/${id}`),
+
+    // ================= Inventory – Admixture =================
+    getAllAdmixtureInventory: () => api.get('/inventory/admixture/all'),
+    getAdmixtureInventoryById: (id) => api.get(`/inventory/admixture/${id}`),
+    createAdmixtureInventory: (payload) => api.post('/inventory/admixture/create', payload),
+    updateAdmixtureInventory: (id, payload) => api.put(`/inventory/admixture/update/${id}`, payload),
+    deleteAdmixtureInventory: (id) => api.delete(`/inventory/admixture/delete/${id}`),
+
+    // ================= Inventory – SGCI Insert =================
+    getAllSgciInventory: () => api.get('/inventory/sgci/all'),
+    getSgciInventoryById: (id) => api.get(`/inventory/sgci/${id}`),
+    createSgciInventory: (payload) => api.post('/inventory/sgci/create', payload),
+    updateSgciInventory: (id, payload) => api.put(`/inventory/sgci/update/${id}`, payload),
+    deleteSgciInventory: (id) => api.delete(`/inventory/sgci/delete/${id}`),
+};

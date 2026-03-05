@@ -152,17 +152,9 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
         const enrichedData = {
             ...data,
             location: activeContainer?.name || 'N/A',
-            lineShedNo: activeContainer?.name || 'N/A', // 🔥 Ensure backend sees the correct key
+            lineShedNo: activeContainer?.name || 'N/A',
             locationType: activeContainer?.type || 'Location'
         };
-
-        // Special handling for demoulding inspection (Debug Logging Only)
-        if (subModule === 'demoulding') {
-            console.log('=== DEMOULDING INSPECTION PAYLOAD ===');
-            console.log('Full Payload:', JSON.stringify(enrichedData, null, 2));
-            console.log('Defective Sleepers Count:', enrichedData.defectiveSleepers?.length || 0);
-            console.log('=====================================');
-        }
 
         try {
             if (editingEntry) {
@@ -173,9 +165,7 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                 } else if (subModule === 'htsWire') {
                     response = await apiService.updateHtsWirePlacement(editingEntry.id, enrichedData);
                 } else if (subModule === 'demoulding') {
-                    console.log('Updating demoulding inspection ID:', editingEntry.id);
                     response = await apiService.updateDemouldingInspection(editingEntry.id, enrichedData);
-                    console.log('Update response:', response);
                 }
 
                 const updated = response?.responseData;
@@ -191,9 +181,7 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                 } else if (subModule === 'htsWire') {
                     response = await apiService.createHtsWirePlacement(enrichedData);
                 } else if (subModule === 'demoulding') {
-                    console.log('Creating new demoulding inspection...');
                     response = await apiService.createDemouldingInspection(enrichedData);
-                    console.log('Create response:', response);
                 }
 
                 const created = response?.responseData;
@@ -203,27 +191,19 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                 }));
             }
 
-            // 7. After POST, PUT, and DELETE operations, re-fetch logs using await
-            await loadShiftData();
-
+            // Transition to dashboard immediately – fire background refresh without awaiting
             setEditingEntry(null);
             setViewMode('dashboard');
 
-            if (subModule === 'demoulding') {
-                console.log('✅ Demoulding inspection saved successfully!');
-            }
+            // Non-blocking background sync so the UI does not freeze
+            if (loadShiftData) loadShiftData().catch(console.error);
+
         } catch (error) {
-            console.error(`❌ Error saving ${subModule}:`, error);
-            console.error('Error details:', error.message);
-            console.error('Full error object:', error);
-
-            if (subModule === 'demoulding') {
-                console.error('Failed payload was:', enrichedData);
-            }
-
+            console.error(`❌ Error saving ${subModule}:`, error.message);
             alert(`Failed to save ${subModule}. Check console for details.`);
         }
     };
+
 
     const handleDelete = async (subModule, entryId) => {
         if (window.confirm('Delete this record?')) {

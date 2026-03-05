@@ -1,69 +1,66 @@
 import React from 'react';
+import './Sidebar.css';
 
-const Sidebar = ({ activeItem, onItemClick, isOpen, expanded, onMouseEnter, onMouseLeave, onClick }) => {
-    const menuSections = [
-        {
-            label: 'Inspection Dashboard',
-            items: [
-                { id: 'Sleeper process IE-General', label: 'Sleeper process IE-General', icon: 'IE' },
-                { id: 'Sleeper process Duty', label: 'Sleeper process Duty', icon: 'SD' },
-            ]
-        }
-    ];
+/**
+ * Sidebar – Collapsible navigation rail.
+ * Expands on hover / when pinned by parent.
+ */
+const menuSections = [
+    {
+        label: 'Inspection Dashboard',
+        items: [
+            { id: 'Sleeper process IE-General', label: 'Sleeper process IE-General', icon: 'IE' },
+            { id: 'Sleeper process Duty', label: 'Sleeper process Duty', icon: 'SD' },
+        ],
+    },
+];
 
-    return (
-        <aside
-            className={`sidebar-root ${isOpen ? 'open' : ''} ${expanded ? 'expanded' : ''}`}
-            onMouseEnter={onMouseEnter}
-            onMouseLeave={onMouseLeave}
-            onClick={onClick}
-        >
-            <div className="sidebar-header">
-                <h2 className="sidebar-logo">SARTHI</h2>
-                <span style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '4px', display: 'block' }}>Rites Ltd.</span>
-            </div>
+const Sidebar = ({ activeItem, onItemClick, isOpen, expanded, onMouseEnter, onMouseLeave, onClick }) => (
+    <aside
+        className={`sidebar-root${isOpen ? ' open' : ''}${expanded ? ' expanded' : ''}`}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        onClick={onClick}
+    >
+        {/* Brand header */}
+        <div className="sidebar-header">
+            <h2 className="sidebar-logo">SARTHI</h2>
+            <span className="sidebar-brand-sub">Rites Ltd.</span>
+        </div>
 
-            <nav className="sidebar-nav">
-                {menuSections.map((section, sidx) => (
-                    <div key={sidx} className="menu-section">
-                        <div className="menu-section-label">{section.label}</div>
-                        {section.items.map((item) => (
+        {/* Navigation */}
+        <nav className="sidebar-nav">
+            {menuSections.map((section, idx) => (
+                <div key={idx} className="menu-section">
+                    <div className="menu-section-label">{section.label}</div>
+                    {section.items.map(item => {
+                        const isActive = activeItem === item.id;
+                        return (
                             <div
                                 key={item.id}
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     onItemClick(item.id);
                                 }}
-                                className={`menu-item ${activeItem === item.id ? 'active' : ''}`}
-                                style={{ display: 'flex', alignItems: 'center', gap: '16px' }}
+                                className={`menu-item${isActive ? ' active' : ''}`}
                             >
-                                <span className="menu-icon" style={{
-                                    fontSize: '0.6rem',
-                                    minWidth: '28px',
-                                    height: '28px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    background: activeItem === item.id ? '#338691' : '#f1f5f9',
-                                    color: activeItem === item.id ? 'white' : '#64748b',
-                                    borderRadius: '6px',
-                                    fontWeight: '700',
-                                    border: `1px solid ${activeItem === item.id ? '#338691' : '#e2e8f0'}`
-                                }}>
+                                <span className={`menu-icon${isActive ? ' menu-icon--active' : ''}`}>
                                     {item.icon}
                                 </span>
                                 <span className="menu-label">{item.label}</span>
                             </div>
-                        ))}
-                    </div>
-                ))}
-            </nav>
+                        );
+                    })}
+                </div>
+            ))}
+        </nav>
 
-            <div style={{ padding: '16px 20px', borderTop: '1px solid #f1f5f9', fontSize: 'var(--fs-xxs)', color: '#94a3b8', whiteSpace: 'nowrap' }}>
-                {expanded ? 'v1.2.0' : 'v1.2'}
-            </div>
-        </aside>
-    );
-};
+        {/* Version footer */}
+        <div className="sidebar-version">
+            <span className="menu-label">v1.2.0</span>
+            <span className="sidebar-version-short">v1.2</span>
+        </div>
+    </aside>
+);
 
 export default Sidebar;

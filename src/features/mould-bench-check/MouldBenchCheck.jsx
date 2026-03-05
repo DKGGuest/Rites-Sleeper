@@ -534,15 +534,18 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
 
             // Success check for backend's responseStatus wrapper
             if (response && (response.success === true || response.responseStatus?.statusCode === 0 || response.responseData)) {
-                const updatedData = await apiService.getAllBenchMouldInspections();
-                if (updatedData?.responseData) {
-                    setRecords(updatedData.responseData);
-                }
+                // Return to UI immediately
                 handleCloseForm();
+
+                // Background refresh
+                apiService.getAllBenchMouldInspections()
+                    .then(res => { if (res?.responseData) setRecords(res.responseData); })
+                    .catch(console.error);
             } else {
                 const errorMsg = response?.responseStatus?.message || response?.message || "Unknown Error";
                 alert("Failed to save record: " + errorMsg);
             }
+
         } catch (error) {
             console.error("Error saving record:", error);
             alert("Error saving record: " + error.message);
@@ -555,12 +558,18 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
             const response = await apiService.deleteBenchMouldInspection(id);
             // Handle both boolean success and statusCode: 0 patterns
             if (response && (response.success || response.responseStatus?.statusCode === 0)) {
-                const refreshed = await apiService.getAllBenchMouldInspections();
-                if (refreshed?.responseData) setRecords(refreshed.responseData);
+                // Optimistic local update (optional, but background refresh is usually enough)
+                setRecords(prev => prev.filter(r => r.id !== id));
+
+                // Background sync
+                apiService.getAllBenchMouldInspections()
+                    .then(res => { if (res?.responseData) setRecords(res.responseData); })
+                    .catch(console.error);
             } else {
                 const errorMsg = response?.responseStatus?.message || response?.message || "Failed to delete";
                 alert(errorMsg);
             }
+
         } catch (error) {
             console.error("Delete error:", error);
             alert("Delete error: " + error.message);

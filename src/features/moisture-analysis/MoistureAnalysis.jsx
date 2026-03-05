@@ -120,63 +120,48 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                 updatedBy: 0
             };
 
-            if (editRecord) {
-                // If editing, we update all technical records associated with this batch group
-                // For simplicity, we create three updates (the backend will handle them)
-                await Promise.all(aggregates.map(agg => {
-                    const payload = {
-                        ...batchInfo,
-                        sectionType: agg.type,
-                        wtWetSample: parseFloat(agg.result.wetSample) || 0,
-                        wtDriedSample: parseFloat(agg.result.driedSample) || 0,
-                        wtMoistureSample: parseFloat(agg.result.moistureInSample) || 0,
-                        moisturePercent: parseFloat(agg.result.moisturePct) || 0,
-                        absorptionPercent: parseFloat(agg.result.absorption) || 0,
-                        freeMoisturePercent: parseFloat(agg.result.freeMoisturePct) || 0,
-                        batchWtDry: parseFloat(agg.result.batchWtDry) || 0,
-                        freeMoistureKg: parseFloat(agg.result.freeMoistureKg) || 0,
-                        adjustedWeight: parseFloat(agg.result.adjustedWt) || 0,
-                        adoptedWeight: parseFloat(agg.result.wtAdopted) || 0,
-                    };
+            const buildFinalPayload = (agg) => ({
+                ...batchInfo,
+                sectionType: agg.type,
+                wtWetSample: parseFloat(agg.result.wetSample) || 0,
+                wtDriedSample: parseFloat(agg.result.driedSample) || 0,
+                wtMoistureSample: parseFloat(agg.result.moistureInSample) || 0,
+                moisturePercent: parseFloat(agg.result.moisturePct) || 0,
+                absorptionPercent: parseFloat(agg.result.absorption) || 0,
+                freeMoisturePercent: parseFloat(agg.result.freeMoisturePct) || 0,
+                batchWtDry: parseFloat(agg.result.batchWtDry) || 0,
+                freeMoistureKg: parseFloat(agg.result.freeMoistureKg) || 0,
+                adjustedWeight: parseFloat(agg.result.adjustedWt) || 0,
+                adoptedWeight: parseFloat(agg.result.wtAdopted) || 0,
+            });
 
-                    // Match by section type if possible from group
+            if (editRecord) {
+                // Non-blocking trigger
+                Promise.all(aggregates.map(agg => {
+                    const payload = buildFinalPayload(agg);
                     const existingRecord = editRecord.records?.find(r => r.sectionType === agg.type);
-                    if (existingRecord) {
-                        return apiService.updateMoistureAnalysis(existingRecord.id, payload);
-                    }
+                    if (existingRecord) return apiService.updateMoistureAnalysis(existingRecord.id, payload);
                     return apiService.createMoistureAnalysis(payload);
-                }));
+                })).then(() => onSave()).catch(console.error);
             } else {
-                // For new entries, create 3 separate records as per schema constraints
-                await Promise.all(aggregates.map(agg => {
-                    const payload = {
-                        ...batchInfo,
-                        sectionType: agg.type,
-                        wtWetSample: parseFloat(agg.result.wetSample) || 0,
-                        wtDriedSample: parseFloat(agg.result.driedSample) || 0,
-                        wtMoistureSample: parseFloat(agg.result.moistureInSample) || 0,
-                        moisturePercent: parseFloat(agg.result.moisturePct) || 0,
-                        absorptionPercent: parseFloat(agg.result.absorption) || 0,
-                        freeMoisturePercent: parseFloat(agg.result.freeMoisturePct) || 0,
-                        batchWtDry: parseFloat(agg.result.batchWtDry) || 0,
-                        freeMoistureKg: parseFloat(agg.result.freeMoistureKg) || 0,
-                        adjustedWeight: parseFloat(agg.result.adjustedWt) || 0,
-                        adoptedWeight: parseFloat(agg.result.wtAdopted) || 0,
-                    };
+                Promise.all(aggregates.map(agg => {
+                    const payload = buildFinalPayload(agg);
                     return apiService.createMoistureAnalysis(payload);
-                }));
+                })).then(() => onSave()).catch(console.error);
             }
 
-            setView('list');
+
+            // SNAP UI transition
             setEditRecord(null);
-            onSave(); // Refetch logs
+            setView('list');
         } catch (error) {
             console.error("Error saving moisture analysis:", error);
-            alert("Failed to save moisture analysis. Payload check triggered.");
+            alert("Failed to initiate save. Your data is lost if you refresh.");
         } finally {
             setSaving(false);
         }
     };
+
 
     const handleEdit = async (record) => {
         // Fallback: Use the record from the list directly. 

@@ -11,7 +11,9 @@ const DutyHeader = ({ setShowContainerForm }) => {
         containers,
         activeContainerId,
         setActiveContainerId,
-        setContainers
+        setContainers,
+        dutyDate,
+        selectedShift
     } = useShift();
 
     const handleDeleteContainer = (id, name, e) => {
@@ -33,12 +35,35 @@ const DutyHeader = ({ setShowContainerForm }) => {
 
     return (
         <header style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
-            <div>
-                <h1 style={{ fontSize: 'var(--fs-2xl)', fontWeight: '700', color: '#42818c', margin: '0 0 8px 0' }}>Sleeper Process Duty</h1>
-                <p style={{ margin: 0, color: '#64748b', fontSize: 'var(--fs-sm)' }}>Real-time production monitoring & quality control</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { target: 'Main Dashboard' } }))}
+                    style={{
+                        background: '#e2e8f0',
+                        border: 'none',
+                        borderRadius: '10px',
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        fontSize: '1rem',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                    title="Back to Dashboard"
+                >🏠</button>
+                <div>
+                    <h1 style={{ fontSize: 'var(--fs-2xl)', fontWeight: '700', color: '#42818c', margin: '0 0 4px 0' }}>Sleeper Process Duty</h1>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: 'var(--fs-sm)', display: 'flex', gap: '12px' }}>
+                        <span>📅 {dutyDate ? dutyDate.split('-').reverse().join('/') : ''}</span>
+                        <span>⏱️ Shift {selectedShift}</span>
+                        <span>📍 Active Monitoring</span>
+                    </p>
+                </div>
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+
                 <div style={{ background: '#f1f5f9', padding: '4px', borderRadius: '12px', display: 'flex', gap: '6px', border: '1px solid #e2e8f0' }}>
                     {containers.map(c => (
                         <div key={c.id} style={{ position: 'relative' }}>
@@ -88,7 +113,7 @@ const DutyHeader = ({ setShowContainerForm }) => {
                 </div>
                 <button className="btn-secondary" onClick={() => setShowContainerForm(true)} style={{ padding: '8px 12px', fontSize: '0.75rem' }}>+ Add</button>
             </div>
-        </header>
+        </header >
     );
 };
 

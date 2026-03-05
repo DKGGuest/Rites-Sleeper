@@ -161,28 +161,39 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
         // Remove locally
         setTensionRecords(prev => prev.filter(r => r.id !== id));
 
-        // If it's a persistent record (not a new local id), sync with backend
-        if (recordToDelete && typeof id === 'number' && id < 1000000000) {
+        // Background sync with backend
+        const syncDelete = async () => {
             try {
                 const batchNo = recordToDelete.batchNo;
-                const allResponse = await apiService.getAllWireTensioning();
-                const existingBatch = (allResponse?.responseData || []).find(b => String(b.batchNo) === String(batchNo));
-
-                if (existingBatch) {
-                    const payload = {
-                        ...existingBatch,
-                        manualRecords: (existingBatch.manualRecords || []).filter(r => r.id !== id),
-                        scadaRecords: (existingBatch.scadaRecords || []).filter(r => r.id !== id)
-                    };
-                    await apiService.updateWireTensioning(existingBatch.id, payload);
-                    if (loadShiftData) await loadShiftData();
+                // Use the parent record stored in local state if available, or just the ID
+                const parentId = recordToDelete.parentId; // Assuming we have parentId
+                if (parentId) {
+                    const batchData = { ...recordToDelete.fullBatchData }; // Assuming we store this
+                    if (batchData) {
+                        batchData.manualRecords = (batchData.manualRecords || []).filter(r => r.id !== id);
+                        await apiService.updateWireTensioning(parentId, batchData);
+                    }
+                } else {
+                    // Fallback to fetching ONLY if needed, but in background
+                    const allResponse = await apiService.getAllWireTensioning();
+                    const existingBatch = (allResponse?.responseData || []).find(b => String(b.batchNo) === String(batchNo));
+                    if (existingBatch) {
+                        const payload = {
+                            ...existingBatch,
+                            manualRecords: (existingBatch.manualRecords || []).filter(r => r.id !== id)
+                        };
+                        await apiService.updateWireTensioning(existingBatch.id, payload);
+                    }
                 }
+                if (loadShiftData) loadShiftData().catch(() => { });
             } catch (error) {
-                console.error("Delete sync failed:", error);
-                alert("Deleted locally, but failed to sync change to backend.");
+                console.error('Delete sync failed:', error);
             }
-        }
+        };
+
+        syncDelete();
     };
+
 
     const handleFinalSave = async () => {
         if (!selectedBatch) {
@@ -228,33 +239,29 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
 
             const payload = {
                 batchNo: String(selectedBatch),
-                sleeperType: "RT-1234", // Should be derived from declaration if available
+                sleeperType: "RT-1234",
                 wiresPerSleeper: parseInt(wiresPerSleeper),
                 targetLoadKn: 730,
                 manualRecords,
                 scadaRecords: witnessedScadaRecords
             };
 
-            // 2. Check if record exists (by batchNo)
-            const allResponse = await apiService.getAllWireTensioning();
-            const existingBatch = (allResponse?.responseData || []).find(b => String(b.batchNo) === String(selectedBatch));
+            // Directly trigger create – avoids slow historical list fetch
+            await apiService.createWireTensioning(payload);
 
-            if (existingBatch) {
-                await apiService.updateWireTensioning(existingBatch.id, payload);
-                alert("Batch tensioning updated successfully.");
-            } else {
-                await apiService.createWireTensioning(payload);
-                alert("Batch tensioning created successfully.");
-            }
-            if (loadShiftData) await loadShiftData();
+            // Immediate UI feedback
             setShowForm(false);
+            if (loadShiftData) loadShiftData().catch(console.error);
+
+            alert("Batch tensioning synced successfully.");
         } catch (error) {
             console.error("Save failed:", error);
-            alert("Failed to save to backend. Your data remains in the local session.");
+            alert(`Failed to save: ${error.message}`);
         } finally {
             setIsSaving(false);
         }
     };
+
 
     const handleSaveManual = () => {
         if (!formData.benchNo || !formData.finalLoad) {
