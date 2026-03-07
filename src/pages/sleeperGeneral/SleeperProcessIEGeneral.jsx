@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useShift } from '../../context/ShiftContext';
+import { getVerificationStats } from '../ProcessIE/PlantVerificationData';
 
 // Dashboards
 import RawMaterialDashboard from './rawMaterialTesting/RawMaterialDashboard';
@@ -23,8 +24,9 @@ const SUB_COLUMNS = [
 
 
 const SleeperProcessIEGeneral = () => {
-    const { dutyDate, selectedShift, dutyLocation } = useShift();
+    const { dutyDate, selectedShift, dutyLocation, plantVerificationData } = useShift();
     const [activeSubView, setActiveSubView] = useState('plant-declaration-verification');
+    const stats = getVerificationStats(plantVerificationData);
 
     return (
         <div className="ie-general-container">
@@ -60,18 +62,38 @@ const SleeperProcessIEGeneral = () => {
 
             {/* ── Sub-navigation Cards ── */}
             <div className="ie-sub-nav-grid">
-                {SUB_COLUMNS.map(col => (
-                    <div
-                        key={col.id}
-                        onClick={() => setActiveSubView(col.id)}
-                        className={`ie-sub-nav-card${activeSubView === col.id ? ' active' : ''}`}
-                    >
-                        <h3 className="ie-sub-nav-card-title">{col.label}</h3>
-                        {col.description && (
-                            <p className="ie-sub-nav-card-desc">{col.description}</p>
-                        )}
-                    </div>
-                ))}
+                {SUB_COLUMNS.map(col => {
+                    const isPlantVerification = col.id === 'plant-declaration-verification';
+                    return (
+                        <div
+                            key={col.id}
+                            onClick={() => setActiveSubView(col.id)}
+                            className={`ie-sub-nav-card${activeSubView === col.id ? ' active' : ''} ${isPlantVerification ? 'pv-card' : ''}`}
+                        >
+                            <h3 className="ie-sub-nav-card-title">{col.label}</h3>
+
+                            {isPlantVerification ? (
+                                <div className="pv-card-stats">
+                                    {stats.pending > 0 && (
+                                        <div className="pv-stat-alert">
+                                            <span className="alert-icon">⚠️</span>
+                                            {stats.pending} Pending
+                                        </div>
+                                    )}
+                                    <div className="pv-stat-row-summary">
+                                        <span className="stat-v" title="Verified">V: {stats.verified}</span>
+                                        <span className="stat-p" title="Pending">P: {stats.pending}</span>
+                                        <span className="stat-r" title="Rejected">R: {stats.rejected}</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                col.description && (
+                                    <p className="ie-sub-nav-card-desc">{col.description}</p>
+                                )
+                            )}
+                        </div>
+                    );
+                })}
             </div>
 
             {/* ── Dynamic Content Area ── */}

@@ -1,78 +1,10 @@
 import React, { useState } from 'react';
 import './PlantDeclarationVerification.css';
-
-/* ─────────────────────────────────────────────────────────────
-   MOCK DATA  (replace with real API calls as needed)
-───────────────────────────────────────────────────────────── */
-const initialPlantProfiles = [
-    {
-        id: 'PP-001',
-        plantName: 'DKG Sleeper Plant – Unit 1',
-        location: 'Bhilai, Chhattisgarh',
-        vendorCode: 'VND-2201',
-        plantType: 'Stress Bench – Twin',
-        sheds: 3,
-        lines: null,
-        status: 'Pending',
-        rejectionRemarks: '',
-    },
-    {
-        id: 'PP-002',
-        plantName: 'DKG Sleeper Plant – Unit 2',
-        location: 'Raipur, Chhattisgarh',
-        vendorCode: 'VND-2202',
-        plantType: 'Long Line',
-        sheds: null,
-        lines: 5,
-        status: 'Verified',
-        rejectionRemarks: '',
-    },
-    {
-        id: 'PP-003',
-        plantName: 'DKG Sleeper Plant – Unit 3',
-        location: 'Durg, Chhattisgarh',
-        vendorCode: 'VND-2203',
-        plantType: 'Stress Bench – Single',
-        sheds: 2,
-        lines: null,
-        status: 'Rejected',
-        rejectionRemarks: 'Invalid vendor code format provided.',
-    },
-];
-
-const initialBenches = [
-    { id: 'BM-101', benchNo: 'B-01', moulds: 8, sleeperType: 'RT-8746', status: 'Pending', rejectionRemarks: '' },
-    { id: 'BM-102', benchNo: 'B-02', moulds: 8, sleeperType: 'RT-8746', status: 'Verified', rejectionRemarks: '' },
-    { id: 'BM-103', benchNo: 'B-03', moulds: 6, sleeperType: 'RT-4149', status: 'Pending', rejectionRemarks: '' },
-    { id: 'BM-104', benchNo: 'B-04', moulds: 6, sleeperType: 'RT-4149', status: 'Rejected', rejectionRemarks: 'Mould count exceeds declared capacity.' },
-    { id: 'BM-105', benchNo: 'L-01 (Line)', moulds: 2000, sleeperType: 'RT-8746', status: 'Pending', rejectionRemarks: '' },
-];
+import { useShift } from '../../context/ShiftContext';
+import { getVerificationStats } from './PlantVerificationData';
 
 const today = new Date();
-const addDays = (d) => {
-    const dt = new Date();
-    dt.setDate(dt.getDate() + d);
-    return dt.toISOString().split('T')[0];
-};
 
-const initialRawMaterials = [
-    { id: 'RM-001', materialType: 'Cement', supplierName: 'Ultra Tech Cements Ltd', sourceLocation: 'Bhilai', approvalRef: 'RDSO/2023/CE-441', validUpto: addDays(60), status: 'Pending', rejectionRemarks: '' },
-    { id: 'RM-002', materialType: 'HTS Wire', supplierName: 'Usha Martin Ltd', sourceLocation: 'Ranchi', approvalRef: 'RDSO/2022/HW-209', validUpto: addDays(20), status: 'Verified', rejectionRemarks: '' },
-    { id: 'RM-003', materialType: 'SGCI Insert', supplierName: 'Sharp Iron Works', sourceLocation: 'Faridabad', approvalRef: 'RITES/2024/SI-088', validUpto: addDays(5), status: 'Pending', rejectionRemarks: '' },
-    { id: 'RM-004', materialType: 'Aggregates (CA1 – 20mm)', supplierName: 'National Quarry Depot', sourceLocation: 'Durg', approvalRef: 'RDSO/2021/AG-310', validUpto: addDays(-10), status: 'Rejected', rejectionRemarks: 'RDSO approval validity has expired.' },
-    { id: 'RM-005', materialType: 'Water', supplierName: 'On-site Bore Well', sourceLocation: 'Plant', approvalRef: 'RITES/2024/WT-001', validUpto: addDays(200), status: 'Verified', rejectionRemarks: '' },
-    { id: 'RM-006', materialType: 'Admixture', supplierName: 'BASF India Pvt Ltd', sourceLocation: 'Mumbai', approvalRef: 'RDSO/2024/AD-092', validUpto: addDays(28), status: 'Pending', rejectionRemarks: '' },
-];
-
-const initialMixDesigns = [
-    { id: 'MD-001', designId: 'MXD-M60-R1', grade: 'M60', authority: 'RDSO', cement: 450, ca1: 780, ca2: 410, fa: 675, water: 135, ac: 0.60, wc: 0.30, status: 'Pending', rejectionRemarks: '' },
-    { id: 'MD-002', designId: 'MXD-M55-R2', grade: 'M55', authority: 'RITES', cement: 420, ca1: 760, ca2: 390, fa: 660, water: 130, ac: 0.62, wc: 0.31, status: 'Verified', rejectionRemarks: '' },
-    { id: 'MD-003', designId: 'MXD-M60-R3', grade: 'M60', authority: 'IIT Delhi', cement: 455, ca1: 790, ca2: 415, fa: 670, water: 140, ac: 0.59, wc: 0.31, status: 'Rejected', rejectionRemarks: 'W/C ratio exceeds IS 456 limit for M60.' },
-];
-
-/* ─────────────────────────────────────────────────────────────
-   HELPERS
-───────────────────────────────────────────────────────────── */
 const STATUS_CONFIG = {
     Pending: { label: 'Pending Verification', cls: 'status-pending' },
     Verified: { label: 'Verified', cls: 'status-verified' },
@@ -211,19 +143,14 @@ const ActionButtons = ({ entry, onVerify, onReject, onUnlock, onViewRemarks }) =
 /* ─────────────────────────────────────────────────────────────
    TAB 1: Plant Profile Verification
 ───────────────────────────────────────────────────────────── */
-const PlantProfileTab = () => {
-    const [entries, setEntries] = useState(initialPlantProfiles);
+const PlantProfileTab = ({ data, updateData }) => {
+    const entries = data.profiles;
     const [rejectingId, setRejectingId] = useState(null);
     const [viewingRemarks, setViewingRemarks] = useState(null);
 
-    const applyStatus = (id, status, remarks = '') =>
-        setEntries(prev =>
-            prev.map(e => e.id === id ? { ...e, status, rejectionRemarks: remarks } : e)
-        );
-
     const stats = {
         verified: entries.filter(e => e.status === 'Verified').length,
-        pending: entries.filter(e => e.status === 'Pending').length,
+        pending: entries.filter(e => e.status === 'Pending' || e.status === 'Unlocked').length,
         rejected: entries.filter(e => e.status === 'Rejected').length,
     };
 
@@ -266,9 +193,9 @@ const PlantProfileTab = () => {
                                 <td data-label="Actions">
                                     <ActionButtons
                                         entry={e}
-                                        onVerify={(id) => applyStatus(id, 'Verified')}
+                                        onVerify={(id) => updateData('profiles', id, 'Verified')}
                                         onReject={(id) => setRejectingId(id)}
-                                        onUnlock={(id) => applyStatus(id, 'Unlocked')}
+                                        onUnlock={(id) => updateData('profiles', id, 'Unlocked')}
                                         onViewRemarks={(entry) => setViewingRemarks(entry)}
                                     />
                                 </td>
@@ -280,7 +207,7 @@ const PlantProfileTab = () => {
 
             {rejectingId && (
                 <RejectionModal
-                    onConfirm={(r) => { applyStatus(rejectingId, 'Rejected', r); setRejectingId(null); }}
+                    onConfirm={(r) => { updateData('profiles', rejectingId, 'Rejected', r); setRejectingId(null); }}
                     onCancel={() => setRejectingId(null)}
                 />
             )}
@@ -297,14 +224,11 @@ const PlantProfileTab = () => {
 /* ─────────────────────────────────────────────────────────────
    TAB 2: Bench / Mould Master Verification
 ───────────────────────────────────────────────────────────── */
-const BenchMouldTab = () => {
-    const [entries, setEntries] = useState(initialBenches);
+const BenchMouldTab = ({ data, updateData, updateBulk }) => {
+    const entries = data.benches;
     const [selected, setSelected] = useState(new Set());
     const [rejectingId, setRejectingId] = useState(null);
     const [viewingRemarks, setViewingRemarks] = useState(null);
-
-    const applyStatus = (id, status, remarks = '') =>
-        setEntries(prev => prev.map(e => e.id === id ? { ...e, status, rejectionRemarks: remarks } : e));
 
     const toggleSelect = (id) => {
         setSelected(prev => {
@@ -314,28 +238,10 @@ const BenchMouldTab = () => {
         });
     };
 
-    const verifySelected = () => {
-        setEntries(prev =>
-            prev.map(e => selected.has(e.id) && (e.status === 'Pending' || e.status === 'Unlocked')
-                ? { ...e, status: 'Verified' }
-                : e)
-        );
-        setSelected(new Set());
-    };
-
-    const verifyAll = () => {
-        setEntries(prev =>
-            prev.map(e =>
-                (e.status === 'Pending' || e.status === 'Unlocked') ? { ...e, status: 'Verified' } : e
-            )
-        );
-        setSelected(new Set());
-    };
-
     const pendingCount = entries.filter(e => e.status === 'Pending' || e.status === 'Unlocked').length;
     const stats = {
         verified: entries.filter(e => e.status === 'Verified').length,
-        pending: entries.filter(e => e.status === 'Pending').length,
+        pending: entries.filter(e => e.status === 'Pending' || e.status === 'Unlocked').length,
         rejected: entries.filter(e => e.status === 'Rejected').length,
     };
 
@@ -352,7 +258,8 @@ const BenchMouldTab = () => {
                     className="pdv-btn pdv-btn-verify"
                     onClick={() => {
                         if (window.confirm(`Are you sure you want to verify all ${selected.size} selected entries?`)) {
-                            verifySelected();
+                            updateBulk('benches', selected, 'Verified');
+                            setSelected(new Set());
                         }
                     }}
                     disabled={selected.size === 0}
@@ -362,8 +269,10 @@ const BenchMouldTab = () => {
                 <button
                     className="pdv-btn pdv-btn-verify"
                     onClick={() => {
+                        const allPendingIds = new Set(entries.filter(e => e.status === 'Pending' || e.status === 'Unlocked').map(e => e.id));
                         if (window.confirm(`Are you sure you want to verify all ${pendingCount} pending entries at once?`)) {
-                            verifyAll();
+                            updateBulk('benches', allPendingIds, 'Verified');
+                            setSelected(new Set());
                         }
                     }}
                     disabled={pendingCount === 0}
@@ -420,9 +329,9 @@ const BenchMouldTab = () => {
                                 <td data-label="Actions">
                                     <ActionButtons
                                         entry={e}
-                                        onVerify={(id) => applyStatus(id, 'Verified')}
+                                        onVerify={(id) => updateData('benches', id, 'Verified')}
                                         onReject={(id) => setRejectingId(id)}
-                                        onUnlock={(id) => applyStatus(id, 'Unlocked')}
+                                        onUnlock={(id) => updateData('benches', id, 'Unlocked')}
                                         onViewRemarks={(entry) => setViewingRemarks(entry)}
                                     />
                                 </td>
@@ -434,7 +343,7 @@ const BenchMouldTab = () => {
 
             {rejectingId && (
                 <RejectionModal
-                    onConfirm={(r) => { applyStatus(rejectingId, 'Rejected', r); setRejectingId(null); }}
+                    onConfirm={(r) => { updateData('benches', rejectingId, 'Rejected', r); setRejectingId(null); }}
                     onCancel={() => setRejectingId(null)}
                 />
             )}
@@ -451,17 +360,14 @@ const BenchMouldTab = () => {
 /* ─────────────────────────────────────────────────────────────
    TAB 3: Raw Material Source Verification
 ───────────────────────────────────────────────────────────── */
-const RawMaterialTab = () => {
-    const [entries, setEntries] = useState(initialRawMaterials);
+const RawMaterialTab = ({ data, updateData }) => {
+    const entries = data.rawMaterials;
     const [rejectingId, setRejectingId] = useState(null);
     const [viewingRemarks, setViewingRemarks] = useState(null);
 
-    const applyStatus = (id, status, remarks = '') =>
-        setEntries(prev => prev.map(e => e.id === id ? { ...e, status, rejectionRemarks: remarks } : e));
-
     const stats = {
         verified: entries.filter(e => e.status === 'Verified').length,
-        pending: entries.filter(e => e.status === 'Pending').length,
+        pending: entries.filter(e => e.status === 'Pending' || e.status === 'Unlocked').length,
         rejected: entries.filter(e => e.status === 'Rejected').length,
     };
 
@@ -524,9 +430,9 @@ const RawMaterialTab = () => {
                                             </button>
                                             <ActionButtons
                                                 entry={e}
-                                                onVerify={(id) => applyStatus(id, 'Verified')}
+                                                onVerify={(id) => updateData('rawMaterials', id, 'Verified')}
                                                 onReject={(id) => setRejectingId(id)}
-                                                onUnlock={(id) => applyStatus(id, 'Unlocked')}
+                                                onUnlock={(id) => updateData('rawMaterials', id, 'Unlocked')}
                                                 onViewRemarks={(entry) => setViewingRemarks(entry)}
                                             />
                                         </div>
@@ -540,7 +446,7 @@ const RawMaterialTab = () => {
 
             {rejectingId && (
                 <RejectionModal
-                    onConfirm={(r) => { applyStatus(rejectingId, 'Rejected', r); setRejectingId(null); }}
+                    onConfirm={(r) => { updateData('rawMaterials', rejectingId, 'Rejected', r); setRejectingId(null); }}
                     onCancel={() => setRejectingId(null)}
                 />
             )}
@@ -557,17 +463,14 @@ const RawMaterialTab = () => {
 /* ─────────────────────────────────────────────────────────────
    TAB 4: Mix Design Verification
 ───────────────────────────────────────────────────────────── */
-const MixDesignTab = () => {
-    const [entries, setEntries] = useState(initialMixDesigns);
+const MixDesignTab = ({ data, updateData }) => {
+    const entries = data.mixDesigns;
     const [rejectingId, setRejectingId] = useState(null);
     const [viewingRemarks, setViewingRemarks] = useState(null);
 
-    const applyStatus = (id, status, remarks = '') =>
-        setEntries(prev => prev.map(e => e.id === id ? { ...e, status, rejectionRemarks: remarks } : e));
-
     const stats = {
         verified: entries.filter(e => e.status === 'Verified').length,
-        pending: entries.filter(e => e.status === 'Pending').length,
+        pending: entries.filter(e => e.status === 'Pending' || e.status === 'Unlocked').length,
         rejected: entries.filter(e => e.status === 'Rejected').length,
     };
 
@@ -620,9 +523,9 @@ const MixDesignTab = () => {
                                 <td data-label="Actions">
                                     <ActionButtons
                                         entry={e}
-                                        onVerify={(id) => applyStatus(id, 'Verified')}
+                                        onVerify={(id) => updateData('mixDesigns', id, 'Verified')}
                                         onReject={(id) => setRejectingId(id)}
-                                        onUnlock={(id) => applyStatus(id, 'Unlocked')}
+                                        onUnlock={(id) => updateData('mixDesigns', id, 'Unlocked')}
                                         onViewRemarks={(entry) => setViewingRemarks(entry)}
                                     />
                                 </td>
@@ -634,7 +537,7 @@ const MixDesignTab = () => {
 
             {rejectingId && (
                 <RejectionModal
-                    onConfirm={(r) => { applyStatus(rejectingId, 'Rejected', r); setRejectingId(null); }}
+                    onConfirm={(r) => { updateData('mixDesigns', rejectingId, 'Rejected', r); setRejectingId(null); }}
                     onCancel={() => setRejectingId(null)}
                 />
             )}
@@ -662,13 +565,33 @@ const TABS = [
    MAIN MODULE COMPONENT
 ───────────────────────────────────────────────────────────── */
 const PlantDeclarationVerification = () => {
+    const { plantVerificationData, setPlantVerificationData } = useShift();
     const [activeTab, setActiveTab] = useState('plant-profile');
 
-    const pendingAll =
-        initialPlantProfiles.filter(e => e.status === 'Pending').length +
-        initialBenches.filter(e => e.status === 'Pending').length +
-        initialRawMaterials.filter(e => e.status === 'Pending').length +
-        initialMixDesigns.filter(e => e.status === 'Pending').length;
+    const stats = getVerificationStats(plantVerificationData);
+
+    const updateData = (category, id, status, remarks = '') => {
+        setPlantVerificationData(prev => ({
+            ...prev,
+            [category]: prev[category].map(e => e.id === id ? { ...e, status, rejectionRemarks: remarks } : e)
+        }));
+    };
+
+    const updateBulk = (category, ids, status) => {
+        setPlantVerificationData(prev => ({
+            ...prev,
+            [category]: prev[category].map(e => ids.has(e.id) && (e.status === 'Pending' || e.status === 'Unlocked')
+                ? { ...e, status }
+                : e)
+        }));
+    };
+
+    const tabProps = {
+        data: plantVerificationData,
+        updateData,
+        updateBulk,
+        stats
+    };
 
     const ActiveComponent = TABS.find(t => t.id === activeTab)?.component || null;
 
@@ -683,9 +606,9 @@ const PlantDeclarationVerification = () => {
             </div>
 
             {/* ALERT BANNER */}
-            {pendingAll > 0 && (
+            {stats.pending > 0 && (
                 <div className="pdv-alert-banner">
-                    <strong>{pendingAll} {pendingAll === 1 ? 'Entry' : 'Entries'} Pending for Verification</strong>
+                    <strong>{stats.pending} {stats.pending === 1 ? 'Entry' : 'Entries'} Pending for Verification</strong>
                     — Review the tabs below and take action on each declaration.
                 </div>
             )}
@@ -705,7 +628,7 @@ const PlantDeclarationVerification = () => {
 
             {/* TAB CONTENT */}
             <div className="pdv-content-area">
-                {ActiveComponent && <ActiveComponent />}
+                {ActiveComponent && <ActiveComponent {...tabProps} />}
             </div>
         </div>
     );

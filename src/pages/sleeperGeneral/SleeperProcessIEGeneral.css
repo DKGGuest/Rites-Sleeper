@@ -73,6 +73,73 @@
     line-height: 1.4;
 }
 
+.ie-sub-nav-card.pv-card {
+
+    position: relative;
+    overflow: hidden;
+}
+
+.pv-card-stats {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pv-stat-alert {
+    background: #fff1f2;
+    color: #be123c;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    animation: pulse-soft 2s infinite;
+}
+
+@keyframes pulse-soft {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.02);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.pv-stat-row-summary {
+    display: flex;
+    justify-content: space-around;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding-top: 4px;
+    border-top: 1px solid var(--border-color);
+}
+
+.stat-v {
+    color: #059669;
+}
+
+.stat-p {
+    color: #d97706;
+}
+
+.stat-r {
+    color: #dc2626;
+}
+
+.ie-sub-nav-card.active .pv-stat-row-summary {
+    border-top-color: rgba(33, 128, 141, 0.2);
+}
+
+
 /* ── Dynamic Content Area ── */
 .ie-sub-view-content {
     width: 100%;
@@ -188,6 +255,70 @@
 .ie-calibration-placeholder p {
     font-size: 1rem;
     color: var(--neutral-400);
+}
+
+/* ── Plant Verification Card Enhancements ── */
+.pv-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.pv-card-stats {
+    margin-top: 10px;
+}
+
+.pv-stat-alert {
+    background: #fee2e2;
+    color: #ef4444;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 8px;
+    border: 1px solid #fecaca;
+    animation: pulse-alert 2s infinite;
+}
+
+.pv-stat-row-summary {
+    display: flex;
+    gap: 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.pv-stat-row-summary span {
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.stat-v {
+    color: #10b981;
+}
+
+.stat-p {
+    color: #f59e0b;
+}
+
+.stat-r {
+    color: #ef4444;
+}
+
+@keyframes pulse-alert {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
 }
 
 /* ── Responsive ── */

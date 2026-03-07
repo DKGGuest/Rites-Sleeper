@@ -29,6 +29,31 @@ export const ShiftProvider = ({ children }) => {
     const [sharedBenchNo, setSharedBenchNo] = useState('');
     const [allCompactionRecords, setAllCompactionRecords] = useState({ 1: [] });
     const [htsData, setHtsData] = useState([]);
+    const [plantVerificationData, setPlantVerificationData] = useState({
+        profiles: [
+            { id: 'PP-001', plantName: 'DKG Sleeper Plant – Unit 1', location: 'Bhilai, Chhattisgarh', vendorCode: 'VND-2201', plantType: 'Stress Bench – Twin', sheds: 3, lines: null, status: 'Pending', rejectionRemarks: '' },
+            { id: 'PP-002', plantName: 'DKG Sleeper Plant – Unit 2', location: 'Raipur, Chhattisgarh', vendorCode: 'VND-2202', plantType: 'Long Line', sheds: null, lines: 5, status: 'Verified', rejectionRemarks: '' },
+            { id: 'PP-003', plantName: 'DKG Sleeper Plant – Unit 3', location: 'Durg, Chhattisgarh', vendorCode: 'VND-2203', plantType: 'Stress Bench – Single', sheds: 2, lines: null, status: 'Rejected', rejectionRemarks: 'Invalid vendor code format provided.' },
+        ],
+        benches: [
+            { id: 'BM-101', benchNo: 'B-01', moulds: 8, sleeperType: 'RT-8746', status: 'Pending', rejectionRemarks: '' },
+            { id: 'BM-102', benchNo: 'B-02', moulds: 8, sleeperType: 'RT-8746', status: 'Verified', rejectionRemarks: '' },
+            { id: 'BM-103', benchNo: 'B-03', moulds: 6, sleeperType: 'RT-4149', status: 'Pending', rejectionRemarks: '' },
+            { id: 'BM-104', benchNo: 'B-04', moulds: 6, sleeperType: 'RT-4149', status: 'Rejected', rejectionRemarks: 'Mould count exceeds declared capacity.' },
+            { id: 'BM-105', benchNo: 'L-01 (Line)', moulds: 2000, sleeperType: 'RT-8746', status: 'Pending', rejectionRemarks: '' },
+        ],
+        rawMaterials: [
+            { id: 'RM-001', materialType: 'Cement', supplierName: 'Ultra Tech Cements Ltd', sourceLocation: 'Bhilai', approvalRef: 'RDSO/2023/CE-441', validUpto: '2026-05-01', status: 'Pending', rejectionRemarks: '' },
+            { id: 'RM-002', materialType: 'HTS Wire', supplierName: 'Usha Martin Ltd', sourceLocation: 'Ranchi', approvalRef: 'RDSO/2022/HW-209', validUpto: '2026-03-25', status: 'Verified', rejectionRemarks: '' },
+            { id: 'RM-003', materialType: 'SGCI Insert', supplierName: 'Sharp Iron Works', sourceLocation: 'Faridabad', approvalRef: 'RITES/2024/SI-088', validUpto: '2026-03-12', status: 'Pending', rejectionRemarks: '' },
+            { id: 'RM-004', materialType: 'Aggregates', supplierName: 'National Quarry Depot', sourceLocation: 'Durg', approvalRef: 'RDSO/2021/AG-310', validUpto: '2026-02-25', status: 'Rejected', rejectionRemarks: 'RDSO approval validity has expired.' },
+        ],
+        mixDesigns: [
+            { id: 'MD-001', designId: 'MXD-M60-R1', grade: 'M60', authority: 'RDSO', cement: 450, ca1: 780, ca2: 410, fa: 675, water: 135, ac: 0.60, wc: 0.30, status: 'Pending', rejectionRemarks: '' },
+            { id: 'MD-002', designId: 'MXD-M55-R2', grade: 'M55', authority: 'RITES', cement: 420, ca1: 760, ca2: 390, fa: 660, water: 130, ac: 0.62, wc: 0.31, status: 'Verified', rejectionRemarks: '' },
+        ]
+    });
+
     const [manualCheckEntries, setManualCheckEntries] = useState({
         mouldPrep: [],
         htsWire: [],
@@ -37,6 +62,7 @@ export const ShiftProvider = ({ children }) => {
     const [moistureRecords, setMoistureRecords] = useState([]);
     const [steamRecords, setSteamRecords] = useState([]);
     const [testedRecords, setTestedRecords] = useState([]);
+
     const [benchMouldCheckRecords, setBenchMouldCheckRecords] = useState([
         { id: 1, type: 'Bench', assetNo: '210-A', location: 'Line I', dateOfChecking: '2026-01-30', checkTime: '10:30', visualResult: 'ok', dimensionResult: 'ok', overallResult: 'OK', timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(), lastCasting: '2026-01-25', sleeperType: 'RT-1234' },
         { id: 2, type: 'Bench', assetNo: '210', location: 'Line I', dateOfChecking: '2026-01-30', checkTime: '11:15', visualResult: 'ok', dimensionResult: 'ok', overallResult: 'OK', timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(), lastCasting: '2026-01-29', sleeperType: 'RT-1234' },
@@ -340,6 +366,8 @@ export const ShiftProvider = ({ children }) => {
         setSharedBatchNo,
         sharedBenchNo,
         setSharedBenchNo,
+        plantVerificationData,
+        setPlantVerificationData,
         loadShiftData
     };
 
