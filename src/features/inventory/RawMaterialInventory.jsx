@@ -181,13 +181,13 @@ const RawMaterialInventory = ({ displayMode = 'inline', onBack }) => {
                         <div style={{ display: 'grid', gap: '0.75rem' }}>
                             {inventoryData.filter(i => i.status === 'Low').map(i => (
                                 <div key={i.id} style={{ padding: '10px 14px', background: '#fff', borderRadius: '10px', border: '1px solid #fee2e2', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <span style={{ color: '#ef4444', fontSize: '1rem' }}>⚠️</span>
+                                    <span style={{ color: '#ef4444', fontSize: '1rem' }}>Alert</span>
                                     <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#b91c1c' }}>{i.name} stock level is below 20%. Order placement recommended.</div>
                                 </div>
                             ))}
                             {inventoryData.filter(i => i.status === 'Low').length === 0 && (
                                 <div style={{ padding: '10px 14px', background: '#fff', borderRadius: '10px', border: '1px solid #f0fdf4', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <span style={{ color: '#10b981', fontSize: '1rem' }}>✅</span>
+                                    <span style={{ color: '#10b981', fontSize: '1rem' }}>OK</span>
                                     <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#15803d' }}>All raw material stock levels are within safety limits.</div>
                                 </div>
                             )}

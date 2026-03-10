@@ -37,7 +37,7 @@ const FinalInspectionDashboard = () => {
             default:
                 return (
                     <div style={{ textAlign: 'center', padding: '100px 0', color: '#94a3b8', background: '#fff', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
-                        <div style={{ fontSize: '2rem', marginBottom: '16px' }}>🛠️</div>
+                        {/* Under construction message */}
                         <h3>{cards.find(c => c.id === selectedCard)?.title}</h3>
                         <p>This inspection module is currently under development.</p>
                     </div>

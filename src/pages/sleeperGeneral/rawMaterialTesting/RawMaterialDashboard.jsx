@@ -11,7 +11,7 @@ const RawMaterialDashboard = () => {
 
     const materials = [
         { id: 'cement', title: 'Cement Testing', subtitle: 'Periodic & New Batch' },
-        { id: 'aggregates', title: 'Aggregate Testing', subtitle: 'Crushing & Impact' },
+        { id: 'aggregates', title: 'Aggregate Testing', subtitle: 'Periodic & New Batch' },
         { id: 'hts-wire', title: 'HTS Wire Testing', subtitle: 'Daily mandatory' },
         { id: 'sgci', title: 'SGCI Insert Testing', subtitle: 'Weekly summary' },
         { id: 'water', title: 'Water Testing', subtitle: 'PH & TDS monthly' }

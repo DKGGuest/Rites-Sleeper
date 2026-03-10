@@ -7,6 +7,7 @@ import CombinedFlakinessElongation from './CombinedFlakinessElongation';
 import CombinedGranulometricCurve from './CombinedGranulometricCurve';
 import SoundnessTestForm from './SoundnessTestForm';
 import { MOCK_INVENTORY, MOCK_AGGREGATES_HISTORY } from '../../../../utils/rawMaterialMockData';
+import TrendChart from '../../../../components/common/TrendChart';
 import '../cement/CementForms.css';
 
 const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
@@ -143,7 +144,7 @@ const AggregateTesting = ({ onBack }) => {
             <div className="content-title-row" style={{ marginBottom: '24px' }}>
                 <h2 style={{ margin: 0 }}>Aggregate Quality Control</h2>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                    <button className="toggle-btn mini" onClick={() => { setActiveFormSection(1); setShowForm(true); }}>+ Add New</button>
+                    <button className="toggle-btn mini" onClick={() => { setActiveFormSection(1); setShowForm(true); }}>+ Add New (Periodic)</button>
                     <button className="toggle-btn secondary mini" onClick={onBack}>Back to Dashboard</button>
                 </div>
             </div>
@@ -164,11 +165,18 @@ const AggregateTesting = ({ onBack }) => {
 
             <div className="view-layer">
                 {viewMode === 'stats' && (
-                    <div className="table-outer-wrapper fade-in" style={{ padding: '40px', textAlign: 'center' }}>
-                        <h4 style={{ color: '#64748b' }}>Aggregate Testing Statistics</h4>
-                        <div style={{ height: '300px', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '20px' }}>
-                            <span style={{ color: '#cbd5e1', fontWeight: '600' }}>Chart Placeholder</span>
-                        </div>
+                    <div className="table-outer-wrapper fade-in" style={{ padding: '24px' }}>
+                        <TrendChart
+                            data={history}
+                            xKey="testDate"
+                            lines={[
+                                { key: 'crushing', color: '#ef4444', label: 'Crushing Value' },
+                                { key: 'impact', color: '#f59e0b', label: 'Impact Value' }
+                            ]}
+                            title="Aggregate Quality Trends"
+                            description="Historical crushing and impact resistance (%)"
+                            yAxisLabel="%"
+                        />
                     </div>
                 )}
 

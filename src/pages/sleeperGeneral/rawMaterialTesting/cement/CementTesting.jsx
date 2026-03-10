@@ -8,6 +8,7 @@ import SevenDayStrengthForm from './SevenDayStrengthForm';
 import FinenessTestForm from './FinenessTestForm';
 import { MOCK_INVENTORY, MOCK_CEMENT_HISTORY } from '../../../../utils/rawMaterialMockData';
 import CollectionAwaitingInspection from '../../../../components/CollectionAwaitingInspection';
+import TrendChart from '../../../../components/common/TrendChart';
 import './CementForms.css';
 
 const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
@@ -199,12 +200,18 @@ const CementTesting = ({ onBack }) => {
             {/* Dynamic Content */}
             <div className="view-layer">
                 {viewMode === 'stats' && (
-                    <div className="table-outer-wrapper fade-in" style={{ padding: '40px', textAlign: 'center' }}>
-                        <h4 style={{ color: '#64748b' }}>Statistics (Charts & Figures)</h4>
-                        <p style={{ color: '#94a3b8', fontSize: '0.875rem' }}>Visualizations and key metrics will be finalized in the next update.</p>
-                        <div style={{ height: '300px', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '20px' }}>
-                            <span style={{ color: '#cbd5e1', fontWeight: '600' }}>Chart Placeholder</span>
-                        </div>
+                    <div className="table-outer-wrapper fade-in" style={{ padding: '24px' }}>
+                        <TrendChart
+                            data={cementHistory}
+                            xKey="testDate"
+                            lines={[
+                                { key: 'surface', color: '#3b82f6', label: 'Specific Surface' },
+                                { key: 'initialSetting', color: '#8b5cf6', label: 'Initial Setting Time' }
+                            ]}
+                            title="Cement Quality Performance"
+                            description="Historical specific surface and setting time analysis"
+                            yAxisLabel=""
+                        />
                     </div>
                 )}
 

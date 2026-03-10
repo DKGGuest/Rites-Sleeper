@@ -54,7 +54,9 @@ const LastShiftReport = ({ onBack }) => {
                 <div className="report-column">
                     <section className="report-section highlight-card">
                         <div className="section-header">
-                            <span className="icon">🕒</span>
+                            <span className="icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                            </span>
                             <h3>Shift Details</h3>
                         </div>
                         <div className="data-row">
@@ -69,7 +71,9 @@ const LastShiftReport = ({ onBack }) => {
 
                     <section className="report-section highlight-card">
                         <div className="section-header">
-                            <span className="icon">🏗️</span>
+                            <span className="icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18" /><path d="M9 21V9" /></svg>
+                            </span>
                             <h3>Production Summary</h3>
                         </div>
                         <div className="stats-grid">
@@ -93,7 +97,9 @@ const LastShiftReport = ({ onBack }) => {
                 <div className="report-column">
                     <section className="report-section">
                         <div className="section-header">
-                            <span className="icon">🛡️</span>
+                            <span className="icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                            </span>
                             <h3>Process Highlights & Alerts</h3>
                         </div>
                         <div className="alerts-list">
@@ -111,7 +117,9 @@ const LastShiftReport = ({ onBack }) => {
 
                     <section className="report-section handover-section">
                         <div className="section-header">
-                            <span className="icon">📝</span>
+                            <span className="icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                            </span>
                             <h3>Shift Handover Log</h3>
                         </div>
                         <div className="handover-content">

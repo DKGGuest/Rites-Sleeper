@@ -38,11 +38,21 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
 
     // Mock SCADA Data - In production this would come from an API or live feed
     const [scadaRecords, setScadaRecords] = useState([
-        { id: 101, time: '10:15', batchNo: '615', benchNo: '12', v1_rpm: 9000, v2_rpm: 8950, v3_rpm: 9100, v4_rpm: 8800, duration: 42 },
-        { id: 102, time: '10:18', batchNo: '615', benchNo: '13', v1_rpm: 8850, v2_rpm: 9200, v3_rpm: 9050, v4_rpm: 8900, duration: 45 },
-        { id: 103, time: '10:22', batchNo: '615', benchNo: '14', v1_rpm: 9150, v2_rpm: 8700, v3_rpm: 9250, v4_rpm: 9100, duration: 40 },
-        { id: 104, time: '10:25', batchNo: '615', benchNo: '15', v1_rpm: 9020, v2_rpm: 9080, v3_rpm: 8960, v4_rpm: 8880, duration: 48 },
-        { id: 105, time: '10:30', batchNo: '616', benchNo: '21', v1_rpm: 8900, v2_rpm: 9120, v3_rpm: 9020, v4_rpm: 8850, duration: 44 },
+        {
+            id: 101, time: '10:15', batchNo: '615', benchNo: '12',
+            v1_rpm: 9000, v1_dur: 42, v2_rpm: 8950, v2_dur: 45, v3_rpm: 9100, v3_dur: 40, v4_rpm: 8800, v4_dur: 48,
+            v5_rpm: 9050, v5_dur: 44, v6_rpm: 8980, v6_dur: 46, v7_rpm: 9120, v7_dur: 43, v8_rpm: 8850, v8_dur: 45
+        },
+        {
+            id: 102, time: '10:18', batchNo: '615', benchNo: '13',
+            v1_rpm: 8850, v1_dur: 40, v2_rpm: 9200, v2_dur: 42, v3_rpm: 9050, v3_dur: 45, v4_rpm: 8900, v4_dur: 41,
+            v5_rpm: 9100, v5_dur: 44, v6_rpm: 8870, v6_dur: 43, v7_rpm: 9020, v7_dur: 46, v8_rpm: 8950, v8_dur: 44
+        },
+        {
+            id: 103, time: '10:22', batchNo: '615', benchNo: '14',
+            v1_rpm: 9150, v1_dur: 45, v2_rpm: 8700, v2_dur: 46, v3_rpm: 9250, v3_dur: 42, v4_rpm: 9100, v4_dur: 44,
+            v5_rpm: 8950, v5_dur: 41, v6_rpm: 9080, v6_dur: 45, v7_rpm: 8800, v7_dur: 43, v8_rpm: 9150, v8_dur: 42
+        },
     ]);
 
     // Dynamic Batch List
@@ -69,6 +79,8 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
         workingTachos: 4,
         minRpm: '',
         maxRpm: '',
+        minDuration: '',
+        maxDuration: '',
         duration: ''
     });
 
@@ -80,19 +92,26 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
     }, [selectedBatch]);
 
     const handleWitness = (record) => {
-        const rpms = [record.v1_rpm, record.v2_rpm, record.v3_rpm, record.v4_rpm];
+        const rpms = [];
+        const durs = [];
+        for (let i = 1; i <= 8; i++) {
+            if (record[`v${i}_rpm`]) rpms.push(record[`v${i}_rpm`]);
+            if (record[`v${i}_dur`]) durs.push(record[`v${i}_dur`]);
+        }
+
         const newEntry = {
             id: Date.now(),
             date: new Date().toISOString().split('T')[0],
             time: record.time,
             batchNo: record.batchNo,
             benchNo: record.benchNo,
-            tachoCount: 4,
-            workingTachos: 4,
+            tachoCount: 8,
+            workingTachos: rpms.length,
             minRpm: Math.min(...rpms),
             maxRpm: Math.max(...rpms),
-            duration: record.duration,
-            v1V4Rpm: record.v1_rpm, // Consistent with API field
+            minDuration: Math.min(...durs),
+            maxDuration: Math.max(...durs),
+            duration: Math.round(durs.reduce((a, b) => a + b, 0) / durs.length),
             source: 'Scada',
             originalScadaId: record.id
         };
@@ -126,6 +145,8 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                 workingTachos: fetchedData.workingTachos,
                 minRpm: fetchedData.minRpm,
                 maxRpm: fetchedData.maxRpm,
+                minDuration: fetchedData.minDuration || '',
+                maxDuration: fetchedData.maxDuration || '',
                 duration: fetchedData.duration
             });
             setShowForm(true);
@@ -142,6 +163,8 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                 workingTachos: entry.workingTachos,
                 minRpm: entry.minRpm,
                 maxRpm: entry.maxRpm,
+                minDuration: entry.minDuration || '',
+                maxDuration: entry.maxDuration || '',
                 duration: entry.duration
             });
             setShowForm(true);
@@ -165,6 +188,8 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                     benchNo: String(r.benchNo),
                     minRpm: parseInt(r.minRpm) || 0,
                     maxRpm: parseInt(r.maxRpm) || 0,
+                    minDuration: parseInt(r.minDuration) || 0,
+                    maxDuration: parseInt(r.maxDuration) || 0,
                     duration: parseInt(r.duration) || 0
                 }));
 
@@ -175,6 +200,8 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                     time: (r.time || "").substring(0, 5), // Truncate HH:mm:ss to HH:mm to satisfy backend parsing
                     benchNo: String(r.benchNo),
                     v1V4Rpm: parseInt(r.v1V4Rpm || r.minRpm) || 0,
+                    minDuration: parseInt(r.minDuration) || 0,
+                    maxDuration: parseInt(r.maxDuration) || 0,
                     duration: parseInt(r.duration) || 0
                 }));
 
@@ -221,7 +248,7 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
         }
         setManualForm({
             ...manualForm,
-            batchNo: selectedBatch, benchNo: '', minRpm: '', maxRpm: '', duration: '',
+            batchNo: selectedBatch, benchNo: '', minRpm: '', maxRpm: '', minDuration: '', maxDuration: '', duration: '',
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
         });
         alert('Manual entry saved to local session.');
@@ -291,15 +318,39 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                                 <h4>Scada Data Fetched</h4>
                             </div>
                             <div className="table-responsive">
-                                <table className="ui-table compact">
-                                    <thead><tr><th>Time</th><th>Bench</th><th>V1-V4 RPM</th><th>Dur.</th><th>Action</th></tr></thead>
+                                <table className="ui-table scada-detailed-table compact-font">
+                                    <thead>
+                                        <tr>
+                                            <th rowSpan="2">Time</th>
+                                            <th rowSpan="2">Bench</th>
+                                            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                                                <th key={i} colSpan="2">V{i}</th>
+                                            ))}
+                                            <th rowSpan="2">Action</th>
+                                        </tr>
+                                        <tr>
+                                            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                                                <React.Fragment key={i}>
+                                                    <th>R</th>
+                                                    <th>D</th>
+                                                </React.Fragment>
+                                            ))}
+                                        </tr>
+                                    </thead>
                                     <tbody>
                                         {scadaRecords.filter(r => !selectedBatch || String(r.batchNo) === String(selectedBatch)).length === 0 ? (
-                                            <tr><td colSpan="5" className="empty-msg">No pending SCADA data.</td></tr>
+                                            <tr><td colSpan="19" className="empty-msg">No pending SCADA data.</td></tr>
                                         ) : (
                                             scadaRecords.filter(r => !selectedBatch || String(r.batchNo) === String(selectedBatch)).map(r => (
                                                 <tr key={r.id}>
-                                                    <td>{r.time}</td><td><strong>{r.benchNo}</strong></td><td>{r.v1_rpm}-{r.v4_rpm}</td><td>{r.duration}s</td>
+                                                    <td>{r.time}</td>
+                                                    <td><strong>{r.benchNo}</strong></td>
+                                                    {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                                                        <React.Fragment key={i}>
+                                                            <td>{r[`v${i}_rpm`]}</td>
+                                                            <td style={{ color: '#64748b' }}>{r[`v${i}_dur`]}</td>
+                                                        </React.Fragment>
+                                                    ))}
                                                     <td><button className="btn-action" onClick={() => handleWitness(r)}>Witness</button></td>
                                                 </tr>
                                             ))
@@ -314,10 +365,12 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                                 <span className="step-number green-bg">3</span>
                                 <h4>Manual Entry Form</h4>
                             </div>
-                            <div className="form-grid">
+                            <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))' }}>
                                 <div className="form-field"><label>Bench No.</label><input type="number" min="0" value={manualForm.benchNo} onChange={e => setManualForm({ ...manualForm, benchNo: e.target.value })} /></div>
                                 <div className="form-field"><label>Min RPM</label><input type="number" min="0" value={manualForm.minRpm} onChange={e => setManualForm({ ...manualForm, minRpm: e.target.value })} /></div>
                                 <div className="form-field"><label>Max RPM</label><input type="number" min="0" value={manualForm.maxRpm} onChange={e => setManualForm({ ...manualForm, maxRpm: e.target.value })} /></div>
+                                <div className="form-field"><label>Min Duration (s)</label><input type="number" min="0" value={manualForm.minDuration} onChange={e => setManualForm({ ...manualForm, minDuration: e.target.value })} /></div>
+                                <div className="form-field"><label>Max Duration (s)</label><input type="number" min="0" value={manualForm.maxDuration} onChange={e => setManualForm({ ...manualForm, maxDuration: e.target.value })} /></div>
                             </div>
                             <div className="action-row-center" style={{ marginTop: '1rem' }}><button className="toggle-btn" onClick={handleSaveManual}>{editingId ? 'Update Record' : 'Save Manual Record'}</button></div>
                         </section>
@@ -329,13 +382,13 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                             </div>
                             <div className="table-responsive">
                                 <table className="ui-table compact">
-                                    <thead><tr><th>Source</th><th>Date</th><th>Batch</th><th>Bench</th><th>RPM</th><th>Actions</th></tr></thead>
+                                    <thead><tr><th>Source</th><th>Date</th><th>Batch</th><th>Bench</th><th>RPM Range</th><th>Duration</th><th>Actions</th></tr></thead>
                                     <tbody>
                                         {entries.filter(e => !selectedBatch || String(e.batchNo) === String(selectedBatch)).slice(0, 5).map(e => (
                                             <tr key={e.id}>
                                                 <td><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
                                                 <td>{e.date ? e.date.split('-').reverse().join('/') : ''}</td>
-                                                <td>{e.batchNo}</td><td>{e.benchNo}</td><td>{e.minRpm}-{e.maxRpm}</td>
+                                                <td>{e.batchNo}</td><td>{e.benchNo}</td><td>{e.minRpm}-{e.maxRpm}</td><td>{e.minDuration ? `${e.minDuration}-${e.maxDuration}s` : `${e.duration}s`}</td>
                                                 <td>
                                                     <div className="btn-group">
                                                         {e.source === 'Manual' && <button className="btn-action" onClick={() => handleEdit(e)}>Edit</button>}
@@ -439,7 +492,7 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                         <div className="table-outer-wrapper">
                             <div className="table-responsive">
                                 <table className="ui-table">
-                                    <thead><tr><th>Source</th><th>Date</th><th>Time</th><th>Batch</th><th>Bench</th><th>RPM Range</th><th>Duration</th><th>Actions</th></tr></thead>
+                                    <thead><tr><th>Source</th><th>Date</th><th>Time</th><th>Batch</th><th>Bench</th><th>RPM Range</th><th>Dur Range</th><th>Actions</th></tr></thead>
                                     <tbody>
                                         {entries
                                             .filter(e => !selectedBatch || String(e.batchNo) === String(selectedBatch))
@@ -447,7 +500,7 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                                                 <tr key={e.id}>
                                                     <td><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
                                                     <td>{e.date ? e.date.split('-').reverse().join('/') : ''}</td>
-                                                    <td>{e.time}</td><td>{e.batchNo}</td><td>{e.benchNo}</td><td>{e.minRpm}-{e.maxRpm}</td><td>{e.duration}s</td>
+                                                    <td>{e.time}</td><td>{e.batchNo}</td><td>{e.benchNo}</td><td>{e.minRpm}-{e.maxRpm}</td><td>{e.minDuration ? `${e.minDuration}-${e.maxDuration}s` : `${e.duration}s`}</td>
                                                     <td>
                                                         <div className="btn-group">
                                                             {e.source === 'Manual' && <button className="btn-action" onClick={() => handleEdit(e)}>Edit</button>}
@@ -480,14 +533,40 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                         </div>
                         <div className="table-outer-wrapper">
                             <div className="table-responsive">
-                                <table className="ui-table">
-                                    <thead><tr><th>Time</th><th>Bench</th><th>V1 RPM</th><th>V2 RPM</th><th>V3 RPM</th><th>V4 RPM</th><th>Dur</th><th>Action</th></tr></thead>
+                                <table className="ui-table scada-detailed-table">
+                                    <thead>
+                                        <tr>
+                                            <th rowSpan="2">Time</th>
+                                            <th rowSpan="2">Batch</th>
+                                            <th rowSpan="2">Bench</th>
+                                            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                                                <th key={i} colSpan="2">VIBRATOR {i}</th>
+                                            ))}
+                                            <th rowSpan="2">Action</th>
+                                        </tr>
+                                        <tr>
+                                            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                                                <React.Fragment key={i}>
+                                                    <th>RPM</th>
+                                                    <th>Dur</th>
+                                                </React.Fragment>
+                                            ))}
+                                        </tr>
+                                    </thead>
                                     <tbody>
                                         {scadaRecords
                                             .filter(r => !selectedBatch || String(r.batchNo) === String(selectedBatch))
                                             .map(r => (
                                                 <tr key={r.id}>
-                                                    <td>{r.time}</td><td><strong>{r.benchNo}</strong></td><td>{r.v1_rpm}</td><td>{r.v2_rpm}</td><td>{r.v3_rpm}</td><td>{r.v4_rpm}</td><td>{r.duration}s</td>
+                                                    <td>{r.time}</td>
+                                                    <td>{r.batchNo}</td>
+                                                    <td><strong>{r.benchNo}</strong></td>
+                                                    {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                                                        <React.Fragment key={i}>
+                                                            <td>{r[`v${i}_rpm`]}</td>
+                                                            <td style={{ color: '#64748b' }}>{r[`v${i}_dur`]}s</td>
+                                                        </React.Fragment>
+                                                    ))}
                                                     <td><button className="btn-action" onClick={() => handleWitness(r)}>Witness</button></td>
                                                 </tr>
                                             ))}

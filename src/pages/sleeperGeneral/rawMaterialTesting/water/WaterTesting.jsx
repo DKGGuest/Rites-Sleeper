@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import EnhancedDataTable from '../../../../components/common/EnhancedDataTable';
 import { MOCK_WATER_HISTORY } from '../../../../utils/rawMaterialMockData';
+import TrendChart from '../../../../components/common/TrendChart';
 import '../cement/CementForms.css';
 
 const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
@@ -141,7 +142,10 @@ const WaterTesting = ({ onBack }) => {
         <div className="water-testing-root cement-forms-scope fade-in">
             <div className="content-title-row" style={{ marginBottom: '24px' }}>
                 <h2 style={{ margin: 0 }}>Water Quality Testing</h2>
-                <button className="toggle-btn secondary mini" onClick={onBack}>Back to Dashboard</button>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                    <button className="toggle-btn mini" onClick={() => { reset(); setShowForm(true); }}>+ Add New (Periodic)</button>
+                    <button className="toggle-btn secondary mini" onClick={onBack}>Back to Dashboard</button>
+                </div>
             </div>
 
             <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap' }}>
@@ -160,11 +164,21 @@ const WaterTesting = ({ onBack }) => {
 
             <div className="view-layer">
                 {viewMode === 'stats' && (
-                    <div className="table-outer-wrapper fade-in" style={{ padding: '40px', textAlign: 'center' }}>
-                        <h4 style={{ color: '#64748b' }}>Water Testing Analytics</h4>
-                        <div style={{ height: '300px', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '20px' }}>
-                            <span style={{ color: '#cbd5e1', fontWeight: '600' }}>Chart Placeholder</span>
-                        </div>
+                    <div className="table-outer-wrapper fade-in" style={{ padding: '24px' }}>
+                        <TrendChart
+                            data={history.map(h => ({
+                                ...h,
+                                tdsNum: parseFloat(h.tds) || 0
+                            }))}
+                            xKey="testDate"
+                            lines={[
+                                { key: 'ph', color: '#3b82f6', label: 'pH Value' },
+                                { key: 'tdsNum', color: '#10b981', label: 'TDS (ppm)' }
+                            ]}
+                            title="Water Quality Analytics"
+                            description="Historical pH and TDS trends"
+                            yAxisLabel=""
+                        />
                     </div>
                 )}
 
@@ -181,7 +195,7 @@ const WaterTesting = ({ onBack }) => {
                     <div className="table-outer-wrapper fade-in">
                         <div className="content-title-row" style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', marginBottom: 0 }}>
                             <h4 style={{ margin: 0 }}>Historical Quality Logs</h4>
-                            <button className="toggle-btn mini" onClick={() => { reset(); setShowForm(true); }}>+ Add New Testing</button>
+                            <button className="toggle-btn mini" onClick={() => { reset(); setShowForm(true); }}>+ Add New (Periodic)</button>
                         </div>
                         <EnhancedDataTable columns={historyColumns} data={history} />
                     </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import MoistureEntryForm from './components/MoistureEntryForm';
 import { apiService } from '../../services/api';
+import TrendChart from '../../components/common/TrendChart';
 
 const formatDateForDisplay = (dateStr) => {
     if (!dateStr) return "-";
@@ -52,6 +53,29 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
     const [view, setView] = useState(initialView);
     const [editRecord, setEditRecord] = useState(null);
     const [saving, setSaving] = useState(false);
+    const [localRecords, setLocalRecords] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    const activeRecords = records.length > 0 ? records : localRecords;
+
+    React.useEffect(() => {
+        if (records.length === 0) {
+            const fetchRecords = async () => {
+                setLoading(true);
+                try {
+                    const data = await apiService.getMoistureAnalysis();
+                    if (Array.isArray(data)) {
+                        setLocalRecords(data);
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch moisture records:", err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            fetchRecords();
+        }
+    }, [records.length]);
 
     // Group records by batch number and date to show unified rows in UI
     const groupRecordsByBatch = (flatRecords) => {
@@ -70,15 +94,29 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                     faFree: r.sectionType === 'FA' ? r.freeMoisturePercent : '-',
                     totalFree: r.totalFreeMoisture,
                     timestamp: r.createdDate || new Date().toISOString(),
+                    // Chart-friendly numeric values
+                    ca1Val: r.sectionType === 'CA1' ? parseFloat(r.freeMoisturePercent) || 0 : 0,
+                    ca2Val: r.sectionType === 'CA2' ? parseFloat(r.freeMoisturePercent) || 0 : 0,
+                    faVal: r.sectionType === 'FA' ? parseFloat(r.freeMoisturePercent) || 0 : 0,
                     records: [r]
                 };
             } else {
-                if (r.sectionType === 'CA1') groups[key].ca1Free = r.freeMoisturePercent;
-                if (r.sectionType === 'CA2') groups[key].ca2Free = r.freeMoisturePercent;
-                if (r.sectionType === 'FA') groups[key].faFree = r.freeMoisturePercent;
+                if (r.sectionType === 'CA1') {
+                    groups[key].ca1Free = r.freeMoisturePercent;
+                    groups[key].ca1Val = parseFloat(r.freeMoisturePercent) || 0;
+                }
+                if (r.sectionType === 'CA2') {
+                    groups[key].ca2Free = r.freeMoisturePercent;
+                    groups[key].ca2Val = parseFloat(r.freeMoisturePercent) || 0;
+                }
+                if (r.sectionType === 'FA') {
+                    groups[key].faFree = r.freeMoisturePercent;
+                    groups[key].faVal = parseFloat(r.freeMoisturePercent) || 0;
+                }
                 groups[key].records.push(r);
                 // Keep the "best" batch level metrics
                 if (r.totalFreeMoisture) groups[key].totalFree = r.totalFreeMoisture;
+                if (r.mixDesignId) groups[key].mixDesignId = r.mixDesignId;
             }
         });
         return Object.values(groups).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -171,17 +209,17 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
     };
 
     // Calculate statistics based on section types
-    const ca1Records = records.filter(r => r.sectionType === 'CA1');
-    const ca2Records = records.filter(r => r.sectionType === 'CA2');
-    const faRecords = records.filter(r => r.sectionType === 'FA');
+    const ca1Records = activeRecords.filter(r => r.sectionType === 'CA1');
+    const ca2Records = activeRecords.filter(r => r.sectionType === 'CA2');
+    const faRecords = activeRecords.filter(r => r.sectionType === 'FA');
 
     const avgCA1 = ca1Records.length > 0 ? (ca1Records.reduce((sum, r) => sum + (parseFloat(r.freeMoisturePercent) || 0), 0) / ca1Records.length).toFixed(2) : '0.00';
     const avgCA2 = ca2Records.length > 0 ? (ca2Records.reduce((sum, r) => sum + (parseFloat(r.freeMoisturePercent) || 0), 0) / ca2Records.length).toFixed(2) : '0.00';
     const avgFA = faRecords.length > 0 ? (faRecords.reduce((sum, r) => sum + (parseFloat(r.freeMoisturePercent) || 0), 0) / faRecords.length).toFixed(2) : '0.00';
-    const avgTotal = records.length > 0 ? (records.filter(r => r.totalFreeMoisture).reduce((sum, r) => sum + (parseFloat(r.totalFreeMoisture) || 0), 0) / records.filter(r => r.totalFreeMoisture).length).toFixed(2) : '0.00';
+    const avgTotal = activeRecords.length > 0 ? (activeRecords.filter(r => r.totalFreeMoisture).reduce((sum, r) => sum + (parseFloat(r.totalFreeMoisture) || 0), 0) / activeRecords.filter(r => r.totalFreeMoisture).length).toFixed(2) : '0.00';
 
-    // Sort records by timestamp (latest first)
-    const sortedRecords = [...records].sort((a, b) => {
+    // Sort activeRecords by timestamp (latest first)
+    const sortedRecords = [...activeRecords].sort((a, b) => {
         const timeA = new Date(a.createdDate || a.timestamp || 0).getTime();
         const timeB = new Date(b.createdDate || b.timestamp || 0).getTime();
         return timeB - timeA;
@@ -197,6 +235,11 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                     <div style={{ marginBottom: '1.5rem' }}>
                         <h3 style={{ fontSize: '0.8125rem', fontWeight: '800', color: '#444', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Average Free Moisture Content</h3>
                         <div className="rm-grid-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
+                            {loading && (
+                                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '1rem', color: '#64748b' }}>
+                                    Loading latest data...
+                                </div>
+                            )}
                             <div className="calc-card hover-lift" style={{ borderLeft: '3px solid #3b82f6', padding: '0.75rem' }}>
                                 <span className="mini-label" style={{ fontSize: '0.6rem' }}>CA1 (20mm)</span>
                                 <div className="calc-value" style={{ fontSize: '1.15rem', color: '#3b82f6' }}>{avgCA1}%</div>
@@ -217,147 +260,18 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                     </div>
 
                     {/* Precision Moisture Trends Graph - High-Density Dashboard Widget */}
-                    <div className="chart-panel" style={{
-                        height: '280px',
-                        marginBottom: '1.5rem',
-                        padding: '16px 20px',
-                        background: '#fff',
-                        borderRadius: '16px',
-                        border: '1px solid #e2e8f0',
-                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        flexDirection: 'column'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                            <div>
-                                <h3 style={{ fontSize: '0.75rem', fontWeight: '900', color: '#1e293b', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>Precision Moisture Trends</h3>
-                                <p style={{ margin: 0, fontSize: '0.6rem', color: '#64748b', fontWeight: '600' }}>Chronological batch verification (Last 10)</p>
-                            </div>
-                            <div style={{ display: 'flex', gap: '10px', fontSize: '0.65rem', fontWeight: '800' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4F81FF' }}></div><span>CA1</span></div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#8A63D2' }}></div><span>CA2</span></div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F4A62A' }}></div><span>FA</span></div>
-                            </div>
-                        </div>
+                    <TrendChart
+                        data={[...displayRecords].reverse().slice(-10)}
+                        xKey="timestamp"
+                        lines={[
+                            { key: 'ca1Val', color: '#4F81FF', label: 'CA1' },
+                            { key: 'ca2Val', color: '#8A63D2', label: 'CA2' },
+                            { key: 'faVal', color: '#F4A62A', label: 'FA' }
+                        ]}
+                        title="Precision Moisture Trends"
+                        description="Chronological batch verification (Last 10)"
+                    />
 
-                        {/* Graph Container with specific paddings for axes */}
-                        <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, paddingLeft: '50px', paddingRight: '15px', paddingBottom: '35px' }}>
-                            <div style={{ position: 'relative', flex: 1 }}>
-                                <svg width="100%" height="100%" viewBox="0 0 1000 120" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
-                                    <defs>
-                                        <linearGradient id="grad-ca1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#4F81FF" stopOpacity="0.15" /><stop offset="100%" stopColor="#4F81FF" stopOpacity="0" /></linearGradient>
-                                        <linearGradient id="grad-ca2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#8A63D2" stopOpacity="0.15" /><stop offset="100%" stopColor="#8A63D2" stopOpacity="0" /></linearGradient>
-                                        <linearGradient id="grad-fa" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#F4A62A" stopOpacity="0.15" /><stop offset="100%" stopColor="#F4A62A" stopOpacity="0" /></linearGradient>
-                                    </defs>
-
-                                    {/* Y-Axis Grid & Labels (Visible Context) */}
-                                    {[0, 4, 8, 12].map((val, idx) => {
-                                        const y = 100 - (val / 12) * 100;
-                                        return (
-                                            <g key={val}>
-                                                <line x1="0" y1={y} x2="1000" y2={y} stroke="#f1f5f9" strokeWidth="1" strokeDasharray={idx === 0 ? "0" : "4 4"} />
-                                                <text x="-12" y={y + 4} textAnchor="end" fontSize="11" fill="#94a3b8" fontWeight="700">{val}%</text>
-                                            </g>
-                                        );
-                                    })}
-
-                                    {(() => {
-                                        // Robust Timestamp Parser
-                                        const parseTime = (ts) => {
-                                            if (!ts) return 0;
-                                            if (typeof ts === 'number') return ts;
-                                            if (ts.includes('/') && !ts.includes('-')) {
-                                                const parts = ts.split(' ')[0].split('/');
-                                                if (parts.length === 3) return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
-                                            }
-                                            return new Date(ts).getTime() || 0;
-                                        };
-
-                                        const graphData = [...displayRecords]
-                                            .sort((a, b) => parseTime(a.timestamp) - parseTime(b.timestamp))
-                                            .slice(-10);
-
-                                        if (graphData.length < 2) {
-                                            return <text x="500" y="50" textAnchor="middle" fill="#cbd5e1" fontSize="14" fontWeight="700">Waiting for trend data...</text>;
-                                        }
-
-                                        const step = 1000 / (graphData.length - 1);
-                                        const maxY = 12.0;
-                                        const colors = ['#4F81FF', '#8A63D2', '#F4A62A'];
-                                        const grads = ['url(#grad-ca1)', 'url(#grad-ca2)', 'url(#grad-fa)'];
-
-                                        // Bezier Curve Logic
-                                        const smoothing = 0.15;
-                                        const line = (pointA, pointB) => {
-                                            const lengthX = pointB.x - pointA.x;
-                                            const lengthY = pointB.y - pointA.y;
-                                            return { length: Math.sqrt(Math.pow(lengthX, 2) + Math.pow(lengthY, 2)), angle: Math.atan2(lengthY, lengthX) };
-                                        };
-                                        const controlPoint = (current, previous, next, reverse) => {
-                                            const p = previous || current; const n = next || current;
-                                            const l = line(p, n);
-                                            const angle = l.angle + (reverse ? Math.PI : 0);
-                                            const length = l.length * smoothing;
-                                            return [current.x + Math.cos(angle) * length, current.y + Math.sin(angle) * length];
-                                        };
-                                        const svgPath = (pts) => {
-                                            if (pts.length < 2) return "";
-                                            return pts.reduce((acc, pt, i, a) => {
-                                                if (i === 0) return `M ${pt.x},${pt.y}`;
-                                                const [cp1x, cp1y] = controlPoint(a[i - 1], a[i - 2], pt);
-                                                const [cp2x, cp2y] = controlPoint(pt, a[i - 1], a[i + 1], true);
-                                                return `${acc} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${pt.x},${pt.y}`;
-                                            }, "");
-                                        };
-
-                                        return ['ca1Free', 'ca2Free', 'faFree'].map((key, kIdx) => {
-                                            const points = graphData.map((g, i) => {
-                                                const rawVal = parseFloat(g[key]);
-                                                if (isNaN(rawVal)) return null;
-                                                const val = Math.max(0, Math.min(rawVal, maxY));
-                                                return { x: i * step, y: 100 - (val / maxY) * 100 };
-                                            }).filter(p => p !== null);
-
-                                            if (points.length < 2) return null;
-                                            const d = svgPath(points);
-                                            const areaD = `${d} L ${points[points.length - 1].x},120 L ${points[0].x},120 Z`;
-
-                                            return (
-                                                <g key={key}>
-                                                    <path d={areaD} fill={grads[kIdx]} style={{ transition: 'all 0.4s' }} />
-                                                    <path d={d} fill="none" stroke={colors[kIdx]} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                                                    {points.map((p, i) => (
-                                                        <circle key={i} cx={p.x} cy={p.y} r="3.5" fill="#fff" stroke={colors[kIdx]} strokeWidth="2" />
-                                                    ))}
-                                                </g>
-                                            );
-                                        });
-                                    })()}
-                                </svg>
-                            </div>
-
-                            {/* X-Axis Labels Container - Precisely Aligned */}
-                            <div style={{ position: 'absolute', bottom: 0, left: '50px', right: '15px', display: 'flex', justifyContent: 'space-between', borderTop: '1.5px solid #e2e8f0', paddingTop: '8px' }}>
-                                {[...displayRecords].sort((a, b) => {
-                                    const parseTime = (ts) => {
-                                        if (!ts) return 0;
-                                        if (ts.includes('/') && !ts.includes('-')) {
-                                            const parts = ts.split(' ')[0].split('/');
-                                            return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
-                                        }
-                                        return new Date(ts).getTime() || 0;
-                                    };
-                                    return parseTime(a.timestamp) - parseTime(b.timestamp);
-                                }).slice(-10).map((g, i) => (
-                                    <div key={i} style={{ textAlign: 'center', width: `${100 / 10}%` }}>
-                                        <span style={{ fontSize: '0.65rem', color: '#1e293b', fontWeight: '900', display: 'block' }}>{extractTime(g.timing)}</span>
-                                        <span style={{ fontSize: '0.55rem', color: '#94a3b8', fontWeight: '700' }}>{formatDateForDisplay(g.date).split('/').slice(0, 2).join('/')}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
 
                     <div style={{ marginBottom: '1rem' }}>
                         <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#475569', margin: 0, textTransform: 'uppercase' }}>Recent Moisture Samples</h3>
@@ -367,7 +281,7 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                         <table className="ui-table">
                             <thead>
                                 <tr style={{ fontSize: '0.7rem' }}>
-                                    <th>Date & Shift</th><th>Time</th><th>CA1 %</th><th>CA2 %</th><th>FA %</th><th>Total</th><th>Status</th>
+                                    <th>Date & Shift</th><th>Time</th><th>Batch No.</th><th>CA1 %</th><th>CA2 %</th><th>FA %</th><th>Total</th><th>Status</th>
                                 </tr>
                             </thead>
                             <tbody style={{ fontSize: '0.8rem' }}>
@@ -375,6 +289,7 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                                     <tr key={index}>
                                         <td>{formatDateForDisplay(group.date)} ({group.shift})</td>
                                         <td><strong>{extractTime(group.timing)}</strong></td>
+                                        <td><strong>{group.batchNo}</strong></td>
                                         <td style={{ color: '#3b82f6', fontWeight: '700' }}>{group.ca1Free !== '-' ? `${group.ca1Free}%` : '-'}</td>
                                         <td style={{ color: '#8b5cf6', fontWeight: '700' }}>{group.ca2Free !== '-' ? `${group.ca2Free}%` : '-'}</td>
                                         <td style={{ color: '#f59e0b', fontWeight: '700' }}>{group.faFree !== '-' ? `${group.faFree}%` : '-'}</td>
@@ -384,6 +299,7 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                                                 <button className="btn-action" style={{ fontSize: '10px' }} onClick={() => handleEdit({
                                                     ...group,
                                                     id: group.id,
+                                                    mixDesignId: group.records[0]?.mixDesignId || group.mixDesignId || '',
                                                     // Map group back to UI state for editing
                                                     ca1Details: {
                                                         wetSample: group.records.find(r => r.sectionType === 'CA1')?.wtWetSample || '',
@@ -400,12 +316,12 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                                                         driedSample: group.records.find(r => r.sectionType === 'FA')?.wtDriedSample || '',
                                                         absorption: group.records.find(r => r.sectionType === 'FA')?.absorptionPercent || ''
                                                     },
-                                                    userDryCA1: group.records[0]?.batchWtDryCa1 || '',
-                                                    userDryCA2: group.records[0]?.batchWtDryCa2 || '',
-                                                    userDryFA: group.records[0]?.batchWtDryFa || '',
-                                                    userDryWater: group.records[0]?.batchWtDryWater || '',
-                                                    userDryCement: group.records[0]?.batchWtDryCement || '',
-                                                    userDryAdmix: group.records[0]?.batchWtDryAdmix || '1.44'
+                                                    userDryCA1: group.records.find(r => r.batchWtDryCa1)?.batchWtDryCa1 || '',
+                                                    userDryCA2: group.records.find(r => r.batchWtDryCa2)?.batchWtDryCa2 || '',
+                                                    userDryFA: group.records.find(r => r.batchWtDryFa)?.batchWtDryFa || '',
+                                                    userDryWater: group.records.find(r => r.batchWtDryWater)?.batchWtDryWater || '',
+                                                    userDryCement: group.records.find(r => r.batchWtDryCement)?.batchWtDryCement || '',
+                                                    userDryAdmix: group.records.find(r => r.batchWtDryAdmix)?.batchWtDryAdmix || '1.44'
                                                 })}>Modify</button>
                                             ) : (
                                                 <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: '700' }}>LOCKED</span>
@@ -427,8 +343,9 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                         />
                     </div>
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 
     if (displayMode === 'inline') {

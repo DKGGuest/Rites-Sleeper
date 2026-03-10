@@ -58,6 +58,33 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
         fa: initialData?.faDetails || { wetSample: '', driedSample: '', absorption: '' }
     });
 
+    // Sync state when initialData changes (to fix 'no value on modification' bug)
+    useEffect(() => {
+        if (initialData) {
+            setCommonData({
+                date: initialData.date || localInit.date,
+                shift: initialData.shift || 'A',
+                timing: initialData.timing || localInit.time,
+                batchNo: initialData.batchNo || '',
+                mixDesignId: initialData.mixDesignId || '',
+                designValues: initialData.designValues || MIX_DESIGNS.find(m => m.id === initialData.mixDesignId) || null,
+                userDryCA1: initialData.userDryCA1 || '',
+                userDryCA2: initialData.userDryCA2 || '',
+                userDryFA: initialData.userDryFA || '',
+                userDryWater: initialData.userDryWater || '',
+                userDryAdmix: initialData.userDryAdmix || '1.44',
+                userDryCement: initialData.userDryCement || '',
+                designAC: initialData.designAC || (MIX_DESIGNS.find(m => m.id === initialData.mixDesignId)?.ac || ''),
+                designWC: initialData.designWC || (MIX_DESIGNS.find(m => m.id === initialData.mixDesignId)?.wc || '')
+            });
+            setAggData({
+                ca1: initialData.ca1Details || { wetSample: '', driedSample: '', absorption: '' },
+                ca2: initialData.ca2Details || { wetSample: '', driedSample: '', absorption: '' },
+                fa: initialData.faDetails || { wetSample: '', driedSample: '', absorption: '' }
+            });
+        }
+    }, [initialData]);
+
     const handleCommonChange = (field, val) => {
         if (field === 'mixDesignId') {
             const mix = MIX_DESIGNS.find(m => m.id === val);

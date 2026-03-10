@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import EnhancedDataTable from '../../../components/common/EnhancedDataTable';
 import CollapsibleSection from '../../../components/common/CollapsibleSection';
+import TrendChart from '../../../components/common/TrendChart';
 
 const ModulusOfRupture = () => {
     const [viewMode, setViewMode] = useState('statistics'); // 'statistics', 'declared', 'tested'
@@ -221,9 +222,16 @@ const ModulusOfRupture = () => {
                             <StatCard label="Last Sampling" value={stats.lastSamplingDate} />
                             <StatCard label="Last Test" value={stats.lastTestDate} />
                         </div>
-                        <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
-                            📈 Modulus of Rupture Trend Analysis Chart
-                        </div>
+                        <TrendChart
+                            data={testedSamples}
+                            xKey="dateOfTesting"
+                            lines={[
+                                { key: 'strength', color: '#3b82f6', label: 'Flexural Strength' }
+                            ]}
+                            title="Modulus of Rupture Trend"
+                            description="Historical flexural strength results (N/mm²)"
+                            yAxisLabel=""
+                        />
                     </div>
                 )}
 
@@ -288,7 +296,7 @@ const MORSampleDeclarationModal = ({ sample, isModifying, onClose, onSave }) => 
             <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
                 <div className="form-modal-header">
                     <span className="form-modal-header-title">{isModifying ? 'Modify' : 'Declare'} MOR Sample</span>
-                    <button className="form-modal-close" onClick={onClose}>×</button>
+                    <button className="form-modal-close" onClick={onClose}>✕</button>
                 </div>
                 <div className="form-modal-body">
                     <div className="form-grid" style={{ gridTemplateColumns: '1fr', gap: '16px' }}>
@@ -359,7 +367,7 @@ const MORTestDetailsModal = ({ sample, onClose, onSave }) => {
             <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
                 <div className="form-modal-header">
                     <span className="form-modal-header-title">Enter MOR Test Details: {sample.sampleId}</span>
-                    <button className="form-modal-close" onClick={onClose}>×</button>
+                    <button className="form-modal-close" onClick={onClose}>✕</button>
                 </div>
                 <div className="form-modal-body">
                     <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>

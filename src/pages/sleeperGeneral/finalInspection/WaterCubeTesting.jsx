@@ -65,7 +65,38 @@ const WaterCubeTesting = () => {
     const [selectedBatch, setSelectedBatch] = useState(null);
     const [showTestModal, setShowTestModal] = useState(false);
     const [showTestForm, setShowTestForm] = useState(false);
-    const [isModifying, setIsModifying] = useState(false);
+    const [doneTests, setDoneTests] = useState([
+        {
+            batchNo: 'B-680', castingDate: '2026-01-10', testDate: '2026-01-25',
+            sample1Results: [62.4, 61.8, 63.1], sample2Results: [59.8, 60.5, 61.2],
+            avgStrength: 61.47, status: 'PASS'
+        },
+        {
+            batchNo: 'B-675', castingDate: '2026-01-08', testDate: '2026-01-23',
+            sample1Results: [58.2, 57.5, 59.1], sample2Results: [56.4, 55.8, 57.2],
+            avgStrength: 57.37, status: 'PASS'
+        }
+    ]);
+
+    const handleSaveTestData = (data) => {
+        const s1Results = data.cubes.filter(c => c.sample === 1).map(c => c.strength);
+        const s2Results = data.cubes.filter(c => c.sample === 2).map(c => c.strength);
+
+        const finalLog = {
+            batchNo: selectedBatch.batchNo,
+            castingDate: selectedBatch.castingDate,
+            testDate: new Date().toISOString().split('T')[0],
+            sample1Results: s1Results,
+            sample2Results: s2Results,
+            avgStrength: data.results.x,
+            status: data.results.testResult
+        };
+
+        setDoneTests([finalLog, ...doneTests]);
+        setDeclaredBatches(prev => prev.filter(b => b.batchNo !== selectedBatch.batchNo));
+        setShowTestForm(false);
+        setActiveTab('done');
+    };
 
     const [declaredBatches, setDeclaredBatches] = useState([
         {
@@ -259,18 +290,7 @@ const WaterCubeTesting = () => {
                                     )
                                 }
                             ]}
-                            data={[
-                                {
-                                    batchNo: 'B-680', castingDate: '2026-01-10', testDate: '2026-01-25',
-                                    sample1Results: [62.4, 61.8, 63.1], sample2Results: [59.8, 60.5, 61.2],
-                                    avgStrength: 61.47, status: 'PASS'
-                                },
-                                {
-                                    batchNo: 'B-675', castingDate: '2026-01-08', testDate: '2026-01-23',
-                                    sample1Results: [58.2, 57.5, 59.1], sample2Results: [56.4, 55.8, 57.2],
-                                    avgStrength: 57.37, status: 'PASS'
-                                }
-                            ]}
+                            data={doneTests}
                             selectable={false}
                         />
                     </div>
@@ -317,16 +337,12 @@ const WaterCubeTesting = () => {
                     <div className="form-modal-container" style={{ maxWidth: '1200px', width: '98%' }}>
                         <div className="form-modal-header">
                             <span className="form-modal-header-title">Enter Cube Strength Data - Batch {selectedBatch.batchNo}</span>
-                            <button className="form-modal-close" onClick={() => setShowTestForm(false)}>X</button>
+                            <button className="form-modal-close" onClick={() => setShowTestForm(false)}>✕</button>
                         </div>
                         <div className="form-modal-body" style={{ maxHeight: '85vh', overflowY: 'auto' }}>
                             <WaterCuredCubeForm
                                 batch={selectedBatch}
-                                onSave={(data) => {
-                                    alert('Final Strength Data Logged Successfully!');
-                                    setShowTestForm(false);
-                                    setActiveTab('done');
-                                }}
+                                onSave={handleSaveTestData}
                                 onCancel={() => setShowTestForm(false)}
                             />
                         </div>
@@ -357,7 +373,7 @@ const SampleDeclarationModal = ({ batch, isModifying, onClose, onSave }) => {
             <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '850px' }}>
                 <div className="form-modal-header">
                     <span className="form-modal-header-title">{isModifying ? 'Modify Sample Details' : 'Sample Declaration Form'}</span>
-                    <button className="form-modal-close" onClick={onClose}>×</button>
+                    <button className="form-modal-close" onClick={onClose}>✕</button>
                 </div>
                 <div className="form-modal-body" style={{ background: '#f8fafc' }}>
                     <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
@@ -437,7 +453,7 @@ const TestDetailPopup = ({ batch, onClose, onModify, onSaveTest }) => {
             <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
                 <div className="form-modal-header">
                     <span className="form-modal-header-title">Batch Test Readiness</span>
-                    <button className="form-modal-close" onClick={onClose}>×</button>
+                    <button className="form-modal-close" onClick={onClose}>✕</button>
                 </div>
                 <div className="form-modal-body">
                     <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
@@ -464,7 +480,7 @@ const TestDetailPopup = ({ batch, onClose, onModify, onSaveTest }) => {
 
                         {!isEligible && (
                             <div style={{ background: '#fff7ed', padding: '12px', borderRadius: '8px', border: '1px solid #ffedd5', color: '#c2410c', fontSize: '11px', fontWeight: '700', marginBottom: '20px' }}>
-                                ⚠️ Testing will become eligible on {new Date(new Date(batch.castingDate).getTime() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                                Testing will become eligible on {new Date(new Date(batch.castingDate).getTime() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString()}
                             </div>
                         )}
 

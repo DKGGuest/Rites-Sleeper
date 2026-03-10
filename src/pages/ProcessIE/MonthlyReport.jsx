@@ -147,7 +147,7 @@ const MonthlyReport = ({ onBack }) => {
                                     </div>
                                     <div className="rm-data">
                                         <span className="rm-stock">Stock: {item.stock}</span>
-                                        {item.alert && <span className="alert-icon">⚠️</span>}
+                                        {item.alert && <span className="alert-text">Alert</span>}
                                     </div>
                                 </div>
                             ))}

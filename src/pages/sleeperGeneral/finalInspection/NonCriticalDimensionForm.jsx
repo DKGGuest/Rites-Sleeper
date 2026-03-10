@@ -98,7 +98,7 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage })
         <div className="non-critical-dimension-form critical-dimension-form">
             <header className="critical-form-header">
                 <h2>Non-Critical Dimensions - Full Inspection Form</h2>
-                <button onClick={onCancel} className="close-btn">×</button>
+                <button onClick={onCancel} className="close-btn">✕</button>
             </header>
 
             <div className="critical-form-body">

@@ -10,7 +10,7 @@ const DASHBOARD_CARDS = [
     {
         id: 'start-duty',
         iconClass: 'card-icon card-icon--primary',
-        icon: '▶',
+        icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3" /></svg>,
         title: (hasActive) => hasActive ? 'Resume Duty' : 'Start Duty',
         desc: (hasActive) => hasActive
             ? 'Continue your current active data logging session.'
@@ -19,7 +19,7 @@ const DASHBOARD_CARDS = [
     {
         id: 'batch-report',
         iconClass: 'card-icon card-icon--success',
-        icon: '📋',
+        icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></svg>,
         title: () => 'Batch-wise Sleeper Report',
         desc: () => 'End-to-end traceability and lifecycle summary of batches.',
         target: 'BatchWiseSleeperReport',
@@ -27,7 +27,7 @@ const DASHBOARD_CARDS = [
     {
         id: 'shift-report',
         iconClass: 'card-icon card-icon--warning',
-        icon: '⌛',
+        icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
         title: () => 'Last Shift Report',
         desc: () => 'Immediate snapshot and alerts from the previous shift.',
         target: 'LastShiftReport',
@@ -35,7 +35,7 @@ const DASHBOARD_CARDS = [
     {
         id: 'monthly-report',
         iconClass: 'card-icon card-icon--dark',
-        icon: '📈',
+        icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>,
         title: () => 'Monthly Report',
         desc: () => 'High-level plant-wide monthly KPI dashboard.',
         target: 'MonthlyReport',

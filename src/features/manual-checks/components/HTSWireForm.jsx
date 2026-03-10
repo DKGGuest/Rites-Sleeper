@@ -128,19 +128,21 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
 
         // Hard validation — block save if any value is out of range
         const errors = [];
-        if (wiresNum !== rules.wires) {
-            errors.push(`• No. of Wires: ${wiresNum} (Required: ${rules.wires})`);
+        const requiredWires = rules.wires;
+
+        if (wiresNum !== requiredWires) {
+            errors.push(`• No. of Wires: ${wiresNum} (Required: ${requiredWires})`);
         }
         if (diaNum < rules.diaMin || diaNum > rules.diaMax) {
-            errors.push(`• Wire Dia: ${diaNum}mm (Required: ${rules.diaMin}–${rules.diaMax}mm)`);
+            errors.push(`• Wire Dia: ${diaNum.toFixed(2)}mm (Allowed: ${rules.diaMin}–${rules.diaMax}mm)`);
         }
         if (layLenNum < 72 || layLenNum > 108) {
-            errors.push(`• Lay Length: ${layLenNum}mm (Required: 72–108mm)`);
+            errors.push(`• Lay Length: ${layLenNum.toFixed(1)}mm (Allowed: 72–108mm)`);
         }
 
         if (errors.length > 0) {
-            alert(`❌ Cannot save — the following values are out of the accepted range:\n\n${errors.join('\n')}\n\nPlease correct the values before saving.`);
-            return;
+            const confirmed = window.confirm(`⚠️ ATTENTION: OUT OF TOLERANCE\n\nOne or more parameters are outside the standard QC range:\n\n${errors.join('\n')}\n\nDo you want to proceed with saving this deviation?`);
+            if (!confirmed) return;
         }
 
         // Payload matching hts-wire-placement-controller schema exactly

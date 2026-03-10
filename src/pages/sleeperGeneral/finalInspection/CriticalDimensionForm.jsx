@@ -85,7 +85,7 @@ const CriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage }) =>
         <div className="critical-dimension-form">
             <header className="critical-form-header">
                 <h2>Critical Dimensions - Full Inspection Form</h2>
-                <button onClick={onCancel} className="close-btn">×</button>
+                <button onClick={onCancel} className="close-btn">✕</button>
             </header>
 
             <div className="critical-form-body">

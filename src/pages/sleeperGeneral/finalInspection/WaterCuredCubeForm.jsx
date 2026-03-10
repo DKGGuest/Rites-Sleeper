@@ -38,15 +38,9 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
     const age = calculateAge(batch.castingDate);
 
     useEffect(() => {
-        const updatedCubes = cubes.map(cube => {
-            const loadVal = parseFloat(cube.load);
-            const strength = loadVal ? (loadVal * 1000 / AREA).toFixed(2) : 0;
-            return { ...cube, strength: parseFloat(strength) };
-        });
-
-        // Calculate Averages
-        const s1Cubes = updatedCubes.filter(c => c.sample === 1 && c.strength > 0);
-        const s2Cubes = updatedCubes.filter(c => c.sample === 2 && c.strength > 0);
+        // Calculate Averages based on current cubes state
+        const s1Cubes = cubes.filter(c => c.sample === 1 && c.strength > 0);
+        const s2Cubes = cubes.filter(c => c.sample === 2 && c.strength > 0);
 
         const s1Avg = s1Cubes.length > 0 ? s1Cubes.reduce((acc, c) => acc + c.strength, 0) / s1Cubes.length : 0;
         const s2Avg = s2Cubes.length > 0 ? s2Cubes.reduce((acc, c) => acc + c.strength, 0) / s2Cubes.length : 0;
@@ -55,7 +49,7 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
         const x = (s1Avg > 0 && s2Avg > 0) ? (s1Avg + s2Avg) / 2 : 0;
 
         // Y = min of all cubes
-        const allStrengths = updatedCubes.filter(c => c.strength > 0).map(c => c.strength);
+        const allStrengths = cubes.filter(c => c.strength > 0).map(c => c.strength);
         const y = allStrengths.length > 0 ? Math.min(...allStrengths) : 0;
 
         // Variations
@@ -72,19 +66,11 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
         // Condition 1: X >= (Fck + 3) && Y >= (Fck - 3)
         const condition1 = allStrengths.length === 6 && x >= (FCK + 3) && y >= (FCK - 3);
 
-        // Condition 2: (Fck + 3) > X >= Fck & / OR (Fck - 3) > Y >= (Fck - 5)
-        // Wait, Condition 2 says "IF True if (Fck +3) > X >= Fck & / OR (Fck-3)>Y >= (Fck-5)"
-        // This is tricky logic. Let's break it down:
-        // C2 is true if:
-        // ((X < Fck + 3) AND (X >= Fck))  OR  ((Y < Fck - 3) AND (Y >= Fck - 5))
-        // But wait, if Condition 1 is already true, it shouldn't be C2?
-        // Usually these are mutually exclusive or hierarchical.
         const condition2 = allStrengths.length === 6 && !condition1 && (
             ((x < FCK + 3) && (x >= FCK)) ||
             ((y < FCK - 3) && (y >= FCK - 5))
         );
 
-        // Condition 3: X < Fck & / OR Y < Fck-5
         const condition3 = allStrengths.length === 6 && !condition1 && !condition2 && (
             (x < FCK) || (y < FCK - 5)
         );
@@ -100,7 +86,7 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
                 mrSamples = 2;
                 testResult = 'PASS';
             } else if (condition3) {
-                mrSamples = 0; // Or as required
+                mrSamples = 0;
                 testResult = 'FAIL';
             }
         }
@@ -113,7 +99,24 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
     }, [cubes, FCK]);
 
     const handleCubeChange = (id, field, value) => {
-        setCubes(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
+        setCubes(prev => prev.map(c => {
+            if (c.id === id) {
+                const updated = { ...c, [field]: value };
+                // If weight or load changes, we can calculate strength, 
+                // but if they enter strength directly, we respect that.
+                if (field === 'load') {
+                    const loadVal = parseFloat(value);
+                    if (!isNaN(loadVal)) {
+                        updated.strength = parseFloat((loadVal * 1000 / AREA).toFixed(2));
+                    }
+                }
+                if (field === 'strength') {
+                    updated.strength = parseFloat(value) || 0;
+                }
+                return updated;
+            }
+            return c;
+        }));
     };
 
     return (
@@ -139,7 +142,7 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
                                     <th>Cube #</th>
                                     <th>Weight (kg)</th>
                                     <th>Load (KN)</th>
-                                    <th>Strength</th>
+                                    <th>Strength (N/mm²)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -151,10 +154,34 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
                                                 <input type="time" value={cube.time} onChange={(e) => handleCubeChange(cube.id, 'time', e.target.value)} />
                                             </div>
                                         </td>
-                                        <td><strong>1-{idx + 1}</strong></td>
+                                        <td>
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <strong style={{ color: '#13343b' }}>{batch.sample1?.[idx] || `1-${idx + 1}`}</strong>
+                                                <span style={{ fontSize: '9px', color: '#64748b' }}>Index: 1-{idx + 1}</span>
+                                            </div>
+                                        </td>
                                         <td><input type="number" step="0.01" value={cube.weight} onChange={(e) => handleCubeChange(cube.id, 'weight', e.target.value)} /></td>
                                         <td><input type="number" step="0.1" value={cube.load} onChange={(e) => handleCubeChange(cube.id, 'load', e.target.value)} /></td>
-                                        <td className="strength-cell">{cube.strength || '0.00'}</td>
+                                        <td className="strength-cell" style={{
+                                            background: cube.strength >= FCK ? '#f0fdf4' : (cube.strength > 0 ? '#fff1f2' : 'transparent'),
+                                            padding: '4px'
+                                        }}>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={cube.strength || ''}
+                                                onChange={(e) => handleCubeChange(cube.id, 'strength', e.target.value)}
+                                                style={{
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    textAlign: 'right',
+                                                    fontWeight: '800',
+                                                    color: cube.strength >= FCK ? '#166534' : (cube.strength > 0 ? '#991b1b' : '#64748b'),
+                                                    width: '100%',
+                                                    padding: '4px 8px'
+                                                }}
+                                            />
+                                        </td>
                                     </tr>
                                 ))}
                                 <tr className="avg-row">
@@ -180,7 +207,7 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
                                     <th>Cube #</th>
                                     <th>Weight (kg)</th>
                                     <th>Load (KN)</th>
-                                    <th>Strength</th>
+                                    <th>Strength (N/mm²)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -192,10 +219,34 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
                                                 <input type="time" value={cube.time} onChange={(e) => handleCubeChange(cube.id, 'time', e.target.value)} />
                                             </div>
                                         </td>
-                                        <td><strong>2-{idx + 1}</strong></td>
+                                        <td>
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <strong style={{ color: '#13343b' }}>{batch.sample2?.[idx] || `2-${idx + 1}`}</strong>
+                                                <span style={{ fontSize: '9px', color: '#64748b' }}>Index: 2-{idx + 1}</span>
+                                            </div>
+                                        </td>
                                         <td><input type="number" step="0.01" value={cube.weight} onChange={(e) => handleCubeChange(cube.id, 'weight', e.target.value)} /></td>
                                         <td><input type="number" step="0.1" value={cube.load} onChange={(e) => handleCubeChange(cube.id, 'load', e.target.value)} /></td>
-                                        <td className="strength-cell">{cube.strength || '0.00'}</td>
+                                        <td className="strength-cell" style={{
+                                            background: cube.strength >= FCK ? '#f0fdf4' : (cube.strength > 0 ? '#fff1f2' : 'transparent'),
+                                            padding: '4px'
+                                        }}>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={cube.strength || ''}
+                                                onChange={(e) => handleCubeChange(cube.id, 'strength', e.target.value)}
+                                                style={{
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    textAlign: 'right',
+                                                    fontWeight: '800',
+                                                    color: cube.strength >= FCK ? '#166534' : (cube.strength > 0 ? '#991b1b' : '#64748b'),
+                                                    width: '100%',
+                                                    padding: '4px 8px'
+                                                }}
+                                            />
+                                        </td>
                                     </tr>
                                 ))}
                                 <tr className="avg-row">
@@ -208,6 +259,18 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                <div style={{ marginTop: '24px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <h4 style={{ fontSize: '13px', color: '#13343b', marginBottom: '12px', fontWeight: '800' }}>Individual Cube Strengths Summary</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
+                        {cubes.map((c, idx) => (
+                            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                                <span style={{ fontSize: '10px', color: '#64748b', fontWeight: '700' }}>#{c.sample === 1 ? (batch.sample1?.[idx] || `1-${idx + 1}`) : (batch.sample2?.[idx - 3] || `2-${idx - 2}`)}</span>
+                                <span style={{ fontSize: '12px', fontWeight: '800', color: c.strength >= FCK ? '#166534' : '#991b1b' }}>{c.strength ? c.strength.toFixed(2) : '0.00'}</span>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </div>

@@ -414,8 +414,12 @@ const IncomingVerificationDashboard = () => {
                                     alignItems: 'center',
                                     gap: '12px'
                                 }}>
-                                    <div style={{ fontSize: '1.2rem', fontWeight: '800', color: selectedEntry.status === 'Verified' ? '#059669' : '#ef4444' }}>
-                                        {selectedEntry.status === 'Verified' ? '✓' : '✗'}
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', background: selectedEntry.status === 'Verified' ? '#10b98122' : '#ef444422' }}>
+                                        {selectedEntry.status === 'Verified' ? (
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                                        ) : (
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                                        )}
                                     </div>
                                     <div>
                                         <div style={{ fontSize: '12px', fontWeight: '700', color: selectedEntry.status === 'Verified' ? '#059669' : '#ef4444', textTransform: 'uppercase' }}>
@@ -442,8 +446,9 @@ const IncomingVerificationDashboard = () => {
                         </div>
                     </div>
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 };
 

@@ -327,7 +327,7 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                                                         fontWeight: '700',
                                                         fontSize: '11px'
                                                     }}>
-                                                        {(entry.mouldCleaned === 1 || entry.mouldCleaned === true || entry.mouldCleaned === 'Yes' || entry.lumpsFree === 1 || entry.lumpsFree === true || entry.lumpsFree === 'Yes') ? '✓ CLEAN' : '✗ DIRTY'}
+                                                        {(entry.mouldCleaned === 1 || entry.mouldCleaned === true || entry.mouldCleaned === 'Yes' || entry.lumpsFree === 1 || entry.lumpsFree === true || entry.lumpsFree === 'Yes') ? 'CLEAN' : 'DIRTY'}
                                                     </span>
                                                 </td>
                                                 <td>
@@ -336,7 +336,7 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                                                         fontWeight: '700',
                                                         fontSize: '11px'
                                                     }}>
-                                                        {(entry.oilApplied === 1 || entry.oilApplied === true || entry.oilApplied === 'Yes') ? '✓ APPLIED' : '✗ NO'}
+                                                        {(entry.oilApplied === 1 || entry.oilApplied === true || entry.oilApplied === 'Yes') ? 'APPLIED' : 'NO'}
                                                     </span>
                                                 </td>
                                             </>
