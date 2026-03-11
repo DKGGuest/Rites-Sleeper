@@ -7,6 +7,7 @@ import MainDashboard from './pages/ProcessIE/MainDashboard';
 import BatchWiseSleeperReport from './pages/ProcessIE/BatchWiseSleeperReport';
 import LastShiftReport from './pages/ProcessIE/LastShiftReport';
 import MonthlyReport from './pages/ProcessIE/MonthlyReport';
+import DashboardTabs from './components/Navigation/DashboardTabs';
 
 
 /**
@@ -63,9 +64,18 @@ const App = () => {
     }
   };
 
+  const showTabs = [
+    'Batch Wise Sleeper Report',
+    'Last Shift Report',
+    'Monthly Performance Report'
+  ].includes(mainView);
+
   return (
     <ShiftProvider>
       <MainLayout activeItem={mainView} onItemClick={setMainView}>
+        {showTabs && (
+          <DashboardTabs activeItem={mainView} onItemClick={setMainView} />
+        )}
         {renderView()}
       </MainLayout>
     </ShiftProvider>

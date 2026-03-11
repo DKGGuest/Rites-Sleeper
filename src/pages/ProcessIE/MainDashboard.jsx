@@ -50,7 +50,9 @@ const MainDashboard = () => {
         setActiveContainerId,
         selectedShift,
         setSelectedShift,
+        dutyDate,
         setDutyDate,
+        dutyLocation,
         setDutyLocation,
         containers
     } = useShift();
@@ -109,21 +111,37 @@ const MainDashboard = () => {
 
 
     return (
-        <div className="main-dashboard fade-in">
-            <h1 className="dashboard-title">Process IE – Portal Home</h1>
+        <div className="ie-general-container fade-in">
+            {/* ── Page Header ── */}
+            <header className="ie-modern-header">
+                <div className="header-top-line">
+                    <button
+                        className="home-btn-glass"
+                        onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { target: 'Main Dashboard' } }))}
+                        title="Back to Dashboard"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+                    </button>
+                    <div className="header-titles">
+                        <h1>Process IE – Portal Home</h1>
+                    </div>
+                </div>
+            </header>
 
-            <div className="card-grid">
+            <div className="ie-sub-nav-grid">
                 {DASHBOARD_CARDS.map(card => (
                     <div
                         key={card.id}
-                        className="dashboard-card"
+                        className="ie-sub-nav-card"
                         onClick={() => handleCardClick(card)}
                     >
-                        <div className={card.iconClass}>
-                            <span className="card-icon-symbol">{card.icon}</span>
+                        <div className="card-icon-wrapper">
+                            <span className="card-icon-symbol-modern">{card.icon}</span>
                         </div>
-                        <h3>{card.title(hasActiveDuty)}</h3>
-                        <p className="dashboard-card-desc">{card.desc(hasActiveDuty)}</p>
+                        <div className="card-info">
+                            <h3 className="ie-sub-nav-card-title">{card.title(hasActiveDuty)}</h3>
+                            <p className="ie-sub-nav-card-desc">{card.desc(hasActiveDuty)}</p>
+                        </div>
                     </div>
                 ))}
             </div>
