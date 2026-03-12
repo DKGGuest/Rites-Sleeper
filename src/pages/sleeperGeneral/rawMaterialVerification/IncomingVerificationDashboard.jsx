@@ -1,455 +1,539 @@
-import React, { useState, useEffect } from 'react';
-import EnhancedDataTable from '../../../components/common/EnhancedDataTable';
+import React, { useState, useEffect, useCallback } from 'react';
 import { apiService } from '../../../services/api';
 
-const IncomingVerificationDashboard = () => {
-    const [selectedMaterial, setSelectedMaterial] = useState(null); // 'CEMENT', 'HTS', etc.
-    const [viewModal, setViewModal] = useState(false);
-    const [selectedEntry, setSelectedEntry] = useState(null);
-    const [statusFilter, setStatusFilter] = useState('Unverified');
+// ─────────────────────────────────────────────
+//  Constants – must match sleeper_module table
+// ─────────────────────────────────────────────
+const LOGGED_IN_USER_ID = 119; // Hardcoded IE user
 
-    const materials = [
-        { id: 'CEMENT', title: 'Cement', unit: 'MT' },
-        { id: 'HTS', title: 'HTS Wire', unit: 'Coils' },
-        { id: 'AGGREGATES', title: 'Aggregates', unit: 'Cum' },
-        { id: 'ADMIXTURE', title: 'Admixture', unit: 'Litres' },
-        { id: 'SGCI', title: 'SGCI Insert', unit: 'Nos' },
-        { id: 'DOWEL', title: 'Dowel', unit: 'Nos' },
-    ];
+/**
+ * sleeper_module table mapping:
+ *  id | module_name
+ *   1 | PLANT_PROFILE
+ *   2 | BENCH_MOULD_MASTER
+ *   3 | RAW_MATERIAL_SOURCE
+ *   4 | MIX_DESIGN
+ *   5 | HTS Wire
+ *   6 | Cement
+ *   7 | Admixture
+ *   8 | Aggregates
+ *   9 | SGCI Insert
+ *  10 | Dowel
+ */
+const MODULE_CONFIG = [
+    { moduleId: 1,  label: 'Plant Profile',     group: 'Plant Declaration',     color: '#7c3aed' },
+    { moduleId: 2,  label: 'Bench / Mould',     group: 'Plant Declaration',     color: '#7c3aed' },
+    { moduleId: 3,  label: 'Raw Material Src',  group: 'Plant Declaration',     color: '#7c3aed' },
+    { moduleId: 4,  label: 'Mix Design',        group: 'Plant Declaration',     color: '#7c3aed' },
+    { moduleId: 5,  label: 'HTS Wire',          group: 'Incoming Verification', color: '#0369a1' },
+    { moduleId: 6,  label: 'Cement',            group: 'Incoming Verification', color: '#0369a1' },
+    { moduleId: 7,  label: 'Admixture',         group: 'Incoming Verification', color: '#0369a1' },
+    { moduleId: 8,  label: 'Aggregates',        group: 'Incoming Verification', color: '#0369a1' },
+    { moduleId: 9,  label: 'SGCI Insert',       group: 'Incoming Verification', color: '#0369a1' },
+    { moduleId: 10, label: 'Dowel',             group: 'Incoming Verification', color: '#0369a1' },
+];
 
-    const getStats = (matId) => {
-        const items = inventory[matId] || [];
-        const pending = items.filter(i => i.status === 'Unverified').length;
-        const total = items.reduce((acc, curr) => acc + (parseFloat(curr.quantity) || 0), 0);
-        return { pending, balance: `${total} ${materials.find(m => m.id === matId).unit}` };
+/** Fetch the actual record data for a given moduleId + requestId */
+const fetchRecordDetail = async (moduleId, requestId) => {
+    const fetchers = {
+        1:  () => apiService.getPlantProfileById(requestId),
+        2:  () => apiService.getBenchMouldMasterById(requestId),
+        3:  () => apiService.getRawMaterialSourceById(requestId),
+        4:  () => apiService.getMixDesignById(requestId),
+        5:  () => apiService.getHtsWireRecordById(requestId),
+        6:  () => apiService.getCementRecordById(requestId),
+        7:  () => apiService.getAdmixtureRecordById(requestId),
+        8:  () => apiService.getAggregateRecordById(requestId),
+        9:  () => apiService.getSgciRecordById(requestId),
+        10: () => apiService.getDowelRecordById(requestId),
+    };
+    const fn = fetchers[moduleId];
+    if (!fn) return null;
+    try {
+        const res = await fn();
+        return res?.responseData ?? res ?? null;
+    } catch {
+        return null;
+    }
+};
+
+// ─────────────────────────────────────────────
+//  Sub-component: Record Detail Modal
+// ─────────────────────────────────────────────
+const DetailModal = ({ record, onClose, onAction, acting }) => {
+    const [remarks, setRemarks] = useState('');
+    const [pendingAction, setPendingAction] = useState(null); // 'VERIFY' | 'REQUEST_CHANGE'
+
+    const handleConfirm = () => {
+        if (pendingAction === 'REQUEST_CHANGE' && !remarks.trim()) {
+            alert('Please enter remarks before requesting change.');
+            return;
+        }
+        onAction(pendingAction, remarks.trim() || 'Verified by IE');
     };
 
-    const [inventory, setInventory] = useState({ CEMENT: [], HTS: [], AGGREGATES: [], ADMIXTURE: [], SGCI: [], DOWEL: [] });
+    const detail = record.detail || {};
+
+    return (
+        <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }} onClick={onClose}>
+            <div style={{
+                background: '#fff', borderRadius: '16px', padding: '28px',
+                maxWidth: '640px', width: '90%', maxHeight: '85vh', overflowY: 'auto',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
+            }} onClick={e => e.stopPropagation()}>
+
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <div>
+                        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1e293b' }}>
+                            {record.moduleLabel} — Record #{record.requestId}
+                        </h3>
+                        <span style={{ fontSize: '11px', color: '#64748b' }}>
+                            Workflow Transition ID: {record.workflowTransitionId}
+                        </span>
+                    </div>
+                    <button onClick={onClose} style={{
+                        border: 'none', background: '#f1f5f9', borderRadius: '8px',
+                        padding: '6px 12px', cursor: 'pointer', fontSize: '13px', color: '#475569'
+                    }}>✕ Close</button>
+                </div>
+
+                {/* Record Data */}
+                <div style={{
+                    background: '#f8fafc', borderRadius: '12px', padding: '20px',
+                    border: '1px solid #e2e8f0', marginBottom: '20px'
+                }}>
+                    <p style={{ margin: '0 0 12px', fontSize: '12px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>
+                        Record Details (Vendor Submitted)
+                    </p>
+                    {Object.keys(detail).length === 0 ? (
+                        <p style={{ color: '#94a3b8', fontSize: '13px' }}>No detail data available from backend.</p>
+                    ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                            {Object.entries(detail).map(([key, val]) => {
+                                if (typeof val === 'object' || val === null) return null;
+                                return (
+                                    <div key={key}>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                            {key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}
+                                        </div>
+                                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>{String(val)}</div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+
+                {/* Action selection */}
+                {!pendingAction ? (
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <button
+                            onClick={() => setPendingAction('VERIFY')}
+                            style={{
+                                flex: 1, padding: '12px', border: 'none', borderRadius: '10px',
+                                background: '#059669', color: '#fff', fontWeight: '700',
+                                fontSize: '14px', cursor: 'pointer'
+                            }}
+                        >✓ Verify</button>
+                        <button
+                            onClick={() => setPendingAction('REQUEST_CHANGE')}
+                            style={{
+                                flex: 1, padding: '12px', border: 'none', borderRadius: '10px',
+                                background: '#dc2626', color: '#fff', fontWeight: '700',
+                                fontSize: '14px', cursor: 'pointer'
+                            }}
+                        >↩ Request Change</button>
+                    </div>
+                ) : (
+                    <div style={{ border: `2px solid ${pendingAction === 'VERIFY' ? '#059669' : '#dc2626'}`, borderRadius: '12px', padding: '16px' }}>
+                        <p style={{ margin: '0 0 10px', fontWeight: '700', color: pendingAction === 'VERIFY' ? '#059669' : '#dc2626' }}>
+                            {pendingAction === 'VERIFY' ? '✓ Confirm Verification' : '↩ Confirm Request Change'}
+                        </p>
+                        <textarea
+                            placeholder={pendingAction === 'VERIFY' ? 'Remarks (optional)…' : 'Enter clarification reason (required)…'}
+                            value={remarks}
+                            onChange={e => setRemarks(e.target.value)}
+                            rows={3}
+                            style={{
+                                width: '100%', boxSizing: 'border-box', border: '1px solid #e2e8f0',
+                                borderRadius: '8px', padding: '10px', fontSize: '13px',
+                                resize: 'vertical', marginBottom: '12px'
+                            }}
+                        />
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button
+                                onClick={handleConfirm}
+                                disabled={acting}
+                                style={{
+                                    flex: 1, padding: '10px', border: 'none', borderRadius: '8px',
+                                    background: pendingAction === 'VERIFY' ? '#059669' : '#dc2626',
+                                    color: '#fff', fontWeight: '700', fontSize: '13px',
+                                    cursor: acting ? 'not-allowed' : 'pointer',
+                                    opacity: acting ? 0.6 : 1
+                                }}
+                            >{acting ? 'Submitting…' : 'Confirm'}</button>
+                            <button
+                                onClick={() => { setPendingAction(null); setRemarks(''); }}
+                                style={{
+                                    flex: 1, padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px',
+                                    background: '#f8fafc', color: '#475569', fontWeight: '600',
+                                    fontSize: '13px', cursor: 'pointer'
+                                }}
+                            >Back</button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// ─────────────────────────────────────────────
+//  Main Dashboard Component
+// ─────────────────────────────────────────────
+const IncomingVerificationDashboard = () => {
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-    useEffect(() => {
-        loadAllInventory();
-    }, []);
+    // All pending transitions from the workflow API (filtered for this IE)
+    const [allPending, setAllPending] = useState([]);         // raw from API, filtered by assignedTo
+    // Records enriched with detail data per module
+    const [enrichedByModule, setEnrichedByModule] = useState({}); // { moduleId: [{...transition, detail, moduleLabel}] }
 
-    const loadAllInventory = async () => {
+    const [selectedModuleId, setSelectedModuleId] = useState(null);
+    const [detailModal, setDetailModal] = useState(null);     // the selected record row
+    const [acting, setActing] = useState(false);
+
+    // ── Step 1 & 2: Fetch all pending transitions, filter by IE user ──
+    const loadPendingTransitions = useCallback(async () => {
         setLoading(true);
+        setError(null);
         try {
-            const [cement, hts, aggregate, admixture, sgci] = await Promise.all([
-                apiService.getAllCementInventory().catch(() => ({ responseData: [] })),
-                apiService.getAllHtsWireInventory().catch(() => ({ responseData: [] })),
-                apiService.getAllAggregateInventory().catch(() => ({ responseData: [] })),
-                apiService.getAllAdmixtureInventory().catch(() => ({ responseData: [] })),
-                apiService.getAllSgciInventory().catch(() => ({ responseData: [] }))
-            ]);
+            const res = await apiService.getAllPendingWorkflowTransitions('IE');
 
-            setInventory({
-                CEMENT: cement.responseData || [],
-                HTS: hts.responseData || [],
-                AGGREGATES: aggregate.responseData || [],
-                ADMIXTURE: admixture.responseData || [],
-                SGCI: sgci.responseData || [],
-                DOWEL: [] // Placeholder
-            });
-        } catch (error) {
-            console.error("Failed to load verification inventory:", error);
+            // Response can be array directly or wrapped in responseData
+            const rawList = Array.isArray(res)
+                ? res
+                : (Array.isArray(res?.responseData) ? res.responseData : []);
+
+            // Step 2: filter by logged-in IE user
+            const myPending = rawList.filter(r =>
+                r.assignedTo === LOGGED_IN_USER_ID ||
+                String(r.assignedTo) === String(LOGGED_IN_USER_ID)
+            );
+
+            setAllPending(myPending);
+
+            // Step 3 & 4: group by moduleId, fetch detail for each record
+            const grouped = {};
+            for (const mod of MODULE_CONFIG) {
+                grouped[mod.moduleId] = [];
+            }
+            for (const item of myPending) {
+                const mid = item.moduleId;
+                if (!grouped[mid]) grouped[mid] = [];
+                grouped[mid].push(item);
+            }
+
+            // Fetch detail for each record in parallel
+            const enriched = {};
+            await Promise.all(
+                Object.entries(grouped).map(async ([modId, items]) => {
+                    const numId = Number(modId);
+                    const modConf = MODULE_CONFIG.find(m => m.moduleId === numId);
+                    enriched[numId] = await Promise.all(
+                        items.map(async item => {
+                            const detail = await fetchRecordDetail(numId, item.requestId);
+                            return {
+                                ...item,
+                                detail: detail || {},
+                                moduleLabel: modConf?.label || `Module ${numId}`,
+                            };
+                        })
+                    );
+                })
+            );
+            setEnrichedByModule(enriched);
+
+            // Auto-select first module that has pending records
+            const firstWithPending = MODULE_CONFIG.find(m => (enriched[m.moduleId] || []).length > 0);
+            if (firstWithPending && selectedModuleId === null) {
+                setSelectedModuleId(firstWithPending.moduleId);
+            }
+        } catch (err) {
+            setError(err.message || 'Failed to load pending transitions.');
         } finally {
             setLoading(false);
         }
-    };
+    }, []); // eslint-disable-line
 
-    const handleVerify = async () => {
-        if (!selectedEntry || !selectedMaterial) return;
+    useEffect(() => {
+        loadPendingTransitions();
+    }, [loadPendingTransitions]);
 
-        const now = new Date();
-        const verificationInfo = {
-            ...selectedEntry,
-            status: 'Verified',
-            verifiedBy: 'Inspecting Engineer (IE)',
-            verifiedAt: `${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-        };
-
+    // ── Step 7: IE clicks Verify / Request Change ──
+    const handleAction = async (action, remarks) => {
+        if (!detailModal) return;
+        setActing(true);
         try {
-            await updateStatusOnBackend(verificationInfo);
-            alert('Inventory entry verified successfully.');
-            loadAllInventory();
-            setViewModal(false);
-        } catch (error) {
-            alert(`Verification failed: ${error.message}`);
-        }
-    };
-
-    const handleReject = async () => {
-        if (!selectedEntry || !selectedMaterial) return;
-
-        const now = new Date();
-        const rejectionInfo = {
-            ...selectedEntry,
-            status: 'Rejected',
-            verifiedBy: 'Inspecting Engineer (IE)',
-            verifiedAt: `${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-        };
-
-        try {
-            await updateStatusOnBackend(rejectionInfo);
-            alert('Inventory entry rejected.');
-            loadAllInventory();
-            setViewModal(false);
-        } catch (error) {
-            alert(`Rejection failed: ${error.message}`);
-        }
-    };
-
-    const updateStatusOnBackend = (payload) => {
-        const id = payload.id;
-        switch (selectedMaterial) {
-            case 'CEMENT': return apiService.updateCementInventory(id, payload);
-            case 'HTS': return apiService.updateHtsWireInventory(id, payload);
-            case 'AGGREGATES': return apiService.updateAggregateInventory(id, payload);
-            case 'ADMIXTURE': return apiService.updateAdmixtureInventory(id, payload);
-            case 'SGCI': return apiService.updateSgciInventory(id, payload);
-            default: return Promise.reject(new Error("Invalid material type"));
-        }
-    };
-
-
-    const getMainColumns = (matId) => {
-        const baseColumns = [
-            {
-                key: 'receivedDate',
-                label: 'Date of Receiving',
-                render: (_, row) => row.receivedDate ? row.receivedDate.split('-').reverse().join('/') : 'N/A'
-            },
-            {
-                key: 'invoiceNo',
-                label: matId === 'AGGREGATES' ? 'Challan No' : 'Invoice / Bill No',
-                render: (_, row) => row.invoiceNo || row.challanNo || 'N/A'
-            },
-            {
-                key: 'batchLot',
-                label: matId === 'HTS' ? 'Coil Details' : 'Batch / Lot No',
-                render: (_, row) => {
-                    if (matId === 'HTS' && row.coils) {
-                        return <span style={{ fontSize: '11px', fontStyle: 'italic' }}>{row.coils.length} Coils</span>;
-                    }
-                    if (matId === 'CEMENT' && row.batches) {
-                        return <span style={{ fontSize: '11px', fontStyle: 'italic' }}>{row.batches.length} Batches</span>;
-                    }
-                    return row.batchNo || row.lotNo || row.serialNoCoils || 'N/A';
-                }
-            },
-        ];
-
-        // Specific column for RITES materials
-        if (['HTS', 'SGCI', 'DOWEL'].includes(matId)) {
-            baseColumns.push({
-                key: 'ritesInfo',
-                label: 'RITES IC & Date',
-                render: (_, row) => row.ritesIcNo ? `${row.ritesIcNo} (${row.ritesIcDate})` : 'N/A'
+            await apiService.performTransitionAction({
+                workflowTransitionId: detailModal.workflowTransitionId,
+                action:               action,          // "VERIFY" | "REQUEST_CHANGE"
+                actionBy:             LOGGED_IN_USER_ID,
+                remarks:              remarks || '',
             });
+            alert(action === 'VERIFY' ? '✓ Record verified successfully.' : '↩ Change request submitted.');
+            setDetailModal(null);
+            // Reload so the actioned record disappears from pending list
+            loadPendingTransitions();
+        } catch (err) {
+            alert(`Action failed: ${err.message}`);
+        } finally {
+            setActing(false);
         }
-
-        baseColumns.push({ key: 'qty', label: 'Qty' });
-
-        baseColumns.push({
-            key: 'status',
-            label: 'Status',
-            render: (val) => (
-                <span style={{
-                    padding: '4px 10px',
-                    borderRadius: '20px',
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    background: val === 'Verified' ? '#ecfdf5' : val === 'Rejected' ? '#fef2f2' : '#fff7ed',
-                    color: val === 'Verified' ? '#059669' : val === 'Rejected' ? '#ef4444' : '#c2410c',
-                    border: `1px solid ${val === 'Verified' ? '#10b98133' : val === 'Rejected' ? '#f8717133' : '#f9731633'}`
-                }}>
-                    {val === 'Unverified' ? 'Pending' : val}
-                </span>
-            )
-        });
-
-        baseColumns.push({
-            key: 'actions',
-            label: 'Action',
-            render: (_, row) => (
-                <button
-                    className="btn-save"
-                    onClick={() => { setSelectedEntry(row); setViewModal(true); }}
-                    style={{ fontSize: '11px', padding: '6px 14px', width: 'auto' }}
-                >
-                    Details
-                </button>
-            )
-        });
-
-        return baseColumns;
     };
 
-    const currentData = selectedMaterial ? (inventory[selectedMaterial] || []).filter(item => item.status === statusFilter) : [];
+    const totalPending = allPending.length;
+    const currentRecords = enrichedByModule[selectedModuleId] || [];
 
-    // Helper to format field labels
-    const formatLabel = (key) => {
-        const labels = {
-            id: 'ID',
-            vendor: 'Vendor',
-            receivedDate: 'Date of Receipt',
-            invoiceNo: 'Invoice / E-way Bill No',
-            invoiceDate: 'Invoice / E-way Bill Date',
-            challanNo: 'Challan No.',
-            cementType: 'Cement Type',
-            manufacturerName: 'Manufacturer Name',
-            batchNo: 'Batch No',
-            mfgWeek: 'Manufacturing Week',
-            mfgYear: 'Manufacturing Year',
-            mtcNo: 'MTC No',
-            qty: 'Quantity',
-            totalQtyKg: 'Total Qty (Kgs)',
-            gradeSpec: 'Grade / Spec',
-            ritesIcNo: 'RITES IC No',
-            ritesIcDate: 'RITES IC Date',
-            serialNoCoils: 'Serial Number of Coils',
-            lotNo: 'Lot No',
-            relaxationTestDate: 'Relaxation Test Pass Date',
-            aggregateType: 'Type of Aggregate',
-            source: 'Source',
-            status: 'Status',
-            verifiedBy: 'Verified By',
-            verifiedAt: 'Verified At'
-        };
-        return labels[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-    };
-
+    // ─────────────────────────────────────────────
+    //  Render
+    // ─────────────────────────────────────────────
     return (
-        <div className="verification-dashboard cement-forms-scope">
-            <header style={{ marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#13343b', margin: 0 }}>Incoming Raw Material Verification</h2>
-                <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>Verify vendor-entered inventory certificates to make materials eligible for production.</p>
+        <div className="verification-dashboard cement-forms-scope" style={{ fontFamily: "'Inter', sans-serif" }}>
+
+            {/* Header */}
+            <header style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                    <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#13343b', margin: 0 }}>
+                        IE Verification Dashboard
+                    </h2>
+                    <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '12px' }}>
+                        All records pending your verification. Assigned to User ID: {LOGGED_IN_USER_ID}
+                    </p>
+                </div>
+                <button
+                    onClick={loadPendingTransitions}
+                    disabled={loading}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0',
+                        background: '#fff', color: '#334155', fontSize: '12px', fontWeight: '600',
+                        cursor: loading ? 'not-allowed' : 'pointer'
+                    }}
+                >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                    {loading ? 'Refreshing…' : 'Refresh'}
+                </button>
             </header>
 
-            {/* Horizontal Cards Layout */}
-            <div className="ie-tab-row" style={{
-                display: 'flex',
-                overflowX: 'auto',
-                gap: '16px',
-                paddingBottom: '16px',
-                marginBottom: '24px'
+            {/* Summary banner */}
+            <div style={{
+                background: totalPending > 0 ? '#fff7ed' : '#f0fdf4',
+                border: `1px solid ${totalPending > 0 ? '#fed7aa' : '#bbf7d0'}`,
+                borderRadius: '12px', padding: '14px 20px',
+                display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px'
             }}>
-                {materials.map(mat => {
-                    const stats = getStats(mat.id);
-                    const isActive = selectedMaterial === mat.id;
-                    return (
-                        <div
-                            key={mat.id}
-                            className={`ie-tab-card ${isActive ? 'active' : ''}`}
-                            onClick={() => {
-                                setSelectedMaterial(mat.id);
-                                setStatusFilter('Unverified'); // Reset filter on switch
-                            }}
-                            style={{
-                                minWidth: '220px',
-                                flex: '0 0 auto',
-                                background: isActive ? 'var(--primary-50)' : 'white',
-                                border: `1px solid ${isActive ? 'var(--rites-green)' : '#e2e8f0'}`,
-                                borderRadius: '12px',
-                                padding: '16px',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '8px'
-                            }}
-                        >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span className="ie-tab-title" style={{ fontWeight: '700', fontSize: '14px', color: isActive ? 'var(--rites-dark)' : 'var(--neutral-700)' }}>{mat.title}</span>
-                                {stats.pending > 0 && (
-                                    <span style={{ fontSize: '10px', background: '#fff7ed', color: '#c2410c', padding: '2px 8px', borderRadius: '10px', fontWeight: '700' }}>
-                                        {stats.pending} Pending
-                                    </span>
-                                )}
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#64748b' }}>
-                                Total Balance: <span style={{ fontWeight: '700', color: '#334155' }}>{stats.balance}</span>
-                            </div>
-                        </div>
-                    );
-                })}
+                <span style={{ fontSize: '22px' }}>{totalPending > 0 ? '🔔' : '✅'}</span>
+                <div>
+                    <strong style={{ fontSize: '14px', color: '#1e293b' }}>
+                        {totalPending > 0 ? `${totalPending} record(s) pending your verification` : 'All records verified — no pending items'}
+                    </strong>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                        Source: GET /sleeper-workflow/allPendingWorkflowTransition?roleName=IE → filtered by assignedTo={LOGGED_IN_USER_ID}
+                    </div>
+                </div>
             </div>
 
-            {/* Main Content Area */}
-            {selectedMaterial ? (
-                <div style={{ background: 'white', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-                        <div>
-                            <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b', margin: 0 }}>
-                                {materials.find(m => m.id === selectedMaterial).title} Consignments
-                            </h3>
-                            <span style={{ fontSize: '12px', color: '#64748b' }}>Manage verification status for incoming stock</span>
-                        </div>
-
-                        {/* Status Tabs */}
-                        <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px', gap: '4px' }}>
-                            {['Unverified', 'Verified', 'Rejected'].map(status => (
-                                <button
-                                    key={status}
-                                    onClick={() => setStatusFilter(status)}
-                                    style={{
-                                        padding: '6px 16px',
-                                        fontSize: '12px',
-                                        fontWeight: '600',
-                                        borderRadius: '6px',
-                                        border: 'none',
-                                        background: statusFilter === status ? 'white' : 'transparent',
-                                        color: statusFilter === status ? '#0f766e' : '#64748b',
-                                        boxShadow: statusFilter === status ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                    }}
-                                >
-                                    {status === 'Unverified' ? 'Pending' : status}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <EnhancedDataTable
-                        columns={getMainColumns(selectedMaterial)}
-                        data={currentData}
-                        selectable={false}
-                        emptyMessage={`No ${statusFilter === 'Unverified' ? 'pending' : statusFilter.toLowerCase()} records found for ${materials.find(m => m.id === selectedMaterial).title}.`}
-                    />
-                </div>
-            ) : (
-                <div style={{ padding: '40px', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #cbd5e1' }}>
-                    <p style={{ color: '#64748b', fontWeight: '500' }}>Select a raw material card above to view inventory.</p>
+            {/* Error state */}
+            {error && (
+                <div style={{
+                    background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px',
+                    padding: '16px', marginBottom: '20px', color: '#dc2626', fontSize: '13px'
+                }}>
+                    ⚠️ {error}
                 </div>
             )}
 
-            {viewModal && selectedEntry && (
-                <div className="form-modal-overlay" onClick={() => setViewModal(false)}>
-                    <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '700px' }}>
-                        <div className="form-modal-header">
-                            <span className="form-modal-header-title">Incoming Verification: {selectedEntry.id}</span>
-                            <button className="form-modal-close" onClick={() => setViewModal(false)}>X</button>
-                        </div>
-                        <div className="form-modal-body">
-                            <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
-                                <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#42818c' }}>Full Inventory Details (Vendor Submitted)</h4>
-                                <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                                    {Object.entries(selectedEntry).map(([key, value]) => {
-                                        // Skip internal fields, coils/batches arrays (handled separately), and verification info
-                                        if (['status', 'verifiedBy', 'verifiedAt', 'coils', 'batches'].includes(key)) return null;
-                                        if (typeof value === 'object') return null;
+            {/* Loading skeleton */}
+            {loading && (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#64748b', fontSize: '14px' }}>
+                    <div style={{ fontSize: '24px', marginBottom: '8px' }}>⏳</div>
+                    Loading pending workflow transitions…
+                </div>
+            )}
 
-                                        return (
-                                            <div key={key}>
-                                                <label style={{ fontSize: '11px', color: '#64748b' }}>{formatLabel(key)}</label>
-                                                <div style={{ fontWeight: '600', fontSize: '13px' }}>{value || 'N/A'}</div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* HTS Coils Table */}
-                                {selectedEntry.coils && (
-                                    <div style={{ marginTop: '20px' }}>
-                                        <label style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px', display: 'block' }}>Coil & Lot Details</label>
-                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                                            <thead>
-                                                <tr style={{ background: '#e2e8f0' }}>
-                                                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #cbd5e1' }}>Coil No.</th>
-                                                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #cbd5e1' }}>Lot No.</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {selectedEntry.coils.map((coil, idx) => (
-                                                    <tr key={idx} style={{ background: '#fff' }}>
-                                                        <td style={{ padding: '8px', border: '1px solid #e2e8f0', fontWeight: '700' }}>{coil.coilNo}</td>
-                                                        <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{coil.lotNo}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+            {!loading && (
+                <>
+                    {/* Module Tab Cards */}
+                    <div style={{
+                        display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '24px'
+                    }}>
+                        {MODULE_CONFIG.map(mod => {
+                            const count = (enrichedByModule[mod.moduleId] || []).length;
+                            const isActive = selectedModuleId === mod.moduleId;
+                            return (
+                                <div
+                                    key={mod.moduleId}
+                                    onClick={() => setSelectedModuleId(mod.moduleId)}
+                                    style={{
+                                        minWidth: '130px', padding: '12px 16px',
+                                        borderRadius: '10px', cursor: 'pointer',
+                                        border: `2px solid ${isActive ? mod.color : '#e2e8f0'}`,
+                                        background: isActive ? `${mod.color}10` : '#fff',
+                                        transition: 'all 0.18s', userSelect: 'none'
+                                    }}
+                                >
+                                    <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>
+                                        Module {mod.moduleId}
                                     </div>
-                                )}
-
-                                {/* Cement Batches Table */}
-                                {selectedEntry.batches && (
-                                    <div style={{ marginTop: '20px' }}>
-                                        <label style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px', display: 'block' }}>Batch Details</label>
-                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-                                            <thead>
-                                                <tr style={{ background: '#e2e8f0' }}>
-                                                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #cbd5e1' }}>Batch No.</th>
-                                                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #cbd5e1' }}>Week</th>
-                                                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #cbd5e1' }}>Year</th>
-                                                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #cbd5e1' }}>MTC</th>
-                                                    <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #cbd5e1' }}>Qty</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {selectedEntry.batches.map((batch, idx) => (
-                                                    <tr key={idx} style={{ background: '#fff' }}>
-                                                        <td style={{ padding: '8px', border: '1px solid #e2e8f0', fontWeight: '700' }}>{batch.batchNo}</td>
-                                                        <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{batch.weekNo}</td>
-                                                        <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{batch.yearNo}</td>
-                                                        <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{batch.mtcNo}</td>
-                                                        <td style={{ padding: '8px', border: '1px solid #e2e8f0' }}>{batch.qty}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                    <div style={{ fontWeight: '700', fontSize: '13px', color: isActive ? mod.color : '#334155' }}>
+                                        {mod.label}
                                     </div>
-                                )}
-                            </div>
-
-                            {selectedEntry.status !== 'Unverified' && (
-                                <div style={{
-                                    background: selectedEntry.status === 'Verified' ? '#ecfdf5' : '#fef2f2',
-                                    padding: '16px',
-                                    borderRadius: '12px',
-                                    border: `1px solid ${selectedEntry.status === 'Verified' ? '#10b98133' : '#f8717133'}`,
-                                    marginBottom: '24px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '12px'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', background: selectedEntry.status === 'Verified' ? '#10b98122' : '#ef444422' }}>
-                                        {selectedEntry.status === 'Verified' ? (
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                                    <div style={{ marginTop: '6px' }}>
+                                        {count > 0 ? (
+                                            <span style={{
+                                                fontSize: '10px', fontWeight: '700',
+                                                background: '#fff7ed', color: '#c2410c',
+                                                padding: '2px 8px', borderRadius: '10px',
+                                                border: '1px solid #fed7aa'
+                                            }}>
+                                                {count} Pending
+                                            </span>
                                         ) : (
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>No pending</span>
                                         )}
                                     </div>
-                                    <div>
-                                        <div style={{ fontSize: '12px', fontWeight: '700', color: selectedEntry.status === 'Verified' ? '#059669' : '#ef4444', textTransform: 'uppercase' }}>
-                                            {selectedEntry.status}
-                                        </div>
-                                        <div style={{ fontSize: '10px', color: selectedEntry.status === 'Verified' ? '#065f46' : '#991b1b' }}>
-                                            By {selectedEntry.verifiedBy} on {selectedEntry.verifiedAt}
-                                        </div>
-                                    </div>
                                 </div>
-                            )}
-
-                            <div style={{ display: 'flex', gap: '12px' }}>
-                                {selectedEntry.status === 'Unverified' ? (
-                                    <>
-                                        <button className="btn-verify" style={{ flex: 1, height: '44px', background: '#059669' }} onClick={handleVerify}>Verify & Approve</button>
-                                        <button className="btn-verify" style={{ flex: 1, height: '44px', background: '#dc2626' }} onClick={handleReject}>Reject</button>
-                                    </>
-                                ) : (
-                                    <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#94a3b8', border: 'none', cursor: 'not-allowed', height: '44px' }} disabled>Verification Finalized</button>
-                                )}
-                                <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: 'none', height: '44px' }} onClick={() => setViewModal(false)}>Close</button>
-                            </div>
-                        </div>
+                            );
+                        })}
                     </div>
-                </div>
-            )
-            }
-        </div >
+
+                    {/* Selected Module Table */}
+                    {selectedModuleId && (
+                        <div style={{
+                            background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0',
+                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', overflow: 'hidden'
+                        }}>
+                            {/* Table Header */}
+                            <div style={{
+                                padding: '16px 24px', borderBottom: '1px solid #f1f5f9',
+                                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                            }}>
+                                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1e293b' }}>
+                                    {MODULE_CONFIG.find(m => m.moduleId === selectedModuleId)?.label} — Pending Records
+                                </h3>
+                                <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                                    moduleId = {selectedModuleId}
+                                </span>
+                            </div>
+
+                            {currentRecords.length === 0 ? (
+                                <div style={{ padding: '48px', textAlign: 'center', color: '#94a3b8' }}>
+                                    <div style={{ fontSize: '32px', marginBottom: '10px' }}>✅</div>
+                                    <strong>No pending records for this module.</strong>
+                                    <div style={{ fontSize: '12px', marginTop: '4px' }}>All records have been verified or none have been submitted yet.</div>
+                                </div>
+                            ) : (
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                                    <thead>
+                                        <tr style={{ background: '#f8fafc' }}>
+                                            <th style={thStyle}>#</th>
+                                            <th style={thStyle}>Request ID</th>
+                                            <th style={thStyle}>Workflow Transition ID</th>
+                                            <th style={thStyle}>Assigned To</th>
+                                            <th style={thStyle}>Record Summary</th>
+                                            <th style={thStyle}>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {currentRecords.map((row, idx) => {
+                                            // Pick a meaningful summary field from the detail
+                                            const summary = row.detail?.plantName
+                                                || row.detail?.vendorName
+                                                || row.detail?.invoiceNo
+                                                || row.detail?.materialType
+                                                || row.detail?.designId
+                                                || row.detail?.benchNo
+                                                || row.detail?.supplierName
+                                                || '—';
+
+                                            return (
+                                                <tr key={row.workflowTransitionId || idx}
+                                                    style={{ borderBottom: '1px solid #f1f5f9' }}
+                                                    onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                                                    onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                                                >
+                                                    <td style={tdStyle}>{idx + 1}</td>
+                                                    <td style={{ ...tdStyle, fontWeight: '700', color: '#0369a1' }}>
+                                                        #{row.requestId}
+                                                    </td>
+                                                    <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: '12px', color: '#64748b' }}>
+                                                        {row.workflowTransitionId}
+                                                    </td>
+                                                    <td style={tdStyle}>
+                                                        <span style={{
+                                                            background: '#eff6ff', color: '#1d4ed8',
+                                                            padding: '2px 8px', borderRadius: '6px',
+                                                            fontSize: '11px', fontWeight: '600'
+                                                        }}>
+                                                            User {row.assignedTo}
+                                                        </span>
+                                                    </td>
+                                                    <td style={tdStyle}>{summary}</td>
+                                                    <td style={tdStyle}>
+                                                        <button
+                                                            onClick={() => setDetailModal(row)}
+                                                            style={{
+                                                                background: '#0f766e', color: '#fff',
+                                                                border: 'none', borderRadius: '7px',
+                                                                padding: '6px 14px', fontSize: '12px',
+                                                                fontWeight: '600', cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            View & Act
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    )}
+                </>
+            )}
+
+            {/* Detail + Action Modal */}
+            {detailModal && (
+                <DetailModal
+                    record={detailModal}
+                    onClose={() => setDetailModal(null)}
+                    onAction={handleAction}
+                    acting={acting}
+                />
+            )}
+        </div>
     );
+};
+
+// Shared table cell styles
+const thStyle = {
+    padding: '10px 16px', textAlign: 'left',
+    fontSize: '11px', fontWeight: '700', color: '#64748b',
+    textTransform: 'uppercase', letterSpacing: '0.5px',
+    borderBottom: '1px solid #e2e8f0'
+};
+const tdStyle = {
+    padding: '12px 16px', color: '#334155', verticalAlign: 'middle'
 };
 
 export default IncomingVerificationDashboard;

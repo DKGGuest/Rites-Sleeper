@@ -255,12 +255,16 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
             setEditingEntry(entry);
             setViewMode('form');
         }
-    };
-
-    const renderLogs = (mod) => {
+    };    const renderLogs = (mod) => {
         const records = entries[mod] || [];
-        return (
-            <div className="table-outer-wrapper fade-in">
+        const lineRecords = records.filter(r => !(r.lineShedNo || r.location || '').toLowerCase().includes('shed'));
+        const shedRecords = records.filter(r => (r.lineShedNo || r.location || '').toLowerCase().includes('shed'));
+
+        const renderTable = (recordsSubset, title, groupColor) => (
+            <div style={{ marginBottom: '2.5rem' }}>
+                <div style={{ padding: '8px 16px', background: `${groupColor}10`, borderLeft: `4px solid ${groupColor}`, marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.85rem', color: groupColor, fontWeight: '800' }}>{title} ({recordsSubset.length})</h4>
+                </div>
                 <div className="table-responsive">
                     <table className="ui-table">
                         <thead>
@@ -307,10 +311,10 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                             </tr>
                         </thead>
                         <tbody>
-                            {records.length === 0 ? (
-                                <tr><td colSpan="10" className="empty-msg">No logs found.</td></tr>
+                            {recordsSubset.length === 0 ? (
+                                <tr><td colSpan="12" className="empty-msg">No logs found for this section.</td></tr>
                             ) : (
-                                records.map(entry => (
+                                recordsSubset.map(entry => (
                                     <tr key={entry.id} className="table-row-hover">
                                         {mod === 'mouldPrep' ? (
                                             <>
@@ -411,6 +415,18 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                         </tbody>
                     </table>
                 </div>
+            </div>
+        );
+
+        return (
+            <div className="table-outer-wrapper fade-in" style={{ background: 'transparent', border: 'none', padding: 0 }}>
+                {lineRecords.length > 0 && renderTable(lineRecords, "LONG LINE LOGS", "#3b82f6")}
+                {shedRecords.length > 0 && renderTable(shedRecords, "SHED LOGS", "#8b5cf6")}
+                {records.length === 0 && (
+                    <div className="ui-table" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1.5rem', textAlign: 'center' }}>
+                        <span style={{ color: '#64748b', fontStyle: 'italic' }}>No logs found for this module.</span>
+                    </div>
+                )}
             </div>
         );
     };

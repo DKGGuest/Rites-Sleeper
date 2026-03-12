@@ -81,6 +81,7 @@ const SleeperProcessDuty = () => {
     const [showWireTensionForm, setShowWireTensionForm] = useState(false);
     const [showCompactionForm, setShowCompactionForm] = useState(false);
     const [showMouldBenchForm, setShowMouldBenchForm] = useState(false);
+    const [showMoistureForm, setShowMoistureForm] = useState(false);
 
     useEffect(() => {
         loadShiftData();
@@ -145,6 +146,7 @@ const SleeperProcessDuty = () => {
                         setShowBatchEntryForm={setShowBatchEntryForm}
                         setShowWireTensionForm={setShowWireTensionForm}
                         setShowCompactionForm={setShowCompactionForm}
+                        setShowMoistureForm={setShowMoistureForm}
                         setViewMode={setViewMode}
                         setDetailView={setDetailView}
                     />
@@ -194,10 +196,13 @@ const SleeperProcessDuty = () => {
                                 onBack={() => { }}
                                 onSave={() => {
                                     setMoistureAlert(false);
+                                    setShowMoistureForm(false);
                                     loadShiftData();
                                 }}
                                 records={moistureRecords}
                                 setRecords={setMoistureRecords}
+                                showForm={showMoistureForm}
+                                setShowForm={setShowMoistureForm}
                             />
                         </div>
                     )}

@@ -136,61 +136,83 @@ const AssetSummary = ({ allAssets, records }) => {
     );
 };
 
-const HistoryLogs = ({ records, onAdd, onModify, onDelete }) => (
-    <div className="table-outer-wrapper fade-in">
-        <div className="history-header">
-            <h4 className="m-0 fw-800 color-navy">List of Checking Done</h4>
-            <div className="btn-group">
-                <button className="toggle-btn" onClick={() => onAdd()}>+ New Joint Entry</button>
+const HistoryLogs = ({ records, onAdd, onModify, onDelete }) => {
+    const lineRecords = records.filter(r => !(r.lineShedNo || r.location || '').toLowerCase().includes('shed'));
+    const shedRecords = records.filter(r => (r.lineShedNo || r.location || '').toLowerCase().includes('shed'));
+
+    const renderTable = (recordsSubset, title, groupColor) => (
+        <div style={{ marginBottom: '2.5rem' }}>
+            <div style={{ padding: '8px 16px', background: `${groupColor}10`, borderLeft: `4px solid ${groupColor}`, marginBottom: '12px' }}>
+                <h4 style={{ margin: 0, fontSize: '0.85rem', color: groupColor, fontWeight: '800' }}>{title} ({recordsSubset.length})</h4>
+            </div>
+            <div className="table-responsive">
+                <table className="ui-table">
+                    <thead>
+                        <tr>
+                            <th style={{ background: '#f8fafc' }}>Date & Time of Checking</th>
+                            <th style={{ background: '#f8fafc' }}>Bench / Mould No.</th>
+                            <th style={{ background: '#f8fafc' }}>Bench Check Result</th>
+                            <th style={{ background: '#f8fafc' }}>Mould Check Result</th>
+                            <th style={{ background: '#f8fafc' }}>Overall Check Result</th>
+                            <th className="text-center" style={{ background: '#f8fafc' }}>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {recordsSubset.length === 0 ? (
+                            <tr><td colSpan="6" className="empty-msg">No records found for this section.</td></tr>
+                        ) : (
+                            recordsSubset.map(record => (
+                                <tr key={record.id} className="table-row-hover">
+                                    <td><span className="fw-700">{record.dateOfChecking ? record.dateOfChecking.split('-').reverse().join('/') : ''}</span> <span className="text-muted">{record.checkTime}</span></td>
+                                    <td><strong>{record.assetNo}</strong> <span className="location-tag">({record.location})</span></td>
+                                    <td>
+                                        <span className={`status-badge-mini ${record.benchOverall === 'OK' ? 'success' : 'danger'}`}>
+                                            {record.benchOverall}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span className={`status-badge-mini ${record.mouldOverall === 'OK' ? 'success' : 'danger'}`}>
+                                            {record.mouldOverall}
+                                        </span>
+                                    </td>
+                                    <td><span className={`fw-800 ${record.overallResult === 'OK' ? 'text-success' : 'text-danger'}`}>{record.overallResult}</span></td>
+                                    <td className="text-center">
+                                        <div className="btn-group-center">
+                                            <button className="btn-action mini" style={{ background: '#3b82f6' }} onClick={() => onModify(record)}>
+                                                {DateUtils.isWithinHour(record.timestamp) ? 'Modify' : 'Details / Edit'}
+                                            </button>
+                                            <button className="btn-action mini danger" onClick={() => onDelete(record.id)}>Delete</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
             </div>
         </div>
-        <div className="table-responsive">
-            <table className="ui-table">
-                <thead>
-                    <tr>
-                        <th>Date & Time of Checking</th>
-                        <th>Bench / Mould No.</th>
-                        <th>Bench Check Result</th>
-                        <th>Mould Check Result</th>
-                        <th>Overall Check Result</th>
-                        <th className="text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {records.length === 0 ? (
-                        <tr><td colSpan="6" className="empty-msg">No records found.</td></tr>
-                    ) : (
-                        records.map(record => (
-                            <tr key={record.id} className="table-row-hover">
-                                <td><span className="fw-700">{record.dateOfChecking ? record.dateOfChecking.split('-').reverse().join('/') : ''}</span> <span className="text-muted">{record.checkTime}</span></td>
-                                <td><strong>{record.assetNo}</strong> <span className="location-tag">({record.location})</span></td>
-                                <td>
-                                    <span className={`status-badge-mini ${record.benchOverall === 'OK' ? 'success' : 'danger'}`}>
-                                        {record.benchOverall}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span className={`status-badge-mini ${record.mouldOverall === 'OK' ? 'success' : 'danger'}`}>
-                                        {record.mouldOverall}
-                                    </span>
-                                </td>
-                                <td><span className={`fw-800 ${record.overallResult === 'OK' ? 'text-success' : 'text-danger'}`}>{record.overallResult}</span></td>
-                                <td className="text-center">
-                                    <div className="btn-group-center">
-                                        <button className="btn-action mini" style={{ background: '#3b82f6' }} onClick={() => onModify(record)}>
-                                            {DateUtils.isWithinHour(record.timestamp) ? 'Modify' : 'Details / Edit'}
-                                        </button>
-                                        <button className="btn-action mini danger" onClick={() => onDelete(record.id)}>Delete</button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))
-                    )}
-                </tbody>
-            </table>
+    );
+
+    return (
+        <div className="table-outer-wrapper fade-in" style={{ background: 'transparent', border: 'none', padding: 0 }}>
+            <div className="history-header" style={{ marginBottom: '1.5rem', background: '#fff', padding: '12px 20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <h4 className="m-0 fw-800 color-navy">History of Asset Checking</h4>
+                <div className="btn-group">
+                    <button className="toggle-btn" onClick={() => onAdd()}>+ New Joint Entry</button>
+                </div>
+            </div>
+            
+            {lineRecords.length > 0 && renderTable(lineRecords, "LONG LINE ASSETS", "#3b82f6")}
+            {shedRecords.length > 0 && renderTable(shedRecords, "SHED ASSETS", "#8b5cf6")}
+            
+            {records.length === 0 && (
+                <div className="ui-table" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1.5rem', textAlign: 'center' }}>
+                     <span style={{ color: '#64748b', fontStyle: 'italic' }}>No records found.</span>
+                </div>
+            )}
         </div>
-    </div>
-);
+    );
+};
 
 const AssetMasterList = ({ allAssets, records }) => {
     const listData = useMemo(() => {

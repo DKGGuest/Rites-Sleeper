@@ -11,7 +11,7 @@ import './PlantDeclarationVerification.css';
 const STATUS_CONFIG = {
     'Pending': { label: 'Pending Verification', cls: 'status-pending' },
     'Verified': { label: 'Verified', cls: 'status-verified' },
-    'Rejected': { label: 'Rejected', cls: 'status-rejected' },
+    'Rejected': { label: 'Seek Clarification', cls: 'status-rejected' },
     'Unlocked': { label: 'Unlocked for Vendor', cls: 'status-unlocked' },
 };
 
@@ -112,7 +112,7 @@ const PlantDeclarationVerification = () => {
                                     {(row.status === 'Pending' || row.status === 'Unlocked') && (
                                         <>
                                             <button className="pdv-btn-verify" onClick={() => handleStatusChange('profiles', row.id, 'Verified')}>Verify</button>
-                                            <button className="pdv-btn-reject" onClick={() => openRejectModal('profiles', row)}>Reject</button>
+                                            <button className="pdv-btn-reject" title="Seek Clarification" onClick={() => openRejectModal('profiles', row)}>Seek Clarification</button>
                                         </>
                                     )}
                                     {row.status === 'Verified' && (
@@ -186,7 +186,7 @@ const PlantDeclarationVerification = () => {
                                     {(row.status === 'Pending' || row.status === 'Unlocked') && (
                                         <>
                                             <button className="pdv-btn-verify" onClick={() => handleStatusChange('benches', row.id, 'Verified')}>Verify</button>
-                                            <button className="pdv-btn-reject" onClick={() => openRejectModal('benches', row)}>Reject</button>
+                                            <button className="pdv-btn-reject" title="Seek Clarification" onClick={() => openRejectModal('benches', row)}>Seek Clarification</button>
                                         </>
                                     )}
                                     {row.status === 'Verified' && (
@@ -244,7 +244,7 @@ const PlantDeclarationVerification = () => {
                                         {(row.status === 'Pending' || row.status === 'Unlocked') && (
                                             <>
                                                 <button className="pdv-btn-verify" onClick={() => handleStatusChange('rawMaterials', row.id, 'Verified')}>Verify</button>
-                                                <button className="pdv-btn-reject" onClick={() => openRejectModal('rawMaterials', row)}>Reject</button>
+                                                <button className="pdv-btn-reject" title="Seek Clarification" onClick={() => openRejectModal('rawMaterials', row)}>Seek Clarification</button>
                                             </>
                                         )}
                                         {row.status === 'Verified' && (
@@ -301,7 +301,7 @@ const PlantDeclarationVerification = () => {
                                     {(row.status === 'Pending' || row.status === 'Unlocked') && (
                                         <>
                                             <button className="pdv-btn-verify" onClick={() => handleStatusChange('mixDesigns', row.id, 'Verified')}>Verify</button>
-                                            <button className="pdv-btn-reject" onClick={() => openRejectModal('mixDesigns', row)}>Reject</button>
+                                            <button className="pdv-btn-reject" title="Seek Clarification" onClick={() => openRejectModal('mixDesigns', row)}>Seek Clarification</button>
                                         </>
                                     )}
                                     {row.status === 'Verified' && (
@@ -340,16 +340,16 @@ const PlantDeclarationVerification = () => {
             {rejectingItem && (
                 <div className="pdv-modal-overlay">
                     <div className="pdv-modal">
-                        <h3>Rejection Remarks</h3>
-                        <p>Reason for rejecting: <strong>{rejectingItem.item.plantName || rejectingItem.item.benchNo || rejectingItem.item.materialType || rejectingItem.item.designId}</strong></p>
+                        <h3>Clarification Remarks</h3>
+                        <p>Action: Seeking clarification for <strong>{rejectingItem.item.plantName || rejectingItem.item.benchNo || rejectingItem.item.materialType || rejectingItem.item.designId}</strong></p>
                         <textarea
-                            placeholder="Enter rejection reason..."
+                            placeholder="Enter clarification details..."
                             value={rejectionRemarks}
                             onChange={(e) => setRejectionRemarks(e.target.value)}
                         />
                         <div className="pdv-modal-buttons">
                             <button className="pdv-btn-cancel" onClick={() => setRejectingItem(null)}>Cancel</button>
-                            <button className="pdv-btn-submit-reject" onClick={submitRejection} disabled={!rejectionRemarks.trim()}>Submit Rejection</button>
+                            <button className="pdv-btn-submit-reject" onClick={submitRejection} disabled={!rejectionRemarks.trim()}>Submit Clarification Request</button>
                         </div>
                     </div>
                 </div>

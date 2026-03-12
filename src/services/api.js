@@ -125,4 +125,54 @@ export const apiService = {
     createSgciInventory: (payload) => api.post('/inventory/sgci/create', payload),
     updateSgciInventory: (id, payload) => api.put(`/inventory/sgci/update/${id}`, payload),
     deleteSgciInventory: (id) => api.delete(`/inventory/sgci/delete/${id}`),
+
+    // ================= Sleeper Workflow =================
+
+    /**
+     * Initiates workflow when vendor submits a form record.
+     * Called from VENDOR side only, NOT from IE dashboard.
+     */
+    initiateWorkflow: (requestId, moduleId, workflowId, createdBy) =>
+        api.post(
+            `/sleeper-workflow/initiateWorkflow?requestId=${requestId}&moduleId=${moduleId}&workflowId=${workflowId}&createdBy=${createdBy}`,
+            null
+        ),
+
+    /**
+     * IE Dashboard: fetch all pending workflow transitions for a given role.
+     * @param {string} roleName - e.g. "IE"
+     * Returns: [{ workflowTransitionId, moduleId, requestId, assignedTo, ... }]
+     */
+    getAllPendingWorkflowTransitions: (roleName = 'IE') =>
+        api.get(`/sleeper-workflow/allPendingWorkflowTransition?roleName=${roleName}`),
+
+    /**
+     * IE Action: Verify or Request Change on a workflow transition.
+     * @param {object} payload - { workflowTransitionId, action, actionBy, remarks }
+     *   action = "VERIFY" | "REQUEST_CHANGE"
+     */
+    performTransitionAction: (payload) =>
+        api.post('/sleeper-workflow/performTransitionAction', payload),
+
+    // ── Module getById APIs (used by IE dashboard to fetch record details) ──
+    // moduleId=1  PLANT_PROFILE
+    getPlantProfileById:       (id) => api.get(`/plant-profile/getById/${id}`),
+    // moduleId=2  BENCH_MOULD_MASTER
+    getBenchMouldMasterById:   (id) => api.get(`/bench-mould/getById/${id}`),
+    // moduleId=3  RAW_MATERIAL_SOURCE
+    getRawMaterialSourceById:  (id) => api.get(`/raw-material/getById/${id}`),
+    // moduleId=4  MIX_DESIGN
+    getMixDesignById:          (id) => api.get(`/mix-design/getById/${id}`),
+    // moduleId=5  HTS Wire
+    getHtsWireRecordById:      (id) => api.get(`/inventory/hts-wire/${id}`),
+    // moduleId=6  Cement
+    getCementRecordById:       (id) => api.get(`/inventory/cement/${id}`),
+    // moduleId=7  Admixture
+    getAdmixtureRecordById:    (id) => api.get(`/inventory/admixture/${id}`),
+    // moduleId=8  Aggregates
+    getAggregateRecordById:    (id) => api.get(`/inventory/aggregate/${id}`),
+    // moduleId=9  SGCI Insert
+    getSgciRecordById:         (id) => api.get(`/inventory/sgci/${id}`),
+    // moduleId=10 Dowel  (endpoint TBD — using inventory/dowel pattern)
+    getDowelRecordById:        (id) => api.get(`/inventory/dowel/${id}`),
 };

@@ -113,6 +113,7 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
             maxDuration: Math.max(...durs),
             duration: Math.round(durs.reduce((a, b) => a + b, 0) / durs.length),
             source: 'Scada',
+            location: record.location || 'N/A', // Assuming SCADA might have it, or we'll filter by name later
             originalScadaId: record.id
         };
         setEntries(prev => [newEntry, ...prev]);
@@ -238,6 +239,7 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
             ...manualForm,
             id: editingId || Date.now(),
             timestamp: new Date().toISOString(),
+            location: manualForm.location || 'N/A',
             source: 'Manual'
         };
         if (editingId) {
@@ -489,33 +491,55 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                                 <button className="toggle-btn" onClick={() => setShowForm(true)}>+ Add New Entry</button>
                             </div>
                         </div>
-                        <div className="table-outer-wrapper">
-                            <div className="table-responsive">
-                                <table className="ui-table">
-                                    <thead><tr><th>Source</th><th>Date</th><th>Time</th><th>Batch</th><th>Bench</th><th>RPM Range</th><th>Dur Range</th><th>Actions</th></tr></thead>
-                                    <tbody>
-                                        {entries
-                                            .filter(e => !selectedBatch || String(e.batchNo) === String(selectedBatch))
-                                            .map(e => (
-                                                <tr key={e.id}>
-                                                    <td><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
-                                                    <td>{e.date ? e.date.split('-').reverse().join('/') : ''}</td>
-                                                    <td>{e.time}</td><td>{e.batchNo}</td><td>{e.benchNo}</td><td>{e.minRpm}-{e.maxRpm}</td><td>{e.minDuration ? `${e.minDuration}-${e.maxDuration}s` : `${e.duration}s`}</td>
-                                                    <td>
-                                                        <div className="btn-group">
-                                                            {e.source === 'Manual' && <button className="btn-action" onClick={() => handleEdit(e)}>Edit</button>}
-                                                            <button className="btn-action danger" onClick={() => handleDelete(e.id)}>Delete</button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        {entries.length === 0 && (
-                                            <tr><td colSpan="8" style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>No records found.</td></tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+
+                        {(() => {
+                            const filtered = entries.filter(e => !selectedBatch || String(e.batchNo) === String(selectedBatch));
+                            const lineRecords = filtered.filter(r => !(r.location || '').toLowerCase().includes('shed'));
+                            const shedRecords = filtered.filter(r => (r.location || '').toLowerCase().includes('shed'));
+
+                            const renderCompactionTable = (recordsSubset, title, groupColor) => (
+                                <div style={{ marginBottom: '2.5rem' }}>
+                                    <div style={{ padding: '8px 16px', background: `${groupColor}10`, borderLeft: `4px solid ${groupColor}`, marginBottom: '12px' }}>
+                                        <h4 style={{ margin: 0, fontSize: '0.85rem', color: groupColor, fontWeight: '800' }}>{title} ({recordsSubset.length})</h4>
+                                    </div>
+                                    <div className="table-outer-wrapper" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                        <div className="table-responsive">
+                                            <table className="ui-table">
+                                                <thead><tr><th>Location</th><th>Source</th><th>Date</th><th>Time</th><th>Batch</th><th>Bench</th><th>RPM Range</th><th>Dur Range</th><th>Actions</th></tr></thead>
+                                                <tbody>
+                                                    {recordsSubset.map(e => (
+                                                        <tr key={e.id}>
+                                                            <td style={{ fontSize: '11px', color: '#64748b' }}>{e.location || 'N/A'}</td>
+                                                            <td><span className={`status-pill ${e.source === 'Manual' ? 'manual' : 'witnessed'}`}>{e.source}</span></td>
+                                                            <td>{e.date ? e.date.split('-').reverse().join('/') : ''}</td>
+                                                            <td>{e.time}</td><td>{e.batchNo}</td><td><strong>{e.benchNo}</strong></td><td>{e.minRpm}-{e.maxRpm}</td><td>{e.minDuration ? `${e.minDuration}-${e.maxDuration}s` : `${e.duration}s`}</td>
+                                                            <td>
+                                                                <div className="btn-group">
+                                                                    {e.source === 'Manual' && <button className="btn-action" onClick={() => handleEdit(e)}>Edit</button>}
+                                                                    <button className="btn-action danger" onClick={() => handleDelete(e.id)}>Delete</button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+
+                            return (
+                                <>
+                                    {lineRecords.length > 0 && renderCompactionTable(lineRecords, "LONG LINE COMPACTION", "#3b82f6")}
+                                    {shedRecords.length > 0 && renderCompactionTable(shedRecords, "SHED COMPACTION", "#8b5cf6")}
+                                    {filtered.length === 0 && (
+                                        <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', fontStyle: 'italic' }}>
+                                            No records found for the selected criteria.
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
                     </div>
                 )}
 

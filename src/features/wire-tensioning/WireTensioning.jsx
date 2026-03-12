@@ -143,13 +143,14 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
             id: Date.now(),
             timestamp: new Date().toISOString(),
             source: 'Scada',
+            location: activeContainer?.name || 'N/A',
             wires: wiresPerSleeper,
             loadPerWire: (parseFloat(record.finalLoad) / wiresPerSleeper).toFixed(2),
             type: 'RT-1234'
         };
         setTensionRecords(prev => [newEntry, ...prev]);
         setScadaRecords(prev => prev.filter(r => r.id !== record.id));
-        alert(`Record for Bench ${record.benchNo} witnessed.`);
+        alert(`Record for Bench ${record.benchNo} witnessed for ${activeContainer?.name || 'Location'}.`);
     };
 
     const handleDelete = async (id) => {
@@ -272,6 +273,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
         const newEntry = {
             ...formData,
             id: editId || Date.now(),
+            location: activeContainer?.name || 'N/A',
             timestamp: new Date().toISOString(),
             source: 'Manual',
             wires: wiresPerSleeper,
@@ -629,53 +631,76 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                     {viewMode === 'witnessed' && (
                         <div className="fade-in">
                             <h4 style={{ margin: '0 0 1rem 0', color: '#1e293b', fontWeight: '800' }}>Current Witness Logs</h4>
-                            <div className="table-outer-wrapper" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                <table className="ui-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Source</th>
-                                            <th>Time</th>
-                                            <th>Batch</th>
-                                            <th>Bench</th>
-                                            <th>Wire Length</th>
-                                            <th>Cross Section</th>
-                                            <th>Modulus</th>
-                                            <th>Measured Elong.</th>
-                                            <th>Force (Elong.)</th>
-                                            <th>Total Load</th>
-                                            <th>Final Load</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {tensionRecords.length === 0 ? (
-                                            <tr><td colSpan="12" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>No records logged yet.</td></tr>
-                                        ) : (
-                                            tensionRecords.map(entry => (
-                                                <tr key={entry.id}>
-                                                    <td><span className={`status-pill ${entry.source === 'Manual' ? 'manual' : 'witnessed'}`}>{entry.source}</span></td>
-                                                    <td>{entry.time}</td>
-                                                    <td>{entry.batchNo}</td>
-                                                    <td>{entry.benchNo}</td>
-                                                    <td>{entry.wireLength || '-'}</td>
-                                                    <td>{entry.crossSection || '-'}</td>
-                                                    <td>{entry.modulus || '-'}</td>
-                                                    <td>{entry.measuredElongation || '-'}</td>
-                                                    <td>{entry.forceElongation || '-'}</td>
-                                                    <td>{entry.totalLoad || '-'}</td>
-                                                    <td><strong>{entry.finalLoad} KN</strong></td>
-                                                    <td>
-                                                        <div style={{ display: 'flex', gap: '4px' }}>
-                                                            {entry.source === 'Manual' && <button className="btn-action mini" onClick={() => handleEdit(entry)}>Edit</button>}
-                                                            <button className="btn-action mini danger" style={{ background: '#fee2e2', color: '#ef4444', border: 'none' }} onClick={() => handleDelete(entry.id)}>Delete</button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))
+                            
+                            {(() => {
+                                const lineRecords = tensionRecords.filter(r => !(r.location || '').toLowerCase().includes('shed'));
+                                const shedRecords = tensionRecords.filter(r => (r.location || '').toLowerCase().includes('shed'));
+
+                                const renderTensionTable = (recordsSubset, title, groupColor) => (
+                                    <div style={{ marginBottom: '2.5rem' }}>
+                                        <div style={{ padding: '8px 16px', background: `${groupColor}10`, borderLeft: `4px solid ${groupColor}`, marginBottom: '12px' }}>
+                                            <h4 style={{ margin: 0, fontSize: '0.85rem', color: groupColor, fontWeight: '800' }}>{title} ({recordsSubset.length})</h4>
+                                        </div>
+                                        <div className="table-outer-wrapper" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                            <table className="ui-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Location</th>
+                                                        <th>Source</th>
+                                                        <th>Time</th>
+                                                        <th>Batch</th>
+                                                        <th>Bench</th>
+                                                        <th>Wire Length</th>
+                                                        <th>Cross Section</th>
+                                                        <th>Modulus</th>
+                                                        <th>Measured Elong.</th>
+                                                        <th>Force (Elong.)</th>
+                                                        <th>Total Load</th>
+                                                        <th>Final Load</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {recordsSubset.map(entry => (
+                                                        <tr key={entry.id}>
+                                                            <td style={{ fontSize: '11px', color: '#64748b' }}>{entry.location || 'N/A'}</td>
+                                                            <td><span className={`status-pill ${entry.source === 'Manual' ? 'manual' : 'witnessed'}`}>{entry.source}</span></td>
+                                                            <td>{entry.time}</td>
+                                                            <td>{entry.batchNo}</td>
+                                                            <td><strong>{entry.benchNo}</strong></td>
+                                                            <td>{entry.wireLength || '-'}</td>
+                                                            <td>{entry.crossSection || '-'}</td>
+                                                            <td>{entry.modulus || '-'}</td>
+                                                            <td>{entry.measuredElongation || '-'}</td>
+                                                            <td>{entry.forceElongation || '-'}</td>
+                                                            <td>{entry.totalLoad || '-'}</td>
+                                                            <td><strong>{entry.finalLoad} KN</strong></td>
+                                                            <td>
+                                                                <div style={{ display: 'flex', gap: '4px' }}>
+                                                                    {entry.source === 'Manual' && <button className="btn-action mini" onClick={() => handleEdit(entry)}>Edit</button>}
+                                                                    <button className="btn-action mini danger" style={{ background: '#fee2e2', color: '#ef4444', border: 'none' }} onClick={() => handleDelete(entry.id)}>Delete</button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                );
+
+                                return (
+                                    <>
+                                        {lineRecords.length > 0 && renderTensionTable(lineRecords, "LONG LINE TENSIONING", "#3b82f6")}
+                                        {shedRecords.length > 0 && renderTensionTable(shedRecords, "SHED TENSIONING", "#8b5cf6")}
+                                        {tensionRecords.length === 0 && (
+                                            <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', fontStyle: 'italic' }}>
+                                                No records logged yet.
+                                            </div>
                                         )}
-                                    </tbody>
-                                </table>
-                            </div>
+                                    </>
+                                );
+                            })()}
                         </div>
                     )}
 

@@ -52,15 +52,19 @@ const MainDashboard = () => {
         setSelectedShift,
         dutyDate,
         setDutyDate,
+        dutyUnit,
+        setDutyUnit,
         dutyLocation,
         setDutyLocation,
-        containers
+        containers,
+        plantVerificationData
     } = useShift();
 
     const [showDutyForm, setShowDutyForm] = useState(false);
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         shift: '',
+        unit: '',
         location: '',
     });
 
@@ -78,6 +82,7 @@ const MainDashboard = () => {
         setDutyStarted(true);
         setSelectedShift(formData.shift);
         setDutyDate(formData.date);
+        setDutyUnit(formData.unit);
         setDutyLocation(formData.location);
 
         // Find or create container ID based on location
@@ -157,17 +162,6 @@ const MainDashboard = () => {
                             <form onSubmit={handleSubmit} className="duty-form">
 
                                 <label>
-                                    Casting Date
-                                    <input
-                                        type="date"
-                                        name="date"
-                                        value={formData.date}
-                                        onChange={handleChange}
-                                        required
-                                    />
-                                </label>
-
-                                <label>
                                     Shift Selection
                                     <select
                                         name="shift"
@@ -184,20 +178,64 @@ const MainDashboard = () => {
                                 </label>
 
                                 <label>
+                                    Casting Date
+                                    <input
+                                        type="date"
+                                        name="date"
+                                        value={formData.date}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </label>
+
+                                <label>
+                                    Production Unit
+                                    <select
+                                        name="unit"
+                                        value={formData.unit}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <option value="">Select Unit</option>
+                                        {plantVerificationData?.profiles?.map(profile => (
+                                            <option key={profile.id} value={profile.plantName}>
+                                                {profile.plantName} {profile.status !== 'Verified' ? `(${profile.status})` : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label>
                                     Production Location
                                     <select
                                         name="location"
                                         value={formData.location}
                                         onChange={handleChange}
                                         required
+                                        disabled={!formData.unit}
                                     >
                                         <option value="">Select Location</option>
-                                        <option value="Line I">Line I</option>
-                                        <option value="Line II">Line II</option>
-                                        <option value="Line III">Line III</option>
-                                        <option value="Shed I">Shed I</option>
-                                        <option value="Shed II">Shed II</option>
-                                        <option value="Shed III">Shed III</option>
+                                        {(() => {
+                                            const selectedProfile = plantVerificationData?.profiles?.find(p => p.plantName === formData.unit);
+                                            if (!selectedProfile || selectedProfile.status !== 'Verified') return null;
+
+                                            const locations = [];
+                                            if (selectedProfile.lines) {
+                                                for (let i = 1; i <= selectedProfile.lines; i++) {
+                                                    const roman = i === 1 ? 'I' : i === 2 ? 'II' : i === 3 ? 'III' : i === 4 ? 'IV' : i === 5 ? 'V' : i;
+                                                    locations.push(`Line ${roman}`);
+                                                }
+                                            }
+                                            if (selectedProfile.sheds) {
+                                                for (let i = 1; i <= selectedProfile.sheds; i++) {
+                                                    const roman = i === 1 ? 'I' : i === 2 ? 'II' : i === 3 ? 'III' : i === 4 ? 'IV' : i === 5 ? 'V' : i;
+                                                    locations.push(`Shed ${roman}`);
+                                                }
+                                            }
+                                            return locations.map(loc => (
+                                                <option key={loc} value={loc}>{loc}</option>
+                                            ));
+                                        })()}
                                     </select>
                                 </label>
 

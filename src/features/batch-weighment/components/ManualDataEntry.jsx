@@ -164,8 +164,8 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
 
             {/* Historical Table */}
             {!hideHistory && (
-                <div className="table-outer-wrapper" style={{ marginTop: small ? '1rem' : '1.5rem' }}>
-                    <div style={{ padding: small ? '0.5rem 1rem' : '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="table-outer-wrapper" style={{ marginTop: small ? '1rem' : '1.5rem', background: 'transparent', border: 'none', padding: 0 }}>
+                    <div style={{ padding: small ? '0.5rem 1rem' : '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ width: '4px', height: small ? '12px' : '16px', background: '#10b981', borderRadius: '2px' }}></span>
                             <h4 style={{ margin: 0, color: '#1e293b', fontSize: small ? '0.75rem' : '0.9rem', fontWeight: '800' }}>Historical Witnessed Logs</h4>
@@ -174,73 +174,90 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
                             {witnessedRecords.length} {witnessedRecords.length === 1 ? 'Record' : 'Records'} Found
                         </span>
                     </div>
-                    <div className="table-responsive">
-                        <table className="ui-table">
-                            <thead>
-                                <tr>
-                                    <th style={{ fontSize: small ? '0.6rem' : '0.7rem', padding: small ? '0.4rem 0.25rem' : '0.75rem 0.5rem' }}>Date</th>
-                                    <th style={{ fontSize: small ? '0.6rem' : '0.7rem', padding: small ? '0.4rem 0.25rem' : '0.75rem 0.5rem' }}>Time</th>
-                                    <th style={{ fontSize: small ? '0.6rem' : '0.7rem', padding: small ? '0.4rem 0.25rem' : '0.75rem 0.5rem' }}>Batch</th>
-                                    <th style={{ fontSize: small ? '0.6rem' : '0.7rem', padding: small ? '0.4rem 0.25rem' : '0.75rem 0.5rem' }}>CA1 (Kg)</th>
-                                    <th style={{ fontSize: small ? '0.6rem' : '0.7rem', padding: small ? '0.4rem 0.25rem' : '0.75rem 0.5rem' }}>CA2 (Kg)</th>
-                                    <th style={{ fontSize: small ? '0.6rem' : '0.7rem', padding: small ? '0.4rem 0.25rem' : '0.75rem 0.5rem' }}>FA (Kg)</th>
-                                    <th style={{ fontSize: small ? '0.6rem' : '0.7rem', padding: small ? '0.4rem 0.25rem' : '0.75rem 0.5rem' }}>Cement (Kg)</th>
-                                    <th style={{ fontSize: small ? '0.6rem' : '0.7rem', padding: small ? '0.4rem 0.25rem' : '0.75rem 0.5rem' }}>Water (L)</th>
-                                    <th style={{ fontSize: small ? '0.6rem' : '0.7rem', padding: small ? '0.4rem 0.25rem' : '0.75rem 0.5rem' }}>Admix (Kg)</th>
-                                    <th style={{ fontSize: small ? '0.6rem' : '0.7rem', padding: small ? '0.4rem 0.25rem' : '0.75rem 0.5rem' }}>Source</th>
-                                    <th style={{ textAlign: 'center', fontSize: small ? '0.6rem' : '0.7rem', padding: small ? '0.4rem 0.25rem' : '0.75rem 0.5rem' }}>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {witnessedRecords.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="11" style={{ padding: small ? '2rem' : '3rem', textAlign: 'center', color: '#64748b', fontStyle: 'italic', fontSize: small ? '0.75rem' : '0.8rem' }}>
-                                            No witnessed declarations found.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    witnessedRecords.map((record) => (
-                                        <tr key={record.id} className="hover-row">
-                                            <td data-label="Date" style={{ fontSize: small ? '0.65rem' : '0.8rem', padding: small ? '0.25rem' : '0.5rem 0.25rem' }}>{record.date ? record.date.split('-').reverse().join('/') : ''}</td>
-                                            <td data-label="Time" style={{ fontSize: small ? '0.65rem' : '0.8rem', padding: small ? '0.25rem' : '0.5rem 0.25rem' }}>{record.time}</td>
-                                            <td data-label="Batch" style={{ fontSize: small ? '0.65rem' : '0.8rem', padding: small ? '0.25rem' : '0.5rem 0.25rem' }}><strong>{record.batchNo}</strong></td>
-                                            <td data-label="CA1" style={{ fontSize: small ? '0.65rem' : '0.8rem', padding: small ? '0.25rem' : '0.5rem 0.25rem' }}>{record.ca1}</td>
-                                            <td data-label="CA2" style={{ fontSize: small ? '0.65rem' : '0.8rem', padding: small ? '0.25rem' : '0.5rem 0.25rem' }}>{record.ca2}</td>
-                                            <td data-label="FA" style={{ fontSize: small ? '0.65rem' : '0.8rem', padding: small ? '0.25rem' : '0.5rem 0.25rem' }}>{record.fa}</td>
-                                            <td data-label="Cement" style={{ fontSize: small ? '0.65rem' : '0.8rem', padding: small ? '0.25rem' : '0.5rem 0.25rem' }}>{record.cement}</td>
-                                            <td data-label="Water" style={{ fontSize: small ? '0.65rem' : '0.8rem', padding: small ? '0.25rem' : '0.5rem 0.25rem' }}>{record.water}</td>
-                                            <td data-label="Admix" style={{ fontSize: small ? '0.65rem' : '0.8rem', padding: small ? '0.25rem' : '0.5rem 0.25rem' }}>{record.admixture}</td>
-                                            <td data-label="Source" style={{ fontSize: small ? '0.65rem' : '0.8rem', padding: small ? '0.25rem' : '0.5rem 0.25rem' }}>
-                                                <span className={`status-pill ${record.source?.toLowerCase().includes('scada') ? 'witnessed' : 'manual'}`} style={{ fontSize: small ? '0.6rem' : '0.65rem', padding: small ? '2px 6px' : '4px 10px' }}>
-                                                    {record.source}
-                                                </span>
-                                            </td>
-                                            <td data-label="Actions" style={{ fontSize: small ? '0.65rem' : '0.8rem', padding: small ? '0.25rem' : '0.5rem 0.25rem' }}>
-                                                <div style={{ display: 'flex', gap: small ? '4px' : '8px', justifyContent: 'center' }}>
-                                                    <button
-                                                        onClick={() => handleEdit(record)}
-                                                        className="btn-action mini"
-                                                        title="Edit this record"
-                                                        style={{ padding: small ? '2px 8px' : '4px 10px', fontSize: small ? '0.65rem' : '0.7rem', background: '#3b82f6', color: '#fff' }}
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={() => onDelete(record.id)}
-                                                        className="btn-action danger mini"
-                                                        title="Delete this record"
-                                                        style={{ padding: small ? '2px 8px' : '4px 10px', fontSize: small ? '0.65rem' : '0.7rem', background: '#ef4444', color: '#fff' }}
-                                                    >
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
+
+                    {(() => {
+                        const lineRecords = witnessedRecords.filter(r => !(r.location || '').toLowerCase().includes('shed'));
+                        const shedRecords = witnessedRecords.filter(r => (r.location || '').toLowerCase().includes('shed'));
+
+                        const renderTable = (recordsSubset, title, groupColor) => (
+                            <div style={{ marginBottom: '2.5rem' }}>
+                                <div style={{ padding: '8px 16px', background: `${groupColor}10`, borderLeft: `4px solid ${groupColor}`, marginBottom: '12px' }}>
+                                    <h4 style={{ margin: 0, fontSize: '0.85rem', color: groupColor, fontWeight: '800' }}>{title} ({recordsSubset.length})</h4>
+                                </div>
+                                <div className="table-responsive" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                    <table className="ui-table">
+                                        <thead>
+                                            <tr>
+                                                <th style={{ fontSize: small ? '0.6rem' : '0.7rem' }}>Location</th>
+                                                <th style={{ fontSize: small ? '0.6rem' : '0.7rem' }}>Date</th>
+                                                <th style={{ fontSize: small ? '0.6rem' : '0.7rem' }}>Time</th>
+                                                <th style={{ fontSize: small ? '0.6rem' : '0.7rem' }}>Batch</th>
+                                                <th style={{ fontSize: small ? '0.6rem' : '0.7rem' }}>CA1 (Kg)</th>
+                                                <th style={{ fontSize: small ? '0.6rem' : '0.7rem' }}>CA2 (Kg)</th>
+                                                <th style={{ fontSize: small ? '0.6rem' : '0.7rem' }}>FA (Kg)</th>
+                                                <th style={{ fontSize: small ? '0.6rem' : '0.7rem' }}>Cement (Kg)</th>
+                                                <th style={{ fontSize: small ? '0.6rem' : '0.7rem' }}>Water (L)</th>
+                                                <th style={{ fontSize: small ? '0.6rem' : '0.7rem' }}>Admix (Kg)</th>
+                                                <th style={{ fontSize: small ? '0.6rem' : '0.7rem' }}>Source</th>
+                                                <th style={{ textAlign: 'center', fontSize: small ? '0.6rem' : '0.7rem' }}>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {recordsSubset.map((record) => (
+                                                <tr key={record.id} className="hover-row">
+                                                    <td style={{ fontSize: small ? '0.65rem' : '0.75rem', color: '#64748b' }}>{record.location || 'N/A'}</td>
+                                                    <td data-label="Date" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.date ? record.date.split('-').reverse().join('/') : ''}</td>
+                                                    <td data-label="Time" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.time}</td>
+                                                    <td data-label="Batch" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}><strong>{record.batchNo}</strong></td>
+                                                    <td data-label="CA1" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.ca1}</td>
+                                                    <td data-label="CA2" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.ca2}</td>
+                                                    <td data-label="FA" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.fa}</td>
+                                                    <td data-label="Cement" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.cement}</td>
+                                                    <td data-label="Water" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.water}</td>
+                                                    <td data-label="Admix" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.admixture}</td>
+                                                    <td data-label="Source">
+                                                        <span className={`status-pill ${record.source?.toLowerCase().includes('scada') ? 'witnessed' : 'manual'}`} style={{ fontSize: small ? '0.6rem' : '0.65rem' }}>
+                                                            {record.source}
+                                                        </span>
+                                                    </td>
+                                                    <td data-label="Actions">
+                                                        <div style={{ display: 'flex', gap: small ? '4px' : '8px', justifyContent: 'center' }}>
+                                                            <button
+                                                                onClick={() => handleEdit(record)}
+                                                                className="btn-action mini"
+                                                                style={{ background: '#3b82f6', color: '#fff' }}
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                onClick={() => onDelete(record.id)}
+                                                                className="btn-action danger mini"
+                                                                style={{ background: '#ef4444', color: '#fff' }}
+                                                            >
+                                                                Del
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        );
+
+                        return (
+                            <>
+                                {lineRecords.length > 0 && renderTable(lineRecords, "LONG LINE BATCHES", "#3b82f6")}
+                                {shedRecords.length > 0 && renderTable(shedRecords, "SHED BATCHES", "#8b5cf6")}
+                                {witnessedRecords.length === 0 && (
+                                    <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b', fontStyle: 'italic', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                        No witnessed declarations found.
+                                    </div>
                                 )}
-                            </tbody>
-                        </table>
-                    </div>
+                            </>
+                        );
+                    })()}
                 </div>
             )}
         </div>

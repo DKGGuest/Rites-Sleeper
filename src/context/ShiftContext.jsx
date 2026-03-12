@@ -15,6 +15,7 @@ export const ShiftProvider = ({ children }) => {
     const [dutyStarted, setDutyStarted] = useState(false);
     const [selectedShift, setSelectedShift] = useState(''); // 'A', 'B', 'C', 'General'
     const [dutyDate, setDutyDate] = useState(new Date().toISOString().split('T')[0]);
+    const [dutyUnit, setDutyUnit] = useState('');
     const [dutyLocation, setDutyLocation] = useState('');
 
     const [containers, setContainers] = useState([{ id: 1, type: 'Line', name: 'Line I' }]);
@@ -326,6 +327,8 @@ export const ShiftProvider = ({ children }) => {
         setSelectedShift,
         dutyDate,
         setDutyDate,
+        dutyUnit,
+        setDutyUnit,
         dutyLocation,
         setDutyLocation,
         containers,

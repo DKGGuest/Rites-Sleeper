@@ -114,7 +114,7 @@ const SleeperProcessIEGeneral = () => {
                                         <div className="pv-stat-row-summary">
                                             <span className="stat-v">V: {stats.verified}</span>
                                             <span className="stat-p">P: {stats.pending}</span>
-                                            <span className="stat-r">R: {stats.rejected}</span>
+                                            <span className="stat-r">C: {stats.rejected}</span>
                                         </div>
                                     </div>
                                 ) : (

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const FeatureToolbar = ({ activeTab, witnessedRecordsCount, setShowBatchEntryForm, setShowWireTensionForm, setViewMode, setDetailView }) => {
+const FeatureToolbar = ({ activeTab, witnessedRecordsCount, setShowBatchEntryForm, setShowWireTensionForm, setShowMoistureForm, setShowCompactionForm, setViewMode, setDetailView }) => {
     return (
         <div className="duty-section-toolbar" style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '16px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -21,7 +21,12 @@ const FeatureToolbar = ({ activeTab, witnessedRecordsCount, setShowBatchEntryFor
                         Add New Analysis
                     </button>
                 )}
-                {!(activeTab === 'Mould & Bench Checking' || activeTab === 'Manual Checks' || activeTab === 'Steam Cube Testing' || activeTab === 'Batch Weighment' || activeTab === 'Wire Tensioning' || activeTab === 'Compaction of Concrete (Vibrator Report)' || activeTab === 'Steam Curing') && (
+                {activeTab === 'Moisture Analysis' && setShowMoistureForm && (
+                    <button className="toggle-btn" onClick={() => setShowMoistureForm(true)}>
+                        New Analysis Entry
+                    </button>
+                )}
+                {!(activeTab === 'Mould & Bench Checking' || activeTab === 'Manual Checks' || activeTab === 'Steam Cube Testing' || activeTab === 'Batch Weighment' || activeTab === 'Wire Tensioning' || activeTab === 'Compaction of Concrete (Vibrator Report)' || activeTab === 'Steam Curing' || activeTab === 'Moisture Analysis') && (
                     <button
                         className="toggle-btn"
                         style={{ fontSize: '0.7rem' }}
@@ -31,8 +36,7 @@ const FeatureToolbar = ({ activeTab, witnessedRecordsCount, setShowBatchEntryFor
                             setDetailView('detail_modal');
                         }}
                     >
-                        {activeTab === 'Raw Material Inventory' ? 'Open Inventory Console' :
-                            activeTab === 'Moisture Analysis' ? 'New Analysis Entry' : 'New Entry'}
+                        {activeTab === 'Raw Material Inventory' ? 'Open Inventory Console' : 'New Entry'}
                     </button>
                 )}
                 {activeTab === 'Mould & Bench Checking' && (
