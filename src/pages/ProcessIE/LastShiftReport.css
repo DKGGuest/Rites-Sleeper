@@ -1,7 +1,7 @@
 /* LastShiftReport.css */
 
 .report-container {
-    padding: 2.5rem;
+    padding: 1.5rem;
     max-width: 1400px;
     margin: 0 auto;
     min-height: calc(100vh - 72px);
@@ -12,9 +12,9 @@
     display: flex;
     align-items: center;
     gap: 1.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
     border-bottom: 2px solid var(--accent-bg);
-    padding-bottom: 1rem;
+    padding-bottom: 0.8rem;
 }
 
 .report-header h2 {
@@ -23,24 +23,6 @@
     font-size: var(--fs-2xl);
     color: var(--rites-dark);
     font-weight: 800;
-}
-
-.btn-back {
-    padding: 0.6rem 1.25rem;
-    background: transparent;
-    border: 1px solid var(--neutral-300);
-    border-radius: 50px;
-    color: var(--text-muted);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.btn-back:hover {
-    background: #fff;
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-    box-shadow: var(--shadow-sm);
 }
 
 .report-layout {

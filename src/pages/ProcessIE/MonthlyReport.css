@@ -1,7 +1,7 @@
 /* MonthlyReport.css */
 
 .report-container {
-    padding: 2.5rem;
+    padding: 1.5rem;
     max-width: 1400px;
     margin: 0 auto;
     min-height: calc(100vh - 72px);
@@ -12,25 +12,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
     border-bottom: 2px solid var(--accent-bg);
-    padding-bottom: 1.5rem;
-}
-
-.btn-back {
-    padding: 0.6rem 1.25rem;
-    background: transparent;
-    border: 1px solid var(--neutral-300);
-    border-radius: 50px;
-    color: var(--text-muted);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.btn-back:hover {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
+    padding-bottom: 1rem;
 }
 
 .report-header h2 {

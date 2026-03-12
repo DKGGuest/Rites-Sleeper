@@ -59,7 +59,6 @@ const MonthlyReport = ({ onBack }) => {
         <div className="report-container fade-in">
             <header className="report-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                    <button onClick={onBack} className="btn-back">← Back</button>
                     <h2>Monthly Performance Overview</h2>
                 </div>
 

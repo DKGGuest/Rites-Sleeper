@@ -53,11 +53,11 @@ const App = () => {
       case 'Sleeper process Duty':
         return <SleeperProcessDuty />;
       case 'Batch Wise Sleeper Report':
-        return <div className="fade-in"><BatchWiseSleeperReport onBack={() => setMainView('Main Dashboard')} /></div>;
+        return <div className="fade-in"><BatchWiseSleeperReport /></div>;
       case 'Last Shift Report':
-        return <div className="fade-in"><LastShiftReport onBack={() => setMainView('Main Dashboard')} /></div>;
+        return <div className="fade-in"><LastShiftReport /></div>;
       case 'Monthly Performance Report':
-        return <div className="fade-in"><MonthlyReport onBack={() => setMainView('Main Dashboard')} /></div>;
+        return <div className="fade-in"><MonthlyReport /></div>;
       case 'Main Dashboard':
       default:
         return <MainDashboard />;

@@ -45,7 +45,6 @@ const LastShiftReport = ({ onBack }) => {
     return (
         <div className="report-container fade-in">
             <header className="report-header">
-                <button onClick={onBack} className="btn-back">← Back</button>
                 <h2>Last Shift Snapshot</h2>
             </header>
 
