@@ -21,38 +21,43 @@ const LOGGED_IN_USER_ID = 119; // Hardcoded IE user
  *  10 | Dowel
  */
 const MODULE_CONFIG = [
-    { moduleId: 1,  label: 'Plant Profile',     group: 'Plant Declaration',     color: '#7c3aed' },
-    { moduleId: 2,  label: 'Bench / Mould',     group: 'Plant Declaration',     color: '#7c3aed' },
-    { moduleId: 3,  label: 'Raw Material Src',  group: 'Plant Declaration',     color: '#7c3aed' },
-    { moduleId: 4,  label: 'Mix Design',        group: 'Plant Declaration',     color: '#7c3aed' },
-    { moduleId: 5,  label: 'HTS Wire',          group: 'Incoming Verification', color: '#0369a1' },
-    { moduleId: 6,  label: 'Cement',            group: 'Incoming Verification', color: '#0369a1' },
-    { moduleId: 7,  label: 'Admixture',         group: 'Incoming Verification', color: '#0369a1' },
-    { moduleId: 8,  label: 'Aggregates',        group: 'Incoming Verification', color: '#0369a1' },
-    { moduleId: 9,  label: 'SGCI Insert',       group: 'Incoming Verification', color: '#0369a1' },
-    { moduleId: 10, label: 'Dowel',             group: 'Incoming Verification', color: '#0369a1' },
+    { moduleId: 1, label: 'Plant Profile', group: 'Plant Declaration', color: '#7c3aed' },
+    { moduleId: 2, label: 'Bench / Mould', group: 'Plant Declaration', color: '#7c3aed' },
+    { moduleId: 3, label: 'Raw Material Src', group: 'Plant Declaration', color: '#7c3aed' },
+    { moduleId: 4, label: 'Mix Design', group: 'Plant Declaration', color: '#7c3aed' },
+    { moduleId: 5, label: 'HTS Wire', group: 'Incoming Verification', color: '#0369a1' },
+    { moduleId: 6, label: 'Cement', group: 'Incoming Verification', color: '#0369a1' },
+    { moduleId: 7, label: 'Admixture', group: 'Incoming Verification', color: '#0369a1' },
+    { moduleId: 8, label: 'Aggregates', group: 'Incoming Verification', color: '#0369a1' },
+    { moduleId: 9, label: 'SGCI Insert', group: 'Incoming Verification', color: '#0369a1' },
+    { moduleId: 10, label: 'Dowel', group: 'Incoming Verification', color: '#0369a1' },
 ];
 
 /** Fetch the actual record data for a given moduleId + requestId */
 const fetchRecordDetail = async (moduleId, requestId) => {
+
     const fetchers = {
-        1:  () => apiService.getPlantProfileById(requestId),
-        2:  () => apiService.getBenchMouldMasterById(requestId),
-        3:  () => apiService.getRawMaterialSourceById(requestId),
-        4:  () => apiService.getMixDesignById(requestId),
-        5:  () => apiService.getHtsWireRecordById(requestId),
-        6:  () => apiService.getCementRecordById(requestId),
-        7:  () => apiService.getAdmixtureRecordById(requestId),
-        8:  () => apiService.getAggregateRecordById(requestId),
-        9:  () => apiService.getSgciRecordById(requestId),
-        10: () => apiService.getDowelRecordById(requestId),
+        1: apiService.getPlantProfileById,
+        2: apiService.getBenchMouldMasterById,
+        3: apiService.getRawMaterialSourceById,
+        4: apiService.getMixDesignById,
+        5: apiService.getHtsWireRecordById,
+        6: apiService.getCementRecordById,
+        7: apiService.getAdmixtureRecordById,
+        8: apiService.getAggregateRecordById,
+        9: apiService.getSgciRecordById,
+        10: apiService.getDowelRecordById,
     };
+
     const fn = fetchers[moduleId];
+
     if (!fn) return null;
+
     try {
-        const res = await fn();
-        return res?.responseData ?? res ?? null;
-    } catch {
+        const res = await fn(requestId);
+        return res?.responseData ?? null;
+    } catch (error) {
+        console.error("Error fetching record detail", error);
         return null;
     }
 };
@@ -62,10 +67,10 @@ const fetchRecordDetail = async (moduleId, requestId) => {
 // ─────────────────────────────────────────────
 const DetailModal = ({ record, onClose, onAction, acting }) => {
     const [remarks, setRemarks] = useState('');
-    const [pendingAction, setPendingAction] = useState(null); // 'VERIFY' | 'REQUEST_CHANGE'
+    const [pendingAction, setPendingAction] = useState(null); // 'VERIFY' | 'REQUEST_BACK'
 
     const handleConfirm = () => {
-        if (pendingAction === 'REQUEST_CHANGE' && !remarks.trim()) {
+        if (pendingAction === 'REQUEST_BACK' && !remarks.trim()) {
             alert('Please enter remarks before requesting change.');
             return;
         }
@@ -140,7 +145,7 @@ const DetailModal = ({ record, onClose, onAction, acting }) => {
                             }}
                         >✓ Verify</button>
                         <button
-                            onClick={() => setPendingAction('REQUEST_CHANGE')}
+                            onClick={() => setPendingAction('REQUEST_BACK')}
                             style={{
                                 flex: 1, padding: '12px', border: 'none', borderRadius: '10px',
                                 background: '#dc2626', color: '#fff', fontWeight: '700',
@@ -192,6 +197,80 @@ const DetailModal = ({ record, onClose, onAction, acting }) => {
     );
 };
 
+const MODULE_TABLE_FIELDS = {
+
+    // 1️Plant Profile  ✅ already working
+    1: [
+        { label: "Plant Name", key: "plantNameLocation" },
+        { label: "Vendor Code", key: "vendorCode" },
+        { label: "Type Of Plant", key: "plantType" },
+        { label: "Sheds / Lines", key: "numberOfSheds" }
+    ],
+
+    // 2️ Bench / Mould
+    2: [
+        { label: "Shed/Line No", key: "lineShedNo" },
+        { label: "Bench/Gang No", key: "benchGangNo" },
+        { label: "Sleeper Type", key: "sleeperType" }
+    ],
+
+    // 3️ Raw Material Source
+    3: [
+        { label: "Material Type", key: "rawMaterialType" },
+        { label: "Supplier Name", key: "supplierName" },
+        { label: "Approval Ref", key: "approvalReference" }
+    ],
+
+    // 4️ Mix Design
+    4: [
+        { label: "Mix ID", key: "identification" },
+        { label: "Authority", key: "concreteGrade" },
+        { label: "A/C Ratio", key: "authorityOfApproval" }
+    ],
+
+    // 5️ HTS Wire
+    5: [
+        { label: "Manufacturer", key: "manufacturer" },
+        { label: "Batch No", key: "invoiceNumber" },
+        { label: "Diameter", key: "gradeSpec" }
+    ],
+
+    // 6️⃣ Cement
+    6: [
+        { label: "Brand", key: "manufacturer" },
+        { label: "Grade", key: "gradeSpec" },
+        { label: "Batch No", key: "invoiceNumber" }
+    ],
+
+    // 7️⃣ Admixture
+    7: [
+        { label: "Brand", key: "manufacturer" },
+        { label: "Type", key: "gradeSpec" },
+        { label: "Batch No", key: "invoiceNumber" }
+    ],
+
+    // 8️⃣ Aggregates
+    8: [
+        { label: "Source", key: "source" },
+        { label: "Grade", key: "gradeSpec" },
+        { label: "Challan No", key: "challanNumber" }
+    ],
+
+    // 9️⃣ SGCI Insert
+    9: [
+        { label: "Manufacturer", key: "manufacturer" },
+        { label: "Batch No", key: "invoiceNumber" },
+        { label: "Specification", key: "ritesIcNumber" }
+    ],
+
+    // 🔟 Dowel
+    10: [
+        { label: "Manufacturer", key: "manufacturer" },
+        { label: "invoiceNumber", key: "invoiceNumber" },
+        { label: "ritesIcNumber", key: "ritesIcNumber" }
+    ]
+};
+
 // ─────────────────────────────────────────────
 //  Main Dashboard Component
 // ─────────────────────────────────────────────
@@ -221,9 +300,13 @@ const IncomingVerificationDashboard = () => {
                 : (Array.isArray(res?.responseData) ? res.responseData : []);
 
             // Step 2: filter by logged-in IE user
+            // const myPending = rawList.filter(r =>
+            //     r.assignedTo === LOGGED_IN_USER_ID ||
+            //     String(r.assignedTo) === String(LOGGED_IN_USER_ID)
+            // );
             const myPending = rawList.filter(r =>
-                r.assignedTo === LOGGED_IN_USER_ID ||
-                String(r.assignedTo) === String(LOGGED_IN_USER_ID)
+                Array.isArray(r.accessibleUserIds) &&
+                r.accessibleUserIds.includes(LOGGED_IN_USER_ID)
             );
 
             setAllPending(myPending);
@@ -276,20 +359,27 @@ const IncomingVerificationDashboard = () => {
     }, [loadPendingTransitions]);
 
     // ── Step 7: IE clicks Verify / Request Change ──
-    const handleAction = async (action, remarks) => {
-        if (!detailModal) return;
+    const handleAction = async (row, action) => {
+
         setActing(true);
+
         try {
+
             await apiService.performTransitionAction({
-                workflowTransitionId: detailModal.workflowTransitionId,
-                action:               action,          // "VERIFY" | "REQUEST_CHANGE"
-                actionBy:             LOGGED_IN_USER_ID,
-                remarks:              remarks || '',
+                workflowTransitionId: row.workflowTransitionId,
+                moduleId: row.moduleId,
+                requestId: row.requestId,
+                action: action,
+                actionBy: LOGGED_IN_USER_ID,
+                remarks: action === "VERIFY" ? "Verified by IE" : "Requested for change"
             });
-            alert(action === 'VERIFY' ? '✓ Record verified successfully.' : '↩ Change request submitted.');
-            setDetailModal(null);
-            // Reload so the actioned record disappears from pending list
+
+            alert(action === 'VERIFY'
+                ? '✓ Record verified successfully.'
+                : '↩ Change request submitted.');
+
             loadPendingTransitions();
+
         } catch (err) {
             alert(`Action failed: ${err.message}`);
         } finally {
@@ -327,8 +417,8 @@ const IncomingVerificationDashboard = () => {
                     }}
                 >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
-                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                        <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
                     </svg>
                     {loading ? 'Refreshing…' : 'Refresh'}
                 </button>
@@ -449,21 +539,26 @@ const IncomingVerificationDashboard = () => {
                                             <th style={thStyle}>Request ID</th>
                                             <th style={thStyle}>Workflow Transition ID</th>
                                             <th style={thStyle}>Assigned To</th>
-                                            <th style={thStyle}>Record Summary</th>
+                                            {MODULE_TABLE_FIELDS[selectedModuleId]?.map(col => (
+                                                <th key={col.key} style={thStyle}>{col.label}</th>
+                                            ))}
+                                            <th style={thStyle}>Status</th>
                                             <th style={thStyle}>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {currentRecords.map((row, idx) => {
                                             // Pick a meaningful summary field from the detail
-                                            const summary = row.detail?.plantName
-                                                || row.detail?.vendorName
-                                                || row.detail?.invoiceNo
-                                                || row.detail?.materialType
-                                                || row.detail?.designId
-                                                || row.detail?.benchNo
-                                                || row.detail?.supplierName
-                                                || '—';
+                                            const summary =
+                                                row.detail?.plantNameLocation ||
+                                                row.detail?.plantName ||
+                                                row.detail?.vendorName ||
+                                                row.detail?.invoiceNo ||
+                                                row.detail?.materialType ||
+                                                row.detail?.designId ||
+                                                row.detail?.benchNo ||
+                                                row.detail?.supplierName ||
+                                                '—';
 
                                             return (
                                                 <tr key={row.workflowTransitionId || idx}
@@ -487,19 +582,56 @@ const IncomingVerificationDashboard = () => {
                                                             User {row.assignedTo}
                                                         </span>
                                                     </td>
-                                                    <td style={tdStyle}>{summary}</td>
+                                                    {MODULE_TABLE_FIELDS[selectedModuleId]?.map(col => (
+                                                        <td key={col.key} style={tdStyle}>
+                                                            {row.detail?.[col.key] ?? '-'}
+                                                        </td>
+                                                    ))}
+
                                                     <td style={tdStyle}>
+                                                        <span style={{
+                                                            background: '#fef3c7',
+                                                            color: '#92400e',
+                                                            padding: '3px 8px',
+                                                            borderRadius: '6px',
+                                                            fontSize: '11px'
+                                                        }}>
+                                                            {row.status}
+                                                        </span>
+                                                    </td>
+                                                    <td style={tdStyle}>
+
                                                         <button
-                                                            onClick={() => setDetailModal(row)}
+                                                            onClick={() => handleAction(row, "VERIFY")}
                                                             style={{
-                                                                background: '#0f766e', color: '#fff',
-                                                                border: 'none', borderRadius: '7px',
-                                                                padding: '6px 14px', fontSize: '12px',
-                                                                fontWeight: '600', cursor: 'pointer'
+                                                                background: '#059669',
+                                                                color: '#fff',
+                                                                border: 'none',
+                                                                borderRadius: '6px',
+                                                                padding: '6px 12px',
+                                                                fontSize: '12px',
+                                                                marginRight: '6px',
+                                                                cursor: 'pointer'
                                                             }}
                                                         >
-                                                            View & Act
+                                                            Verify
                                                         </button>
+
+                                                        <button
+                                                            onClick={() => handleAction(row, "REQUEST_BACK")}
+                                                            style={{
+                                                                background: '#dc2626',
+                                                                color: '#fff',
+                                                                border: 'none',
+                                                                borderRadius: '6px',
+                                                                padding: '6px 12px',
+                                                                fontSize: '12px',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            Request Change
+                                                        </button>
+
                                                     </td>
                                                 </tr>
                                             );
@@ -513,14 +645,14 @@ const IncomingVerificationDashboard = () => {
             )}
 
             {/* Detail + Action Modal */}
-            {detailModal && (
+            {/* {detailModal && (
                 <DetailModal
                     record={detailModal}
                     onClose={() => setDetailModal(null)}
                     onAction={handleAction}
                     acting={acting}
                 />
-            )}
+            )} */}
         </div>
     );
 };

@@ -149,30 +149,41 @@ export const apiService = {
     /**
      * IE Action: Verify or Request Change on a workflow transition.
      * @param {object} payload - { workflowTransitionId, action, actionBy, remarks }
-     *   action = "VERIFY" | "REQUEST_CHANGE"
+     *   action = "VERIFY" | "REQUEST_BACK"
      */
     performTransitionAction: (payload) =>
         api.post('/sleeper-workflow/performTransitionAction', payload),
 
     // ── Module getById APIs (used by IE dashboard to fetch record details) ──
     // moduleId=1  PLANT_PROFILE
-    getPlantProfileById:       (id) => api.get(`/plant-profile/getById/${id}`),
+    // getPlantProfileById:       (id) => api.get(`/plant-profile/getById/${id}`),
+    getPlantProfileById: (id) => api.get(`/plant-profile/${id}`),
+
+
     // moduleId=2  BENCH_MOULD_MASTER
-    getBenchMouldMasterById:   (id) => api.get(`/bench-mould/getById/${id}`),
+    getBenchMouldMasterById: (id) => api.get(`/bench-mould-inspection/get/${id}`),
+
     // moduleId=3  RAW_MATERIAL_SOURCE
-    getRawMaterialSourceById:  (id) => api.get(`/raw-material/getById/${id}`),
+    getRawMaterialSourceById: (id) => api.get(`/raw-material-source/${id}`),
+
     // moduleId=4  MIX_DESIGN
-    getMixDesignById:          (id) => api.get(`/mix-design/getById/${id}`),
+    getMixDesignById: (id) => api.get(`/mix-design/${id}`),
+
     // moduleId=5  HTS Wire
-    getHtsWireRecordById:      (id) => api.get(`/inventory/hts-wire/${id}`),
+    getHtsWireRecordById: (id) => api.get(`/hts-wire/${id}`),
+
     // moduleId=6  Cement
-    getCementRecordById:       (id) => api.get(`/inventory/cement/${id}`),
+    getCementRecordById: (id) => api.get(`/cement/${id}`),
+
     // moduleId=7  Admixture
-    getAdmixtureRecordById:    (id) => api.get(`/inventory/admixture/${id}`),
+    getAdmixtureRecordById: (id) => api.get(`/admixture/${id}`),
+
     // moduleId=8  Aggregates
-    getAggregateRecordById:    (id) => api.get(`/inventory/aggregate/${id}`),
+    getAggregateRecordById: (id) => api.get(`/aggregates/${id}`),
+
     // moduleId=9  SGCI Insert
-    getSgciRecordById:         (id) => api.get(`/inventory/sgci/${id}`),
-    // moduleId=10 Dowel  (endpoint TBD — using inventory/dowel pattern)
-    getDowelRecordById:        (id) => api.get(`/inventory/dowel/${id}`),
+    getSgciRecordById: (id) => api.get(`/sgci-insert/${id}`),
+
+    // moduleId=10 Dowel
+    getDowelRecordById: (id) => api.get(`/dowel/${id}`)
 };
