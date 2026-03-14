@@ -57,6 +57,12 @@ const SUB_COLUMNS = [
         description: 'Aggregate moisture tracking',
         icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" /><path d="M12 12V6" /></svg>
     },
+    {
+        id: 'production-verification',
+        label: 'Production Verification',
+        description: 'Verify Daily Production Logs',
+        icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12l2 2 4-4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /><polyline points="21 8 21 3 16 3" /></svg>
+    },
 ];
 
 
@@ -165,6 +171,10 @@ const SleeperProcessIEGeneral = () => {
                             onSave={() => { }}
                         />
                     </div>
+                )}
+
+                {activeSubView === 'production-verification' && (
+                    <IncomingVerificationDashboard initialGroup="Production Verification" />
                 )}
             </div>
         </div>

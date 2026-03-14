@@ -33,49 +33,49 @@ const BatchEntryForm = ({
                 verifiedBy: witnessInfo.verifiedBy || "Operator",
                 remarks: witnessInfo.remarks || "Batch session sync",
                 entryMode: "MIXED",
-                createdBy: 0,
-                updatedBy: 0,
+                createdBy: 118,
+                updatedBy: 118,
                 batchDetails: batchDeclarations.map(d => ({
                     id: (typeof d.id === 'number' && d.id < 1000000) ? d.id : 0,
-                    batchNo: String(d.batchNo),
+                    batchNo: String(d.batchNo || "0"),
                     proportionStatus: d.proportionMatch || "OK",
-                    ca1Ref: d.adjustedWeights?.ca1 || 0,
-                    ca2Ref: d.adjustedWeights?.ca2 || 0,
-                    faRef: d.adjustedWeights?.fa || 0,
-                    cementRef: d.adjustedWeights?.cement || 0,
-                    waterRef: d.adjustedWeights?.water || 0,
-                    admixtureRef: d.adjustedWeights?.admixture || 0,
-                    ca1Set: d.setValues?.ca1 || 0,
-                    ca2Set: d.setValues?.ca2 || 0,
-                    faSet: d.setValues?.fa || 0,
-                    cementSet: d.setValues?.cement || 0,
-                    waterSet: d.setValues?.water || 0,
-                    admixtureSet: d.setValues?.admixture || 0
+                    ca1Ref: parseFloat(d.adjustedWeights?.ca1) || 0,
+                    ca2Ref: parseFloat(d.adjustedWeights?.ca2) || 0,
+                    faRef: parseFloat(d.adjustedWeights?.fa) || 0,
+                    cementRef: parseFloat(d.adjustedWeights?.cement) || 0,
+                    waterRef: parseFloat(d.adjustedWeights?.water) || 0,
+                    admixtureRef: parseFloat(d.adjustedWeights?.admixture) || 0,
+                    ca1Set: parseFloat(d.setValues?.ca1) || 0,
+                    ca2Set: parseFloat(d.setValues?.ca2) || 0,
+                    faSet: parseFloat(d.setValues?.fa) || 0,
+                    cementSet: parseFloat(d.setValues?.cement) || 0,
+                    waterSet: parseFloat(d.setValues?.water) || 0,
+                    admixtureSet: parseFloat(d.setValues?.admixture) || 0
                 })),
                 scadaRecords: witnessedRecords.filter(r => r.source?.toLowerCase().includes('scada')).map(r => ({
                     id: (typeof r.id === 'number' && r.id < 1000000) ? r.id : 0,
-                    batchNo: String(r.batchNo),
-                    date: (r.date && r.date.includes('-')) ? r.date.split('-').reverse().join('/') : (r.date || new Date().toLocaleDateString('en-GB')),
-                    time: r.time ? r.time.substring(0, 5) : "00:00",
-                    ca1Set: r.ca1Set || r.mm20_set || 0,
-                    ca1Actual: r.ca1Actual || r.ca1 || 0,
-                    ca2Set: r.ca2Set || r.mm10_set || 0,
-                    ca2Actual: r.ca2Actual || r.ca2 || 0,
-                    faSet: r.faSet || r.sand_set || 0,
-                    faActual: r.faActual || r.fa || 0,
-                    cementSet: r.cementSet || r.cement_set || 0,
-                    cementActual: r.cementActual || r.cement || 0,
-                    waterSet: r.waterSet || r.water_set || 0,
-                    waterActual: r.waterActual || r.water || 0,
-                    admixtureSet: r.admixtureSet || r.admix_set || 0,
-                    admixtureActual: r.admixtureActual || r.admixture || 0,
-                    total: r.total || 0
+                    batchNo: String(r.batchNo || "0"),
+                    date: (r.date && String(r.date).includes('-')) ? r.date.split('-').reverse().join('/') : (String(r.date).includes('/') ? r.date : new Date().toLocaleDateString('en-GB')),
+                    time: (r.time && String(r.time).length >= 5) ? String(r.time).substring(0, 5) : "00:00",
+                    ca1Set: parseFloat(r.ca1Set || r.mm20_set) || 0,
+                    ca1Actual: parseFloat(r.ca1Actual || r.ca1) || 0,
+                    ca2Set: parseFloat(r.ca2Set || r.mm10_set) || 0,
+                    ca2Actual: parseFloat(r.ca2Actual || r.ca2) || 0,
+                    faSet: parseFloat(r.faSet || r.sand_set) || 0,
+                    faActual: parseFloat(r.faActual || r.fa) || 0,
+                    cementSet: parseFloat(r.cementSet || r.cement_set) || 0,
+                    cementActual: parseFloat(r.cementActual || r.cement) || 0,
+                    waterSet: parseFloat(r.waterSet || r.water_set) || 0,
+                    waterActual: parseFloat(r.waterActual || r.water) || 0,
+                    admixtureSet: parseFloat(r.admixtureSet || r.admix_set) || 0,
+                    admixtureActual: parseFloat(r.admixtureActual || r.admixture) || 0,
+                    total: parseFloat(r.total) || 0
                 })),
                 manualRecords: witnessedRecords.filter(r => r.source?.toLowerCase().includes('manual')).map(r => ({
                     id: (typeof r.id === 'number' && r.id < 1000000) ? r.id : 0,
-                    batchNo: String(r.batchNo),
-                    date: (r.date && r.date.includes('-')) ? r.date.split('-').reverse().join('/') : (r.date || new Date().toLocaleDateString('en-GB')),
-                    time: r.time ? r.time.substring(0, 5) : "00:00",
+                    batchNo: String(r.batchNo || "0"),
+                    date: (r.date && String(r.date).includes('-')) ? r.date.split('-').reverse().join('/') : (String(r.date).includes('/') ? r.date : new Date().toLocaleDateString('en-GB')),
+                    time: (r.time && String(r.time).length >= 5) ? String(r.time).substring(0, 5) : "00:00",
                     ca1Actual: parseFloat(r.ca1Actual || r.ca1) || 0,
                     ca2Actual: parseFloat(r.ca2Actual || r.ca2) || 0,
                     faActual: parseFloat(r.faActual || r.fa) || 0,
@@ -85,9 +85,15 @@ const BatchEntryForm = ({
                 }))
             };
 
-            // Directly create – avoids slow getAllBatchWeighment() pre-fetch.
-            // The backend /create endpoint handles upsert logic server-side.
-            await apiService.createBatchWeighment(payload);
+            // Determine if this is an update or create
+            const existingId = batchDeclarations.find(d => d.parentId)?.parentId || 
+                             witnessedRecords.find(r => r.parentId)?.parentId;
+
+            if (existingId) {
+                await apiService.updateBatchWeighment(existingId, payload);
+            } else {
+                await apiService.createBatchWeighment(payload);
+            }
 
             if (loadShiftData) await loadShiftData();
             setShowForm(false);

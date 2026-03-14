@@ -24,21 +24,48 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
 
     const handleEdit = async (record) => {
         try {
-            let fetchedData = record;
+            let fetchedData = { ...record };
+            const lookupId = record.parentId || record.id;
+            
             // Only fetch from backend if ID is a real numeric ID (not a local timestamp or string)
-            if (record.id && !isNaN(record.id) && !String(record.id).includes('-')) {
-                const response = await apiService.getBatchWeighmentById(record.id);
-                fetchedData = response?.responseData || record;
+            if (lookupId && !isNaN(lookupId) && !String(lookupId).includes('-')) {
+                const response = await apiService.getBatchWeighmentById(lookupId);
+                if (response?.responseData) {
+                    // Find the specific nested record if available
+                    const batchData = response.responseData;
+                    const combinedRecords = [
+                        ...(batchData.scadaRecords || []).map(r => ({ ...r, source: 'Scada' })),
+                        ...(batchData.manualRecords || []).map(r => ({ ...r, source: 'Manual' }))
+                    ];
+                    
+                    const specificRecord = combinedRecords.find(r => r.id === record.id) || record;
+                    fetchedData = {
+                        ...specificRecord,
+                        parentId: batchData.id,
+                        entryDate: batchData.entryDate // Keep parent date context
+                    };
+                }
             }
 
+            // Normalize Date for internal use (Dash/ISO) from DD/MM/YYYY
+            const internalDate = (fetchedData.date && fetchedData.date.includes('/')) 
+                ? fetchedData.date.split('/').reverse().join('-')
+                : (fetchedData.date || new Date().toISOString().split('T')[0]);
+
             setFormData({
-                date: fetchedData.date || new Date().toISOString().split('T')[0],
-                time: fetchedData.time,
-                batchNo: fetchedData.batchNo,
-                ca1: fetchedData.ca1, ca2: fetchedData.ca2, fa: fetchedData.fa,
-                cement: fetchedData.cement, water: fetchedData.water, admixture: fetchedData.admixture
+                date: internalDate,
+                time: fetchedData.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+                batchNo: fetchedData.batchNo || '',
+                ca1: fetchedData.ca1Actual || fetchedData.ca1 || '',
+                ca2: fetchedData.ca2Actual || fetchedData.ca2 || '',
+                fa: fetchedData.faActual || fetchedData.fa || '',
+                cement: fetchedData.cementActual || fetchedData.cement || '',
+                water: fetchedData.waterActual || fetchedData.water || '',
+                admixture: fetchedData.admixtureActual || fetchedData.admixture || ''
             });
             setEditingId(fetchedData.id);
+            // Attach parent ID to form context if available
+            setFormData(prev => ({ ...prev, parentId: fetchedData.parentId }));
 
             // Scroll to form and add visual highlight
             setTimeout(() => {
@@ -191,6 +218,7 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
                                                 <th style={{ fontSize: small ? '0.6rem' : '0.7rem' }}>Location</th>
                                                 <th style={{ fontSize: small ? '0.6rem' : '0.7rem' }}>Date</th>
                                                 <th style={{ fontSize: small ? '0.6rem' : '0.7rem' }}>Time</th>
+                                                <th style={{ fontSize: small ? '0.6rem' : '0.7rem' }}>Grade</th>
                                                 <th style={{ fontSize: small ? '0.6rem' : '0.7rem' }}>Batch</th>
                                                 <th style={{ fontSize: small ? '0.6rem' : '0.7rem' }}>CA1 (Kg)</th>
                                                 <th style={{ fontSize: small ? '0.6rem' : '0.7rem' }}>CA2 (Kg)</th>
@@ -208,6 +236,7 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
                                                     <td style={{ fontSize: small ? '0.65rem' : '0.75rem', color: '#64748b' }}>{record.location || 'N/A'}</td>
                                                     <td data-label="Date" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.date ? record.date.split('-').reverse().join('/') : ''}</td>
                                                     <td data-label="Time" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.time}</td>
+                                                    <td data-label="Grade" style={{ fontSize: small ? '0.65rem' : '0.8rem', color: '#0369a1', fontWeight: '700' }}>{record.concreteGrade || '-'}</td>
                                                     <td data-label="Batch" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}><strong>{record.batchNo}</strong></td>
                                                     <td data-label="CA1" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.ca1}</td>
                                                     <td data-label="CA2" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.ca2}</td>

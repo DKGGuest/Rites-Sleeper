@@ -76,32 +76,40 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate, onSensorU
                 lineNo: activeContainer?.name || "Line I",
                 entryDate: new Date().toLocaleDateString('en-GB'),
                 sandType: sensors.sandType || "River Sand",
-                moistureSensorStatus: sensors.sensorStatus.toUpperCase(),
-                verifiedBy: "Operator", // Should come from auth/user
+                moistureSensorStatus: String(sensors.sensorStatus || "WORKING").toUpperCase(),
+                verifiedBy: "Operator",
                 remarks: "Initial declaration",
                 entryMode: "MANUAL",
+                createdBy: 118,
+                updatedBy: 118,
                 batchDetails: batches.map(b => ({
-                    batchNo: String(b.batchNo),
-                    proportionStatus: b.proportionMatch,
-                    ca1Ref: b.adjustedWeights.ca1,
-                    ca2Ref: b.adjustedWeights.ca2,
-                    faRef: b.adjustedWeights.fa,
-                    cementRef: b.adjustedWeights.cement,
-                    waterRef: b.adjustedWeights.water,
-                    admixtureRef: b.adjustedWeights.admixture,
-                    ca1Set: b.setValues.ca1,
-                    ca2Set: b.setValues.ca2,
-                    faSet: b.setValues.fa,
-                    cementSet: b.setValues.cement,
-                    waterSet: b.setValues.water,
-                    admixtureSet: b.setValues.admixture
+                    batchNo: String(b.batchNo || "0"),
+                    proportionStatus: b.proportionMatch || "OK",
+                    ca1Ref: parseFloat(b.adjustedWeights?.ca1) || 0,
+                    ca2Ref: parseFloat(b.adjustedWeights?.ca2) || 0,
+                    faRef: parseFloat(b.adjustedWeights?.fa) || 0,
+                    cementRef: parseFloat(b.adjustedWeights?.cement) || 0,
+                    waterRef: parseFloat(b.adjustedWeights?.water) || 0,
+                    admixtureRef: parseFloat(b.adjustedWeights?.admixture) || 0,
+                    ca1Set: parseFloat(b.setValues?.ca1) || 0,
+                    ca2Set: parseFloat(b.setValues?.ca2) || 0,
+                    faSet: parseFloat(b.setValues?.fa) || 0,
+                    cementSet: parseFloat(b.setValues?.cement) || 0,
+                    waterSet: parseFloat(b.setValues?.water) || 0,
+                    admixtureSet: parseFloat(b.setValues?.admixture) || 0
                 })),
                 scadaRecords: [],
                 manualRecords: []
             };
 
-            // Directly create – backend processes it.
-            await apiService.createBatchWeighment(payload);
+            // Determine if this is an update or create
+            const existingId = batches.find(b => b.parentId)?.parentId;
+
+            if (existingId) {
+                await apiService.updateBatchWeighment(existingId, payload);
+            } else {
+                await apiService.createBatchWeighment(payload);
+            }
 
             if (loadShiftData) loadShiftData().catch(() => { });
             alert("Declaration deployed successfully!");

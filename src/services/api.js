@@ -185,5 +185,14 @@ export const apiService = {
     getSgciRecordById: (id) => api.get(`/sgci-insert/${id}`),
 
     // moduleId=10 Dowel
-    getDowelRecordById: (id) => api.get(`/dowel/${id}`)
+    getDowelRecordById: (id) => api.get(`/dowel/${id}`),
+
+    // moduleId=11 Production Declaration
+    getProductionDeclarationRecordById: (id) => api.get(`/production-declaration/${id}`),
+
+    /**
+     * IE Dashboard: fetch all workflow transitions (including verified) for history.
+     */
+    getAllWorkflowTransitions: (roleName = 'IE') =>
+        api.get(`/sleeper-workflow/allWorkflowTransition?roleName=${roleName}`)
 };

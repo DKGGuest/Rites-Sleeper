@@ -40,6 +40,14 @@ const DASHBOARD_CARDS = [
         desc: () => 'High-level plant-wide monthly KPI dashboard.',
         target: 'MonthlyReport',
     },
+    {
+        id: 'production-verification',
+        iconClass: 'card-icon card-icon--primary',
+        icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12l2 2 4-4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /><polyline points="21 8 21 3 16 3" /></svg>,
+        title: () => 'Production Verification',
+        desc: () => 'Verify and authorize daily production declaration logs.',
+        target: 'Sleeper process IE-General',
+    },
 ];
 
 const MainDashboard = () => {
@@ -109,6 +117,9 @@ const MainDashboard = () => {
     const handleCardClick = (card) => {
         if (card.id === 'start-duty') {
             hasActiveDuty ? redirectToDutyDashboard(selectedShift) : setShowDutyForm(true);
+        } else if (card.id === 'production-verification') {
+            // Navigate to General portal which has the Production Verification card
+            navigateTo('Sleeper process IE-General');
         } else if (card.target) {
             navigateTo(card.target);
         }

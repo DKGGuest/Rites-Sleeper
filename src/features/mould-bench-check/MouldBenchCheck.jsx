@@ -60,12 +60,12 @@ const DateUtils = {
         return (Date.now() - new Date(timestamp).getTime()) < (60 * 60 * 1000);
     },
     formatToBackend: (dateStr) => {
-        if (!dateStr) return null;
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-            const [y, m, d] = dateStr.split('-');
+        if (!dateStr || String(dateStr).toLowerCase() === 'string') return new Date().toLocaleDateString('en-GB');
+        if (/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr))) {
+            const [y, m, d] = String(dateStr).split('-');
             return `${d}/${m}/${y}`;
         }
-        return dateStr;
+        return String(dateStr);
     },
     formatFromBackend: (dateStr) => {
         if (!dateStr) return null;
@@ -542,8 +542,7 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
             mouldVisualResult: formState.mould.visualResult,
             mouldDimensionalResult: formState.mould.dimensionResult,
             combinedRemarks: autoRemarks.trim(),
-            createdBy: 'Admin',
-            updatedBy: 'Admin'
+            createdBy: 118
         };
 
         try {

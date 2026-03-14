@@ -208,6 +208,7 @@ export const ShiftProvider = ({ children }) => {
                     // Map Declarations
                     allDeclarations[containerId] = (session.batchDetails || []).map(d => ({
                         id: d.id,
+                        parentId: session.id, // Important for updates
                         batchNo: d.batchNo,
                         proportionMatch: d.proportionStatus,
                         setValues: {
@@ -230,7 +231,10 @@ export const ShiftProvider = ({ children }) => {
                     (session.scadaRecords || []).forEach(s => {
                         witnessed.push({
                             ...s,
-                            id: s.id, // Use numeric ID from backend
+                            id: s.id,
+                            parentId: session.id, // Important for fetching parent object
+                            location: session.lineNo,
+                            concreteGrade: session.concreteGrade,
                             source: 'Scada',
                             type: 'weight-batching',
                             // Normalize to frontend display keys
@@ -245,7 +249,10 @@ export const ShiftProvider = ({ children }) => {
                     (session.manualRecords || []).forEach(m => {
                         witnessed.push({
                             ...m,
-                            id: m.id, // Use numeric ID from backend
+                            id: m.id,
+                            parentId: session.id, // Important for fetching parent object
+                            location: session.lineNo,
+                            concreteGrade: session.concreteGrade,
                             source: 'Manual',
                             type: 'weight-batching',
                             // Normalize to frontend display keys

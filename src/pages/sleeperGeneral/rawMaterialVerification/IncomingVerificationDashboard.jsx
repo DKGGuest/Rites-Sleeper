@@ -31,6 +31,9 @@ const MODULE_CONFIG = [
     { moduleId: 8, label: 'Aggregates', group: 'Incoming Verification', color: '#0369a1' },
     { moduleId: 9, label: 'SGCI Insert', group: 'Incoming Verification', color: '#0369a1' },
     { moduleId: 10, label: 'Dowel', group: 'Incoming Verification', color: '#0369a1' },
+
+    // Production Verification Group
+    { moduleId: 11, label: 'Production Declaration', group: 'Production Verification', color: '#0891b2' },
 ];
 
 /** Fetch the actual record data for a given moduleId + requestId */
@@ -47,6 +50,7 @@ const fetchRecordDetail = async (moduleId, requestId) => {
         8: apiService.getAggregateRecordById,
         9: apiService.getSgciRecordById,
         10: apiService.getDowelRecordById,
+        11: apiService.getProductionDeclarationRecordById,
     };
 
     const fn = fetchers[moduleId];
@@ -266,20 +270,29 @@ const MODULE_TABLE_FIELDS = {
     // 🔟 Dowel
     10: [
         { label: "Manufacturer", key: "manufacturer" },
-        { label: "invoiceNumber", key: "invoiceNumber" },
-        { label: "ritesIcNumber", key: "ritesIcNumber" }
+        { label: "Invoice No", key: "invoiceNumber" },
+        { label: "Rites IC", key: "ritesIcNumber" }
+    ],
+
+    // 11 Production Declaration
+    11: [
+        { label: "Location", key: "productionUnit" },
+        { label: "Date", key: "castingDate" },
+        { label: "Batch No.", key: "batchNumber" }
     ]
 };
 
 // ─────────────────────────────────────────────
 //  Main Dashboard Component
 // ─────────────────────────────────────────────
-const IncomingVerificationDashboard = () => {
+const IncomingVerificationDashboard = ({ initialGroup = null }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // All pending transitions from the workflow API (filtered for this IE)
-    const [allPending, setAllPending] = useState([]);         // raw from API, filtered by assignedTo
+    // All records (pending or verified)
+    const [allRecords, setAllRecords] = useState([]);
+    const [showHistory, setShowHistory] = useState(false);
+
     // Records enriched with detail data per module
     const [enrichedByModule, setEnrichedByModule] = useState({}); // { moduleId: [{...transition, detail, moduleLabel}] }
 
@@ -287,39 +300,43 @@ const IncomingVerificationDashboard = () => {
     const [detailModal, setDetailModal] = useState(null);     // the selected record row
     const [acting, setActing] = useState(false);
 
-    // ── Step 1 & 2: Fetch all pending transitions, filter by IE user ──
-    const loadPendingTransitions = useCallback(async () => {
+    // Filter MODULE_CONFIG by initialGroup if provided
+    const filteredModules = initialGroup
+        ? MODULE_CONFIG.filter(m => m.group === initialGroup)
+        : MODULE_CONFIG;
+
+    // ── Load Data ──
+    const loadData = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await apiService.getAllPendingWorkflowTransitions('IE');
+            const res = showHistory
+                ? await apiService.getAllWorkflowTransitions('IE')
+                : await apiService.getAllPendingWorkflowTransitions('IE');
 
-            // Response can be array directly or wrapped in responseData
             const rawList = Array.isArray(res)
                 ? res
                 : (Array.isArray(res?.responseData) ? res.responseData : []);
 
-            // Step 2: filter by logged-in IE user
-            // const myPending = rawList.filter(r =>
-            //     r.assignedTo === LOGGED_IN_USER_ID ||
-            //     String(r.assignedTo) === String(LOGGED_IN_USER_ID)
-            // );
-            const myPending = rawList.filter(r =>
+            const myRecords = rawList.filter(r =>
                 Array.isArray(r.accessibleUserIds) &&
                 r.accessibleUserIds.includes(LOGGED_IN_USER_ID)
             );
 
-            setAllPending(myPending);
+            // Filter by initialGroup's module IDs
+            const filteredModuleIds = filteredModules.map(m => m.moduleId);
+            const myFilteredRecords = myRecords.filter(r => filteredModuleIds.includes(r.moduleId));
 
-            // Step 3 & 4: group by moduleId, fetch detail for each record
+            setAllRecords(myFilteredRecords);
+
+            // Group by moduleId
             const grouped = {};
-            for (const mod of MODULE_CONFIG) {
+            for (const mod of filteredModules) {
                 grouped[mod.moduleId] = [];
             }
-            for (const item of myPending) {
+            for (const item of myFilteredRecords) {
                 const mid = item.moduleId;
-                if (!grouped[mid]) grouped[mid] = [];
-                grouped[mid].push(item);
+                if (grouped[mid]) grouped[mid].push(item);
             }
 
             // Fetch detail for each record in parallel
@@ -342,29 +359,25 @@ const IncomingVerificationDashboard = () => {
             );
             setEnrichedByModule(enriched);
 
-            // Auto-select first module that has pending records
-            const firstWithPending = MODULE_CONFIG.find(m => (enriched[m.moduleId] || []).length > 0);
-            if (firstWithPending && selectedModuleId === null) {
-                setSelectedModuleId(firstWithPending.moduleId);
+            // Auto-select first module that has records
+            if (filteredModules.length > 0 && selectedModuleId === null) {
+                const firstWithRecords = filteredModules.find(m => (enriched[m.moduleId] || []).length > 0);
+                setSelectedModuleId(firstWithRecords ? firstWithRecords.moduleId : filteredModules[0].moduleId);
             }
         } catch (err) {
-            setError(err.message || 'Failed to load pending transitions.');
+            setError(err.message || 'Failed to load records.');
         } finally {
             setLoading(false);
         }
-    }, []); // eslint-disable-line
+    }, [showHistory, initialGroup]); // eslint-disable-line
 
     useEffect(() => {
-        loadPendingTransitions();
-    }, [loadPendingTransitions]);
+        loadData();
+    }, [loadData]);
 
-    // ── Step 7: IE clicks Verify / Request Change ──
     const handleAction = async (row, action) => {
-
         setActing(true);
-
         try {
-
             await apiService.performTransitionAction({
                 workflowTransitionId: row.workflowTransitionId,
                 moduleId: row.moduleId,
@@ -378,8 +391,7 @@ const IncomingVerificationDashboard = () => {
                 ? '✓ Record verified successfully.'
                 : '↩ Change request submitted.');
 
-            loadPendingTransitions();
-
+            loadData();
         } catch (err) {
             alert(`Action failed: ${err.message}`);
         } finally {
@@ -387,7 +399,8 @@ const IncomingVerificationDashboard = () => {
         }
     };
 
-    const totalPending = allPending.length;
+    const countLabel = showHistory ? 'total records' : 'pending records';
+    const totalCount = allRecords.length;
     const currentRecords = enrichedByModule[selectedModuleId] || [];
 
     // ─────────────────────────────────────────────
@@ -400,44 +413,61 @@ const IncomingVerificationDashboard = () => {
             <header style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#13343b', margin: 0 }}>
-                        IE Verification Dashboard
+                        IE {initialGroup || 'Verification'} Dashboard
                     </h2>
                     <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '12px' }}>
-                        All records pending your verification. Assigned to User ID: {LOGGED_IN_USER_ID}
+                        Records assigned to User ID: {LOGGED_IN_USER_ID}
                     </p>
                 </div>
-                <button
-                    onClick={loadPendingTransitions}
-                    disabled={loading}
-                    style={{
-                        display: 'flex', alignItems: 'center', gap: '6px',
-                        padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0',
-                        background: '#fff', color: '#334155', fontSize: '12px', fontWeight: '600',
-                        cursor: loading ? 'not-allowed' : 'pointer'
-                    }}
-                >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
-                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-                    </svg>
-                    {loading ? 'Refreshing…' : 'Refresh'}
-                </button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                        onClick={() => setShowHistory(!showHistory)}
+                        style={{
+                            padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0',
+                            background: showHistory ? '#f1f5f9' : '#fff', color: '#334155', fontSize: '12px', fontWeight: '600',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
+                        }}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {showHistory ? 'Show Pending' : 'Historical Logs'}
+                    </button>
+                    <button
+                        onClick={loadData}
+                        disabled={loading}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0',
+                            background: '#fff', color: '#334155', fontSize: '12px', fontWeight: '600',
+                            cursor: loading ? 'not-allowed' : 'pointer'
+                        }}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                        </svg>
+                        {loading ? 'Refreshing…' : 'Refresh'}
+                    </button>
+                </div>
             </header>
 
             {/* Summary banner */}
             <div style={{
-                background: totalPending > 0 ? '#fff7ed' : '#f0fdf4',
-                border: `1px solid ${totalPending > 0 ? '#fed7aa' : '#bbf7d0'}`,
+                background: (totalCount > 0 && !showHistory) ? '#fff7ed' : '#f0fdf4',
+                border: `1px solid ${(totalCount > 0 && !showHistory) ? '#fed7aa' : '#bbf7d0'}`,
                 borderRadius: '12px', padding: '14px 20px',
                 display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px'
             }}>
-                <span style={{ fontSize: '22px' }}>{totalPending > 0 ? '🔔' : '✅'}</span>
+                <span style={{ fontSize: '22px' }}>{(totalCount > 0 && !showHistory) ? '🔔' : '✅'}</span>
                 <div>
                     <strong style={{ fontSize: '14px', color: '#1e293b' }}>
-                        {totalPending > 0 ? `${totalPending} record(s) pending your verification` : 'All records verified — no pending items'}
+                        {showHistory
+                            ? `Showing ${totalCount} historical record(s) for ${initialGroup || 'all modules'}`
+                            : (totalCount > 0 ? `${totalCount} record(s) pending your verification` : 'All records verified — no pending items')}
                     </strong>
                     <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                        Source: GET /sleeper-workflow/allPendingWorkflowTransition?roleName=IE → filtered by assignedTo={LOGGED_IN_USER_ID}
+                        Source: GET /sleeper-workflow/{showHistory ? 'allWorkflowTransition' : 'allPendingWorkflowTransition'}?roleName=IE
                     </div>
                 </div>
             </div>
@@ -466,7 +496,7 @@ const IncomingVerificationDashboard = () => {
                     <div style={{
                         display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '24px'
                     }}>
-                        {MODULE_CONFIG.map(mod => {
+                        {filteredModules.map(mod => {
                             const count = (enrichedByModule[mod.moduleId] || []).length;
                             const isActive = selectedModuleId === mod.moduleId;
                             return (
@@ -491,14 +521,15 @@ const IncomingVerificationDashboard = () => {
                                         {count > 0 ? (
                                             <span style={{
                                                 fontSize: '10px', fontWeight: '700',
-                                                background: '#fff7ed', color: '#c2410c',
+                                                background: showHistory ? '#f1f5f9' : '#fff7ed',
+                                                color: showHistory ? '#475569' : '#c2410c',
                                                 padding: '2px 8px', borderRadius: '10px',
-                                                border: '1px solid #fed7aa'
+                                                border: `1px solid ${showHistory ? '#e2e8f0' : '#fed7aa'}`
                                             }}>
-                                                {count} Pending
+                                                {count} {showHistory ? 'Total' : 'Pending'}
                                             </span>
                                         ) : (
-                                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>No pending</span>
+                                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>None found</span>
                                         )}
                                     </div>
                                 </div>
@@ -518,7 +549,7 @@ const IncomingVerificationDashboard = () => {
                                 display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                             }}>
                                 <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1e293b' }}>
-                                    {MODULE_CONFIG.find(m => m.moduleId === selectedModuleId)?.label} — Pending Records
+                                    {MODULE_CONFIG.find(m => m.moduleId === selectedModuleId)?.label} — {showHistory ? 'Historical Logs' : 'Pending Records'}
                                 </h3>
                                 <span style={{ fontSize: '11px', color: '#94a3b8' }}>
                                     moduleId = {selectedModuleId}
@@ -600,38 +631,50 @@ const IncomingVerificationDashboard = () => {
                                                         </span>
                                                     </td>
                                                     <td style={tdStyle}>
-
-                                                        <button
-                                                            onClick={() => handleAction(row, "VERIFY")}
-                                                            style={{
-                                                                background: '#059669',
-                                                                color: '#fff',
-                                                                border: 'none',
-                                                                borderRadius: '6px',
-                                                                padding: '6px 12px',
-                                                                fontSize: '12px',
-                                                                marginRight: '6px',
-                                                                cursor: 'pointer'
-                                                            }}
-                                                        >
-                                                            Verify
-                                                        </button>
-
-                                                        <button
-                                                            onClick={() => handleAction(row, "REQUEST_BACK")}
-                                                            style={{
-                                                                background: '#dc2626',
-                                                                color: '#fff',
-                                                                border: 'none',
-                                                                borderRadius: '6px',
-                                                                padding: '6px 12px',
-                                                                fontSize: '12px',
-                                                                cursor: 'pointer'
-                                                            }}
-                                                        >
-                                                            Request Change
-                                                        </button>
-
+                                                        {row.status === 'VERIFIED' || row.status === 'Verified' ? (
+                                                            <div style={{ color: '#059669', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                                    <polyline points="20 6 9 17 4 12" />
+                                                                </svg>
+                                                                Verified
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => handleAction(row, "VERIFY")}
+                                                                    style={{
+                                                                        background: '#059669',
+                                                                        color: '#fff',
+                                                                        border: 'none',
+                                                                        borderRadius: '6px',
+                                                                        padding: '6px 12px',
+                                                                        fontSize: '12px',
+                                                                        marginRight: '6px',
+                                                                        cursor: 'pointer',
+                                                                        opacity: acting ? 0.7 : 1
+                                                                    }}
+                                                                    disabled={acting}
+                                                                >
+                                                                    Verify
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleAction(row, "REQUEST_BACK")}
+                                                                    style={{
+                                                                        background: '#dc2626',
+                                                                        color: '#fff',
+                                                                        border: 'none',
+                                                                        borderRadius: '6px',
+                                                                        padding: '6px 12px',
+                                                                        fontSize: '12px',
+                                                                        cursor: 'pointer',
+                                                                        opacity: acting ? 0.7 : 1
+                                                                    }}
+                                                                    disabled={acting}
+                                                                >
+                                                                    Request Back
+                                                                </button>
+                                                            </>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             );
