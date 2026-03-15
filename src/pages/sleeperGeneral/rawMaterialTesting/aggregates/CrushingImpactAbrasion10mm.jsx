@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { MOCK_VERIFIED_CONSIGNMENTS } from "../../../../utils/rawMaterialMockData";
+import { useShift } from "../../../../context/ShiftContext";
+import { useToast } from "../../../../context/ToastContext";
+import { saveAggregate10mmQuality } from "../../../../services/workflowService";
 
+export default function CrushingImpactAbrasion10mm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+    const { selectedShift, dutyDate, dutyLocation } = useShift();
+    const { showToast } = useToast();
+    const [submitting, setSubmitting] = useState(false);
 
-export default function CrushingImpactAbrasion10mm({ onSave, onCancel, consignment, lot }) {
     const { register, watch, setValue, handleSubmit, formState: { errors } } = useForm({
         defaultValues: {
-            date: new Date().toISOString().split('T')[0],
+            testDate: new Date().toISOString().split('T')[0],
+            typeOfTesting: initialType
         }
     });
 
@@ -19,59 +25,77 @@ export default function CrushingImpactAbrasion10mm({ onSave, onCancel, consignme
 
     const toggle = (section) => setExpanded(prev => ({ ...prev, [section]: !prev[section] }));
 
-    // Crushing watch
-    const mouldWtC = watch("crushing.mouldWt");
-    const mouldSampleWtC = watch("crushing.mouldSampleWt");
-    const passingWtC = watch("crushing.passingWt");
+    // Watch fields for calculations
+    const cMouldWt = watch("crushingMouldWt");
+    const cMouldSampleWt = watch("crushingMouldSampleWt");
+    const cPassingWt = watch("crushingPassingWt");
 
-    // Impact watch
-    const mouldWtI = watch("impact.mouldWt");
-    const mouldSampleWtI = watch("impact.mouldSampleWt");
-    const passingWtI = watch("impact.passingWt");
+    const iMouldWt = watch("impactMouldWt");
+    const iMouldSampleWt = watch("impactMouldSampleWt");
+    const iPassingWt = watch("impactPassingWt");
 
-    // Abrasion watch
-    const sampleWtA = watch("abrasion.sampleWt");
-    const passingWtA = watch("abrasion.passingWt");
+    const aSampleWt = watch("abrasionSampleWt");
+    const aPassingWt = watch("abrasionPassingWt");
 
-    // Calculations
+    // Crushing Calculations
     useEffect(() => {
-        if (mouldWtC && mouldSampleWtC) {
-            const sampleWt = Number(mouldSampleWtC) - Number(mouldWtC);
-            setValue("crushing.sampleWt", sampleWt.toFixed(2));
-            if (passingWtC && sampleWt > 0) {
-                const val = (Number(passingWtC) / sampleWt) * 100;
-                setValue("crushing.value", val.toFixed(2));
-                setValue("crushing.result", val < 30 ? "Satisfactory" : "Unsatisfactory");
+        if (cMouldWt && cMouldSampleWt) {
+            const sampleWt = Number(cMouldSampleWt) - Number(cMouldWt);
+            setValue("crushingSampleWt", sampleWt.toFixed(2));
+            if (cPassingWt && sampleWt > 0) {
+                const val = (Number(cPassingWt) / sampleWt) * 100;
+                setValue("crushingValue", val.toFixed(2));
+                setValue("crushingResult", val < 30 ? "Satisfactory" : "Unsatisfactory");
             }
         }
-    }, [mouldWtC, mouldSampleWtC, passingWtC, setValue]);
+    }, [cMouldWt, cMouldSampleWt, cPassingWt, setValue]);
 
+    // Impact Calculations
     useEffect(() => {
-        if (mouldWtI && mouldSampleWtI) {
-            const sampleWt = Number(mouldSampleWtI) - Number(mouldWtI);
-            setValue("impact.sampleWt", sampleWt.toFixed(2));
-            if (passingWtI && sampleWt > 0) {
-                const val = (Number(passingWtI) / sampleWt) * 100;
-                setValue("impact.value", val.toFixed(2));
-                setValue("impact.result", val < 30 ? "Satisfactory" : "Unsatisfactory");
+        if (iMouldWt && iMouldSampleWt) {
+            const sampleWt = Number(iMouldSampleWt) - Number(iMouldWt);
+            setValue("impactSampleWt", sampleWt.toFixed(2));
+            if (iPassingWt && sampleWt > 0) {
+                const val = (Number(iPassingWt) / sampleWt) * 100;
+                setValue("impactValue", val.toFixed(2));
+                setValue("impactResult", val < 30 ? "Satisfactory" : "Unsatisfactory");
             }
         }
-    }, [mouldWtI, mouldSampleWtI, passingWtI, setValue]);
+    }, [iMouldWt, iMouldSampleWt, iPassingWt, setValue]);
 
+    // Abrasion Calculations
     useEffect(() => {
-        if (sampleWtA && passingWtA) {
-            const sampleWt = Number(sampleWtA);
+        if (aSampleWt && aPassingWt) {
+            const sampleWt = Number(aSampleWt);
             if (sampleWt > 0) {
-                const val = (Number(passingWtA) / sampleWt) * 100;
-                setValue("abrasion.value", val.toFixed(2));
-                setValue("abrasion.result", val < 30 ? "Satisfactory" : "Unsatisfactory");
+                const val = (Number(aPassingWt) / sampleWt) * 100;
+                setValue("abrasionValue", val.toFixed(2));
+                setValue("abrasionResult", val < 30 ? "Satisfactory" : "Unsatisfactory");
             }
         }
-    }, [sampleWtA, passingWtA, setValue]);
+    }, [aSampleWt, aPassingWt, setValue]);
 
-    const onSubmit = (data) => {
-        console.log("Saving 10mm data:", { ...data, consignment, lot });
-        onSave && onSave(data);
+    const onSubmit = async (formData) => {
+        setSubmitting(true);
+        try {
+            const payload = {
+                ...formData,
+                shift: selectedShift || 'General',
+                lineNo: dutyLocation || 'N/A',
+                dateOfInspection: dutyDate,
+                createdBy: JSON.parse(localStorage.getItem('user'))?.id || 1
+            };
+
+            await saveAggregate10mmQuality(payload);
+            showToast("Test Report for 10mm Quality saved successfully!", "success");
+            reset();
+            onSave && onSave(payload);
+        } catch (error) {
+            console.error("Error saving 10mm quality data:", error);
+            showToast("Failed to save 10mm Quality report. Please try again.", "error");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -85,21 +109,28 @@ export default function CrushingImpactAbrasion10mm({ onSave, onCancel, consignme
                     <div className="form-grid">
                         <div className="input-group">
                             <label>Date of Testing <span className="required">*</span></label>
-                            <input type="text" value={new Date().toLocaleDateString('en-GB')} readOnly style={{ background: '#f1f5f9' }} />
+                            <input type="date" {...register("testDate", { required: "Required" })} />
                         </div>
 
-                        {!consignment && (
-                            <div className="input-group">
-                                <label>Consignment No. <span className="required">*</span></label>
-                                <select {...register("consignmentNo", { required: "Required" })}>
-                                    <option value="">-- Select --</option>
-                                    {MOCK_VERIFIED_CONSIGNMENTS.map(c => (
-                                        <option key={c} value={c}>{c}</option>
-                                    ))}
-                                </select>
-                                {errors.consignmentNo && <span className="hint-text" style={{ color: 'red' }}>{errors.consignmentNo.message}</span>}
-                            </div>
-                        )}
+                        <div className="input-group">
+                            <label>Consignment No. <span className="required">*</span></label>
+                            <select {...register("consignmentNo", { required: "Required" })}>
+                                <option value="">-- Select --</option>
+                                {inventoryData.map((c, i) => (
+                                    <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
+                                ))}
+                                <option value="PERIODIC">-- Periodic Testing --</option>
+                            </select>
+                            {errors.consignmentNo && <span className="hint-text" style={{ color: 'red' }}>{errors.consignmentNo.message}</span>}
+                        </div>
+
+                        <div className="input-group">
+                            <label>Type of Testing</label>
+                            <select {...register("typeOfTesting")}>
+                                <option value="New Inventory">New Inventory</option>
+                                <option value="Periodic">Periodic</option>
+                            </select>
+                        </div>
                     </div>
 
                     {/* Section 1: Crushing */}
@@ -111,27 +142,27 @@ export default function CrushingImpactAbrasion10mm({ onSave, onCancel, consignme
                         <div className="form-grid" style={{ marginTop: '1rem' }}>
                             <div className="input-group">
                                 <label>Weight of Mould (gms) <span className="required">*</span></label>
-                                <input type="number" step="0.01" {...register("crushing.mouldWt", { required: "Required" })} />
+                                <input type="number" step="0.01" {...register("crushingMouldWt", { required: "Required" })} />
                             </div>
                             <div className="input-group">
                                 <label>Weight of Mould + Sample (gms) <span className="required">*</span></label>
-                                <input type="number" step="0.01" {...register("crushing.mouldSampleWt", { required: "Required" })} />
+                                <input type="number" step="0.01" {...register("crushingMouldSampleWt", { required: "Required" })} />
                             </div>
                             <div className="input-group">
                                 <label>Weight of Sample (gms)</label>
-                                <input type="number" readOnly className="readOnly" {...register("crushing.sampleWt")} />
+                                <input type="number" readOnly className="readOnly" {...register("crushingSampleWt")} />
                             </div>
                             <div className="input-group">
                                 <label>Passing through 1.7mm sieve (gms) <span className="required">*</span></label>
-                                <input type="number" step="0.01" {...register("crushing.passingWt", { required: "Required" })} />
+                                <input type="number" step="0.01" {...register("crushingPassingWt", { required: "Required" })} />
                             </div>
                             <div className="input-group">
                                 <label>Aggregate Crushing Value (%)</label>
-                                <input type="number" readOnly className="readOnly" {...register("crushing.value")} />
+                                <input type="number" readOnly className="readOnly" {...register("crushingValue")} />
                             </div>
                             <div className="input-group">
                                 <label>Result of Crushing Test</label>
-                                <input type="text" readOnly className="readOnly" {...register("crushing.result")} />
+                                <input type="text" readOnly className="readOnly" {...register("crushingResult")} />
                             </div>
                         </div>
                     )}
@@ -145,27 +176,27 @@ export default function CrushingImpactAbrasion10mm({ onSave, onCancel, consignme
                         <div className="form-grid" style={{ marginTop: '1rem' }}>
                             <div className="input-group">
                                 <label>Weight of Mould (gms) <span className="required">*</span></label>
-                                <input type="number" step="0.01" {...register("impact.mouldWt", { required: "Required" })} />
+                                <input type="number" step="0.01" {...register("impactMouldWt", { required: "Required" })} />
                             </div>
                             <div className="input-group">
                                 <label>Weight of Mould + Sample (gms) <span className="required">*</span></label>
-                                <input type="number" step="0.01" {...register("impact.mouldSampleWt", { required: "Required" })} />
+                                <input type="number" step="0.01" {...register("impactMouldSampleWt", { required: "Required" })} />
                             </div>
                             <div className="input-group">
                                 <label>Weight of Sample (gms)</label>
-                                <input type="number" readOnly className="readOnly" {...register("impact.sampleWt")} />
+                                <input type="number" readOnly className="readOnly" {...register("impactSampleWt")} />
                             </div>
                             <div className="input-group">
                                 <label>Passing through 2.36mm sieve (gms) <span className="required">*</span></label>
-                                <input type="number" step="0.01" {...register("impact.passingWt", { required: "Required" })} />
+                                <input type="number" step="0.01" {...register("impactPassingWt", { required: "Required" })} />
                             </div>
                             <div className="input-group">
                                 <label>Aggregate Impact Value (%)</label>
-                                <input type="number" readOnly className="readOnly" {...register("impact.value")} />
+                                <input type="number" readOnly className="readOnly" {...register("impactValue")} />
                             </div>
                             <div className="input-group">
                                 <label>Result of Impact Test</label>
-                                <input type="text" readOnly className="readOnly" {...register("impact.result")} />
+                                <input type="text" readOnly className="readOnly" {...register("impactResult")} />
                             </div>
                         </div>
                     )}
@@ -179,26 +210,28 @@ export default function CrushingImpactAbrasion10mm({ onSave, onCancel, consignme
                         <div className="form-grid" style={{ marginTop: '1rem' }}>
                             <div className="input-group">
                                 <label>Weight of Sample (gms) <span className="required">*</span></label>
-                                <input type="number" step="0.01" {...register("abrasion.sampleWt", { required: "Required" })} />
+                                <input type="number" step="0.01" {...register("abrasionSampleWt", { required: "Required" })} />
                             </div>
                             <div className="input-group">
                                 <label>Passing through 1.7mm sieve (gms) <span className="required">*</span></label>
-                                <input type="number" step="0.01" {...register("abrasion.passingWt", { required: "Required" })} />
+                                <input type="number" step="0.01" {...register("abrasionPassingWt", { required: "Required" })} />
                             </div>
                             <div className="input-group">
                                 <label>Aggregate Abrasion Value (%)</label>
-                                <input type="number" readOnly className="readOnly" {...register("abrasion.value")} />
+                                <input type="number" readOnly className="readOnly" {...register("abrasionValue")} />
                             </div>
                             <div className="input-group">
                                 <label>Result of Abrasion Test</label>
-                                <input type="text" readOnly className="readOnly" {...register("abrasion.result")} />
+                                <input type="text" readOnly className="readOnly" {...register("abrasionResult")} />
                             </div>
                         </div>
                     )}
 
                     <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-                        <button type="submit" className="btn-save">Submit Test Report</button>
-                        {onCancel && <button type="button" onClick={onCancel} className="btn-save" style={{ background: '#64748b' }}>Cancel</button>}
+                        <button type="submit" className="btn-save" disabled={submitting}>
+                            {submitting ? 'Saving...' : 'Submit Test Report'}
+                        </button>
+                        {onCancel && <button type="button" onClick={onCancel} className="btn-save" style={{ background: '#64748b' }} disabled={submitting}>Cancel</button>}
                     </div>
                 </div>
             </div>

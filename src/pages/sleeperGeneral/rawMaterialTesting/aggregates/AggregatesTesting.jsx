@@ -33,16 +33,17 @@ const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
     </div>
 );
 
-const AggregateTesting = ({ onBack }) => {
+const AggregateTesting = ({ onBack, inventoryData = [] }) => {
     const [viewMode, setViewMode] = useState('new-stocks');
     const [showForm, setShowForm] = useState(false);
     const [activeFormSection, setActiveFormSection] = useState(1);
+    const [initialType, setInitialType] = useState("New Inventory");
     const [history, setHistory] = useState(MOCK_AGGREGATES_HISTORY.map(item => ({
         ...item,
         createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
     })));
 
-    const pendingStocks = MOCK_INVENTORY.AGGREGATES.filter(item => item.status === 'Verified');
+    const pendingStocks = inventoryData;
 
     const canModify = (createdAt) => {
         if (!createdAt) return false;
@@ -51,32 +52,18 @@ const AggregateTesting = ({ onBack }) => {
         return (now - entryTime) < (60 * 60 * 1000);
     };
 
-    const handleSaveTest = (data) => {
-        const newEntry = {
-            id: Date.now(),
-            testDate: data.date || data.testDate || new Date().toISOString().split('T')[0],
-            createdAt: new Date().toISOString(),
-            testType: 'Manual',
-            consignmentNo: data.consignmentNo || 'CON-NEW',
-            lotNo: data.lotNo || 'LOT-NEW',
-            crushing: data.crushing?.value || 'N/A',
-            impact: data.impact?.value || 'N/A'
-        };
-        setHistory(prev => [newEntry, ...prev]);
+    const handleSaveTest = () => {
         setShowForm(false);
-        alert('Test record saved successfully!');
-    };
-
-    const handleDelete = (id) => {
-        if (window.confirm('Are you sure you want to delete this test record?')) {
-            setHistory(prev => prev.filter(item => item.id !== id));
-        }
     };
 
     const inventoryColumns = [
         { key: 'vendor', label: 'Registered Vendor' },
-        { key: 'challanNo', label: 'Challan No.', isHeaderHighlight: true },
-        { key: 'aggregateType', label: 'Material Type' },
+        { key: 'consignmentNo', label: 'Challan No.', isHeaderHighlight: true },
+        { 
+            key: 'aggregateType', 
+            label: 'Material Type',
+            render: (_, row) => row.details?.gradeSpec || row.aggregateType || 'N/A'
+        },
         { key: 'receivedDate', label: 'Arrival Date' },
         {
             key: 'actions',
@@ -85,6 +72,7 @@ const AggregateTesting = ({ onBack }) => {
                 <button
                     className="btn-action mini"
                     onClick={() => {
+                        setInitialType("New Inventory");
                         setActiveFormSection(1);
                         setShowForm(true);
                     }}
@@ -131,12 +119,30 @@ const AggregateTesting = ({ onBack }) => {
         }
     ];
 
-    const sections = [
-        { id: 1, label: '10mm Quality', component: <CrushingImpactAbrasion10mm onSave={handleSaveTest} onCancel={() => setShowForm(false)} /> },
-        { id: 2, label: '20mm Quality', component: <CrushingImpactAbrasion20mm onSave={handleSaveTest} onCancel={() => setShowForm(false)} /> },
-        { id: 3, label: 'Flakiness & Elongation', component: <CombinedFlakinessElongation onSave={handleSaveTest} onCancel={() => setShowForm(false)} /> },
-        { id: 4, label: 'Granulometric Curve', component: <CombinedGranulometricCurve onSave={handleSaveTest} onCancel={() => setShowForm(false)} /> },
-        { id: 5, label: 'Soundness Test', component: <SoundnessTestForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} /> }
+    const renderActiveForm = () => {
+        const props = {
+            inventoryData,
+            onSave: handleSaveTest,
+            onCancel: () => setShowForm(false),
+            initialType: initialType
+        };
+
+        switch (activeFormSection) {
+            case 1: return <CrushingImpactAbrasion10mm {...props} />;
+            case 2: return <CrushingImpactAbrasion20mm {...props} />;
+            case 3: return <CombinedFlakinessElongation {...props} />;
+            case 4: return <CombinedGranulometricCurve {...props} />;
+            case 5: return <SoundnessTestForm {...props} />;
+            default: return null;
+        }
+    };
+
+    const formTabs = [
+        { id: 1, label: '10mm Quality' },
+        { id: 2, label: '20mm Quality' },
+        { id: 3, label: 'Flakiness & Elongation' },
+        { id: 4, label: 'Granulometric Curve' },
+        { id: 5, label: 'Soundness Test' }
     ];
 
     return (
@@ -144,7 +150,11 @@ const AggregateTesting = ({ onBack }) => {
             <div className="content-title-row" style={{ marginBottom: '24px' }}>
                 <h2 style={{ margin: 0 }}>Aggregate Quality Control</h2>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                    <button className="toggle-btn mini" onClick={() => { setActiveFormSection(1); setShowForm(true); }}>+ Add New (Periodic)</button>
+                    <button className="toggle-btn mini" onClick={() => { 
+                        setInitialType("Periodic");
+                        setActiveFormSection(1); 
+                        setShowForm(true); 
+                    }}>+ Add New (Periodic)</button>
                     <button className="toggle-btn secondary mini" onClick={onBack}>Back to Dashboard</button>
                 </div>
             </div>
@@ -209,7 +219,7 @@ const AggregateTesting = ({ onBack }) => {
 
                         <div style={{ background: '#ffffff', padding: '12px 24px', borderBottom: '1px solid #e5e7eb' }}>
                             <div className="nav-tabs" style={{ marginBottom: 0, borderBottom: 'none' }}>
-                                {sections.map(s => (
+                                {formTabs.map(s => (
                                     <button
                                         key={s.id}
                                         className={`nav-tab ${activeFormSection === s.id ? 'active' : ''}`}
@@ -222,7 +232,7 @@ const AggregateTesting = ({ onBack }) => {
                         </div>
 
                         <div className="form-modal-body" style={{ background: '#f8fafc' }}>
-                            {sections.find(s => s.id === activeFormSection)?.component}
+                            {renderActiveForm()}
                         </div>
                     </div>
                 </div>

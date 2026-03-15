@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiService } from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 const ShiftContext = createContext();
 
@@ -12,14 +13,24 @@ export const useShift = () => {
 };
 
 export const ShiftProvider = ({ children }) => {
-    const [dutyStarted, setDutyStarted] = useState(false);
-    const [selectedShift, setSelectedShift] = useState(''); // 'A', 'B', 'C', 'General'
-    const [dutyDate, setDutyDate] = useState(new Date().toISOString().split('T')[0]);
-    const [dutyUnit, setDutyUnit] = useState('');
-    const [dutyLocation, setDutyLocation] = useState('');
+    const [dutyStarted, setDutyStarted] = useState(() => localStorage.getItem('dutyStarted') === 'true');
+    const [selectedShift, setSelectedShift] = useState(() => localStorage.getItem('selectedShift') || ''); // 'A', 'B', 'C', 'General'
+    const [dutyDate, setDutyDate] = useState(() => localStorage.getItem('dutyDate') || new Date().toISOString().split('T')[0]);
+    const [dutyUnit, setDutyUnit] = useState(() => localStorage.getItem('dutyUnit') || '');
+    const [dutyLocation, setDutyLocation] = useState(() => localStorage.getItem('dutyLocation') || '');
 
     const [containers, setContainers] = useState([{ id: 1, type: 'Line', name: 'Line I' }]);
-    const [activeContainerId, setActiveContainerId] = useState(1);
+    const [activeContainerId, setActiveContainerId] = useState(() => parseInt(localStorage.getItem('activeContainerId')) || 1);
+
+    // Persist basic shift state
+    useEffect(() => {
+        localStorage.setItem('dutyStarted', dutyStarted);
+        localStorage.setItem('selectedShift', selectedShift);
+        localStorage.setItem('dutyDate', dutyDate);
+        localStorage.setItem('dutyUnit', dutyUnit);
+        localStorage.setItem('dutyLocation', dutyLocation);
+        localStorage.setItem('activeContainerId', activeContainerId);
+    }, [dutyStarted, selectedShift, dutyDate, dutyUnit, dutyLocation, activeContainerId]);
 
     // Shared state for all features
     const [allWitnessedRecords, setAllWitnessedRecords] = useState({ 1: [] });

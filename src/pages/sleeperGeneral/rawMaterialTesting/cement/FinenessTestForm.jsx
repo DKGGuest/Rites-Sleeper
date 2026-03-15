@@ -1,21 +1,27 @@
 import React, { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { MOCK_VERIFIED_CONSIGNMENTS } from "../../../../utils/rawMaterialMockData";
+import { useShift } from "../../../../context/ShiftContext";
+import { useToast } from "../../../../context/ToastContext";
+import { getStoredUser } from "../../../../services/authService";
+import { saveCementFineness } from "../../../../services/workflowService";
 
-export default function FinenessTestForm({ onSave, onCancel }) {
-    const { register, watch, setValue, handleSubmit, formState: { errors } } = useForm({
-        defaultValues: {
-            date: new Date().toISOString().split('T')[0],
-            sampleWt: 100
-        }
+export default function FinenessTestForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+    const { selectedShift, dutyDate, dutyLocation } = useShift();
+    const { showToast } = useToast();
+    const user = getStoredUser();
+
+    const [loading, setLoading] = useState(false);
+    const [header, setHeader] = useState({
+        typeOfTesting: initialType,
+        consignmentNo: "",
+        sampleWt: 100,
+        residueWt: ""
     });
 
-    const sampleWt = watch("sampleWt");
-    const residueWt = watch("residueWt");
     const [fineness, setFineness] = useState("");
     const [result, setResult] = useState("");
 
     useEffect(() => {
+        const { sampleWt, residueWt } = header;
         if (sampleWt && residueWt) {
             const s = parseFloat(sampleWt);
             const r = parseFloat(residueWt);
@@ -25,17 +31,39 @@ export default function FinenessTestForm({ onSave, onCancel }) {
                 // OPC usually < 10%
                 setResult(f <= 10 ? "Satisfactory" : "Unsatisfactory");
             }
+        } else {
+            setFineness("");
+            setResult("");
         }
-    }, [sampleWt, residueWt]);
+    }, [header.sampleWt, header.residueWt]);
 
-    const onSubmit = (data) => {
-        const payload = {
-            ...data,
-            fineness,
-            result,
-            testDate: new Date().toLocaleDateString('en-GB')
-        };
-        onSave && onSave(payload);
+    const handleFormSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const payload = {
+                testDate: new Date().toISOString().split('T')[0],
+                typeOfTesting: header.typeOfTesting,
+                consignmentNo: header.consignmentNo,
+                sampleWeightW1: parseFloat(header.sampleWt),
+                residueWeightW2: parseFloat(header.residueWt),
+                percentageFineness: parseFloat(fineness),
+                result: result,
+                shift: selectedShift || 'General',
+                lineNo: dutyLocation || 'N/A',
+                dateOfInspection: dutyDate,
+                createdBy: user?.userId || 0
+            };
+
+            await saveCementFineness(payload);
+            showToast("Cement Fineness Test record saved successfully!", "success");
+            if (onSave) onSave();
+        } catch (error) {
+            console.error("Save failed:", error);
+            showToast("Error saving record. Please check console.", "error");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -44,7 +72,7 @@ export default function FinenessTestForm({ onSave, onCancel }) {
                 <h2>Fineness Test – Cement (Sieve Method)</h2>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="form-body">
+            <form onSubmit={handleFormSubmit} className="form-body">
                 <div className="form-grid">
                     <div className="input-group">
                         <label>Date of Testing <span className="required">*</span></label>
@@ -53,13 +81,17 @@ export default function FinenessTestForm({ onSave, onCancel }) {
 
                     <div className="input-group">
                         <label>Consignment No <span className="required">*</span></label>
-                        <select {...register("consignment", { required: "Required" })}>
+                        <select 
+                            value={header.consignmentNo}
+                            onChange={(e) => setHeader({ ...header, consignmentNo: e.target.value })}
+                            required
+                        >
                             <option value="">-- Select --</option>
-                            {MOCK_VERIFIED_CONSIGNMENTS.map(c => (
-                                <option key={c} value={c}>{c}</option>
+                            {inventoryData.map(c => (
+                                <option key={c.consignmentNo} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
                             ))}
+                            <option value="PERIODIC">-- Periodic Testing --</option>
                         </select>
-                        {errors.consignment && <span className="hint-text" style={{ color: 'red' }}>Required</span>}
                     </div>
 
                     <div className="input-group">
@@ -68,9 +100,10 @@ export default function FinenessTestForm({ onSave, onCancel }) {
                             type="number"
                             step="0.01"
                             placeholder="gms"
-                            {...register("sampleWt", { required: "Required" })}
+                            value={header.sampleWt}
+                            onChange={(e) => setHeader({ ...header, sampleWt: e.target.value })}
+                            required
                         />
-                        {errors.sampleWt && <span className="hint-text" style={{ color: 'red' }}>Required</span>}
                     </div>
 
                     <div className="input-group">
@@ -79,9 +112,10 @@ export default function FinenessTestForm({ onSave, onCancel }) {
                             type="number"
                             step="0.01"
                             placeholder="gms"
-                            {...register("residueWt", { required: "Required" })}
+                            value={header.residueWt}
+                            onChange={(e) => setHeader({ ...header, residueWt: e.target.value })}
+                            required
                         />
-                        {errors.residueWt && <span className="hint-text" style={{ color: 'red' }}>Required</span>}
                     </div>
                 </div>
 
@@ -105,9 +139,13 @@ export default function FinenessTestForm({ onSave, onCancel }) {
                     </div>
                 </div>
 
-                <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-                    <button type="submit" className="btn-save" style={{ flex: 1 }}>Submit Test Report</button>
-                    {onCancel && <button type="button" onClick={onCancel} className="btn-save" style={{ flex: 1, background: '#64748b' }}>Cancel</button>}
+                <div className="btn-group" style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                    <button type="submit" className="btn-save" disabled={loading} style={{ flex: 1 }}>
+                        {loading ? "Saving..." : "Submit Test Report"}
+                    </button>
+                    <button type="button" onClick={onCancel} className="btn-save" style={{ flex: 1, background: '#64748b' }}>
+                        Cancel
+                    </button>
                 </div>
             </form>
         </div>

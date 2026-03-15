@@ -4,6 +4,7 @@ import MainLayout from './components/Layout/MainLayout';
 import SleeperProcessDuty from './pages/sleeperGeneral/SleeperProcessDuty';
 import SleeperProcessIEGeneral from './pages/sleeperGeneral/SleeperProcessIEGeneral';
 import { ShiftProvider } from './context/ShiftContext';
+import { ToastProvider } from './context/ToastContext';
 import MainDashboard from './pages/ProcessIE/MainDashboard';
 import BatchWiseSleeperReport from './pages/ProcessIE/BatchWiseSleeperReport';
 import LastShiftReport from './pages/ProcessIE/LastShiftReport';
@@ -28,7 +29,14 @@ const ProtectedRoute = ({ children }) => {
  * App Component - Main Entry Point
  */
 const App = () => {
-  const [mainView, setMainView] = useState('Main Dashboard');
+  const [mainView, setMainView] = useState(() => {
+    return localStorage.getItem('activeMainView') || 'Main Dashboard';
+  });
+
+  // Persist mainView changes
+  useEffect(() => {
+    localStorage.setItem('activeMainView', mainView);
+  }, [mainView]);
 
   // Listen for navigation events dispatched from components
   useEffect(() => {
@@ -91,14 +99,16 @@ const App = () => {
         path="*"
         element={
           <ProtectedRoute>
-            <ShiftProvider>
-              <MainLayout activeItem={mainView} onItemClick={setMainView}>
-                {showTabs && (
-                  <DashboardTabs activeItem={mainView} onItemClick={setMainView} />
-                )}
-                {renderView()}
-              </MainLayout>
-            </ShiftProvider>
+            <ToastProvider>
+              <ShiftProvider>
+                <MainLayout activeItem={mainView} onItemClick={setMainView}>
+                  {showTabs && (
+                    <DashboardTabs activeItem={mainView} onItemClick={setMainView} />
+                  )}
+                  {renderView()}
+                </MainLayout>
+              </ShiftProvider>
+            </ToastProvider>
           </ProtectedRoute>
         }
       />
