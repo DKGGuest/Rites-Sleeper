@@ -18,6 +18,9 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
     const [saving, setSaving] = useState(false);
 
     const toggleSleeperSelection = (id) => {
+        const sleeper = sleepers.find(s => s.id === id);
+        if (sleeper?.status === 'rejected') return;
+
         setSelectedSleepers(prev =>
             prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
         );
@@ -205,16 +208,18 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
                     <div className="sleeper-pool-grid">
                         {sleepers.map(s => {
                             const isSelected = selectedSleepers.includes(s.id);
+                            const isAlreadyRejected = s.status === 'rejected';
                             return (
                                 <div
                                     key={s.id}
                                     onClick={() => !saving && toggleSleeperSelection(s.id)}
-                                    className={`sleeper-chip ${isSelected ? 'selected' : ''}`}
+                                    className={`sleeper-chip ${isSelected ? 'selected' : ''} ${isAlreadyRejected ? 'already-rejected' : ''}`}
                                     style={{
-                                        background: getStatusColor(s.status, isSelected),
-                                        color: isSelected ? '#fff' : '#374151',
-                                        borderColor: isSelected ? 'transparent' : '#9ca3af',
-                                        cursor: saving ? 'not-allowed' : 'pointer'
+                                        background: isAlreadyRejected ? '#fee2e2' : getStatusColor(s.status, isSelected),
+                                        color: isAlreadyRejected ? '#b91c1c' : isSelected ? '#fff' : '#374151',
+                                        borderColor: isAlreadyRejected ? '#ef4444' : isSelected ? 'transparent' : '#9ca3af',
+                                        cursor: (saving || isAlreadyRejected) ? 'not-allowed' : 'pointer',
+                                        textDecoration: isAlreadyRejected ? 'line-through' : 'none'
                                     }}
                                 >
                                     {s.displayNo}

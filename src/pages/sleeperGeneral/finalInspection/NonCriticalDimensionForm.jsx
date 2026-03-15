@@ -8,7 +8,8 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
         return batch?.sleepers?.map(s => ({
             ...s,
             id: s.sleeperId,
-            displayNo: s.sleeperNo
+            displayNo: s.sleeperNo,
+            isRejected: s.status === 'REJECTED'
         })) || [];
     }, [batch]);
 
@@ -16,6 +17,9 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
     const [saving, setSaving] = useState(false);
 
     const toggleSleeperSelection = (id) => {
+        const sleeper = allSleepersPool.find(s => s.id === id);
+        if (sleeper?.isRejected) return;
+
         setSelectedSleepers(prev =>
             prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
         );
@@ -171,12 +175,13 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
                                 <div
                                     key={s.id}
                                     onClick={() => !saving && toggleSleeperSelection(s.id)}
-                                    className={`sleeper-chip ${isSelected ? 'selected' : ''}`}
+                                    className={`sleeper-chip ${isSelected ? 'selected' : ''} ${s.isRejected ? 'already-rejected' : ''}`}
                                     style={{
-                                        background: isSelected ? '#15803d' : '#d1d5db',
-                                        color: isSelected ? '#fff' : '#374151',
-                                        borderColor: isSelected ? '#14532d' : '#9ca3af',
-                                        cursor: saving ? 'not-allowed' : 'pointer'
+                                        background: s.isRejected ? '#fee2e2' : (isSelected ? '#15803d' : '#d1d5db'),
+                                        color: s.isRejected ? '#b91c1c' : (isSelected ? '#fff' : '#374151'),
+                                        borderColor: s.isRejected ? '#ef4444' : (isSelected ? '#14532d' : '#9ca3af'),
+                                        cursor: (saving || s.isRejected) ? 'not-allowed' : 'pointer',
+                                        textDecoration: s.isRejected ? 'line-through' : 'none'
                                     }}
                                 >
                                     {s.displayNo}

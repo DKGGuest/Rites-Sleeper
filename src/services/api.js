@@ -200,4 +200,34 @@ export const apiService = {
     getFinalInspectionBatches: () => api.get('/FinalInspectionController/inspection/batches'),
     getFinalInspectionBatchDetail: (batchId) => api.get(`/FinalInspectionController/inspection/batch/${batchId}`),
     saveFinalInspection: (payload) => api.post('/FinalInspectionController/save', payload),
+
+    // ================= Modulus of Rupture (MOR) =================
+    // Sample Declaration
+    getAllMORSamples: () => api.get('/FinalInspectionController'),
+    getMORSampleById: (id) => api.get(`/FinalInspectionController/${id}`),
+    createMORSample: (payload) => api.post('/FinalInspectionController', payload),
+    updateMORSample: (id, payload) => api.put(`/FinalInspectionController/${id}`, payload),
+    deleteMORSample: (id) => api.delete(`/FinalInspectionController/${id}`),
+
+    // Test Results
+    getAllMORTests: () => api.get('/mor-test'),
+    getMORTestById: (id) => api.get(`/mor-test/${id}`),
+    createMORTest: (payload) => api.post('/mor-test', payload),
+    updateMORTest: (id, payload) => api.put(`/mor-test/${id}`, payload),
+    deleteMORTest: (id) => api.delete(`/mor-test/${id}`),
+
+    // ================= Modulus of Failure (MF) =================
+    // Sample Declaration
+    getAllMFSamples: () => api.get('/modulus-of-failure'),
+    getMFSampleById: (id) => api.get(`/modulus-of-failure/${id}`),
+    createMFSample: (payload) => api.post('/modulus-of-failure', payload),
+    updateMFSample: (id, payload) => api.put(`/modulus-of-failure/${id}`, payload),
+    deleteMFSample: (id) => api.delete(`/modulus-of-failure/${id}`),
+
+    // Test Details
+    getAllMFTests: () => api.get('/mf-test-details'),
+    getMFTestById: (id) => api.get(`/mf-test-details/${id}`),
+    createMFTest: (payload) => api.post('/mf-test-details', payload),
+    updateMFTest: (id, payload) => api.put('/mf-test-details/${id}', payload),
+    deleteMFTest: (id) => api.delete('/mf-test-details/${id}'),
 };
