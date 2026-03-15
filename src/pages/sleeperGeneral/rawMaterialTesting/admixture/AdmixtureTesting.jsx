@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import EnhancedDataTable from '../../../../components/common/EnhancedDataTable';
 import { MOCK_INVENTORY, MOCK_VERIFIED_CONSIGNMENTS } from '../../../../utils/rawMaterialMockData';
+import { useShift } from '../../../../context/ShiftContext';
+import { useToast } from '../../../../context/ToastContext';
+import { saveAdmixtureTest } from '../../../../services/workflowService';
 import '../cement/CementForms.css';
 
 const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
@@ -27,14 +30,16 @@ const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
     </div>
 );
 
-const AdmixtureTesting = ({ onBack }) => {
+const AdmixtureTesting = ({ onBack, inventoryData = [] }) => {
     const [viewMode, setViewMode] = useState('new-stocks');
     const [showForm, setShowForm] = useState(false);
+    const { selectedShift, dutyDate, dutyLocation } = useShift();
+    const { showToast } = useToast();
     const [history, setHistory] = useState([
         { id: 1, testDate: '2026-01-10', consignmentNo: 'AD-490', vendor: 'Fosroc', dosage: '0.8%', result: 'PASS', createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() }
     ]);
 
-    const pendingStocks = MOCK_INVENTORY.ADMIXTURE.filter(item => item.status === 'Verified' || item.status === 'Unverified');
+    const pendingStocks = inventoryData;
 
     const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
         defaultValues: {
@@ -49,7 +54,7 @@ const AdmixtureTesting = ({ onBack }) => {
 
     const selectedConsignment = watch('consignmentNo');
 
-    React.useEffect(() => {
+    useEffect(() => {
         const item = pendingStocks.find(p => p.consignmentNo === selectedConsignment);
         if (item) setValue('vendor', item.vendor);
     }, [selectedConsignment, pendingStocks, setValue]);
@@ -61,16 +66,27 @@ const AdmixtureTesting = ({ onBack }) => {
         return (now - entryTime) < (60 * 60 * 1000); // 1 hour
     };
 
-    const onSubmit = (data) => {
-        const newRecord = {
-            id: Date.now(),
-            ...data,
-            result: 'PASS',
-            createdAt: new Date().toISOString()
-        };
-        setHistory([newRecord, ...history]);
-        setShowForm(false);
-        reset();
+    const onSubmit = async (data) => {
+        try {
+            const payload = {
+                ...data,
+                shift: selectedShift || 'General',
+                lineNo: dutyLocation || 'N/A',
+                dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
+                createdBy: 1, // Default for now
+                result: 'PASS' // Business logic could be added here
+            };
+
+            await saveAdmixtureTest(payload);
+            showToast("Admixture quality test saved successfully!", "success");
+            
+            setShowForm(false);
+            reset();
+            // In a real app, we'd re-fetch history here
+        } catch (error) {
+            console.error("Error saving admixture test:", error);
+            showToast("Failed to save admixture test result.", "error");
+        }
     };
 
     const handleDelete = (id) => {
@@ -94,7 +110,8 @@ const AdmixtureTesting = ({ onBack }) => {
                         reset({
                             testDate: new Date().toISOString().split('T')[0],
                             consignmentNo: row.consignmentNo,
-                            vendor: row.vendor
+                            vendor: row.vendor,
+                            inventoryId: row.requestId
                         });
                         setShowForm(true);
                     }}
@@ -210,6 +227,7 @@ const AdmixtureTesting = ({ onBack }) => {
                                         <select {...register('consignmentNo', { required: true })}>
                                             <option value="">-- Select --</option>
                                             {pendingStocks.map(p => <option key={p.id} value={p.consignmentNo}>{p.consignmentNo}</option>)}
+                                            <option value="PERIODIC">-- Periodic Testing --</option>
                                         </select>
                                     </div>
                                     <div className="input-group">

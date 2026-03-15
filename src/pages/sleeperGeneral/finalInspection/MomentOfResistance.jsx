@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import EnhancedDataTable from '../../../components/common/EnhancedDataTable';
 
-const MOCK_BATCHES = [
-    { batchNo: 'B-701', sleeperType: 'RT-1234', castingDate: '2026-01-20', waterCubeStatus: 'Completed', mrSamplesNeeded: 1, mrTestType: 'Fresh', status: 'Pending Declaration' },
-    { batchNo: 'B-702', sleeperType: 'RT-5678', castingDate: '2026-01-21', waterCubeStatus: 'Completed', mrSamplesNeeded: 2, mrTestType: 'Fresh', status: 'Pending Declaration' },
-    { batchNo: 'B-703', sleeperType: 'RT-9012', castingDate: '2026-01-22', waterCubeStatus: 'Not Completed', mrSamplesNeeded: 0, mrTestType: 'Fresh', status: 'Pending Declaration' },
-    { batchNo: 'B-695', sleeperType: 'RT-1234', castingDate: '2026-01-15', waterCubeStatus: 'Completed', mrSamplesNeeded: 2, mrTestType: 'Retest', status: 'Pending Declaration' },
-    { batchNo: 'B-680', sleeperType: 'RT-5678', castingDate: '2026-01-10', waterCubeStatus: 'Rejected', mrSamplesNeeded: 0, mrTestType: 'N/A', status: 'Water Cube Testing – Rejected' },
-];
+import { 
+    getMorPendingDeclarations, 
+    saveMorSampleDeclaration, 
+    getMorActiveDeclarations,
+    getMorHistoricalDeclarations,
+    saveMorTestResults,
+    deleteMorSample
+} from '../../../services/workflowService';
+import { getStoredUser } from '../../../services/authService';
 
 const DESIRED_VALUES = {
     centreTop: 450,
@@ -17,60 +19,169 @@ const DESIRED_VALUES = {
 
 const MomentOfResistance = () => {
     const [activeTab, setActiveTab] = useState('declaration');
-    const [batches, setBatches] = useState(MOCK_BATCHES);
+    const [pendingDeclarations, setPendingDeclarations] = useState([]);
+    const [activeDeclarations, setActiveDeclarations] = useState([]);
+    const [historicalRecords, setHistoricalRecords] = useState([]);
+    const [loading, setLoading] = useState(false);
+    
     const [showDeclareModal, setShowDeclareModal] = useState(false);
     const [showTestModal, setShowTestModal] = useState(false);
     const [selectedBatch, setSelectedBatch] = useState(null);
 
-    // Filtered lists for tabs
-    const declarationList = useMemo(() => batches.filter(b => b.status === 'Pending Declaration' && b.waterCubeStatus !== 'Rejected'), [batches]);
-    const testingList = useMemo(() => batches.filter(b => b.status === 'Testing Pending'), [batches]);
-    const historicalList = useMemo(() => batches.filter(b => ['Pass', 'Fail', 'Water Cube Testing – Rejected'].includes(b.status)), [batches]);
+    const user = getStoredUser();
+    const currentUserId = user?.id || user?.userId;
 
-    const handleDeclareSamples = (batch, samples) => {
-        setBatches(prev => prev.map(b =>
-            (b.batchNo === batch.batchNo && b.sleeperType === batch.sleeperType)
-                ? { ...b, status: 'Testing Pending', declaredSamples: samples, declarationTime: new Date().toISOString() }
-                : b
-        ));
-        setShowDeclareModal(false);
+    useEffect(() => {
+        fetchPending();
+        fetchActive();
+        fetchHistorical();
+    }, []);
+
+    const handleDelete = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this MR record?")) return;
+        try {
+            setLoading(true);
+            await deleteMorSample(id);
+            alert("Deleted successfully!");
+            fetchPending();
+            fetchActive();
+            fetchHistorical();
+        } catch (error) {
+            console.error("Delete error:", error);
+            alert("Failed to delete.");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleSaveTestResults = (batch, results) => {
-        const isRetestNeeded = results.result === 'Retest';
-
-        setBatches(prev => prev.map(b =>
-            (b.batchNo === batch.batchNo && b.sleeperType === batch.sleeperType)
-                ? {
-                    ...b,
-                    status: isRetestNeeded ? 'Pending Declaration' : results.result,
-                    mrTestType: isRetestNeeded ? 'Retest' : b.mrTestType,
-                    testResults: results,
-                    testingTime: new Date().toISOString()
-                }
-                : b
-        ));
-        setShowTestModal(false);
+    const fetchPending = async () => {
+        if (!currentUserId) return;
+        setLoading(true);
+        try {
+            const data = await getMorPendingDeclarations(currentUserId);
+            setPendingDeclarations(data);
+        } finally {
+            setLoading(false);
+        }
     };
+
+    const fetchActive = async () => {
+        if (!currentUserId) return;
+        setLoading(true);
+        try {
+            const data = await getMorActiveDeclarations(currentUserId);
+            setActiveDeclarations(data);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchHistorical = async () => {
+        if (!currentUserId) return;
+        setLoading(true);
+        try {
+            const data = await getMorHistoricalDeclarations(currentUserId);
+            setHistoricalRecords(data);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeclareSamples = async (batch, samples) => {
+        try {
+            const payload = {
+                samplingDate: new Date().toISOString().split('T')[0],
+                concreteGrade: batch.concreteGrade,
+                plantType: 'General', // Default or fallback
+                shedLine: 'N/A', // Default or fallback
+                sampleIdentificationNumber: `MR-${batch.batchNumber}-${Date.now()}`,
+                waterCubeStrengthTestId: batch.waterCubeStrengthTestId,
+                batchNumber: batch.batchNumber,
+                castingDate: batch.castingDate,
+                shift: batch.shift,
+                lineNo: batch.lineNo,
+                mrSamplesRequired: batch.mrSamplesRequired,
+                mrTestType: batch.mrTestType || 'Fresh',
+                details: samples.map(s => ({
+                    benchNumber: s.bench,
+                    sleeperNo: s.no
+                })),
+                createdBy: currentUserId
+            };
+
+            await saveMorSampleDeclaration(payload);
+            alert("MR Sample declaration saved successfully!");
+            setShowDeclareModal(false);
+            fetchPending();
+            fetchActive();
+        } catch (error) {
+            console.error("Error saving MR declaration:", error);
+            alert("Failed to save MR declaration.");
+        }
+    };
+
+    const handleSaveTestResults = async (batch, resultsData) => {
+        try {
+            setLoading(true);
+            // resultsData: { results: Array, result: 'Pass'|'Fail'|'Retest' }
+            const payload = resultsData.results.map(r => ({
+                benchNumber: r.benchNumber,
+                sleeperNo: r.sleeperNo,
+                ctKn: parseFloat(r.ct),
+                cbKn: parseFloat(r.cb),
+                rsKn: parseFloat(r.rs),
+                weight: parseFloat(r.weight) || null,
+                remarks: r.remarks,
+                loadKn: Math.max(parseFloat(r.ct) || 0, parseFloat(r.cb) || 0, parseFloat(r.rs) || 0), // Mapping highest load as loadKn
+                result: (parseFloat(r.ct) >= DESIRED_VALUES.centreTop && 
+                         parseFloat(r.cb) >= DESIRED_VALUES.centreBottom && 
+                         parseFloat(r.rs) >= DESIRED_VALUES.railSeat) ? 'Pass' : 'Fail',
+                isPass: parseFloat(r.ct) >= DESIRED_VALUES.centreTop && 
+                        parseFloat(r.cb) >= DESIRED_VALUES.centreBottom && 
+                        parseFloat(r.rs) >= DESIRED_VALUES.railSeat
+            }));
+
+            await saveMorTestResults(batch.id, payload);
+            alert(`MR Test results saved as ${resultsData.result}!`);
+            setShowTestModal(false);
+            fetchActive();
+            fetchHistorical();
+        } catch (error) {
+            console.error("Error saving MR test results:", error);
+            alert("Failed to save MR test results.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'declaration') fetchPending();
+        if (activeTab === 'testing') fetchActive();
+        if (activeTab === 'historical') fetchHistorical();
+    }, [activeTab, currentUserId]);
+
+    const historicalList = useMemo(() => historicalRecords, [historicalRecords]);
 
     const columnsDeclaration = [
-        { key: 'batchNo', label: 'Batch Number' },
-        { key: 'sleeperType', label: 'Sleeper Type' },
+        { key: 'batchNumber', label: 'Batch Number' },
+        { key: 'shift', label: 'Shift' },
+        { key: 'lineNo', label: 'Line No' },
+        { key: 'concreteGrade', label: 'Sleeper Type / Grade' },
         { key: 'castingDate', label: 'Date of Casting' },
         {
             key: 'waterCubeStatus',
             label: 'Water Cube Testing',
-            render: (val) => (
+            render: () => (
                 <span style={{
                     padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: '700',
-                    background: val === 'Completed' ? '#ecfdf5' : '#fff7ed',
-                    color: val === 'Completed' ? '#059669' : '#c2410c'
+                    background: '#ecfdf5',
+                    color: '#059669'
                 }}>
-                    {val}
+                    Completed
                 </span>
             )
         },
-        { key: 'mrSamplesNeeded', label: 'Samples to Test' },
+        { key: 'mrSamplesRequired', label: 'Samples to Test' },
         { key: 'mrTestType', label: 'MR Test Type' },
         {
             key: 'actions',
@@ -78,9 +189,7 @@ const MomentOfResistance = () => {
             render: (_, row) => (
                 <button
                     className="btn-verify"
-                    disabled={row.waterCubeStatus !== 'Completed'}
                     onClick={() => { setSelectedBatch(row); setShowDeclareModal(true); }}
-                    style={{ opacity: row.waterCubeStatus === 'Completed' ? 1 : 0.5 }}
                 >
                     Declare Samples
                 </button>
@@ -89,25 +198,28 @@ const MomentOfResistance = () => {
     ];
 
     const columnsTesting = [
-        { key: 'batchNo', label: 'Batch Number' },
-        { key: 'sleeperType', label: 'Sleeper Type' },
+        { key: 'batchNumber', label: 'Batch Number' },
+        { key: 'shift', label: 'Shift' },
+        { key: 'lineNo', label: 'Line No' },
+        { key: 'concreteGrade', label: 'Sleeper Type / Grade' },
         {
-            key: 'declaredSamples',
+            key: 'details',
             label: 'Sleeper Number',
-            render: (val) => val?.map(s => `${s.bench}${s.no}`).join(', ')
+            render: (val) => val?.map(s => `${s.benchNumber}${s.sleeperNo}`).join(', ')
         },
         { key: 'castingDate', label: 'Date of Casting' },
         {
             key: 'actions',
             label: 'Actions',
             render: (_, row) => {
-                const canModify = (new Date() - new Date(row.declarationTime)) < (60 * 60 * 1000);
+                const canModify = (new Date() - new Date(row.createdDate)) < (60 * 60 * 1000);
                 return (
                     <div style={{ display: 'flex', gap: '8px' }}>
                         {canModify && (
                             <button className="btn-save" style={{ fontSize: '10px', padding: '4px 8px' }} onClick={() => { setSelectedBatch(row); setShowDeclareModal(true); }}>Modify</button>
                         )}
                         <button className="btn-verify" onClick={() => { setSelectedBatch(row); setShowTestModal(true); }}>Enter Test Details</button>
+                        <button className="btn-save" style={{ background: '#fee2e2', color: '#991b1b' }} onClick={() => handleDelete(row.id)}>Delete</button>
                     </div>
                 );
             }
@@ -115,20 +227,27 @@ const MomentOfResistance = () => {
     ];
 
     const columnsHistorical = [
-        { key: 'batchNo', label: 'Batch Number' },
-        { key: 'sleeperType', label: 'Sleeper Type' },
+        { key: 'batchNumber', label: 'Batch Number' },
+        { key: 'concreteGrade', label: 'Sleeper Type / Grade' },
         {
-            key: 'declaredSamples',
+            key: 'details',
             label: 'Sleeper Number',
-            render: (val) => val?.map(s => `${s.bench}${s.no}`).join(', ')
+            render: (val) => val?.map(s => `${s.benchNumber}${s.sleeperNo}`).join(', ')
         },
         { key: 'castingDate', label: 'Date of Casting' },
-        { key: 'testingTime', label: 'Date of Testing', render: (val) => val?.split('T')[0] },
+        { key: 'createdDate', label: 'Date of Testing', render: (val) => val?.split('T')[0] },
         {
-            key: 'status',
+            key: 'overallResult',
             label: 'Result',
             render: (val) => (
-                <span style={{ fontWeight: '700', color: val === 'Pass' ? '#059669' : '#dc2626' }}>{val}</span>
+                <span style={{ fontWeight: '700', color: val === 'Pass' ? '#059669' : '#dc2626' }}>{val || 'N/A'}</span>
+            )
+        },
+        {
+            key: 'actions',
+            label: 'Actions',
+            render: (_, row) => (
+                <button className="btn-save" style={{ background: '#fee2e2', color: '#991b1b', padding: '4px 8px', fontSize: '10px' }} onClick={() => handleDelete(row.id)}>Delete</button>
             )
         }
     ];
@@ -152,7 +271,7 @@ const MomentOfResistance = () => {
                         <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}>
                             <h4 style={{ margin: 0, color: '#475569' }}>Pending MR Sample Declaration</h4>
                         </div>
-                        <EnhancedDataTable columns={columnsDeclaration} data={declarationList} />
+                        <EnhancedDataTable columns={columnsDeclaration} data={pendingDeclarations} loading={loading} />
                     </div>
                 )}
                 {activeTab === 'testing' && (
@@ -160,7 +279,7 @@ const MomentOfResistance = () => {
                         <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}>
                             <h4 style={{ margin: 0, color: '#475569' }}>Samples Declared (Pending Testing)</h4>
                         </div>
-                        <EnhancedDataTable columns={columnsTesting} data={testingList} />
+                        <EnhancedDataTable columns={columnsTesting} data={activeDeclarations} loading={loading} />
                     </div>
                 )}
                 {activeTab === 'historical' && (
@@ -168,7 +287,7 @@ const MomentOfResistance = () => {
                         <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}>
                             <h4 style={{ margin: 0, color: '#475569' }}>Recent Testing Results</h4>
                         </div>
-                        <EnhancedDataTable columns={columnsHistorical} data={historicalList} />
+                        <EnhancedDataTable columns={columnsHistorical} data={historicalRecords} loading={loading} />
                     </div>
                 )}
             </div>
@@ -194,7 +313,7 @@ const MomentOfResistance = () => {
 
 const DeclareSampleModal = ({ batch, onClose, onSave }) => {
     const [samples, setSamples] = useState(
-        Array.from({ length: batch.mrSamplesNeeded || 1 }, () => ({ bench: '', no: '' }))
+        Array.from({ length: batch.mrSamplesRequired || 1 }, () => ({ bench: '', no: '' }))
     );
 
     const handleUpdate = (idx, field, val) => {
@@ -213,12 +332,12 @@ const DeclareSampleModal = ({ batch, onClose, onSave }) => {
                 <div className="form-modal-body">
                     <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
                         <div className="form-grid">
-                            <div className="input-group"><label>Batch</label><input readOnly value={batch?.batchNo} className="readOnly" /></div>
-                            <div className="input-group"><label>Sleeper Type</label><input readOnly value={batch?.sleeperType} className="readOnly" /></div>
+                            <div className="input-group"><label>Batch</label><input readOnly value={batch?.batchNumber} className="readOnly" /></div>
+                            <div className="input-group"><label>Sleeper Type</label><input readOnly value={batch?.concreteGrade} className="readOnly" /></div>
                         </div>
                     </div>
 
-                    <h4 style={{ fontSize: '13px', color: '#42818c', marginBottom: '16px', fontWeight: '700' }}>Enter Sleeper Details ({batch.mrSamplesNeeded} needed)</h4>
+                    <h4 style={{ fontSize: '13px', color: '#42818c', marginBottom: '16px', fontWeight: '700' }}>Enter Sleeper Details ({batch.mrSamplesRequired} needed)</h4>
 
                     {samples.map((s, idx) => (
                         <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '12px', background: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
@@ -254,16 +373,16 @@ const DeclareSampleModal = ({ batch, onClose, onSave }) => {
 
 const TestDetailsModal = ({ batch, onClose, onSave }) => {
     const [manualResults, setManualResults] = useState(
-        batch.declaredSamples.map(s => ({ ...s, ct: '', cb: '', rs: '', date: new Date().toISOString().split('T')[0] }))
+        batch.details?.map(s => ({ ...s, ct: '', cb: '', rs: '', weight: '', remarks: '', date: new Date().toISOString().split('T')[0] })) || []
     );
-    const [witnessed, setWitnessed] = useState(batch.declaredSamples.map(() => false));
+    const [witnessed, setWitnessed] = useState(batch.details?.map(() => false) || []);
 
     const mockScadaData = useMemo(() => {
-        return batch.declaredSamples.map(() => ({
+        return batch.details?.map(() => ({
             ct: Math.floor(460 + Math.random() * 100),
             cb: Math.floor(560 + Math.random() * 100),
             rs: Math.floor(660 + Math.random() * 100)
-        }));
+        })) || [];
     }, [batch]);
 
     const handleWitness = (idx) => {
@@ -304,15 +423,15 @@ const TestDetailsModal = ({ batch, onClose, onSave }) => {
         <div className="form-modal-overlay" onClick={onClose}>
             <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '900px' }}>
                 <div className="form-modal-header">
-                    <span className="form-modal-header-title">Enter MR Test Details - Batch {batch.batchNo}</span>
+                    <span className="form-modal-header-title">Enter MR Test Details - Batch {batch.batchNumber}</span>
                     <button className="form-modal-close" onClick={onClose}>×</button>
                 </div>
                 <div className="form-modal-body" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
                     {/* Section 1: Sample Details */}
                     <div style={{ background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
                         <div className="form-grid">
-                            <div className="input-group"><label>Batch</label><input readOnly value={batch?.batchNo} className="readOnly" /></div>
-                            <div className="input-group"><label>Sleeper Type</label><input readOnly value={batch?.sleeperType} className="readOnly" /></div>
+                            <div className="input-group"><label>Batch</label><input readOnly value={batch?.batchNumber} className="readOnly" /></div>
+                            <div className="input-group"><label>Sleeper Type</label><input readOnly value={batch?.concreteGrade} className="readOnly" /></div>
                             <div className="input-group"><label>Casting Date</label><input readOnly value={batch?.castingDate} className="readOnly" /></div>
                         </div>
                     </div>
@@ -321,7 +440,7 @@ const TestDetailsModal = ({ batch, onClose, onSave }) => {
                     {manualResults.map((res, idx) => (
                         <div key={idx} style={{ marginBottom: '24px', padding: '20px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                                <h4 style={{ margin: 0, color: '#42818c' }}>Test for Sleeper: {res.bench}{res.no}</h4>
+                                <h4 style={{ margin: 0, color: '#42818c' }}>Test for Sleeper: {res.benchNumber}{res.sleeperNo}</h4>
                                 <button className="btn-verify" style={{ fontSize: '11px' }} onClick={() => handleWitness(idx)}>Witness through SCADA</button>
                             </div>
 
@@ -349,6 +468,14 @@ const TestDetailsModal = ({ batch, onClose, onSave }) => {
                                     <div className="input-group">
                                         <label>RS (KN)</label>
                                         <input type="number" readOnly={witnessed[idx]} value={res.rs} onChange={(e) => handleUpdateManual(idx, 'rs', e.target.value)} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label>Weight (kg)</label>
+                                        <input type="number" value={res.weight} onChange={(e) => handleUpdateManual(idx, 'weight', e.target.value)} />
+                                    </div>
+                                    <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                                        <label>Remarks</label>
+                                        <input type="text" value={res.remarks} onChange={(e) => handleUpdateManual(idx, 'remarks', e.target.value)} placeholder="Optional" />
                                     </div>
                                 </div>
                             </div>

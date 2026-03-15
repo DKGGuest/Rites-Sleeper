@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { MOCK_VERIFIED_CONSIGNMENTS } from "../../../../utils/rawMaterialMockData";
+import { useShift } from "../../../../context/ShiftContext";
+import { useToast } from "../../../../context/ToastContext";
+import { saveAggregateSoundness } from "../../../../services/workflowService";
 
-export default function SoundnessTestForm({ onSave, onCancel, consignment, lot }) {
+export default function SoundnessTestForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+    const { selectedShift, dutyLocation, dutyDate } = useShift();
+    const { showToast } = useToast();
+    const [submitting, setSubmitting] = useState(false);
+
     const { register, watch, setValue, handleSubmit, formState: { errors } } = useForm({
         defaultValues: {
             testDate: new Date().toISOString().split('T')[0],
-            cycles: '5'
+            cycles: 5
         }
     });
 
@@ -27,9 +33,27 @@ export default function SoundnessTestForm({ onSave, onCancel, consignment, lot }
         }
     }, [initialWt, finalWt, setValue]);
 
-    const onSubmit = (data) => {
-        console.log("Saving Soundness Test data:", { ...data, consignment, lot });
-        onSave && onSave(data);
+    const onSubmit = async (formData) => {
+        setSubmitting(true);
+        try {
+            const payload = {
+                ...formData,
+                shift: selectedShift || 'General',
+                lineNo: dutyLocation || 'N/A',
+                dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
+                createdBy: JSON.parse(localStorage.getItem('user'))?.id || 1
+            };
+
+            await saveAggregateSoundness(payload);
+            showToast("Soundness Test report saved successfully!", "success");
+            reset();
+            onSave && onSave(payload);
+        } catch (error) {
+            console.error("Error saving soundness data:", error);
+            showToast("Failed to save Soundness report.", "error");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -40,12 +64,28 @@ export default function SoundnessTestForm({ onSave, onCancel, consignment, lot }
                 </div>
 
                 <div className="form-body" style={{ padding: '24px' }}>
-                    <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                    <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '1.5rem' }}>
                         <div className="input-group">
                             <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '600', color: '#475569' }}>Date of Testing <span className="required" style={{ color: 'red' }}>*</span></label>
-                            <input type="text" value={new Date().toLocaleDateString('en-GB')} readOnly style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }} />
+                            <input type="date" {...register("testDate", { required: "Required" })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
                         </div>
 
+                        <div className="input-group">
+                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '600', color: '#475569' }}>Consignment No. <span className="required" style={{ color: 'red' }}>*</span></label>
+                            <select
+                                {...register("consignmentNo", { required: "Required" })}
+                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                            >
+                                <option value="">-- Select --</option>
+                                {inventoryData.map((c, i) => (
+                                    <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
+                                ))}
+                                <option value="PERIODIC">-- Periodic Testing --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
                         <div className="input-group">
                             <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '600', color: '#475569' }}>Test Method</label>
                             <select {...register("method")} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
@@ -91,8 +131,10 @@ export default function SoundnessTestForm({ onSave, onCancel, consignment, lot }
                     </div>
 
                     <div style={{ marginTop: '32px', display: 'flex', gap: '16px' }}>
-                        <button type="submit" className="btn-save" style={{ flex: 1, padding: '12px', background: '#42818c', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>Save Test Report</button>
-                        {onCancel && <button type="button" onClick={onCancel} className="btn-save" style={{ flex: 1, padding: '12px', background: '#64748b', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>Cancel</button>}
+                        <button type="submit" className="btn-save" style={{ flex: 1, padding: '12px', background: '#42818c', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }} disabled={submitting}>
+                            {submitting ? 'Saving...' : 'Save Test Report'}
+                        </button>
+                        {onCancel && <button type="button" onClick={onCancel} className="btn-save" style={{ flex: 1, padding: '12px', background: '#64748b', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }} disabled={submitting}>Cancel</button>}
                     </div>
                 </div>
             </div>

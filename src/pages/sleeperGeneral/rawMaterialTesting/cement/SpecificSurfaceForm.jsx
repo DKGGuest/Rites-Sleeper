@@ -1,42 +1,95 @@
 import React, { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { MOCK_VERIFIED_CONSIGNMENTS } from "../../../../utils/rawMaterialMockData";
+import { useShift } from "../../../../context/ShiftContext";
+import { useToast } from "../../../../context/ToastContext";
+import { getStoredUser } from "../../../../services/authService";
+import { saveCementSpecificSurface } from "../../../../services/workflowService";
 
+export default function SpecificSurfaceForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+    const { selectedShift, dutyDate, dutyLocation } = useShift();
+    const { showToast } = useToast();
+    const user = getStoredUser();
 
-export default function SpecificSurfaceForm() {
-    const {
-        register,
-        watch,
-        formState: { errors },
-    } = useForm();
+    const [loading, setLoading] = useState(false);
+    const [header, setHeader] = useState({
+        type: initialType,
+        consignment: "",
+        roomTemp: "",
+        weight: "",
+        standardTime: "",
+        standardSurface: ""
+    });
 
-    const t1 = watch("sampleTime1");
-    const t2 = watch("sampleTime2");
-    const t3 = watch("sampleTime3");
-    const Ts = watch("standardTime");
-    const Fs = watch("standardSurface");
+    const [readings, setReadings] = useState({
+        t1: "",
+        t2: "",
+        t3: ""
+    });
 
     const [avgTime, setAvgTime] = useState(0);
     const [Fm, setFm] = useState(0);
     const [result, setResult] = useState("");
 
+    // Calculate Average Time
     useEffect(() => {
+        const { t1, t2, t3 } = readings;
         if (t1 && t2 && t3) {
             const avg = (Number(t1) + Number(t2) + Number(t3)) / 3;
             setAvgTime(avg.toFixed(2));
+        } else {
+            setAvgTime(0);
         }
-    }, [t1, t2, t3]);
+    }, [readings]);
 
+    // Calculate Specific Surface Fm
     useEffect(() => {
-        if (avgTime && Ts && Fs) {
-            const fm = Number(Fs) * Math.sqrt(avgTime / Number(Ts));
+        const { standardTime, standardSurface } = header;
+        if (avgTime && standardTime && standardSurface) {
+            const fm = Number(standardSurface) * Math.sqrt(avgTime / Number(standardTime));
             setFm(fm.toFixed(2));
             setResult(fm > 3700 ? "OK" : "NOT OK");
+        } else {
+            setFm(0);
+            setResult("");
         }
-    }, [avgTime, Ts, Fs]);
+    }, [avgTime, header.standardTime, header.standardSurface]);
+
+    const handleFormSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const payload = {
+                testDate: new Date().toISOString().split('T')[0],
+                typeOfTesting: header.type,
+                consignmentNo: header.consignment,
+                roomTemp: parseFloat(header.roomTemp),
+                weight: parseFloat(header.weight),
+                standardTimeTs: parseFloat(header.standardTime),
+                standardSurfaceFs: parseFloat(header.standardSurface),
+                sampleTime1: parseFloat(readings.t1),
+                sampleTime2: parseFloat(readings.t2),
+                sampleTime3: parseFloat(readings.t3),
+                avgTime: parseFloat(avgTime),
+                specificSurfaceFm: parseFloat(Fm),
+                result: result,
+                shift: selectedShift || 'General',
+                lineNo: dutyLocation || 'N/A',
+                dateOfInspection: dutyDate,
+                createdBy: user?.userId || 0
+            };
+
+            await saveCementSpecificSurface(payload);
+            showToast("Specific Surface Test record saved successfully!", "success");
+            if (onSave) onSave();
+        } catch (error) {
+            console.error("Save failed:", error);
+            showToast("Error saving record. Please check console.", "error");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
-        <div className="form-card">
+        <form className="form-card" onSubmit={handleFormSubmit}>
             <div className="form-header">
                 <h2>Specific Surface Test – Cement</h2>
             </div>
@@ -56,7 +109,11 @@ export default function SpecificSurfaceForm() {
 
                     <div className="input-group">
                         <label>Type of Testing <span className="required">*</span></label>
-                        <select {...register("type", { required: true })}>
+                        <select 
+                            value={header.type}
+                            onChange={(e) => setHeader({ ...header, type: e.target.value })}
+                            required
+                        >
                             <option value="">-- Select --</option>
                             <option value="New Inventory">New Inventory</option>
                             <option value="Periodic">Periodic</option>
@@ -65,11 +122,16 @@ export default function SpecificSurfaceForm() {
 
                     <div className="input-group">
                         <label>Consignment No. <span className="required">*</span></label>
-                        <select {...register("consignment", { required: true })}>
+                        <select 
+                            value={header.consignment}
+                            onChange={(e) => setHeader({ ...header, consignment: e.target.value })}
+                            required
+                        >
                             <option value="">-- Select --</option>
-                            {MOCK_VERIFIED_CONSIGNMENTS.map(c => (
-                                <option key={c} value={c}>{c}</option>
+                            {inventoryData.map(c => (
+                                <option key={c.consignmentNo} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
                             ))}
+                            <option value="PERIODIC">-- Periodic Testing --</option>
                         </select>
                     </div>
 
@@ -77,8 +139,11 @@ export default function SpecificSurfaceForm() {
                         <label>Room Temperature (°C)</label>
                         <input
                             type="number"
+                            step="0.1"
                             placeholder="°C"
-                            {...register("roomTemp", { required: true })}
+                            value={header.roomTemp}
+                            onChange={(e) => setHeader({ ...header, roomTemp: e.target.value })}
+                            required
                         />
                     </div>
 
@@ -88,7 +153,9 @@ export default function SpecificSurfaceForm() {
                             type="number"
                             step="0.01"
                             placeholder="gms"
-                            {...register("weight", { required: true })}
+                            value={header.weight}
+                            onChange={(e) => setHeader({ ...header, weight: e.target.value })}
+                            required
                         />
                     </div>
                 </div>
@@ -105,7 +172,9 @@ export default function SpecificSurfaceForm() {
                             type="number"
                             step="0.01"
                             placeholder="Standard time"
-                            {...register("standardTime", { required: true })}
+                            value={header.standardTime}
+                            onChange={(e) => setHeader({ ...header, standardTime: e.target.value })}
+                            required
                         />
                     </div>
 
@@ -115,7 +184,9 @@ export default function SpecificSurfaceForm() {
                             type="number"
                             step="0.01"
                             placeholder="Standard surface"
-                            {...register("standardSurface", { required: true })}
+                            value={header.standardSurface}
+                            onChange={(e) => setHeader({ ...header, standardSurface: e.target.value })}
+                            required
                         />
                     </div>
                 </div>
@@ -129,7 +200,10 @@ export default function SpecificSurfaceForm() {
                         <input
                             placeholder="Reading 1"
                             type="number"
-                            {...register("sampleTime1", { required: true })}
+                            step="0.01"
+                            value={readings.t1}
+                            onChange={(e) => setReadings({ ...readings, t1: e.target.value })}
+                            required
                         />
                     </div>
                     <div className="input-group">
@@ -137,7 +211,10 @@ export default function SpecificSurfaceForm() {
                         <input
                             placeholder="Reading 2"
                             type="number"
-                            {...register("sampleTime2", { required: true })}
+                            step="0.01"
+                            value={readings.t2}
+                            onChange={(e) => setReadings({ ...readings, t2: e.target.value })}
+                            required
                         />
                     </div>
                     <div className="input-group">
@@ -145,7 +222,10 @@ export default function SpecificSurfaceForm() {
                         <input
                             placeholder="Reading 3"
                             type="number"
-                            {...register("sampleTime3", { required: true })}
+                            step="0.01"
+                            value={readings.t3}
+                            onChange={(e) => setReadings({ ...readings, t3: e.target.value })}
+                            required
                         />
                     </div>
                 </div>
@@ -171,8 +251,15 @@ export default function SpecificSurfaceForm() {
                     </div>
                 </div>
 
-                <button className="btn-save">Submit Test Report</button>
+                <div className="btn-group" style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                    <button type="submit" className="btn-save" disabled={loading}>
+                        {loading ? "Saving..." : "Submit Test Report"}
+                    </button>
+                    <button type="button" className="btn-save" style={{ background: '#64748b' }} onClick={onCancel}>
+                        Cancel
+                    </button>
+                </div>
             </div>
-        </div>
+        </form>
     );
 }

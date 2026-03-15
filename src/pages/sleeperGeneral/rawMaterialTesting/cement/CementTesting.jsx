@@ -34,17 +34,19 @@ const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
     </div>
 );
 
-const CementTesting = ({ onBack }) => {
+const CementTesting = ({ onBack, inventoryData = [] }) => {
     const [viewMode, setViewMode] = useState('new-stocks'); // Default to new stocks
     const [showForm, setShowForm] = useState(false);
     const [activeFormSection, setActiveFormSection] = useState(1);
+    const [initialType, setInitialType] = useState("New Inventory");
     const [cementHistory, setCementHistory] = useState(MOCK_CEMENT_HISTORY.map(item => ({
         ...item,
         // Adding mock timestamp for testing the 1-hour rule (yesterday so they are not editable)
         createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
     })));
 
-    const pendingStocks = MOCK_INVENTORY.CEMENT.filter(item => item.status === 'Verified');
+    // inventoryData is now passed from parent, already filtered by moduleId and accessibility
+    const pendingStocks = inventoryData;
 
     // Rule: Modify/Delete allowed only for 1 hour from entering
     const canModify = (createdAt) => {
@@ -86,7 +88,10 @@ const CementTesting = ({ onBack }) => {
             key: 'lotNo',
             label: 'Lot / Batch No.',
             render: (_, row) => {
-                if (row.batches && row.batches.length > 0) return `${row.batches.length} Batches`;
+                const batches = row.details?.batchDetails || [];
+                if (batches.length > 0) {
+                    return batches.map(b => b.mtcNo).join(', ');
+                }
                 return row.lotNo || row.batchNo || 'N/A';
             }
         },
@@ -98,6 +103,7 @@ const CementTesting = ({ onBack }) => {
                 <button
                     className="btn-action mini"
                     onClick={() => {
+                        setInitialType("New Inventory");
                         setActiveFormSection(1);
                         setShowForm(true);
                     }}
@@ -149,11 +155,11 @@ const CementTesting = ({ onBack }) => {
     ];
 
     const sections = [
-        { id: 1, label: '7 Day Strength', component: <SevenDayStrengthForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} /> },
-        { id: 2, label: 'Normal Consistency', component: <NormalConsistencyForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} /> },
-        { id: 3, label: 'Specific Surface', component: <SpecificSurfaceForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} /> },
-        { id: 4, label: 'Setting Time', component: <SettingTimeForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} /> },
-        { id: 5, label: 'Fineness Test', component: <FinenessTestForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} /> }
+        { id: 1, label: '7 Day Strength', component: <SevenDayStrengthForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} /> },
+        { id: 2, label: 'Normal Consistency', component: <NormalConsistencyForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} /> },
+        { id: 3, label: 'Specific Surface', component: <SpecificSurfaceForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} /> },
+        { id: 4, label: 'Setting Time', component: <SettingTimeForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} /> },
+        { id: 5, label: 'Fineness Test', component: <FinenessTestForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} /> }
     ];
 
     return (
@@ -161,7 +167,11 @@ const CementTesting = ({ onBack }) => {
             <div className="content-title-row" style={{ marginBottom: '24px' }}>
                 <h2 style={{ margin: 0 }}>Cement Quality Control</h2>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                    <button className="toggle-btn mini" onClick={() => { setActiveFormSection(1); setShowForm(true); }}>+ Add New (Periodic)</button>
+                    <button className="toggle-btn mini" onClick={() => { 
+                        setInitialType("Periodic");
+                        setActiveFormSection(1); 
+                        setShowForm(true); 
+                    }}>+ Add New (Periodic)</button>
                     <button className="toggle-btn secondary mini" onClick={onBack}>Back to Dashboard</button>
                 </div>
             </div>

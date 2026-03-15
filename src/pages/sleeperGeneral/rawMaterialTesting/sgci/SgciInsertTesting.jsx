@@ -2,8 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import EnhancedDataTable from '../../../../components/common/EnhancedDataTable';
 import { MOCK_SGCI_HISTORY, MOCK_INVENTORY, MOCK_VERIFIED_CONSIGNMENTS } from '../../../../utils/rawMaterialMockData';
+import { useShift } from '../../../../context/ShiftContext';
+import { useToast } from '../../../../context/ToastContext';
+import { saveSgciInsertAudit } from '../../../../services/workflowService';
 import TrendChart from '../../../../components/common/TrendChart';
-
 import '../cement/CementForms.css';
 
 const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
@@ -29,15 +31,17 @@ const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
     </div>
 );
 
-const SgciInsertTesting = ({ onBack }) => {
+const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
     const [viewMode, setViewMode] = useState('new-stocks'); // Default to new stocks
     const [showForm, setShowForm] = useState(false);
+    const { selectedShift, dutyDate, dutyLocation } = useShift();
+    const { showToast } = useToast();
     const [history, setHistory] = useState(MOCK_SGCI_HISTORY.map(h => ({
         ...h,
         createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
     })));
     const [availableLots] = useState(MOCK_INVENTORY.SGCI || []);
-    const pendingStocks = MOCK_INVENTORY.SGCI.filter(item => item.status === 'Verified');
+    const pendingStocks = inventoryData;
 
     const { register, control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm({
         defaultValues: {
@@ -98,21 +102,36 @@ const SgciInsertTesting = ({ onBack }) => {
         return (now - entryTime) < (60 * 60 * 1000); // 1 hour
     };
 
-    const onSubmit = (data) => {
-        const newRecord = {
-            id: Date.now(),
-            testDate: data.date,
-            createdAt: new Date().toISOString(),
-            lotNo: data.lotNo,
-            supplier: data.supplier,
-            checked: summary.total,
-            accepted: summary.passed,
-            rejected: summary.rejected,
-            rejectionPct: summary.rejectionPct
-        };
-        setHistory([newRecord, ...history]);
-        setShowForm(false);
-        reset();
+    const onSubmit = async (data) => {
+        try {
+            const payload = {
+                testDate: data.date,
+                consignmentNo: data.consignmentNo,
+                lotNo: data.lotNo,
+                supplier: data.supplier,
+                type: data.type,
+                ritesIc: data.ritesIc,
+                checked: summary.total,
+                accepted: summary.passed,
+                rejected: summary.rejected,
+                rejectionPct: summary.rejectionPct,
+                shift: selectedShift || 'General',
+                lineNo: dutyLocation || 'N/A',
+                dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
+                createdBy: 1, // Default
+                readings: data.readings
+            };
+
+            await saveSgciInsertAudit(payload);
+            showToast("SGCI Insert Audit record saved!", "success");
+
+            setShowForm(false);
+            reset();
+            // Re-fetch historical logs in real app
+        } catch (error) {
+            console.error("Error saving SGCI audit:", error);
+            showToast("Failed to save SGCI Insert Audit report.", "error");
+        }
     };
 
     const handleDelete = (id) => {
@@ -122,11 +141,28 @@ const SgciInsertTesting = ({ onBack }) => {
     };
 
     const inventoryColumns = [
-        { key: 'supplier', label: 'Registered Agency' },
-        { key: 'lotNo', label: 'Lot No.', isHeaderHighlight: true },
-        { key: 'type', label: 'Insert Type' },
-        { key: 'qty', label: 'Quantity' },
-        { key: 'ritesIc', label: 'RITES IC' },
+        { key: 'vendor', label: 'Registered Agency' },
+        { 
+            key: 'consignmentNo', 
+            label: 'Consignment No.', 
+            isHeaderHighlight: true,
+            render: (_, row) => row.consignmentNo || row.details?.invoiceNumber || 'N/A'
+        },
+        { 
+            key: 'type', 
+            label: 'Insert Type',
+            render: (_, row) => row.details?.gradeType || 'N/A'
+        },
+        { 
+            key: 'qty', 
+            label: 'Quantity',
+            render: (_, row) => row.details?.totalQtyReceived || 'N/A'
+        },
+        { 
+            key: 'ritesIc', 
+            label: 'RITES IC',
+            render: (_, row) => row.details?.ritesIcNumber || 'N/A'
+        },
         {
             key: 'actions',
             label: 'Actions',
@@ -136,8 +172,12 @@ const SgciInsertTesting = ({ onBack }) => {
                     onClick={() => {
                         reset({
                             date: new Date().toISOString().split('T')[0],
-                            lotNo: row.lotNo,
-                            inventoryId: row.id,
+                            consignmentNo: row.consignmentNo,
+                            lotNo: row.details?.invoiceNumber || row.consignmentNo,
+                            supplier: row.vendor,
+                            ritesIc: row.details?.ritesIcNumber || 'N/A',
+                            type: row.details?.gradeType || 'N/A',
+                            inventoryId: row.requestId,
                             readings: [{ heatNo: '', patternNo: '', weight: '', dimensionalNotOk: false, hammerNotOk: false, result: 'PASS' }]
                         });
                         setShowForm(true);
@@ -268,6 +308,7 @@ const SgciInsertTesting = ({ onBack }) => {
                                         <select {...register('consignmentNo')}>
                                             <option value="">-- Select --</option>
                                             {MOCK_VERIFIED_CONSIGNMENTS.map(c => <option key={c} value={c}>{c}</option>)}
+                                            <option value="PERIODIC">-- Periodic Testing --</option>
                                         </select>
                                     </div>
                                     <div className="input-group">

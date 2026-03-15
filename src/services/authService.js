@@ -3,32 +3,7 @@
  * Handles login API calls and token management
  */
 
-// Use the exact same base URL as in api.js
-const API_BASE_URL = 'https://sarthibackendservice-bfe2eag3byfkbsa6.canadacentral-01.azurewebsites.net/sarthi-backend/api';
-
-/**
- * Hardcoded credentials for Sleeper users (re-added for parity)
- */
-const HARDCODED_USERS = {
-  'sleeper': {
-    password: 'password',
-    userData: {
-      userId: 'sleeper',
-      userName: 'Sleeper Officer',
-      roleName: 'SLEEPER',
-      token: 'sleeper-mock-token-' + Date.now()
-    }
-  },
-  'Sleeper': {
-    password: 'password',
-    userData: {
-      userId: 'Sleeper',
-      userName: 'Sleeper Officer',
-      roleName: 'SLEEPER',
-      token: 'sleeper-mock-token-' + Date.now()
-    }
-  }
-};
+import { API_BASE_URL } from './api';
 
 /**
  * Login user with userId and password
@@ -37,17 +12,6 @@ const HARDCODED_USERS = {
  * @returns {Promise<Object>} Login response with user data and token
  */
 export const loginUser = async (userId, password) => {
-  // Check for hardcoded credentials first
-  if (HARDCODED_USERS[userId]) {
-    if (HARDCODED_USERS[userId].password === password) {
-      console.log(`✅ Hardcoded login successful for ${userId}`);
-      return HARDCODED_USERS[userId].userData;
-    } else {
-      throw new Error('Invalid password');
-    }
-  }
-
-  // Fallback to real API if needed (though predominantly uses hardcoded for now)
   try {
     const response = await fetch(`${API_BASE_URL}/auth/loginBasedOnType`, {
       method: 'POST',
@@ -55,7 +19,7 @@ export const loginUser = async (userId, password) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        loginType: "IE",
+        loginType: "IE", // Defaulting to IE for now as it matches the previous hardcoded logic
         loginId: userId,
         password: password,
       }),
@@ -73,6 +37,7 @@ export const loginUser = async (userId, password) => {
 
     return data.responseData;
   } catch (error) {
+    console.error('Login error:', error);
     throw error;
   }
 };
@@ -128,4 +93,13 @@ export const logoutUser = () => {
   localStorage.removeItem('userId');
   localStorage.removeItem('userName');
   localStorage.removeItem('roleName');
+  // Clear navigation/session persistence
+  localStorage.removeItem('activeMainView');
+  localStorage.removeItem('activeSubView_General');
+  localStorage.removeItem('dutyStarted');
+  localStorage.removeItem('selectedShift');
+  localStorage.removeItem('dutyDate');
+  localStorage.removeItem('dutyUnit');
+  localStorage.removeItem('dutyLocation');
+  localStorage.removeItem('activeContainerId');
 };

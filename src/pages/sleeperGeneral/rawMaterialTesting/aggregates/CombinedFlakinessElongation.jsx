@@ -1,30 +1,32 @@
 import React, { useState, useEffect } from "react";
-import { MOCK_VERIFIED_CONSIGNMENTS } from "../../../../utils/rawMaterialMockData";
+import { useShift } from "../../../../context/ShiftContext";
+import { useToast } from "../../../../context/ToastContext";
+import { saveAggregateFlakiness } from "../../../../services/workflowService";
 
-
-const FlakinessTable = ({ title, sieveData, onDataChange }) => {
+const FlakinessTable = ({ title, category, sieveData, onDataChange }) => {
     const [rows, setRows] = useState(sieveData.map(s => ({
-        passing: s.passing,
-        retained: s.retained,
-        a: 0, // Weight of sample
-        b: 0, // Weight passed on thickness gauge
-        c: 0, // A - B (auto)
-        d: 0  // Weight retained on length gauge
+        category: category,
+        passingSize: s.passing,
+        retainedSize: s.retained,
+        weightSampleA: 0,
+        weightPassedB: 0,
+        weightRetainedC: 0,
+        weightRetainedLengthD: 0
     })));
 
     const handleInputChange = (idx, field, val) => {
         const newRows = [...rows];
         newRows[idx][field] = Number(val);
-        if (field === 'a' || field === 'b') {
-            newRows[idx].c = newRows[idx].a - newRows[idx].b;
+        if (field === 'weightSampleA' || field === 'weightPassedB') {
+            newRows[idx].weightRetainedC = newRows[idx].weightSampleA - newRows[idx].weightPassedB;
         }
         setRows(newRows);
     };
 
-    const sumA = rows.reduce((acc, r) => acc + r.a, 0);
-    const sumB = rows.reduce((acc, r) => acc + r.b, 0);
-    const sumC = rows.reduce((acc, r) => acc + r.c, 0);
-    const sumD = rows.reduce((acc, r) => acc + r.d, 0);
+    const sumA = rows.reduce((acc, r) => acc + r.weightSampleA, 0);
+    const sumB = rows.reduce((acc, r) => acc + r.weightPassedB, 0);
+    const sumC = rows.reduce((acc, r) => acc + r.weightRetainedC, 0);
+    const sumD = rows.reduce((acc, r) => acc + r.weightRetainedLengthD, 0);
 
     const combinedIndex = (sumA > 0 && sumC > 0) ? (((sumB / sumA) + (sumD / sumC)) * 100) : 0;
     const result = combinedIndex < 40 ? "OK" : "Not OK";
@@ -58,12 +60,12 @@ const FlakinessTable = ({ title, sieveData, onDataChange }) => {
                     <tbody>
                         {rows.map((row, idx) => (
                             <tr key={idx}>
-                                <td data-label="IS Sieve Passing">{row.passing}</td>
-                                <td data-label="IS Sieve Retained">{row.retained}</td>
-                                <td data-label="Wt. Sample (A)"><input type="number" step="0.01" value={row.a || ''} onChange={(e) => handleInputChange(idx, 'a', e.target.value)} /></td>
-                                <td data-label="Wt. Passed (B)"><input type="number" step="0.01" value={row.b || ''} onChange={(e) => handleInputChange(idx, 'b', e.target.value)} /></td>
-                                <td data-label="Wt. Retained (C=A-B)" className="readOnly">{row.c.toFixed(2)}</td>
-                                <td data-label="Wt. Retained Length (D)"><input type="number" step="0.01" value={row.d || ''} onChange={(e) => handleInputChange(idx, 'd', e.target.value)} /></td>
+                                <td data-label="IS Sieve Passing">{row.passingSize}</td>
+                                <td data-label="IS Sieve Retained">{row.retainedSize}</td>
+                                <td data-label="Wt. Sample (A)"><input type="number" step="0.01" value={row.weightSampleA || ''} onChange={(e) => handleInputChange(idx, 'weightSampleA', e.target.value)} /></td>
+                                <td data-label="Wt. Passed (B)"><input type="number" step="0.01" value={row.weightPassedB || ''} onChange={(e) => handleInputChange(idx, 'weightPassedB', e.target.value)} /></td>
+                                <td data-label="Wt. Retained (C=A-B)" className="readOnly">{row.weightRetainedC.toFixed(2)}</td>
+                                <td data-label="Wt. Retained Length (D)"><input type="number" step="0.01" value={row.weightRetainedLengthD || ''} onChange={(e) => handleInputChange(idx, 'weightRetainedLengthD', e.target.value)} /></td>
                             </tr>
                         ))}
                     </tbody>
@@ -89,16 +91,48 @@ const FlakinessTable = ({ title, sieveData, onDataChange }) => {
     );
 };
 
-export default function CombinedFlakinessElongation({ onSave, onCancel, consignment, lot }) {
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [selectedConsignment, setSelectedConsignment] = useState("");
-    const [data20, setData20] = useState({});
-    const [data10, setData10] = useState({});
+export default function CombinedFlakinessElongation({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+    const { selectedShift, dutyLocation, dutyDate } = useShift();
+    const { showToast } = useToast();
+    const [testDate, setTestDate] = useState(new Date().toISOString().split('T')[0]);
+    const [consignmentNo, setConsignmentNo] = useState("");
+    const [data20, setData20] = useState({ rows: [] });
+    const [data10, setData10] = useState({ rows: [] });
+    const [submitting, setSubmitting] = useState(false);
 
-
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        onSave && onSave({ date, data20, data10, consignment, lot });
+        if (!consignmentNo) {
+            showToast("Please select a consignment", "warning");
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            const payload = {
+                testDate,
+                consignmentNo,
+                combinedIndex20mm: data20.combinedIndex,
+                result20mm: data20.result,
+                combinedIndex10mm: data10.combinedIndex,
+                result10mm: data10.result,
+                observations: [...data20.rows, ...data10.rows],
+                shift: selectedShift || 'General',
+                lineNo: dutyLocation || 'N/A',
+                dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
+                createdBy: JSON.parse(localStorage.getItem('user'))?.id || 1
+            };
+
+            await saveAggregateFlakiness(payload);
+            showToast("Flakiness & Elongation report saved successfully!", "success");
+            setConsignmentNo("");
+            onSave && onSave(payload);
+        } catch (error) {
+            console.error("Error saving flakiness data:", error);
+            showToast("Failed to save Flakiness report.", "error");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -111,28 +145,28 @@ export default function CombinedFlakinessElongation({ onSave, onCancel, consignm
                     <div className="form-grid" style={{ marginBottom: '1.5rem' }}>
                         <div className="input-group">
                             <label>Date of Testing <span className="required">*</span></label>
-                            <input type="text" value={new Date().toLocaleDateString('en-GB')} readOnly style={{ background: '#f1f5f9' }} />
+                            <input type="date" value={testDate} onChange={(e) => setTestDate(e.target.value)} required />
                         </div>
 
-                        {!consignment && (
-                            <div className="input-group">
-                                <label>Consignment No. <span className="required">*</span></label>
-                                <select
-                                    value={selectedConsignment}
-                                    onChange={(e) => setSelectedConsignment(e.target.value)}
-                                    required
-                                >
-                                    <option value="">-- Select --</option>
-                                    {MOCK_VERIFIED_CONSIGNMENTS.map(c => (
-                                        <option key={c} value={c}>{c}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
+                        <div className="input-group">
+                            <label>Consignment No. <span className="required">*</span></label>
+                            <select
+                                value={consignmentNo}
+                                onChange={(e) => setConsignmentNo(e.target.value)}
+                                required
+                            >
+                                <option value="">-- Select --</option>
+                                {inventoryData.map((c, i) => (
+                                    <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
+                                ))}
+                                <option value="PERIODIC">-- Periodic Testing --</option>
+                            </select>
+                        </div>
                     </div>
 
                     <FlakinessTable
                         title="🔹 SUB-FORM 1: Combined Flakiness & Elongation Index of 20 mm Aggregate"
+                        category="20mm"
                         sieveData={[
                             { passing: 20, retained: 16 },
                             { passing: 16, retained: 12.5 },
@@ -143,6 +177,7 @@ export default function CombinedFlakinessElongation({ onSave, onCancel, consignm
 
                     <FlakinessTable
                         title="🔹 SUB-FORM 2: Combined Flakiness & Elongation Index of 10 mm Aggregate"
+                        category="10mm"
                         sieveData={[
                             { passing: 12.5, retained: 10 },
                             { passing: 10, retained: 6.3 }
@@ -151,8 +186,10 @@ export default function CombinedFlakinessElongation({ onSave, onCancel, consignm
                     />
 
                     <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-                        <button type="submit" className="btn-save">Submit Test Report</button>
-                        {onCancel && <button type="button" onClick={onCancel} className="btn-save" style={{ background: '#64748b' }}>Cancel</button>}
+                        <button type="submit" className="btn-save" disabled={submitting}>
+                            {submitting ? 'Saving...' : 'Submit Test Report'}
+                        </button>
+                        {onCancel && <button type="button" onClick={onCancel} className="btn-save" style={{ background: '#64748b' }} disabled={submitting}>Cancel</button>}
                     </div>
                 </div>
             </div>

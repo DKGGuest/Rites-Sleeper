@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import EnhancedDataTable from '../../../../components/common/EnhancedDataTable';
 import { MOCK_HTS_HISTORY, MOCK_INVENTORY, MOCK_VERIFIED_CONSIGNMENTS } from '../../../../utils/rawMaterialMockData';
+import { useShift } from '../../../../context/ShiftContext';
+import { useToast } from '../../../../context/ToastContext';
+import { saveHtsWireDailyTest } from '../../../../services/workflowService';
 import TrendChart from '../../../../components/common/TrendChart';
-
 import '../cement/CementForms.css';
 
 const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
@@ -29,9 +31,11 @@ const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
     </div>
 );
 
-const HtsWireTesting = ({ onBack }) => {
+const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
     const [viewMode, setViewMode] = useState('new-stocks'); // Default to new stocks
     const [showForm, setShowForm] = useState(false);
+    const { selectedShift, dutyDate, dutyLocation } = useShift();
+    const { showToast } = useToast();
     const [availableCoils] = useState(MOCK_INVENTORY.HTS || []);
     const [history, setHistory] = useState(MOCK_HTS_HISTORY.map(h => ({
         ...h,
@@ -41,7 +45,7 @@ const HtsWireTesting = ({ onBack }) => {
         createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
     })));
 
-    const pendingStocks = MOCK_INVENTORY.HTS.filter(item => item.status === 'Verified');
+    const pendingStocks = inventoryData;
 
     const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm({
         defaultValues: {
@@ -70,22 +74,26 @@ const HtsWireTesting = ({ onBack }) => {
         return (now - entryTime) < (60 * 60 * 1000); // 1 hour
     };
 
-    const onSubmit = (data) => {
-        const readingsToday = history.filter(h => h.testDate === data.testDate && h.coilNo === data.coilNo);
-        if (readingsToday.length >= 3) {
-            alert(`Maximum of 3 readings allowed for Coil ${data.coilNo} on ${data.testDate}.`);
-            return;
+    const onSubmit = async (data) => {
+        try {
+            const payload = {
+                ...data,
+                shift: selectedShift || 'General',
+                lineNo: dutyLocation || 'N/A',
+                dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
+                createdBy: 1 // Default
+            };
+
+            await saveHtsWireDailyTest(payload);
+            showToast("HTS Wire daily test result saved!", "success");
+
+            setShowForm(false);
+            reset();
+            // In real app re-fetch history
+        } catch (error) {
+            console.error("Error saving HTS wire test:", error);
+            showToast("Failed to save HTS wire test result.", "error");
         }
-
-        const newRecord = {
-            id: Date.now(),
-            ...data,
-            createdAt: new Date().toISOString()
-        };
-
-        setHistory([newRecord, ...history]);
-        setShowForm(false);
-        reset();
     };
 
     const handleDelete = (id) => {
@@ -96,8 +104,21 @@ const HtsWireTesting = ({ onBack }) => {
 
     const inventoryColumns = [
         { key: 'vendor', label: 'Registered Agency' },
-        { key: 'coilNo', label: 'Coil No.', isHeaderHighlight: true },
-        { key: 'qty', label: 'Quantity' },
+        { 
+            key: 'coilNo', 
+            label: 'Coil No.', 
+            isHeaderHighlight: true,
+            render: (_, row) => {
+                const coils = row.details?.coilDetails || [];
+                if (coils.length > 0) return coils.map(c => c.coilNo).join(', ');
+                return row.coilNo || 'N/A';
+            }
+        },
+        { 
+            key: 'qty', 
+            label: 'Quantity',
+            render: (_, row) => row.details?.totalQtyReceived || row.qty || 'N/A'
+        },
         { key: 'receivedDate', label: 'Arrival Date' },
         {
             key: 'actions',
@@ -106,10 +127,12 @@ const HtsWireTesting = ({ onBack }) => {
                 <button
                     className="btn-action mini"
                     onClick={() => {
+                        const firstCoil = row.details?.coilDetails?.[0]?.coilNo || row.coilNo;
                         reset({
                             testDate: new Date().toISOString().split('T')[0],
-                            coilNo: row.coilNo,
-                            inventoryId: row.id
+                            consignmentNo: row.consignmentNo,
+                            coilNo: firstCoil,
+                            inventoryId: row.requestId
                         });
                         setShowForm(true);
                     }}
@@ -237,6 +260,7 @@ const HtsWireTesting = ({ onBack }) => {
                                         <select {...register('consignmentNo', { required: 'Required' })}>
                                             <option value="">-- Select --</option>
                                             {MOCK_VERIFIED_CONSIGNMENTS.map(c => <option key={c} value={c}>{c}</option>)}
+                                            <option value="PERIODIC">-- Periodic Testing --</option>
                                         </select>
                                     </div>
                                     <div className="input-group">

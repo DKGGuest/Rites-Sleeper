@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { MOCK_VERIFIED_CONSIGNMENTS } from "../../../../utils/rawMaterialMockData";
+import React, { useState, useEffect } from "react";
+import { useShift } from "../../../../context/ShiftContext";
+import { useToast } from "../../../../context/ToastContext";
+import { getStoredUser } from "../../../../services/authService";
+import { saveCementNormalConsistency } from "../../../../services/workflowService";
 
 
 const emptyRow = {
@@ -11,8 +13,18 @@ const emptyRow = {
     needle: "",
 };
 
-export default function NormalConsistencyForm() {
-    const { register, watch } = useForm();
+export default function NormalConsistencyForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+    const { selectedShift, dutyDate, dutyLocation } = useShift();
+    const { showToast } = useToast();
+    const user = getStoredUser();
+
+    const [loading, setLoading] = useState(false);
+    const [header, setHeader] = useState({
+        typeOfTesting: initialType,
+        consignmentNo: "",
+        roomTemp: "",
+        sampleWeight: 400
+    });
 
     const [rows, setRows] = useState([
         { ...emptyRow },
@@ -33,17 +45,52 @@ export default function NormalConsistencyForm() {
 
     // auto calculations
     useEffect(() => {
-        // assume last row is final accepted reading
-        const last = rows[rows.length - 1];
-
-        if (last.percent && last.volume) {
+        // Find last row with percent and volume
+        const validRows = rows.filter(r => r.percent && r.volume);
+        if (validRows.length > 0) {
+            const last = validRows[validRows.length - 1];
             setNormalConsistency(last.percent);
             setWater85((Number(last.volume) * 0.85).toFixed(1));
         }
     }, [rows]);
 
+    const handleFormSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const payload = {
+                testDate: new Date().toISOString().split('T')[0],
+                typeOfTesting: header.typeOfTesting,
+                consignmentNo: header.consignmentNo,
+                roomTemp: parseFloat(header.roomTemp),
+                sampleWeight: parseFloat(header.sampleWeight),
+                shift: selectedShift || 'General',
+                lineNo: dutyLocation || 'N/A',
+                dateOfInspection: dutyDate,
+                createdBy: user?.userId || 0,
+                observations: rows
+                    .filter(r => r.percent && r.volume)
+                    .map(r => ({
+                        percentWaterAdded: parseFloat(r.percent),
+                        volume: parseFloat(r.volume),
+                        timeOfAdding: r.addTime ? `${r.addTime}:00` : null,
+                        readingTime: r.readTime ? `${r.readTime}:00` : null,
+                        needleReading: parseFloat(r.needle)
+                    }))
+            };
+
+            showToast("Cement Normal Consistency record saved successfully!", "success");
+            if (onSave) onSave();
+        } catch (error) {
+            console.error("Save failed:", error);
+            showToast("Error saving record. Please check console.", "error");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
-        <div className="form-card">
+        <form className="form-card" onSubmit={handleFormSubmit}>
             <div className="form-header">
                 <h2>Normal Consistency Test – Cement</h2>
             </div>
@@ -58,31 +105,51 @@ export default function NormalConsistencyForm() {
 
                     <div className="input-group">
                         <label>Type of Testing <span className="required">*</span></label>
-                        <select {...register("type")}>
+                        <select
+                            value={header.typeOfTesting}
+                            onChange={e => setHeader({ ...header, typeOfTesting: e.target.value })}
+                            required
+                        >
                             <option value="">-- Select --</option>
-                            <option>New Inventory</option>
-                            <option>Periodic</option>
+                            <option value="New Inventory">New Inventory</option>
+                            <option value="Periodic">Periodic</option>
                         </select>
                     </div>
 
                     <div className="input-group">
                         <label>Consignment No <span className="required">*</span></label>
-                        <select {...register("consignment")}>
+                        <select
+                            value={header.consignmentNo}
+                            onChange={e => setHeader({ ...header, consignmentNo: e.target.value })}
+                            required
+                        >
                             <option value="">-- Select --</option>
-                            {MOCK_VERIFIED_CONSIGNMENTS.map(c => (
-                                <option key={c} value={c}>{c}</option>
+                            {inventoryData.map(c => (
+                                <option key={c.consignmentNo} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
                             ))}
+                            <option value="PERIODIC">-- Periodic Testing --</option>
                         </select>
                     </div>
 
                     <div className="input-group">
                         <label>Room Temperature (°C)</label>
-                        <input type="number" placeholder="°C" {...register("temp")} />
+                        <input
+                            type="number"
+                            step="0.1"
+                            placeholder="°C"
+                            value={header.roomTemp}
+                            onChange={e => setHeader({ ...header, roomTemp: e.target.value })}
+                        />
                     </div>
 
                     <div className="input-group">
                         <label>Weight of Sample (gms)</label>
-                        <input type="number" placeholder="gms" {...register("weight")} />
+                        <input
+                            type="number"
+                            placeholder="gms"
+                            value={header.sampleWeight}
+                            onChange={e => setHeader({ ...header, sampleWeight: e.target.value })}
+                        />
                     </div>
                 </div>
 
@@ -118,6 +185,7 @@ export default function NormalConsistencyForm() {
                                     <td data-label="Volume (ml)">
                                         <input
                                             type="number"
+                                            step="0.1"
                                             value={row.volume}
                                             onChange={(e) => updateRow(i, "volume", e.target.value)}
                                         />
@@ -160,7 +228,7 @@ export default function NormalConsistencyForm() {
                         </div>
                         <div className="info-card">
                             <div className="info-card-label">Qty of Water</div>
-                            <div className="info-card-value">{rows[3]?.volume || "-"} ml</div>
+                            <div className="info-card-value">{rows.find(r => r.percent === normalConsistency)?.volume || "-"} ml</div>
                         </div>
                         <div className="info-card">
                             <div className="info-card-label">85% of Water</div>
@@ -169,8 +237,15 @@ export default function NormalConsistencyForm() {
                     </div>
                 </div>
 
-                <button className="btn-save">Submit Test Report</button>
+                <div className="btn-group" style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                    <button type="submit" className="btn-save" disabled={loading}>
+                        {loading ? "Saving..." : "Submit Test Report"}
+                    </button>
+                    <button type="button" className="btn-save" style={{ background: '#64748b' }} onClick={onCancel}>
+                        Cancel
+                    </button>
+                </div>
             </div>
-        </div>
+        </form>
     );
 }

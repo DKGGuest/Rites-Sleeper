@@ -36,7 +36,7 @@ const WaterTesting = ({ onBack }) => {
         createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
     })));
 
-    // Water doesn't usually have verified stock, but we'll mock some sources
+    // Water dummy data as requested
     const waterSources = [
         { id: 'W-01', vendor: 'Borewell No 1', receivedDate: '2026-01-01', status: 'Verified' },
         { id: 'W-02', vendor: 'Borewell No 2', receivedDate: '2026-01-01', status: 'Verified' },
