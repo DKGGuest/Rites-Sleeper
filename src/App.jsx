@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import MainLayout from './components/Layout/MainLayout';
 import SleeperProcessDuty from './pages/sleeperGeneral/SleeperProcessDuty';
 import SleeperProcessIEGeneral from './pages/sleeperGeneral/SleeperProcessIEGeneral';
@@ -8,7 +9,20 @@ import BatchWiseSleeperReport from './pages/ProcessIE/BatchWiseSleeperReport';
 import LastShiftReport from './pages/ProcessIE/LastShiftReport';
 import MonthlyReport from './pages/ProcessIE/MonthlyReport';
 import DashboardTabs from './components/Navigation/DashboardTabs';
+import LoginPage from './pages/LoginPage/LoginPage';
+import { ROUTES } from './routes';
+import { isAuthenticated } from './services/authService';
 
+/**
+ * Protected Route Component
+ */
+const ProtectedRoute = ({ children }) => {
+  const location = useLocation();
+  if (!isAuthenticated()) {
+    return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
+  }
+  return children;
+};
 
 /**
  * App Component - Main Entry Point
@@ -71,16 +85,25 @@ const App = () => {
   ].includes(mainView);
 
   return (
-    <ShiftProvider>
-      <MainLayout activeItem={mainView} onItemClick={setMainView}>
-        {showTabs && (
-          <DashboardTabs activeItem={mainView} onItemClick={setMainView} />
-        )}
-        {renderView()}
-      </MainLayout>
-    </ShiftProvider>
+    <Routes>
+      <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+      <Route
+        path="*"
+        element={
+          <ProtectedRoute>
+            <ShiftProvider>
+              <MainLayout activeItem={mainView} onItemClick={setMainView}>
+                {showTabs && (
+                  <DashboardTabs activeItem={mainView} onItemClick={setMainView} />
+                )}
+                {renderView()}
+              </MainLayout>
+            </ShiftProvider>
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
   );
 };
 
 export default App;
-

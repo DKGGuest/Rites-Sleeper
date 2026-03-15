@@ -1,14 +1,23 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import { logoutUser } from '../../services/authService';
+import { ROUTES } from '../../routes';
 import './MainLayout.css';
 
 /**
  * MainLayout – Application shell: sidebar + topbar + content area.
  */
 const MainLayout = ({ children, activeItem, onItemClick }) => {
+    const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSidebarPinned, setIsSidebarPinned] = useState(false);
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+
+    const handleLogout = () => {
+        logoutUser();
+        navigate(ROUTES.LOGIN, { replace: true });
+    };
 
     return (
         <div className="main-layout-root">
@@ -61,7 +70,12 @@ const MainLayout = ({ children, activeItem, onItemClick }) => {
                     {/* Right: user avatar + logout */}
                     <div className="header-right">
                         <div className="header-user-avatar">I</div>
-                        <button className="header-logout-btn">Logout</button>
+                        <button 
+                            className="header-logout-btn"
+                            onClick={handleLogout}
+                        >
+                            Logout
+                        </button>
                     </div>
 
                 </header>

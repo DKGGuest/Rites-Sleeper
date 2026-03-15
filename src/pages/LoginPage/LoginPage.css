@@ -1,0 +1,662 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap');
+
+:root {
+  --font-body: 'Manrope', sans-serif;
+  --font-display: 'Sora', sans-serif;
+
+  --bg-base: #eef4ff;
+  --bg-soft: #e4edfb;
+  --surface-strong: rgba(255, 255, 255, 0.86);
+  --surface-soft: rgba(239, 247, 255, 0.68);
+  --surface-tint: rgba(225, 240, 255, 0.56);
+  --border-light: rgba(255, 255, 255, 0.62);
+  --border-strong: rgba(129, 165, 214, 0.55);
+
+  --text-strong: #0f2246;
+  --text-main: #233f67;
+  --text-soft: #4e6a91;
+  --text-muted: #7090bb;
+
+  --brand-0: #1f6fe8;
+  --brand-1: #2f91ff;
+  --brand-2: #53b6ff;
+  --brand-3: #2ecf9a;
+
+  --india-saffron: #df872f;
+  --india-white: #f8fbff;
+  --india-green: #1f8a4f;
+  --india-saffron-soft: rgba(223, 135, 47, 0.22);
+  --india-green-soft: rgba(31, 138, 79, 0.2);
+
+  --shadow-soft: 0 14px 34px rgba(23, 58, 112, 0.15);
+  --shadow-medium: 0 22px 52px rgba(20, 55, 108, 0.2);
+  --shadow-strong: 0 36px 76px rgba(18, 48, 96, 0.24);
+
+  --radius-xl: 30px;
+  --radius-lg: 20px;
+  --header-width: min(960px, 92vw);
+  --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.login-redesign-wrapper {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100vw;
+  width: 100dvw;
+  overflow-x: hidden;
+  overflow-y: auto;
+  font-family: var(--font-body);
+  color: var(--text-main);
+  background: radial-gradient(1200px 720px at -12% -14%, #f8fbff 0%, transparent 64%),
+    radial-gradient(1000px 640px at 102% 6%, #e3edff 0%, transparent 58%),
+    linear-gradient(145deg, var(--bg-base), var(--bg-soft));
+  position: relative;
+  z-index: 1000;
+}
+
+/* Floating Landing Page Header Implementation */
+.login-redesign-wrapper .site-header {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 100;
+  padding: 0.34rem clamp(0.68rem, 2vw, 1.52rem);
+  transition: transform 0.45s var(--ease-premium), padding 0.3s ease;
+  animation: headerEnter 0.85s var(--ease-premium) both;
+}
+
+.login-redesign-wrapper .site-header::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -0.06rem;
+  width: min(96vw, var(--header-width));
+  height: 3px;
+  transform: translateX(-50%) scaleX(var(--header-progress, 0));
+  transform-origin: left center;
+  border-radius: 999px;
+  opacity: 0.86;
+  background: linear-gradient(92deg,
+      rgba(223, 135, 47, 0.95) 0%,
+      rgba(242, 248, 255, 0.92) 44%,
+      rgba(31, 138, 79, 0.9) 100%);
+  background-size: 160% 100%;
+  animation: headerAccentFlow 11.5s ease-in-out infinite;
+}
+
+.login-redesign-wrapper .header-shell {
+  position: relative;
+  width: var(--header-width);
+  margin: 0 auto;
+  min-height: 70px;
+  padding: 0.28rem clamp(0.76rem, 1.52vw, 1.18rem);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 24px;
+  border: 1px solid #d8e6f9;
+  background: linear-gradient(122deg, #ffffff, #f7fbff 46%, #eef6ff);
+  box-shadow: 0 18px 40px rgba(27, 71, 134, 0.12), inset 0 1px 0 #ffffff;
+  overflow: hidden;
+}
+
+.login-redesign-wrapper .brand {
+  position: relative;
+  z-index: 2;
+  --brand-logo-slot: clamp(112px, 9vw, 154px);
+  width: 100%;
+  max-width: min(1010px, 100%);
+  display: grid;
+  grid-template-columns: var(--brand-logo-slot) minmax(0, 1fr) var(--brand-logo-slot);
+  align-items: center;
+  column-gap: 0.68rem;
+}
+
+.login-redesign-wrapper .brand-mark {
+  grid-column: 1;
+  width: var(--brand-logo-slot);
+  height: clamp(70px, 6.8vw, 98px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-redesign-wrapper .brand-rites-logo {
+  width: 90%;
+  height: 90%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(45, 99, 173, 0.28)) saturate(1.08);
+}
+
+.login-redesign-wrapper .brand-text {
+  grid-column: 2;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login-redesign-wrapper .brand-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.28rem, 1.04rem + 1.02vw, 1.88rem);
+  font-weight: 800;
+  background: linear-gradient(100deg, #b66624 0%, #df872f 24%, #2f6e9c 56%, #1f8a4f 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: titleGradientShift 9.5s ease-in-out infinite;
+}
+
+.login-redesign-wrapper .brand-fullform {
+  font-size: clamp(0.8rem, 0.64rem + 0.42vw, 1.06rem);
+  font-weight: 700;
+  color: #c3833b;
+  background: linear-gradient(112deg, #b76b25 0%, #d9862f 22%, #eef4fb 44%, #2f6f9d 58%, #2d7f9d 72%, #21874d 100%);
+  background-size: 230% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: taglineGradientFlow 7.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.login-redesign-wrapper .slide-kicker {
+  margin: 0 0 0.84rem;
+  font-family: var(--font-display);
+  font-size: clamp(0.72rem, 0.92vw, 0.84rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8ec7ff;
+}
+
+.login-redesign-wrapper .slide-title {
+  margin: 0;
+  max-width: 17ch;
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 3.2vw, 3rem);
+  line-height: 1.08;
+  color: #f5f9ff;
+}
+
+.login-redesign-wrapper .slide-title span {
+  background: linear-gradient(120deg, #88d5ff, #7ab5ff 44%, #76f7c8 74%, #d8f8eb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.login-redesign-wrapper .slide-description {
+  margin: 0.9rem 0 0;
+  max-width: 43ch;
+  font-size: clamp(0.88rem, 1.04vw, 1rem);
+  line-height: 1.58;
+  color: rgba(225, 240, 255, 0.95);
+}
+
+.login-redesign-wrapper main {
+  width: 100%;
+  position: relative;
+  z-index: 5;
+}
+
+/* Visibility Classes from Landing Page */
+.login-redesign-wrapper .is-revealed {
+  opacity: 1 !important;
+  transform: translate(0) !important;
+  visibility: visible !important;
+}
+
+.login-redesign-wrapper .reveal-up {
+  transition: opacity 0.8s var(--ease-premium) 0.2s, transform 0.8s var(--ease-premium) 0.2s;
+}
+
+/* Hero Section Layout */
+.login-redesign-wrapper .hero {
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.login-redesign-wrapper .hero-slider {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.login-redesign-wrapper .hero-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  z-index: 1;
+  transition: opacity 1.2s var(--ease-premium);
+}
+
+.login-redesign-wrapper .hero-slide.is-active {
+  opacity: 1;
+  z-index: 2;
+}
+
+.login-redesign-wrapper .hero-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* subtle scale up to allow parallax movement without showing edges */
+  transform: scale(1.06) translate(var(--parallax-x, 0), var(--parallax-y, 0));
+  transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.login-redesign-wrapper .hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(102deg, rgba(8, 21, 42, 0.45) 0%, rgba(11, 31, 62, 0.3) 42%, rgba(12, 32, 66, 0.25) 100%);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.login-redesign-wrapper .hero-content-shell {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  min-height: 100vh;
+  padding: 130px 4% 4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-redesign-wrapper .hero-grid {
+  width: min(1500px, 92%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 480px;
+  gap: 4rem;
+  align-items: center;
+  /* Change to center for better vertical balance */
+}
+
+.login-redesign-wrapper .hero-copy-card {
+  opacity: 0;
+  transform: translateY(20px);
+  color: #fff;
+  text-shadow: 0 10px 20px rgba(3, 11, 24, 0.22);
+  margin-bottom: 2rem;
+}
+
+.login-redesign-wrapper .dashboard-panel {
+  opacity: 1 !important;
+  /* Force visibility */
+  transform: none !important;
+  position: relative;
+  padding: 2.2rem 1.6rem 1.2rem;
+  /* Increased top padding to clear the LOGIN chip */
+  border-radius: 22px;
+  border: 1.2px solid var(--border-light);
+  background: rgba(255, 255, 255, 0.48);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(28px) saturate(155%);
+  -webkit-backdrop-filter: blur(28px) saturate(155%);
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+  width: 100%;
+  max-width: 480px;
+}
+
+.login-redesign-wrapper .dashboard-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0.34;
+  background: linear-gradient(116deg, rgba(223, 135, 47, 0.2), transparent, rgba(31, 138, 79, 0.2));
+  background-size: 180% 100%;
+  animation: dashboardTricolorSheen 12s ease-in-out infinite;
+  pointer-events: none;
+  /* Allow interaction with inputs below this sheen */
+}
+
+.login-redesign-wrapper .dashboard-login-chip {
+  position: absolute;
+  top: clamp(0.72rem, 1.3vw, 0.96rem);
+  left: clamp(0.72rem, 1.4vw, 1rem);
+  z-index: 10;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 999px;
+  padding: 0.56rem 1.14rem;
+  min-width: 124px;
+  justify-content: center;
+  font-size: 0.74rem;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #ffffff;
+  background: linear-gradient(112deg, #c9782a 0%, #2f6f9d 52%, #1f8a4f 100%);
+  background-size: 210% 100%;
+  background-position: 0 50%;
+  box-shadow: 0 10px 20px rgba(35, 95, 151, 0.3);
+  cursor: pointer;
+}
+
+.login-redesign-wrapper .branding-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  margin-bottom: 0.84rem;
+  padding-top: 0.5rem;
+}
+
+.login-redesign-wrapper .branding-logo-box {
+  position: relative;
+  width: fit-content;
+  margin: 0 auto 0.52rem;
+}
+
+.login-redesign-wrapper .branding-logo-img {
+  width: clamp(80px, 12vw, 100px);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 16px rgba(48, 105, 187, 0.34));
+  animation: logoLift 0.62s var(--ease-premium) 0.16s both;
+}
+
+.login-redesign-wrapper .branding-title {
+  margin: 0.16rem 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.34rem, 2.35vw, 2.22rem);
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: 0.028em;
+  background: linear-gradient(104deg, #b76722 0%, #df872f 24%, #edf4fd 44%, #2f6f9d 58%, #1f8a4f 96%);
+  background-size: 230% 100%;
+  background-position: 0 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: dashboardTitleFlow 8.6s ease-in-out infinite;
+}
+
+.login-redesign-wrapper .branding-tagline {
+  margin: 0.28rem auto 0;
+  width: 100%;
+  font-size: clamp(0.78rem, 0.72rem + 0.2vw, 0.95rem);
+  line-height: 1.34;
+  letter-spacing: 0.012em;
+  font-weight: 700;
+  color: #376290;
+  background: linear-gradient(110deg, #b96d26 0%, #d9862f 22%, #ecf3fb 42%, #2f6f9d 56%, #2c7f98 72%, #1f8a4f 100%);
+  background-size: 240% 100%;
+  background-position: 0 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: dashboardFullformFlow 7.4s cubic-bezier(0.4, 0, 0.2, 1) 0.9s infinite,
+    dashboardFullformGlow 4.8s ease-in-out 1s infinite;
+}
+
+.login-redesign-wrapper .dashboard-form {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.login-redesign-wrapper .form-group {
+  position: relative;
+  text-align: left;
+}
+
+.login-redesign-wrapper .form-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #355c8f;
+  margin-bottom: 0.4rem;
+  display: block;
+}
+
+.login-redesign-wrapper .input-field-shell {
+  position: relative;
+  width: 100%;
+}
+
+.login-redesign-wrapper .input-icon {
+  position: absolute;
+  left: 0.95rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: #85a8d4;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.login-redesign-wrapper .password-toggle-redesign {
+  position: absolute;
+  right: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem;
+  font-size: 1rem;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.login-redesign-wrapper .password-toggle-redesign:hover {
+  opacity: 1;
+}
+
+.login-redesign-wrapper .form-group input {
+  width: 100%;
+  border-radius: 13px;
+  border: 1px solid rgba(156, 189, 229, 0.88);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(244, 249, 255, 0.9));
+  padding: 0.82rem 2.8rem 0.82rem 2.8rem;
+  /* Symmetrical padding */
+  font-size: 0.95rem;
+  color: #123762;
+  transition: all 0.24s ease;
+}
+
+.login-redesign-wrapper .form-group input:focus {
+  border-color: rgba(74, 146, 244, 0.96);
+  box-shadow: 0 0 0 4px rgba(95, 169, 255, 0.2);
+  outline: none;
+}
+
+.login-redesign-wrapper .submit-btn {
+  background-image: linear-gradient(118deg, #1f5f98 0%, #cc7b2a 30%, #2f6f9d 56%, #1f8a4f 100%);
+  background-size: 240% 100%;
+  border-radius: 13px;
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(35, 95, 151, 0.34);
+  transition: all 0.3s ease;
+}
+
+/* Spacing for Remember me and Forgot password */
+.login-redesign-wrapper .dashboard-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin: 0.5rem 0 1rem;
+  gap: 1.5rem;
+  /* Explicit gap between elements */
+}
+
+.login-redesign-wrapper .remember-me {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #355c8f;
+  font-weight: 600;
+}
+
+.login-redesign-wrapper .remember-me span {
+  margin-left: 0.5rem;
+  /* Space between checkbox and text */
+}
+
+.login-redesign-wrapper .forgot-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #2f6f9d;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.24s ease;
+}
+
+.login-redesign-wrapper .forgot-link:hover {
+  color: #cc7b2a;
+}
+
+/* Landing Page Specific Animations */
+@keyframes headerAccentFlow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes titleGradientShift {
+  0%, 100% { background-position: 0 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes taglineGradientFlow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes dashboardTitleFlow {
+  0%, 100% {
+    background-position: 0% 50%;
+    filter: drop-shadow(0 0 0 rgba(223, 135, 47, 0));
+  }
+  50% {
+    background-position: 100% 50%;
+    filter: drop-shadow(0 0 0.2rem rgba(223, 135, 47, 0.16)) drop-shadow(0 0 0.16rem rgba(31, 138, 79, 0.14));
+  }
+}
+
+@keyframes dashboardFullformFlow {
+  0%, 100% { background-position: 0% 50%; }
+  45% { background-position: 82% 50%; }
+  55% { background-position: 100% 50%; }
+}
+
+@keyframes dashboardFullformGlow {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(223, 135, 47, 0)); }
+  50% { filter: drop-shadow(0 0 0.16rem rgba(223, 135, 47, 0.14)) drop-shadow(0 0 0.14rem rgba(31, 138, 79, 0.13)); }
+}
+
+@keyframes dashboardTricolorSheen {
+  0%, 100% { background-position: 0% 50%; opacity: 0.28; }
+  50% { background-position: 100% 50%; opacity: 0.4; }
+}
+
+@keyframes heroDrift {
+  from { transform: scale(1.1); }
+  to { transform: scale(1.15); }
+}
+
+@keyframes headerEnter {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================
+   RESPONSIVE DESIGN SYSTEM
+   ============================================ */
+
+/* ---- Large Tablets / Medium Laptops (≤ 1180px) ---- */
+@media (max-width: 1180px) {
+  .login-redesign-wrapper .hero-grid {
+    grid-template-columns: 1fr 420px;
+    gap: 3rem;
+  }
+}
+
+/* ---- Tablets & Small Laptops (≤ 980px) ---- */
+@media (max-width: 980px) {
+  .login-redesign-wrapper {
+    overflow-y: auto;
+    height: auto;
+    min-height: 100vh;
+  }
+  .login-redesign-wrapper .hero {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+  .login-redesign-wrapper .hero-content-shell {
+    min-height: 100vh;
+    padding: 110px 5% 3rem;
+    align-items: center;
+  }
+  .login-redesign-wrapper .hero-grid {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+    gap: 3rem;
+  }
+  .login-redesign-wrapper .hero-copy-card {
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .login-redesign-wrapper .slide-title {
+    max-width: 100%;
+    font-size: clamp(2rem, 5vw, 2.8rem);
+  }
+  .login-redesign-wrapper .slide-description {
+    max-width: 50ch;
+  }
+  .login-redesign-wrapper .dashboard-panel {
+    max-width: 480px;
+  }
+}
+
+/* ---- Small Tablets & Phones (≤ 768px) ---- */
+@media (max-width: 768px) {
+  .login-redesign-wrapper .site-header { padding: 0.25rem 1rem; }
+  .login-redesign-wrapper .header-shell { min-height: 60px; padding: 0.2rem 1rem; border-radius: 18px; }
+  .login-redesign-wrapper .brand-mark { --brand-logo-slot: 90px; height: 60px; }
+  .login-redesign-wrapper .brand-title { font-size: 1.3rem; }
+  .login-redesign-wrapper .brand-fullform { font-size: 0.65rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .login-redesign-wrapper .hero-copy-card { display: none; }
+  .login-redesign-wrapper .hero-content-shell { padding: 100px 1rem 2rem; }
+  .login-redesign-wrapper .dashboard-panel { padding: 1.2rem; border-radius: 18px; }
+}
+
+/* ---- Mobile Devices (≤ 480px) ---- */
+@media (max-width: 480px) {
+  .login-redesign-wrapper .brand-title { font-size: 1.1rem; }
+  .login-redesign-wrapper .brand-fullform { display: none; }
+  .login-redesign-wrapper .brand { grid-template-columns: 70px 1fr 70px; }
+  .login-redesign-wrapper .brand-mark { --brand-logo-slot: 70px; }
+  .login-redesign-wrapper .form-group label { font-size: 0.8rem; }
+}
