@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { MOCK_VERIFIED_CONSIGNMENTS } from "../../../../utils/rawMaterialMockData";
+import { useShift } from "../../../../context/ShiftContext";
+import { useToast } from "../../../../context/ToastContext";
+import { saveAggregateGranulometric } from "../../../../services/workflowService";
 
-
-const SieveTable = ({ title, sieveSizes, onDataChange }) => {
+const SieveTable = ({ title, sectionType, sieveSizes, onDataChange }) => {
     const [rows, setRows] = useState(sieveSizes.map(size => ({
-        size,
+        sectionType: sectionType,
+        sieveSize: size,
         wtRetained: 0,
         cummWtRetained: 0,
         pctRetained: 0,
@@ -52,7 +54,7 @@ const SieveTable = ({ title, sieveSizes, onDataChange }) => {
                     <tbody>
                         {rows.map((row, idx) => (
                             <tr key={idx}>
-                                <td data-label="Sieve Size" style={{ fontWeight: 600 }}>{row.size}</td>
+                                <td data-label="Sieve Size" style={{ fontWeight: 600 }}>{row.sieveSize}</td>
                                 <td data-label="Wt. Retained (gms)"><input type="number" step="0.01" value={row.wtRetained || ''} onChange={(e) => handleWtChange(idx, e.target.value)} /></td>
                                 <td data-label="Cumm. Wt. Retained" className="readOnly">{row.cummWtRetained.toFixed(2)}</td>
                                 <td data-label="% Retained" className="readOnly">{row.pctRetained.toFixed(2)}%</td>
@@ -66,22 +68,50 @@ const SieveTable = ({ title, sieveSizes, onDataChange }) => {
     );
 };
 
-export default function CombinedGranulometricCurve({ onSave, onCancel, consignment, lot }) {
+export default function CombinedGranulometricCurve({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+    const { selectedShift, dutyLocation, dutyDate } = useShift();
+    const { showToast } = useToast();
     const sieveSizes = [
         "20 mm", "10 mm", "4.75 mm", "2.36 mm", "1.18 mm",
         "600 microns", "300 microns", "150 microns", "< 150 microns"
     ];
 
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [selectedConsignment, setSelectedConsignment] = useState("");
-    const [ca1Data, setCa1Data] = useState({ pctPassingList: Array(9).fill(100) });
+    const [testDate, setTestDate] = useState(new Date().toISOString().split('T')[0]);
+    const [consignmentNo, setConsignmentNo] = useState("");
+    const [ca1Data, setCa1Data] = useState({ rows: [], pctPassingList: Array(9).fill(100) });
+    const [ca2Data, setCa2Data] = useState({ rows: [], pctPassingList: Array(9).fill(100) });
+    const [faData, setFaData] = useState({ rows: [], pctPassingList: Array(9).fill(100) });
+    const [submitting, setSubmitting] = useState(false);
 
-    const [ca2Data, setCa2Data] = useState({ pctPassingList: Array(9).fill(100) });
-    const [faData, setFaData] = useState({ pctPassingList: Array(9).fill(100) });
-
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        onSave && onSave({ date, ca1Data, ca2Data, faData, consignment, lot });
+        if (!consignmentNo) {
+            showToast("Please select a consignment", "warning");
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            const payload = {
+                testDate,
+                consignmentNo,
+                observations: [...ca1Data.rows, ...ca2Data.rows, ...faData.rows],
+                shift: selectedShift || 'General',
+                lineNo: dutyLocation || 'N/A',
+                dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
+                createdBy: JSON.parse(localStorage.getItem('user'))?.id || 1
+            };
+
+            await saveAggregateGranulometric(payload);
+            showToast("Granulometric Curve report saved successfully!", "success");
+            setConsignmentNo("");
+            onSave && onSave(payload);
+        } catch (error) {
+            console.error("Error saving granulometric data:", error);
+            showToast("Failed to save Granulometric report.", "error");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -94,29 +124,28 @@ export default function CombinedGranulometricCurve({ onSave, onCancel, consignme
                     <div className="form-grid" style={{ marginBottom: '1.5rem' }}>
                         <div className="input-group">
                             <label>Date of Testing <span className="required">*</span></label>
-                            <input type="text" value={new Date().toLocaleDateString('en-GB')} readOnly style={{ background: '#f1f5f9' }} />
+                            <input type="date" value={testDate} onChange={(e) => setTestDate(e.target.value)} required />
                         </div>
 
-                        {!consignment && (
-                            <div className="input-group">
-                                <label>Consignment No. <span className="required">*</span></label>
-                                <select
-                                    value={selectedConsignment}
-                                    onChange={(e) => setSelectedConsignment(e.target.value)}
-                                    required
-                                >
-                                    <option value="">-- Select --</option>
-                                    {MOCK_VERIFIED_CONSIGNMENTS.map(c => (
-                                        <option key={c} value={c}>{c}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
+                        <div className="input-group">
+                            <label>Consignment No. <span className="required">*</span></label>
+                            <select
+                                value={consignmentNo}
+                                onChange={(e) => setConsignmentNo(e.target.value)}
+                                required
+                            >
+                                <option value="">-- Select --</option>
+                                {inventoryData.map((c, i) => (
+                                    <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
+                                ))}
+                                <option value="PERIODIC">-- Periodic Testing --</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <SieveTable title="🟡 SUB-SECTION 1: CA1" sieveSizes={sieveSizes} onDataChange={setCa1Data} />
-                    <SieveTable title="🟡 SUB-SECTION 2: CA2" sieveSizes={sieveSizes} onDataChange={setCa2Data} />
-                    <SieveTable title="🟡 SUB-SECTION 3: FA (Fine Aggregate)" sieveSizes={sieveSizes} onDataChange={setFaData} />
+                    <SieveTable title="🟡 SUB-SECTION 1: CA1" sectionType="CA1" sieveSizes={sieveSizes} onDataChange={setCa1Data} />
+                    <SieveTable title="🟡 SUB-SECTION 2: CA2" sectionType="CA2" sieveSizes={sieveSizes} onDataChange={setCa2Data} />
+                    <SieveTable title="🟡 SUB-SECTION 3: FA (Fine Aggregate)" sectionType="FA" sieveSizes={sieveSizes} onDataChange={setFaData} />
 
                     <div className="section-title" style={{ background: 'white', border: '1px solid #e2e8f0', padding: '10px 16px', borderRadius: '8px', color: '#101828', fontWeight: 700, marginBottom: '0.5rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
                         🟡 SUB-SECTION 4: COMBINED PASSING TABLE
@@ -149,8 +178,10 @@ export default function CombinedGranulometricCurve({ onSave, onCancel, consignme
                     </div>
 
                     <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-                        <button type="submit" className="btn-save">Submit Test Report</button>
-                        {onCancel && <button type="button" onClick={onCancel} className="btn-save" style={{ background: '#64748b' }}>Cancel</button>}
+                        <button type="submit" className="btn-save" disabled={submitting}>
+                            {submitting ? 'Saving...' : 'Submit Test Report'}
+                        </button>
+                        {onCancel && <button type="button" onClick={onCancel} className="btn-save" style={{ background: '#64748b' }} disabled={submitting}>Cancel</button>}
                     </div>
                 </div>
             </div>

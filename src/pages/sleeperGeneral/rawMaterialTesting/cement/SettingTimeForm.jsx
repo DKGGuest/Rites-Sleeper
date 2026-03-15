@@ -1,14 +1,27 @@
 import React, { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { MOCK_VERIFIED_CONSIGNMENTS } from "../../../../utils/rawMaterialMockData";
-
+import { useShift } from "../../../../context/ShiftContext";
+import { useToast } from "../../../../context/ToastContext";
+import { getStoredUser } from "../../../../services/authService";
+import { saveCementSettingTime } from "../../../../services/workflowService";
 
 const emptyRow = { time: "", needle: "", spot: "" };
 
-export default function SettingTimeForm() {
-    const { register, watch } = useForm();
+export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+    const { selectedShift, dutyDate, dutyLocation } = useShift();
+    const { showToast } = useToast();
+    const user = getStoredUser();
 
-    const startTime = watch("waterAddTime");
+    const [loading, setLoading] = useState(false);
+    const [header, setHeader] = useState({
+        type: initialType,
+        consignment: "",
+        temp: "",
+        weight: "",
+        nc: "",
+        waterQty: "",
+        waterAddTime: "",
+        mouldTime: ""
+    });
 
     const [rows, setRows] = useState(
         Array.from({ length: 20 }, () => ({ ...emptyRow }))
@@ -24,7 +37,7 @@ export default function SettingTimeForm() {
         setRows(copy);
     };
 
-    // calculate difference in minutes
+    // Calculate difference in minutes
     const diffMinutes = (t1, t2) => {
         if (!t1 || !t2) return null;
         const [h1, m1] = t1.split(":").map(Number);
@@ -33,13 +46,13 @@ export default function SettingTimeForm() {
     };
 
     useEffect(() => {
-        if (!startTime) return;
+        if (!header.waterAddTime) return;
 
         let init = null;
         let fin = null;
 
         rows.forEach((r) => {
-            const mins = diffMinutes(startTime, r.time);
+            const mins = diffMinutes(header.waterAddTime, r.time);
 
             if (init === null && r.needle && Number(r.needle) > 5 && mins >= 0) {
                 init = mins;
@@ -56,11 +69,54 @@ export default function SettingTimeForm() {
         if (init !== null && fin !== null) {
             if (init >= 60 && fin <= 600) setResult("OK");
             else setResult("NOT OK");
+        } else {
+            setResult("");
         }
-    }, [rows, startTime]);
+    }, [rows, header.waterAddTime]);
+
+    const handleFormSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const payload = {
+                testDate: new Date().toISOString().split('T')[0],
+                typeOfTesting: header.type,
+                consignmentNo: header.consignment,
+                roomTemp: parseFloat(header.temp),
+                weight: parseFloat(header.weight),
+                normalConsistency: parseFloat(header.nc),
+                waterAdded: parseFloat(header.waterQty),
+                timeOfAddingWater: header.waterAddTime ? `${header.waterAddTime}:00` : null,
+                mouldReadyAt: header.mouldTime ? `${header.mouldTime}:00` : null,
+                initialSettingTime: initialTime,
+                finalSettingTime: finalTime,
+                result: result,
+                shift: selectedShift || 'General',
+                lineNo: dutyLocation || 'N/A',
+                dateOfInspection: dutyDate,
+                createdBy: user?.userId || 0,
+                observations: rows
+                    .filter(r => r.time && r.needle)
+                    .map(r => ({
+                        readingTime: `${r.time}:00`,
+                        needlePenetration: parseFloat(r.needle),
+                        finalSpot: r.spot
+                    }))
+            };
+
+            await saveCementSettingTime(payload);
+            showToast("Setting Time Test record saved successfully!", "success");
+            if (onSave) onSave();
+        } catch (error) {
+            console.error("Save failed:", error);
+            showToast("Error saving record. Please check console.", "error");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
-        <div className="form-card">
+        <form className="form-card" onSubmit={handleFormSubmit}>
             <div className="form-header">
                 <h2>Setting Time Test – Cement</h2>
             </div>
@@ -75,51 +131,98 @@ export default function SettingTimeForm() {
 
                     <div className="input-group">
                         <label>Type <span className="required">*</span></label>
-                        <select {...register("type")}>
+                        <select 
+                            value={header.type}
+                            onChange={(e) => setHeader({ ...header, type: e.target.value })}
+                            required
+                        >
                             <option value="">-- Select --</option>
-                            <option>New Inventory</option>
-                            <option>Periodic</option>
+                            <option value="New Inventory">New Inventory</option>
+                            <option value="Periodic">Periodic</option>
                         </select>
                     </div>
 
                     <div className="input-group">
                         <label>Consignment No <span className="required">*</span></label>
-                        <select {...register("consignment", { required: true })}>
+                        <select 
+                            value={header.consignment}
+                            onChange={(e) => setHeader({ ...header, consignment: e.target.value })}
+                            required
+                        >
                             <option value="">-- Select --</option>
-                            {MOCK_VERIFIED_CONSIGNMENTS.map(c => (
-                                <option key={c} value={c}>{c}</option>
+                            {inventoryData.map(c => (
+                                <option key={c.consignmentNo} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
                             ))}
+                            <option value="PERIODIC">-- Periodic Testing --</option>
                         </select>
                     </div>
 
                     <div className="input-group">
                         <label>Room Temp (°C)</label>
-                        <input type="number" placeholder="°C" {...register("temp")} />
+                        <input 
+                            type="number" 
+                            step="0.1"
+                            placeholder="°C" 
+                            value={header.temp}
+                            onChange={(e) => setHeader({ ...header, temp: e.target.value })}
+                            required
+                        />
                     </div>
 
                     <div className="input-group">
                         <label>Weight (gms)</label>
-                        <input type="number" placeholder="gms" {...register("weight")} />
+                        <input 
+                            type="number" 
+                            step="0.01"
+                            placeholder="gms" 
+                            value={header.weight}
+                            onChange={(e) => setHeader({ ...header, weight: e.target.value })}
+                            required
+                        />
                     </div>
 
                     <div className="input-group">
                         <label>Normal Consistency (%)</label>
-                        <input type="number" placeholder="%" {...register("nc")} />
+                        <input 
+                            type="number" 
+                            step="0.1"
+                            placeholder="%" 
+                            value={header.nc}
+                            onChange={(e) => setHeader({ ...header, nc: e.target.value })}
+                            required
+                        />
                     </div>
 
                     <div className="input-group">
                         <label>Water Added (ml)</label>
-                        <input type="number" placeholder="ml" {...register("waterQty")} />
+                        <input 
+                            type="number" 
+                            step="0.1"
+                            placeholder="ml" 
+                            value={header.waterQty}
+                            onChange={(e) => setHeader({ ...header, waterQty: e.target.value })}
+                            required
+                        />
                     </div>
 
                     <div className="input-group">
                         <label>Time of Adding Water</label>
-                        <input type="time" {...register("waterAddTime")} />
+                        <input 
+                            type="time" 
+                            value={header.waterAddTime}
+                            onChange={(e) => setHeader({ ...header, waterAddTime: e.target.value })}
+                            required
+                        />
                     </div>
 
                     <div className="input-group">
                         <label>Mould Ready at</label>
-                        <input type="time" {...register("mouldTime")} />
+                        <input 
+                            type="time" 
+                            value={header.mouldTime}
+                            onChange={(e) => setHeader({ ...header, mouldTime: e.target.value })}
+                            required
+                        />
                     </div>
                 </div>
 
@@ -152,6 +255,7 @@ export default function SettingTimeForm() {
                                     <td data-label="Needle (mm)">
                                         <input
                                             type="number"
+                                            step="0.1"
                                             value={r.needle}
                                             onChange={(e) => updateRow(i, "needle", e.target.value)}
                                         />
@@ -193,8 +297,15 @@ export default function SettingTimeForm() {
                     </div>
                 </div>
 
-                <button className="btn-save">Submit Test Report</button>
+                <div className="btn-group" style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                    <button type="submit" className="btn-save" disabled={loading}>
+                        {loading ? "Saving..." : "Submit Test Report"}
+                    </button>
+                    <button type="button" className="btn-save" style={{ background: '#64748b' }} onClick={onCancel}>
+                        Cancel
+                    </button>
+                </div>
             </div>
-        </div>
+        </form>
     );
 }

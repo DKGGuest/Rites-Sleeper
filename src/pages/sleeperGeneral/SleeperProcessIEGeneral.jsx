@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useShift } from '../../context/ShiftContext';
 // Dashboards
 import RawMaterialDashboard from './rawMaterialTesting/RawMaterialDashboard';
@@ -63,7 +63,15 @@ const SUB_COLUMNS = [
 
 const SleeperProcessIEGeneral = () => {
     const { dutyDate, selectedShift, dutyLocation, plantVerificationData } = useShift();
-    const [activeSubView, setActiveSubView] = useState('plant-declaration-verification');
+    const [activeSubView, setActiveSubView] = useState(() => {
+        return localStorage.getItem('activeSubView_General') || 'plant-declaration-verification';
+    });
+
+    // Persist sub-view changes
+    useEffect(() => {
+        localStorage.setItem('activeSubView_General', activeSubView);
+    }, [activeSubView]);
+
     const stats = getVerificationStats(plantVerificationData);
 
     return (

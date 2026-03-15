@@ -1,6 +1,12 @@
 import axios from 'axios';
 
-const BASE_URL = 'https://sarthibackendservice-bfe2eag3byfkbsa6.canadacentral-01.azurewebsites.net/sarthi-backend/api';
+const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+export const API_BASE_URL = isLocal 
+    ? 'http://localhost:8080/sarthi-backend/api' 
+    : 'https://sarthibackendservice-bfe2eag3byfkbsa6.canadacentral-01.azurewebsites.net/sarthi-backend/api';
+
+const BASE_URL = API_BASE_URL;
 
 const api = axios.create({
     baseURL: BASE_URL,

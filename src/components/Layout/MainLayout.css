@@ -28,37 +28,88 @@
 .header-right {
     display: flex;
     align-items: center;
+    gap: 20px;
+    padding-right: 12px;
+}
+
+.user-profile-section {
+    display: flex;
+    align-items: center;
     gap: 12px;
+    padding: 6px 12px;
+    border-radius: 50px;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid var(--neutral-200);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.user-profile-section:hover {
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-color: var(--primary-color);
 }
 
 .header-user-avatar {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    background: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-color), #20b2aa);
     color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: var(--fs-sm);
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 600;
     flex-shrink: 0;
-    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.user-code {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.2px;
+}
+
+.header-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--neutral-200);
 }
 
 .header-logout-btn {
-    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
     background: transparent;
-    border: none;
-    color: var(--neutral-600);
-    font-size: var(--fs-sm);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: color 0.2s;
+    transition: all 0.2s;
 }
 
 .header-logout-btn:hover {
+    background: #fff5f5;
     color: var(--color-danger);
+    border-color: #ffeaea;
 }
 
 .header-center {
