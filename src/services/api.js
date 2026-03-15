@@ -194,5 +194,10 @@ export const apiService = {
      * IE Dashboard: fetch all workflow transitions (including verified) for history.
      */
     getAllWorkflowTransitions: (roleName = 'IE') =>
-        api.get(`/sleeper-workflow/allWorkflowTransition?roleName=${roleName}`)
+        api.get(`/sleeper-workflow/allWorkflowTransition?roleName=${roleName}`),
+
+    // ================= Final Inspection Controller =================
+    getFinalInspectionBatches: () => api.get('/FinalInspectionController/inspection/batches'),
+    getFinalInspectionBatchDetail: (batchId) => api.get(`/FinalInspectionController/inspection/batch/${batchId}`),
+    saveFinalInspection: (payload) => api.post('/FinalInspectionController/save', payload),
 };

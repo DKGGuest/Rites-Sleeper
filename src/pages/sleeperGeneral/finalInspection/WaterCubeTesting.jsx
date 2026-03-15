@@ -60,9 +60,10 @@ export const WaterCubeStats = () => {
 };
 
 const WaterCubeTesting = () => {
-    const [activeTab, setActiveTab] = useState('pending'); // 'declaration', 'pending', 'done'
+    const [activeTab, setActiveTab] = useState('declaration'); // 'declaration', 'pending', 'done'
     const [showDeclareModal, setShowDeclareModal] = useState(false);
     const [selectedBatch, setSelectedBatch] = useState(null);
+    const [isModifying, setIsModifying] = useState(false);
     const [showTestModal, setShowTestModal] = useState(false);
     const [showTestForm, setShowTestForm] = useState(false);
     const [doneTests, setDoneTests] = useState([
@@ -75,6 +76,27 @@ const WaterCubeTesting = () => {
             batchNo: 'B-675', castingDate: '2026-01-08', testDate: '2026-01-23',
             sample1Results: [58.2, 57.5, 59.1], sample2Results: [56.4, 55.8, 57.2],
             avgStrength: 57.37, status: 'PASS'
+        }
+    ]);
+
+    const [declaredBatches, setDeclaredBatches] = useState([
+        {
+            batchNo: 'B-701', grade: 'M55', castingDate: '2026-01-15',
+            declarationTime: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+            sample1Raw: [{ bench: '201', seq: 'A' }, { bench: '210', seq: 'B' }, { bench: '315', seq: 'D' }],
+            sample2Raw: [{ bench: '209', seq: 'D' }, { bench: '415', seq: 'B' }, { bench: '410', seq: 'B' }],
+            sample1: ['201A', '210B', '315D'], sample2: ['209D', '415B', '410B'],
+            status: 'Testing Pending',
+            plantType: 'Single'
+        },
+        {
+            batchNo: 'B-750', grade: 'M60', castingDate: new Date().toISOString().split('T')[0],
+            declarationTime: new Date().toISOString(),
+            sample1Raw: [{ bench: '101', seq: 'A' }, { bench: '102', seq: 'A' }, { bench: '103', seq: 'A' }],
+            sample2Raw: [{ bench: '104', seq: 'A' }, { bench: '105', seq: 'A' }, { bench: '106', seq: 'A' }],
+            sample1: ['101A', '102A', '103A'], sample2: ['104A', '105A', '106A'],
+            status: 'Not Eligible for Testing',
+            plantType: 'Twin'
         }
     ]);
 
@@ -98,40 +120,22 @@ const WaterCubeTesting = () => {
         setActiveTab('done');
     };
 
-    const [declaredBatches, setDeclaredBatches] = useState([
-        {
-            batchNo: 'B-701', grade: 'M55', castingDate: '2026-01-15',
-            declarationTime: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-            sample1Raw: [{ bench: '201', seq: 'A' }, { bench: '210', seq: 'B' }, { bench: '315', seq: 'D' }],
-            sample2Raw: [{ bench: '209', seq: 'D' }, { bench: '415', seq: 'B' }, { bench: '410', seq: 'B' }],
-            sample1: ['201A', '210B', '315D'], sample2: ['209D', '415B', '410B'],
-            status: 'Testing Pending'
-        },
-        {
-            batchNo: 'B-750', grade: 'M60', castingDate: new Date().toISOString().split('T')[0],
-            declarationTime: new Date().toISOString(),
-            sample1Raw: [{ bench: '101', seq: 'A' }, { bench: '102', seq: 'A' }, { bench: '103', seq: 'A' }],
-            sample2Raw: [{ bench: '104', seq: 'A' }, { bench: '105', seq: 'A' }, { bench: '106', seq: 'A' }],
-            sample1: ['101A', '102A', '103A'], sample2: ['104A', '105A', '106A'],
-            status: 'Not Eligible for Testing'
-        }
-    ]);
-
     const declarationColumns = [
-        { key: 'batchNo', label: 'Batch No' },
+        { key: 'batchNo', label: 'Batch No.' },
         { key: 'date', label: 'Date of Casting' },
-        { key: 'grade', label: 'Grade' },
-        { key: 'sleepers', label: 'Sleepers in Batch' },
-        { key: 'typesCount', label: 'Sleeper Types' },
+        { key: 'grade', label: 'Concrete Grade' },
+        { key: 'sleepers', label: 'No. of Sleepers in Batch' },
+        { key: 'typesCount', label: 'No. of Sleeper Types' },
         {
             key: 'actions',
             label: 'Actions',
             render: (_, row) => (
                 <button
                     className="btn-verify"
+                    style={{ padding: '6px 12px', fontSize: '11px' }}
                     onClick={() => { setSelectedBatch(row); setIsModifying(false); setShowDeclareModal(true); }}
                 >
-                    Declare Samples
+                    Declare Samples for Testing
                 </button>
             )
         }
@@ -143,12 +147,12 @@ const WaterCubeTesting = () => {
         { key: 'castingDate', label: 'Date of Casting' },
         {
             key: 'sample1',
-            label: 'Sample 1 - 3 Cubes',
+            label: 'Sample 1 (3 Cubes)',
             render: (val) => <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '800' }}>{val.join(', ')}</span>
         },
         {
             key: 'sample2',
-            label: 'Sample 2 - 3 Cubes',
+            label: 'Sample 2 (3 Cubes)',
             render: (val) => <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '800' }}>{val.join(', ')}</span>
         },
         {
@@ -175,8 +179,6 @@ const WaterCubeTesting = () => {
             key: 'actions',
             label: 'Actions',
             render: (_, row) => {
-                const canModify = (new Date() - new Date(row.declarationTime)) < (24 * 60 * 60 * 1000);
-                const isEligible = checkEligibility(row.castingDate);
                 return (
                     <div style={{ display: 'flex', gap: '8px' }}>
                         <button
@@ -221,7 +223,7 @@ const WaterCubeTesting = () => {
                 {activeTab === 'declaration' && (
                     <div className="fade-in" style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                         <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                            <h4 style={{ margin: 0, color: '#1e293b', fontWeight: '800' }}>Batches Pending Declaration</h4>
+                            <h4 style={{ margin: 0, color: '#1e293b', fontWeight: '800' }}>Batches Available for Declaring Cube Samples</h4>
                             <div style={{ display: 'flex', gap: '8px' }}>
                                 <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>Source: SCADA / Vendor Inventory</span>
                             </div>
@@ -307,9 +309,15 @@ const WaterCubeTesting = () => {
                         if (isModifying) {
                             setDeclaredBatches(prev => prev.map(b => b.batchNo === data.batchNo ? { ...b, ...data } : b));
                         } else {
-                            setDeclaredBatches([{ ...data, declarationTime: new Date().toISOString() }, ...declaredBatches]);
+                            const isEligible = checkEligibility(data.castingDate);
+                            setDeclaredBatches([{ 
+                                ...data, 
+                                declarationTime: new Date().toISOString(),
+                                status: isEligible ? 'Testing Pending' : 'Not Eligible for Testing'
+                            }, ...declaredBatches]);
                         }
                         setShowDeclareModal(false);
+                        setActiveTab('pending');
                     }}
                 />
             )}
@@ -356,6 +364,7 @@ const WaterCubeTesting = () => {
 // --- Sub-Components ---
 
 const SampleDeclarationModal = ({ batch, isModifying, onClose, onSave }) => {
+    const [plantType, setPlantType] = useState(batch.plantType || 'Single');
     const [form, setForm] = useState({
         sample1: isModifying ? batch.sample1Raw : [{ bench: '', seq: '' }, { bench: '', seq: '' }, { bench: '', seq: '' }],
         sample2: isModifying ? batch.sample2Raw : [{ bench: '', seq: '' }, { bench: '', seq: '' }, { bench: '', seq: '' }]
@@ -368,47 +377,77 @@ const SampleDeclarationModal = ({ batch, isModifying, onClose, onSave }) => {
         setForm({ ...form, [key]: updated });
     };
 
+    const seqOptions = plantType === 'Single' ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+
     return (
         <div className="form-modal-overlay" onClick={onClose}>
-            <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '850px' }}>
-                <div className="form-modal-header">
-                    <span className="form-modal-header-title">{isModifying ? 'Modify Sample Details' : 'Sample Declaration Form'}</span>
-                    <button className="form-modal-close" onClick={onClose}>✕</button>
+            <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '900px', borderRadius: '20px' }}>
+                <div className="form-modal-header" style={{ padding: '20px 32px', background: 'white', borderBottom: '1px solid #f1f5f9' }}>
+                    <span className="form-modal-header-title" style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b' }}>
+                        {isModifying ? 'Modify Sample Details' : 'Sample Declaration Form'}
+                    </span>
+                    <button className="form-modal-close" onClick={onClose} style={{ color: '#94a3b8' }}>✕</button>
                 </div>
-                <div className="form-modal-body" style={{ background: '#f8fafc' }}>
-                    <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
-                        <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
-                            <div className="input-group"><label>Batch Number</label><input readOnly value={batch?.batchNo} className="readOnly" /></div>
-                            <div className="input-group"><label>Date of Casting</label><input readOnly value={batch?.date || batch?.castingDate} className="readOnly" /></div>
-                            <div className="input-group"><label>Concrete Grade</label><input readOnly value={batch?.grade} className="readOnly" /></div>
+                <div className="form-modal-body" style={{ background: '#f8fafc', padding: '32px' }}>
+                    {/* Header Info */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+                        <div className="input-group">
+                            <label style={{ fontSize: '11px', fontWeight: '800', color: '#64748b' }}>Batch Number</label>
+                            <input readOnly value={batch?.batchNo} className="readOnly" style={{ background: '#fff', fontWeight: '700' }} />
+                        </div>
+                        <div className="input-group">
+                            <label style={{ fontSize: '11px', fontWeight: '800', color: '#64748b' }}>Date of Casting</label>
+                            <input readOnly value={batch?.date || batch?.castingDate} className="readOnly" style={{ background: '#fff', fontWeight: '700' }} />
+                        </div>
+                        <div className="input-group">
+                            <label style={{ fontSize: '11px', fontWeight: '800', color: '#64748b' }}>Concrete Grade</label>
+                            <input readOnly value={batch?.grade} className="readOnly" style={{ background: '#fff', fontWeight: '700' }} />
+                        </div>
+                        <div className="input-group">
+                            <label style={{ fontSize: '11px', fontWeight: '800', color: '#64748b' }}>Plant Type Configuration</label>
+                            <select 
+                                value={plantType} 
+                                onChange={(e) => setPlantType(e.target.value)}
+                                style={{ background: '#fff', fontWeight: '700', border: '2px solid #e2e8f0', borderRadius: '10px' }}
+                            >
+                                <option value="Single">Single Bench Plant</option>
+                                <option value="Twin">Twin Bench Plant</option>
+                            </select>
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '24px' }}>
                         {[0, 1].map(sIdx => (
-                            <div key={sIdx} style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                                <h4 style={{ fontSize: '13px', color: '#42818c', marginBottom: '16px', fontWeight: '800', textTransform: 'uppercase' }}>
-                                    Sample {sIdx + 1} (3 Cubes)
-                                </h4>
+                            <div key={sIdx} style={{ background: '#fff', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#42818c' }}></div>
+                                    <h4 style={{ fontSize: '14px', color: '#13343b', margin: 0, fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                        Sample {sIdx + 1} (3 Cubes)
+                                    </h4>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '8px' }}>
+                                    <label style={{ fontSize: '10px', fontWeight: '800', color: '#94a3b8' }}>BENCH NUMBER</label>
+                                    <label style={{ fontSize: '10px', fontWeight: '800', color: '#94a3b8' }}>SLEEPER SEQUENCE</label>
+                                </div>
                                 {form[`sample${sIdx + 1}`].map((c, cIdx) => (
-                                    <div key={cIdx} style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '12px', marginBottom: '12px' }}>
+                                    <div key={cIdx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                                         <div className="input-group">
                                             <input
                                                 type="number"
-                                                placeholder="Bench Number"
+                                                placeholder="e.g. 201"
                                                 value={c.bench}
                                                 onChange={(e) => handleUpdate(sIdx, cIdx, 'bench', e.target.value)}
+                                                style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }}
                                             />
                                         </div>
                                         <div className="input-group">
-                                            <select value={c.seq} onChange={(e) => handleUpdate(sIdx, cIdx, 'seq', e.target.value)}>
+                                            <select 
+                                                value={c.seq} 
+                                                onChange={(e) => handleUpdate(sIdx, cIdx, 'seq', e.target.value)}
+                                                style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px', background: '#fff' }}
+                                            >
                                                 <option value="">Select No.</option>
-                                                <optgroup label="Single Bench">
-                                                    {['A', 'B', 'C', 'D'].map(s => <option key={s} value={s}>{s}</option>)}
-                                                </optgroup>
-                                                <optgroup label="Twin Bench">
-                                                    {['E', 'F', 'G', 'H'].map(s => <option key={s} value={s}>{s}</option>)}
-                                                </optgroup>
+                                                {seqOptions.map(s => <option key={s} value={s}>{s}</option>)}
                                             </select>
                                         </div>
                                     </div>
@@ -417,11 +456,11 @@ const SampleDeclarationModal = ({ batch, isModifying, onClose, onSave }) => {
                         ))}
                     </div>
 
-                    <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
-                        <button className="btn-verify" style={{ flex: 1, padding: '14px' }} onClick={() => {
+                    <div style={{ display: 'flex', gap: '16px', marginTop: '40px' }}>
+                        <button className="btn-verify" style={{ flex: 2, padding: '16px', borderRadius: '12px', fontSize: '14px', fontWeight: '700' }} onClick={() => {
                             const allCubes = [...form.sample1, ...form.sample2];
                             if (allCubes.some(c => !c.bench || !c.seq)) {
-                                alert("Please provide both Bench Number and Sequence for all samples.");
+                                alert("Please provide both Bench Number and Sequence for all 6 cubes.");
                                 return;
                             }
                             onSave({
@@ -432,11 +471,12 @@ const SampleDeclarationModal = ({ batch, isModifying, onClose, onSave }) => {
                                 sample2Raw: form.sample2,
                                 sample1: form.sample1.map(c => `${c.bench}${c.seq}`),
                                 sample2: form.sample2.map(c => `${c.bench}${c.seq}`),
+                                plantType: plantType
                             });
                         }}>
-                            {isModifying ? 'Update Declaration' : 'Finalize Declaration'}
+                            {isModifying ? 'Update Declaration' : 'Finalize and Save Declaration'}
                         </button>
-                        <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: 'none' }} onClick={onClose}>Cancel</button>
+                        <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px' }} onClick={onClose}>Cancel</button>
                     </div>
                 </div>
             </div>
@@ -450,44 +490,45 @@ const TestDetailPopup = ({ batch, onClose, onModify, onSaveTest }) => {
 
     return (
         <div className="form-modal-overlay" onClick={onClose}>
-            <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
-                <div className="form-modal-header">
+            <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', borderRadius: '20px' }}>
+                <div className="form-modal-header" style={{ padding: '20px 32px' }}>
                     <span className="form-modal-header-title">Batch Test Readiness</span>
                     <button className="form-modal-close" onClick={onClose}>✕</button>
                 </div>
-                <div className="form-modal-body">
-                    <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-                            <div><label style={{ fontSize: '10px', color: '#64748b', fontWeight: '800' }}>BATCH NO</label><div style={{ fontWeight: '800' }}>{batch.batchNo}</div></div>
-                            <div><label style={{ fontSize: '10px', color: '#64748b', fontWeight: '800' }}>GRADE</label><div style={{ fontWeight: '800' }}>{batch.grade}</div></div>
-                            <div><label style={{ fontSize: '10px', color: '#64748b', fontWeight: '800' }}>CASTING DATE</label><div style={{ fontWeight: '800' }}>{batch.castingDate}</div></div>
-                            <div><label style={{ fontSize: '10px', color: '#64748b', fontWeight: '800' }}>STATUS</label><div style={{ fontWeight: '800', color: isEligible ? '#10b981' : '#c2410c' }}>{isEligible ? 'Testing Pending' : 'Wait Required'}</div></div>
+                <div className="form-modal-body" style={{ padding: '32px' }}>
+                    <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
+                            <div><label style={{ fontSize: '10px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase' }}>Batch No</label><div style={{ fontSize: '16px', fontWeight: '800', color: '#1e293b' }}>{batch.batchNo}</div></div>
+                            <div><label style={{ fontSize: '10px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase' }}>Concrete Grade</label><div style={{ fontSize: '16px', fontWeight: '800', color: '#1e293b' }}>{batch.grade}</div></div>
+                            <div><label style={{ fontSize: '10px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase' }}>Casting Date</label><div style={{ fontSize: '16px', fontWeight: '800', color: '#1e293b' }}>{batch.castingDate}</div></div>
+                            <div><label style={{ fontSize: '10px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase' }}>Status</label><div style={{ fontSize: '16px', fontWeight: '800', color: isEligible ? '#10b981' : '#c2410c' }}>{isEligible ? 'Eligible for Testing' : 'Pending Curing'}</div></div>
                         </div>
 
-                        <div style={{ marginBottom: '24px' }}>
-                            <label style={{ fontSize: '10px', color: '#64748b', fontWeight: '800', display: 'block', marginBottom: '8px' }}>DECLARED SAMPLES</label>
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <div style={{ flex: 1, background: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                    <div style={{ fontSize: '9px', fontWeight: '700', color: '#42818c' }}>SAMPLE 1</div>
-                                    <div style={{ fontSize: '13px', fontWeight: '800' }}>{batch.sample1.join(', ')}</div>
+                        <div style={{ marginBottom: '32px' }}>
+                            <label style={{ fontSize: '10px', color: '#64748b', fontWeight: '800', display: 'block', marginBottom: '12px', textTransform: 'uppercase' }}>Declared Samples (6 Cubes Total)</label>
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <div style={{ flex: 1, background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ fontSize: '9px', fontWeight: '700', color: '#42818c', marginBottom: '4px' }}>SAMPLE 1</div>
+                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#334155' }}>{batch.sample1.join(', ')}</div>
                                 </div>
-                                <div style={{ flex: 1, background: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                    <div style={{ fontSize: '9px', fontWeight: '700', color: '#42818c' }}>SAMPLE 2</div>
-                                    <div style={{ fontSize: '13px', fontWeight: '800' }}>{batch.sample2.join(', ')}</div>
+                                <div style={{ flex: 1, background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ fontSize: '9px', fontWeight: '700', color: '#42818c', marginBottom: '4px' }}>SAMPLE 2</div>
+                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#334155' }}>{batch.sample2.join(', ')}</div>
                                 </div>
                             </div>
                         </div>
 
                         {!isEligible && (
-                            <div style={{ background: '#fff7ed', padding: '12px', borderRadius: '8px', border: '1px solid #ffedd5', color: '#c2410c', fontSize: '11px', fontWeight: '700', marginBottom: '20px' }}>
-                                Testing will become eligible on {new Date(new Date(batch.castingDate).getTime() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                            <div style={{ background: '#fff7ed', padding: '16px', borderRadius: '12px', border: '1px solid #ffedd5', color: '#c2410c', fontSize: '11px', fontWeight: '700', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#c2410c' }}></div>
+                                Curing period incomplete. Eligible on: {new Date(new Date(batch.castingDate).getTime() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString()}
                             </div>
                         )}
 
                         <div style={{ display: 'flex', gap: '12px' }}>
                             <button
                                 className="btn-save"
-                                style={{ flex: 1, background: canModify ? '#f8fafc' : '#f1f5f9', color: canModify ? '#475569' : '#94a3b8', border: '1px solid #e2e8f0', cursor: canModify ? 'pointer' : 'not-allowed' }}
+                                style={{ flex: 1, height: '48px', background: canModify ? '#fff' : '#f1f5f9', color: canModify ? '#475569' : '#94a3b8', border: '1px solid #e2e8f0', cursor: canModify ? 'pointer' : 'not-allowed', borderRadius: '10px', fontSize: '13px', fontWeight: '700' }}
                                 disabled={!canModify}
                                 onClick={onModify}
                             >
@@ -495,11 +536,11 @@ const TestDetailPopup = ({ batch, onClose, onModify, onSaveTest }) => {
                             </button>
                             <button
                                 className="btn-verify"
-                                style={{ flex: 1, opacity: isEligible ? 1 : 0.5, cursor: isEligible ? 'pointer' : 'not-allowed' }}
+                                style={{ flex: 1, height: '48px', opacity: isEligible ? 1 : 0.5, cursor: isEligible ? 'pointer' : 'not-allowed', borderRadius: '10px', fontSize: '13px', fontWeight: '700' }}
                                 disabled={!isEligible}
                                 onClick={onSaveTest}
                             >
-                                Save Test Details
+                                Enter Test Results
                             </button>
                         </div>
                     </div>
