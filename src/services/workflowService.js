@@ -62,6 +62,241 @@ export const getMaterialDetail = async (type, requestId) => {
     return null;
   }
 };
+
+/**
+ * Fetch all Production Declarations
+ * @returns {Promise<Array>} List of production declarations
+ */
+export const getProductionDeclarations = async () => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${API_BASE_URL}/production-declaration/getAll`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch production declarations');
+    }
+
+    const data = await response.json();
+    return data.responseData || data;
+  } catch (error) {
+    console.error('Error fetching production declarations:', error);
+    return [];
+  }
+};
+
+/**
+ * Fetch Production Declarations by a specific user (fast, filtered at DB level)
+ * @param {number|string} userId - The user ID (createdBy)
+ * @returns {Promise<Array>} List of production declarations for that user
+ */
+export const getProductionDeclarationsByUser = async (userId) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${API_BASE_URL}/production-declaration/getByUser/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch production declarations for user');
+    }
+
+    const data = await response.json();
+    return data.responseData || data;
+  } catch (error) {
+    console.error('Error fetching production declarations by user:', error);
+    return [];
+  }
+};
+
+/**
+ * Save Water Cube Sample Declaration (Create or Update)
+ * @param {Object} data - Declaration data
+ * @param {number|string} [id] - Optional ID for update
+ * @returns {Promise<Object>} Saved declaration
+ */
+export const saveWaterCubeSample = async (data, id = null) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const url = id 
+      ? `${API_BASE_URL}/water-cube-sample/update/${id}`
+      : `${API_BASE_URL}/water-cube-sample/create`;
+    
+    const method = id ? 'PUT' : 'POST';
+
+    const response = await fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to save water cube sample declaration');
+    }
+
+    const result = await response.json();
+    return result.responseData || result;
+  } catch (error) {
+    console.error('Error saving water cube sample declaration:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch Water Cube Sample Declarations by User
+ * @param {number|string} userId - User ID
+ * @returns {Promise<Array>} List of declarations
+ */
+export const getWaterCubeSamplesByUser = async (userId) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${API_BASE_URL}/water-cube-sample/getByUser/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch water cube sample declarations');
+    }
+
+    const data = await response.json();
+    return data.responseData || data;
+  } catch (error) {
+    console.error('Error fetching water cube sample declarations:', error);
+    return [];
+  }
+};
+
+/**
+ * Delete Water Cube Sample Declaration
+ * @param {number|string} id - Declaration ID
+ * @returns {Promise<void>}
+ */
+export const deleteWaterCubeSample = async (id) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${API_BASE_URL}/water-cube-sample/delete/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete water cube sample declaration');
+    }
+  } catch (error) {
+    console.error('Error deleting water cube sample declaration:', error);
+    throw error;
+  }
+};
+
+/**
+ * Save Water Cube Strength Test Results (Create or Update)
+ * @param {Object} data - Test data
+ * @param {number|string} [id] - Optional ID for update
+ * @returns {Promise<Object>} Saved test result
+ */
+export const saveWaterCubeStrengthTest = async (data, id = null) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const url = id 
+      ? `${API_BASE_URL}/water-cube-strength/update/${id}`
+      : `${API_BASE_URL}/water-cube-strength/create`;
+    
+    const method = id ? 'PUT' : 'POST';
+
+    const response = await fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to save water cube strength test results');
+    }
+
+    const result = await response.json();
+    return result.responseData || result;
+  } catch (error) {
+    console.error('Error saving water cube strength test results:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch Water Cube Strength Testing Results by User
+ * @param {number|string} userId - User ID
+ * @returns {Promise<Array>} List of testing results
+ */
+export const getWaterCubeStrengthResultsByUser = async (userId) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${API_BASE_URL}/water-cube-strength/getByUser/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch water cube strength testing results');
+    }
+
+    const data = await response.json();
+    return data.responseData || data;
+  } catch (error) {
+    console.error('Error fetching water cube strength testing results:', error);
+    return [];
+  }
+};
+
+/**
+ * Fetch Water Cube Strength Testing Result by Declaration ID
+ * @param {number|string} declarationId - Declaration ID
+ * @returns {Promise<Object>} Testing result
+ */
+export const getWaterCubeStrengthTestByDeclaration = async (declarationId) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${API_BASE_URL}/water-cube-strength/getByDeclaration/${declarationId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch water cube strength test result by declaration');
+    }
+
+    const data = await response.json();
+    return data.responseData || data;
+  } catch (error) {
+    console.error('Error fetching water cube strength test result by declaration:', error);
+    return null;
+  }
+};
 /**
  * Save Cement 7 Day Strength test result
  * @param {Object} data - Test data record
@@ -436,4 +671,175 @@ export const saveSgciInsertAudit = async (data) => {
     console.error('Error saving SGCI Audit:', error);
     throw error;
   }
+};
+/**
+ * Fetch MR Pending Sample Declarations (Passed Water Cube Tests)
+ * @param {number|string} userId - User ID
+ * @returns {Promise<Array>} List of pending declarations
+ */
+export const getMorPendingDeclarations = async (userId) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${API_BASE_URL}/mor-sample/getPending/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch MR pending declarations');
+    }
+
+    const data = await response.json();
+    return data.responseData || data;
+  } catch (error) {
+    console.error('Error fetching MR pending declarations:', error);
+    return [];
+  }
+};
+
+/**
+ * Save MR Sample Declaration (Create or Update)
+ * @param {Object} data - Declaration data
+ * @param {number|string} [id] - Optional ID for update
+ * @returns {Promise<Object>} Saved declaration
+ */
+export const saveMorSampleDeclaration = async (data, id = null) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const url = id 
+      ? `${API_BASE_URL}/mor-sample/update/${id}`
+      : `${API_BASE_URL}/mor-sample/create`;
+    
+    const method = id ? 'PUT' : 'POST';
+
+    const response = await fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to save MR sample declaration');
+    }
+
+    const result = await response.json();
+    return result.responseData || result;
+  } catch (error) {
+    console.error('Error saving MR sample declaration:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch Active MR Sample Declarations
+ * @returns {Promise<Array>} List of declarations
+ */
+export const getMorActiveDeclarations = async (userId) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${API_BASE_URL}/mor-sample/getAll/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch MR active declarations');
+    }
+
+    const data = await response.json();
+    return data.responseData || data;
+  } catch (error) {
+    console.error('Error fetching MR active declarations:', error);
+    return [];
+  }
+};
+
+/**
+ * Fetch Historical MR Records
+ * @returns {Promise<Array>} List of historical records
+ */
+export const getMorHistoricalDeclarations = async (userId) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/mor-sample/getHistorical/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to fetch MR historical records');
+      }
+  
+      const data = await response.json();
+      return data.responseData || data;
+    } catch (error) {
+      console.error('Error fetching MR historical records:', error);
+      return [];
+    }
+  };
+  
+  /**
+   * Save MR Test Results
+   * @param {number|string} declarationId - ID of the declaration
+   * @param {Array} results - List of test results for each sleeper
+   * @returns {Promise<Object>} Saved results
+   */
+  export const saveMorTestResults = async (declarationId, results) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/mor-sample/saveResults/${declarationId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(results)
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to save MR test results');
+      }
+  
+      const data = await response.json();
+      return data.responseData || data;
+    } catch (error) {
+      console.error('Error saving MR test results:', error);
+      throw error;
+    }
+  };
+
+/**
+ * Delete MR Sample Declaration
+ * @param {number|string} id - Declaration ID
+ * @returns {Promise<void>}
+ */
+export const deleteMorSample = async (id) => {
+    try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${API_BASE_URL}/mor-sample/delete/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete MR sample declaration');
+        }
+    } catch (error) {
+        console.error('Error deleting MR sample declaration:', error);
+        throw error;
+    }
 };

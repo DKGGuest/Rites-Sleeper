@@ -6,6 +6,16 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
     const AREA = 22500;
     const FCK = batch.grade === 'M55' ? 55 : (batch.grade === 'M60' ? 60 : 55);
 
+    const parseDate = (dateStr) => {
+        if (!dateStr) return null;
+        if (dateStr.includes('/')) {
+            const [day, month, year] = dateStr.split('/').map(Number);
+            return new Date(year, month - 1, day);
+        }
+        const date = new Date(dateStr);
+        return isNaN(date.getTime()) ? null : date;
+    };
+
     const initialCubes = [
         { id: 1, sample: 1, weight: '', load: '', strength: 0, date: new Date().toISOString().split('T')[0], time: new Date().toTimeString().slice(0, 5) },
         { id: 2, sample: 1, weight: '', load: '', strength: 0, date: new Date().toISOString().split('T')[0], time: new Date().toTimeString().slice(0, 5) },
@@ -31,7 +41,9 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
     });
 
     const calculateAge = (castingDate) => {
-        const diffTime = Math.abs(new Date() - new Date(castingDate));
+        const castDate = parseDate(castingDate);
+        if (!castDate) return 'N/A';
+        const diffTime = Math.abs(new Date() - castDate);
         return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     };
 
@@ -104,10 +116,16 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
                 const updated = { ...c, [field]: value };
                 // If weight or load changes, we can calculate strength, 
                 // but if they enter strength directly, we respect that.
+                if (field === 'weight') {
+                    updated.weight = value;
+                }
                 if (field === 'load') {
+                    updated.load = value;
                     const loadVal = parseFloat(value);
                     if (!isNaN(loadVal)) {
                         updated.strength = parseFloat((loadVal * 1000 / AREA).toFixed(2));
+                    } else {
+                        updated.strength = 0;
                     }
                 }
                 if (field === 'strength') {
