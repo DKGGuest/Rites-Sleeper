@@ -25,7 +25,7 @@ export const getAllCompletedCalls = async () => {
     }
 
     const data = await response.json();
-    
+
     // Based on the structure provided by user, response might be a direct array 
     // or wrapped in a responseData object. Assuming direct array or data.responseData.
     return data.responseData?.responseData || data.responseData || data;
@@ -127,10 +127,10 @@ export const getProductionDeclarationsByUser = async (userId) => {
 export const saveWaterCubeSample = async (data, id = null) => {
   try {
     const token = localStorage.getItem('authToken');
-    const url = id 
+    const url = id
       ? `${API_BASE_URL}/water-cube-sample/update/${id}`
       : `${API_BASE_URL}/water-cube-sample/create`;
-    
+
     const method = id ? 'PUT' : 'POST';
 
     const response = await fetch(url, {
@@ -203,98 +203,6 @@ export const deleteWaterCubeSample = async (id) => {
   } catch (error) {
     console.error('Error deleting water cube sample declaration:', error);
     throw error;
-  }
-};
-
-/**
- * Save Water Cube Strength Test Results (Create or Update)
- * @param {Object} data - Test data
- * @param {number|string} [id] - Optional ID for update
- * @returns {Promise<Object>} Saved test result
- */
-export const saveWaterCubeStrengthTest = async (data, id = null) => {
-  try {
-    const token = localStorage.getItem('authToken');
-    const url = id 
-      ? `${API_BASE_URL}/water-cube-strength/update/${id}`
-      : `${API_BASE_URL}/water-cube-strength/create`;
-    
-    const method = id ? 'PUT' : 'POST';
-
-    const response = await fetch(url, {
-      method: method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(data)
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to save water cube strength test results');
-    }
-
-    const result = await response.json();
-    return result.responseData || result;
-  } catch (error) {
-    console.error('Error saving water cube strength test results:', error);
-    throw error;
-  }
-};
-
-/**
- * Fetch Water Cube Strength Testing Results by User
- * @param {number|string} userId - User ID
- * @returns {Promise<Array>} List of testing results
- */
-export const getWaterCubeStrengthResultsByUser = async (userId) => {
-  try {
-    const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/water-cube-strength/getByUser/${userId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch water cube strength testing results');
-    }
-
-    const data = await response.json();
-    return data.responseData || data;
-  } catch (error) {
-    console.error('Error fetching water cube strength testing results:', error);
-    return [];
-  }
-};
-
-/**
- * Fetch Water Cube Strength Testing Result by Declaration ID
- * @param {number|string} declarationId - Declaration ID
- * @returns {Promise<Object>} Testing result
- */
-export const getWaterCubeStrengthTestByDeclaration = async (declarationId) => {
-  try {
-    const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/water-cube-strength/getByDeclaration/${declarationId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch water cube strength test result by declaration');
-    }
-
-    const data = await response.json();
-    return data.responseData || data;
-  } catch (error) {
-    console.error('Error fetching water cube strength test result by declaration:', error);
-    return null;
   }
 };
 /**
@@ -672,51 +580,17 @@ export const saveSgciInsertAudit = async (data) => {
     throw error;
   }
 };
-/**
- * Fetch MR Pending Sample Declarations (Passed Water Cube Tests)
- * @param {number|string} userId - User ID
- * @returns {Promise<Array>} List of pending declarations
- */
-export const getMorPendingDeclarations = async (userId) => {
-  try {
-    const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/mor-sample/getPending/${userId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch MR pending declarations');
-    }
-
-    const data = await response.json();
-    return data.responseData || data;
-  } catch (error) {
-    console.error('Error fetching MR pending declarations:', error);
-    return [];
-  }
-};
 
 /**
- * Save MR Sample Declaration (Create or Update)
- * @param {Object} data - Declaration data
- * @param {number|string} [id] - Optional ID for update
- * @returns {Promise<Object>} Saved declaration
+ * Save Water Cube Test Result
+ * @param {Object} data - Test data record
+ * @returns {Promise<Object>} Saved record
  */
-export const saveMorSampleDeclaration = async (data, id = null) => {
+export const saveWaterCubeTestResult = async (data) => {
   try {
     const token = localStorage.getItem('authToken');
-    const url = id 
-      ? `${API_BASE_URL}/mor-sample/update/${id}`
-      : `${API_BASE_URL}/mor-sample/create`;
-    
-    const method = id ? 'PUT' : 'POST';
-
-    const response = await fetch(url, {
-      method: method,
+    const response = await fetch(`${API_BASE_URL}/water-cube-sample/save-test-result`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -725,121 +599,41 @@ export const saveMorSampleDeclaration = async (data, id = null) => {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to save MR sample declaration');
+      throw new Error('Failed to save Water Cube Test Result');
     }
 
     const result = await response.json();
     return result.responseData || result;
   } catch (error) {
-    console.error('Error saving MR sample declaration:', error);
+    console.error('Error saving Water Cube Test Result:', error);
     throw error;
   }
 };
 
 /**
- * Fetch Active MR Sample Declarations
- * @returns {Promise<Array>} List of declarations
+ * Get Water Cube Test Results by user ID
+ * @param {Long} userId - user ID
+ * @returns {Promise<Array>} List of results
  */
-export const getMorActiveDeclarations = async (userId) => {
+export const getWaterCubeTestResultsByUser = async (userId) => {
   try {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/mor-sample/getAll/${userId}`, {
+    const response = await fetch(`${API_BASE_URL}/water-cube-sample/test-results/user/${userId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
-      },
+      }
     });
 
     if (!response.ok) {
-      throw new Error('Failed to fetch MR active declarations');
+      throw new Error('Failed to fetch Water Cube Test Results');
     }
 
-    const data = await response.json();
-    return data.responseData || data;
+    const result = await response.json();
+    return result.responseData || result;
   } catch (error) {
-    console.error('Error fetching MR active declarations:', error);
+    console.error('Error fetching Water Cube Test Results:', error);
     return [];
   }
-};
-
-/**
- * Fetch Historical MR Records
- * @returns {Promise<Array>} List of historical records
- */
-export const getMorHistoricalDeclarations = async (userId) => {
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/mor-sample/getHistorical/${userId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-      });
-  
-      if (!response.ok) {
-        throw new Error('Failed to fetch MR historical records');
-      }
-  
-      const data = await response.json();
-      return data.responseData || data;
-    } catch (error) {
-      console.error('Error fetching MR historical records:', error);
-      return [];
-    }
-  };
-  
-  /**
-   * Save MR Test Results
-   * @param {number|string} declarationId - ID of the declaration
-   * @param {Array} results - List of test results for each sleeper
-   * @returns {Promise<Object>} Saved results
-   */
-  export const saveMorTestResults = async (declarationId, results) => {
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/mor-sample/saveResults/${declarationId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(results)
-      });
-  
-      if (!response.ok) {
-        throw new Error('Failed to save MR test results');
-      }
-  
-      const data = await response.json();
-      return data.responseData || data;
-    } catch (error) {
-      console.error('Error saving MR test results:', error);
-      throw error;
-    }
-  };
-
-/**
- * Delete MR Sample Declaration
- * @param {number|string} id - Declaration ID
- * @returns {Promise<void>}
- */
-export const deleteMorSample = async (id) => {
-    try {
-        const token = localStorage.getItem('authToken');
-        const response = await fetch(`${API_BASE_URL}/mor-sample/delete/${id}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to delete MR sample declaration');
-        }
-    } catch (error) {
-        console.error('Error deleting MR sample declaration:', error);
-        throw error;
-    }
 };

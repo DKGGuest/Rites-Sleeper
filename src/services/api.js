@@ -56,6 +56,16 @@ export const apiService = {
     deleteMouldPreparation: (id) => api.delete(`/MouldPreparation/delete/${id}`),
 
     // ================= Steam Cube Testing =================
+    waterCubeSamples: {
+        create: (data) => api.post('/water-cube-sample/create', data),
+        getAll: () => api.get('/water-cube-sample/getAll'),
+        getById: (id) => api.get(`/water-cube-sample/getById/${id}`),
+        update: (id, data) => api.put(`/water-cube-sample/update/${id}`, data),
+        delete: (id) => api.delete(`/water-cube-sample/delete/${id}`),
+        getByUser: (userId) => api.get(`/water-cube-sample/getByUser/${userId}`),
+        saveTestResult: (data) => api.post('/water-cube-sample/save-test-result', data),
+        getTestResultsByUser: (userId) => api.get(`/water-cube-sample/test-results/user/${userId}`)
+    },
     getAllSteamCubes: () => api.get('/SteamCube/get-all'),
     getSteamCubeById: (id) => api.get(`/SteamCube/get/${id}`),
     createSteamCube: (payload) => api.post('/SteamCube/create', payload),
