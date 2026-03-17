@@ -88,6 +88,8 @@ const PlantDeclarationVerification = () => {
     const [selectedModuleId, setSelectedModuleId] = useState(null);
     const [showHistory, setShowHistory]           = useState(false);
     const [detailModal, setDetailModal]           = useState(null); // row open in detail modal
+    const [benchType, setBenchType]               = useState('STRESS_BENCH'); // 'STRESS_BENCH' | 'LONG_LINE'
+    const [submitting, setSubmitting]             = useState(false);
 
     // ── Load Data ──
     const loadData = useCallback(async () => {
@@ -166,8 +168,46 @@ const PlantDeclarationVerification = () => {
         loadData();
     }, [loadData]);
 
+    const handleAction = async (row, action) => {
+        const confirmMsg = action === 'UNLOCK' 
+            ? 'Are you sure you want to Unlock this record?' 
+            : `Are you sure you want to perform ${action}?`;
+            
+        if (!window.confirm(confirmMsg)) return;
+
+        setSubmitting(true);
+        try {
+            await apiService.performTransitionAction({
+                workflowTransitionId: row.workflowTransitionId,
+                moduleId: row.moduleId,
+                requestId: row.requestId,
+                action: action,
+                actionBy: LOGGED_IN_USER_ID,
+                remarks: action === 'VERIFY' ? 'Verified by IE' : (action === 'UNLOCK' ? 'Unlocked by IE' : 'Returned for resubmission')
+            });
+            alert(`Succesfully performed: ${action}`);
+            loadData();
+        } catch (err) {
+            alert(`Action failed: ${err.message}`);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     const totalCount     = allRecords.length;
-    const currentRecords = enrichedByModule[selectedModuleId] || [];
+    let currentRecords = enrichedByModule[selectedModuleId] || [];
+
+    // Filter Module 2 by Bench Type
+    if (selectedModuleId === 2) {
+        currentRecords = currentRecords.filter(r => {
+            // Assuming the detail has a field that identifies the type. 
+            // If not found, we show all or try to guess.
+            // For now, let's look for 'benchType' or 'plantType' in the detail.
+            const type = r.detail?.benchType || r.detail?.plantType || '';
+            if (!type) return true; // Show if unknown
+            return type.toUpperCase().includes(benchType === 'STRESS_BENCH' ? 'STRESS' : 'LONG');
+        });
+    }
 
     // ── Render ──
     return (
@@ -279,7 +319,33 @@ const PlantDeclarationVerification = () => {
                                         {' '}—{' '}
                                         {showHistory ? 'Historical Logs' : 'Pending Records'}
                                     </h3>
-                                    <span className="pdv-api-table-meta">moduleId = {selectedModuleId}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                        {selectedModuleId === 2 && (
+                                            <div className="pdv-bench-toggle" style={{
+                                                display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', border: '1px solid #e2e8f0'
+                                            }}>
+                                                <button
+                                                    onClick={() => setBenchType('STRESS_BENCH')}
+                                                    style={{
+                                                        padding: '5px 12px', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: '700', cursor: 'pointer',
+                                                        background: benchType === 'STRESS_BENCH' ? '#7c3aed' : 'transparent',
+                                                        color: benchType === 'STRESS_BENCH' ? '#fff' : '#64748b',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                >Stress Bench</button>
+                                                <button
+                                                    onClick={() => setBenchType('LONG_LINE')}
+                                                    style={{
+                                                        padding: '5px 12px', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: '700', cursor: 'pointer',
+                                                        background: benchType === 'LONG_LINE' ? '#7c3aed' : 'transparent',
+                                                        color: benchType === 'LONG_LINE' ? '#fff' : '#64748b',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                >Long Line</button>
+                                            </div>
+                                        )}
+                                        <span className="pdv-api-table-meta">moduleId = {selectedModuleId}</span>
+                                    </div>
                                 </div>
 
                                 {currentRecords.length === 0 ? (
@@ -302,7 +368,7 @@ const PlantDeclarationVerification = () => {
                                                     <th key={col.key} style={thStyle}>{col.label}</th>
                                                 ))}
                                                 <th style={thStyle}>Status</th>
-                                                <th style={thStyle}>Details</th>
+                                                <th style={thStyle}>{selectedModuleId === 2 ? 'Quick Actions' : 'Details'}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -344,31 +410,78 @@ const PlantDeclarationVerification = () => {
                                                         </span>
                                                     </td>
                                                     <td style={tdStyle}>
-                                                        <button
-                                                            onClick={() => setDetailModal(row)}
-                                                            style={{
-                                                                background: '#7c3aed',
-                                                                color: '#fff',
-                                                                border: 'none',
-                                                                borderRadius: '8px',
-                                                                padding: '7px 14px',
-                                                                fontSize: '12px',
-                                                                fontWeight: '700',
-                                                                cursor: 'pointer',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                gap: '6px',
-                                                                whiteSpace: 'nowrap',
-                                                                transition: 'background 0.15s',
-                                                            }}
-                                                            onMouseEnter={e => e.currentTarget.style.background = '#6d28d9'}
-                                                            onMouseLeave={e => e.currentTarget.style.background = '#7c3aed'}
-                                                        >
-                                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                                                            </svg>
-                                                            Open Detail
-                                                        </button>
+                                                        {selectedModuleId === 2 ? (
+                                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                                                {/* Pending or Unlocked -> Verify & Return */}
+                                                                {(row.status === 'Pending' || row.status === 'UNLOCKED' || row.status === 'Unlocked') && (
+                                                                    <>
+                                                                        <button
+                                                                            onClick={() => handleAction(row, 'VERIFY')}
+                                                                            disabled={submitting}
+                                                                            style={{
+                                                                                background: '#059669', color: '#fff', border: 'none', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', fontWeight: '600', cursor: 'pointer'
+                                                                            }}
+                                                                        >Verify</button>
+                                                                        <button
+                                                                            onClick={() => handleAction(row, 'REQUEST_BACK')}
+                                                                            disabled={submitting}
+                                                                            style={{
+                                                                                background: '#dc2626', color: '#fff', border: 'none', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', fontWeight: '600', cursor: 'pointer'
+                                                                            }}
+                                                                        >Return</button>
+                                                                    </>
+                                                                )}
+                                                                {/* Verified -> Unlock */}
+                                                                {(row.status === 'VERIFIED' || row.status === 'Verified') && (
+                                                                    <button
+                                                                        onClick={() => handleAction(row, 'UNLOCK')}
+                                                                        disabled={submitting}
+                                                                        style={{
+                                                                            background: '#0369a1', color: '#fff', border: 'none', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', fontWeight: '600', cursor: 'pointer'
+                                                                        }}
+                                                                    >Unlock</button>
+                                                                )}
+                                                                {/* Returned -> Label */}
+                                                                {(row.status?.includes('REQUEST') || row.status === 'Returned') && (
+                                                                    <span style={{ fontSize: '10px', color: '#94a3b8', fontStyle: 'italic' }}>Pending Resubmission</span>
+                                                                )}
+                                                                <button
+                                                                    onClick={() => setDetailModal(row)}
+                                                                    style={{
+                                                                        background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer'
+                                                                    }}
+                                                                    title="Full View"
+                                                                >
+                                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => setDetailModal(row)}
+                                                                style={{
+                                                                    background: '#7c3aed',
+                                                                    color: '#fff',
+                                                                    border: 'none',
+                                                                    borderRadius: '8px',
+                                                                    padding: '7px 14px',
+                                                                    fontSize: '12px',
+                                                                    fontWeight: '700',
+                                                                    cursor: 'pointer',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '6px',
+                                                                    whiteSpace: 'nowrap',
+                                                                    transition: 'background 0.15s',
+                                                                }}
+                                                                onMouseEnter={e => e.currentTarget.style.background = '#6d28d9'}
+                                                                onMouseLeave={e => e.currentTarget.style.background = '#7c3aed'}
+                                                            >
+                                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                                                </svg>
+                                                                Open Detail
+                                                            </button>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             ))}

@@ -90,14 +90,28 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
         const rules = SLEEPER_RULES[formData.sleeperType] || { wires: 18, diaMin: 2.97, diaMax: 3.03 };
         const wires = parseInt(formData.noOfWires);
         const dia = parseFloat(formData.wireDia);
+        const layLen = parseFloat(formData.layLength);
 
         const isWiresOk = wires === rules.wires;
         const isDiaOk = dia >= rules.diaMin && dia <= rules.diaMax;
+        const isLayLenOk = !isNaN(layLen) && layLen >= 72 && layLen <= 108;
+
+        // 🔥 Auto-assume Arrangement status based on Lay Length
+        // If layLength is entered and is out of tolerance, force "Not OK"
+        if (formData.layLength && !isLayLenOk && formData.arrangement !== 'Not OK') {
+            setFormData(prev => ({ ...prev, arrangement: 'Not OK' }));
+        } 
+        // If it's valid and was empty, we can auto-assume "OK"
+        else if (formData.layLength && isLayLenOk && !formData.arrangement) {
+            setFormData(prev => ({ ...prev, arrangement: 'OK' }));
+        }
+
         const isArrangementOk = formData.arrangement === 'OK';
 
-        const status = (isWiresOk && isDiaOk && isArrangementOk) ? 'OK' : 'Not OK';
+        // Overall status is OK only if everything is within tolerance
+        const status = (isWiresOk && isDiaOk && isLayLenOk && isArrangementOk) ? 'OK' : 'Not OK';
         setFormData(prev => ({ ...prev, status }));
-    }, [formData.wireDia, formData.arrangement, formData.sleeperType, formData.noOfWires]);
+    }, [formData.wireDia, formData.arrangement, formData.sleeperType, formData.noOfWires, formData.layLength]);
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
