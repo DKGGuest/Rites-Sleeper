@@ -56,6 +56,16 @@ export const apiService = {
     deleteMouldPreparation: (id) => api.delete(`/MouldPreparation/delete/${id}`),
 
     // ================= Steam Cube Testing =================
+    waterCubeSamples: {
+        create: (data) => api.post('/water-cube-sample/create', data),
+        getAll: () => api.get('/water-cube-sample/getAll'),
+        getById: (id) => api.get(`/water-cube-sample/getById/${id}`),
+        update: (id, data) => api.put(`/water-cube-sample/update/${id}`, data),
+        delete: (id) => api.delete(`/water-cube-sample/delete/${id}`),
+        getByUser: (userId) => api.get(`/water-cube-sample/getByUser/${userId}`),
+        saveTestResult: (data) => api.post('/water-cube-sample/save-test-result', data),
+        getTestResultsByUser: (userId) => api.get(`/water-cube-sample/test-results/user/${userId}`)
+    },
     getAllSteamCubes: () => api.get('/SteamCube/get-all'),
     getSteamCubeById: (id) => api.get(`/SteamCube/get/${id}`),
     createSteamCube: (payload) => api.post('/SteamCube/create', payload),
@@ -164,6 +174,7 @@ export const apiService = {
     // moduleId=1  PLANT_PROFILE
     // getPlantProfileById:       (id) => api.get(`/plant-profile/getById/${id}`),
     getPlantProfileById: (id) => api.get(`/plant-profile/${id}`),
+    getDistinctShedsByVendorCode: (vendorCode) => api.get(`/plant-profile/vendor/${vendorCode}/sheds`),
 
 
     // moduleId=2  BENCH_MOULD_MASTER
@@ -196,9 +207,44 @@ export const apiService = {
     // moduleId=11 Production Declaration
     getProductionDeclarationRecordById: (id) => api.get(`/production-declaration/${id}`),
 
-    /**
-     * IE Dashboard: fetch all workflow transitions (including verified) for history.
-     */
     getAllWorkflowTransitions: (roleName = 'IE') =>
-        api.get(`/sleeper-workflow/allWorkflowTransition?roleName=${roleName}`)
+        api.get(`/sleeper-workflow/allWorkflowTransition?roleName=${roleName}`),
+
+    // ================= POI IE Mapping ================= //
+    getCompanyUnitsByUser: (userId) => api.get(`/sleeper-mapping/company-units/${userId}`),
+
+    // ================= Final Inspection Controller ================= //
+    getFinalInspectionBatches: () => api.get('/FinalInspectionController/inspection/batches'),
+    getFinalInspectionBatchDetail: (batchId) => api.get(`/FinalInspectionController/inspection/batch/${batchId}`),
+    saveFinalInspection: (payload) => api.post('/FinalInspectionController/save', payload),
+
+    // ================= Modulus of Rupture (MOR) =================
+    // Sample Declaration
+    getAllMORSamples: () => api.get('/FinalInspectionController'),
+    getMORSampleById: (id) => api.get(`/FinalInspectionController/${id}`),
+    createMORSample: (payload) => api.post('/FinalInspectionController', payload),
+    updateMORSample: (id, payload) => api.put(`/FinalInspectionController/${id}`, payload),
+    deleteMORSample: (id) => api.delete(`/FinalInspectionController/${id}`),
+
+    // Test Results
+    getAllMORTests: () => api.get('/mor-test'),
+    getMORTestById: (id) => api.get(`/mor-test/${id}`),
+    createMORTest: (payload) => api.post('/mor-test', payload),
+    updateMORTest: (id, payload) => api.put(`/mor-test/${id}`, payload),
+    deleteMORTest: (id) => api.delete(`/mor-test/${id}`),
+
+    // ================= Modulus of Failure (MF) =================
+    // Sample Declaration
+    getAllMFSamples: () => api.get('/modulus-of-failure'),
+    getMFSampleById: (id) => api.get(`/modulus-of-failure/${id}`),
+    createMFSample: (payload) => api.post('/modulus-of-failure', payload),
+    updateMFSample: (id, payload) => api.put(`/modulus-of-failure/${id}`, payload),
+    deleteMFSample: (id) => api.delete(`/modulus-of-failure/${id}`),
+
+    // Test Details
+    getAllMFTests: () => api.get('/mf-test-details'),
+    getMFTestById: (id) => api.get(`/mf-test-details/${id}`),
+    createMFTest: (payload) => api.post('/mf-test-details', payload),
+    updateMFTest: (id, payload) => api.put('/mf-test-details/${id}', payload),
+    deleteMFTest: (id) => api.delete('/mf-test-details/${id}'),
 };

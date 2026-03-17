@@ -1,39 +1,47 @@
 import React, { useState, useMemo } from 'react';
+import { apiService } from '../../../services/api';
 import './CriticalDimensionForm.css';
 
-const NonCriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage }) => {
+const NonCriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
     // List of all sleepers in the batch
     const allSleepersPool = useMemo(() => {
-        return Array.from({ length: 50 }, (_, i) => ({
-            id: `${batch.batchNo}/${String(i + 1).padStart(3, '0')}`,
-        }));
+        return batch?.sleepers?.map(s => ({
+            ...s,
+            id: s.sleeperId,
+            displayNo: s.sleeperNo,
+            isRejected: s.status === 'REJECTED'
+        })) || [];
     }, [batch]);
 
     const [selectedSleepers, setSelectedSleepers] = useState([]);
+    const [saving, setSaving] = useState(false);
 
     const toggleSleeperSelection = (id) => {
+        const sleeper = allSleepersPool.find(s => s.id === id);
+        if (sleeper?.isRejected) return;
+
         setSelectedSleepers(prev =>
             prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
         );
     };
 
     const parametersToCheck = [
-        'Position of HTS Wires',
-        'Depth of Sleeper',
-        'Width of Sleeper',
-        'Length of Sleeper',
-        'Wind Gauge',
-        'Camber Check'
+        { id: 13, label: 'Position of HTS Wires' },
+        { id: 14, label: 'Depth of Sleeper' },
+        { id: 15, label: 'Width of Sleeper' },
+        { id: 16, label: 'Length of Sleeper' },
+        { id: 17, label: 'Wind Gauge' },
+        { id: 18, label: 'Camber Check' }
     ];
 
     const [checklistState, setChecklistState] = useState(
-        parametersToCheck.reduce((acc, p) => ({ ...acc, [p]: false }), {})
+        parametersToCheck.reduce((acc, p) => ({ ...acc, [p.label]: false }), {})
     );
 
     const [overallResult, setOverallResult] = useState(null); // 'ok', 'partial-ok', 'all-rejected'
     const [rejectionDetails, setRejectionDetails] = useState({}); // { sleeperId: { mainReason: '', subReason: '' } }
 
-    const isChecklistComplete = parametersToCheck.every(p => checklistState[p]);
+    const isChecklistComplete = parametersToCheck.every(p => checklistState[p.label]);
 
     const handleChecklistChange = (param) => {
         setChecklistState(prev => ({ ...prev, [param]: !prev[param] }));
@@ -94,20 +102,63 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage })
         }
     };
 
+    const targetPercentage = useMemo(() => {
+        const spec = batch?.designSpec || 'T-39';
+        return spec === 'T-39' ? '1%' : '5%';
+    }, [batch]);
+
+    const handleSave = async () => {
+        try {
+            setSaving(true);
+            const payload = {
+                batchId: batch.batchId,
+                moduleId: 3,
+                shift: shift || 'General',
+                createdBy: 118,
+                sleepers: selectedSleepers.map(sid => {
+                    const sleeper = allSleepersPool.find(s => s.id === sid);
+                    const isRejected = !!rejectionDetails[sid];
+
+                    const sleeperParams = parametersToCheck.map(p => ({
+                        parameterId: p.id,
+                        result: isRejected && rejectionDetails[sid].mainReason === p.label ? 'REJECTED' : 'OK'
+                    }));
+
+                    return {
+                        sleeperId: sid,
+                        sleeperNo: sleeper.displayNo,
+                        result: isRejected ? 'REJECTED' : 'OK',
+                        rejectionReason: isRejected ? `${rejectionDetails[sid].mainReason}: ${rejectionDetails[sid].subReason}` : '',
+                        parameters: sleeperParams
+                    };
+                })
+            };
+
+            await apiService.saveFinalInspection(payload);
+            alert('Non-Critical Dimension results saved successfully.');
+            onSave();
+        } catch (error) {
+            console.error('Save failed:', error);
+            alert('Failed to save inspection results');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     return (
         <div className="non-critical-dimension-form critical-dimension-form">
             <header className="critical-form-header">
                 <h2>Non-Critical Dimensions - Full Inspection Form</h2>
-                <button onClick={onCancel} className="close-btn">✕</button>
+                <button onClick={onCancel} className="close-btn" disabled={saving}>✕</button>
             </header>
 
             <div className="critical-form-body">
                 <section className="critical-section">
                     <h4 className="section-label">1. Initial Declaration</h4>
                     <div className="declaration-grid">
-                        <div className="declaration-item"><span className="item-label">BATCH NUMBER</span><span className="item-value">{batch.batchNo}</span></div>
-                        <div className="declaration-item"><span className="item-label">SLEEPER TYPE</span><span className="item-value">{batch.sleeperType}</span></div>
-                        <div className="declaration-item"><span className="item-label">TOTAL IN BATCH</span><span className="item-value">{batch.typeQty || 255}</span></div>
+                        <div className="declaration-item"><span className="item-label">BATCH NUMBER</span><span className="item-value">{batch.batchNumber}</span></div>
+                        <div className="declaration-item"><span className="item-label">SLEEPER TYPE</span><span className="item-value">{batch.sleeperType || 'N/A'}</span></div>
+                        <div className="declaration-item"><span className="item-label">TOTAL IN BATCH</span><span className="item-value">{batch.totalSleepers}</span></div>
                         <div className="declaration-item"><span className="item-label">TARGET REQ.</span><span className="item-value">{targetPercentage}</span></div>
                     </div>
                 </section>
@@ -123,15 +174,17 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage })
                             return (
                                 <div
                                     key={s.id}
-                                    onClick={() => toggleSleeperSelection(s.id)}
-                                    className={`sleeper-chip ${isSelected ? 'selected' : ''}`}
+                                    onClick={() => !saving && toggleSleeperSelection(s.id)}
+                                    className={`sleeper-chip ${isSelected ? 'selected' : ''} ${s.isRejected ? 'already-rejected' : ''}`}
                                     style={{
-                                        background: isSelected ? '#15803d' : '#d1d5db',
-                                        color: isSelected ? '#fff' : '#374151',
-                                        borderColor: isSelected ? '#14532d' : '#9ca3af'
+                                        background: s.isRejected ? '#fee2e2' : (isSelected ? '#15803d' : '#d1d5db'),
+                                        color: s.isRejected ? '#b91c1c' : (isSelected ? '#fff' : '#374151'),
+                                        borderColor: s.isRejected ? '#ef4444' : (isSelected ? '#14532d' : '#9ca3af'),
+                                        cursor: (saving || s.isRejected) ? 'not-allowed' : 'pointer',
+                                        textDecoration: s.isRejected ? 'line-through' : 'none'
                                     }}
                                 >
-                                    {s.id.split('/')[1]}
+                                    {s.displayNo}
                                 </div>
                             );
                         })}
@@ -141,14 +194,15 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage })
                 <section className="critical-section-white">
                     <h4 className="section-label">3. Non-Critical Parameters to be Checked</h4>
                     <div className="parameters-checklist-grid">
-                        {parametersToCheck.map(param => (
-                            <label key={param} className={`parameter-checkbox-card ${checklistState[param] ? 'checked' : ''}`} style={{ borderColor: checklistState[param] ? '#10b981' : '#e2e8f0' }}>
+                        {parametersToCheck.map(p => (
+                            <label key={p.id} className={`parameter-checkbox-card ${checklistState[p.label] ? 'checked' : ''}`} style={{ borderColor: checklistState[p.label] ? '#10b981' : '#e2e8f0' }}>
                                 <input
                                     type="checkbox"
-                                    checked={checklistState[param]}
-                                    onChange={() => handleChecklistChange(param)}
+                                    checked={checklistState[p.label]}
+                                    onChange={() => !saving && handleChecklistChange(p.label)}
+                                    disabled={saving}
                                 />
-                                <span className="param-label">{param}</span>
+                                <span className="param-label">{p.label}</span>
                             </label>
                         ))}
                     </div>
@@ -165,10 +219,12 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage })
                             <button
                                 key={opt.id}
                                 onClick={() => handleResultChange(opt.id)}
+                                disabled={!isChecklistComplete || saving}
                                 className="result-btn"
                                 style={{
                                     background: overallResult === opt.id ? opt.color : '#f1f5f9',
-                                    color: overallResult === opt.id ? '#fff' : '#64748b'
+                                    color: overallResult === opt.id ? '#fff' : '#64748b',
+                                    opacity: (!isChecklistComplete || saving) ? 0.5 : 1
                                 }}
                             >
                                 {opt.label}
@@ -190,7 +246,8 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage })
                                         return (
                                             <button
                                                 key={sid}
-                                                onClick={() => toggleRejection(sid)}
+                                                onClick={() => !saving && toggleRejection(sid)}
+                                                disabled={saving}
                                                 className={`rejection-chip ${isRejected ? 'rejected' : ''}`}
                                                 style={{
                                                     borderColor: isRejected ? '#ef4444' : '#cbd5e1',
@@ -198,7 +255,7 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage })
                                                     color: isRejected ? '#991b1b' : '#64748b'
                                                 }}
                                             >
-                                                {sid.split('/')[1]}
+                                                {allSleepersPool.find(s => s.id === sid)?.displayNo}
                                             </button>
                                         );
                                     })}
@@ -217,22 +274,23 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage })
                                     <tbody>
                                         {Object.keys(rejectionDetails).map(sid => (
                                             <tr key={sid}>
-                                                <td data-label="Sleeper No" className="fw-700">{sid.split('/')[1]}</td>
+                                                <td data-label="Sleeper No" className="fw-700">{allSleepersPool.find(s => s.id === sid)?.displayNo}</td>
                                                 <td data-label="Main Reason">
                                                     <select
                                                         value={rejectionDetails[sid].mainReason}
                                                         onChange={(e) => handleRejectionChange(sid, 'mainReason', e.target.value)}
                                                         className="ui-select"
+                                                        disabled={saving}
                                                     >
                                                         <option value="">-- Select --</option>
-                                                        {parametersToCheck.map(p => <option key={p} value={p}>{p}</option>)}
+                                                        {parametersToCheck.map(p => <option key={p.id} value={p.label}>{p.label}</option>)}
                                                     </select>
                                                 </td>
                                                 <td data-label="Sub Reason">
                                                     <select
                                                         value={rejectionDetails[sid].subReason}
                                                         onChange={(e) => handleRejectionChange(sid, 'subReason', e.target.value)}
-                                                        disabled={!rejectionDetails[sid].mainReason}
+                                                        disabled={!rejectionDetails[sid].mainReason || saving}
                                                         className="ui-select"
                                                     >
                                                         <option value="">-- Select --</option>
@@ -243,13 +301,6 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage })
                                                 </td>
                                             </tr>
                                         ))}
-                                        {Object.keys(rejectionDetails).length === 0 && (
-                                            <tr>
-                                                <td colSpan="3" className="empty-msg">
-                                                    {overallResult === 'partial-ok' ? 'Select sleepers above to add rejection details.' : 'No rejected sleepers.'}
-                                                </td>
-                                            </tr>
-                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -260,14 +311,14 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, targetPercentage })
 
             <footer className="critical-form-footer">
                 <button
-                    onClick={onSave}
-                    disabled={selectedSleepers.length === 0}
+                    onClick={handleSave}
+                    disabled={selectedSleepers.length === 0 || saving}
                     className="footer-btn footer-btn-primary"
-                    style={{ opacity: selectedSleepers.length === 0 ? 0.7 : 1 }}
+                    style={{ opacity: (selectedSleepers.length === 0 || saving) ? 0.7 : 1 }}
                 >
-                    Save Non-Critical Inspection
+                    {saving ? 'Saving...' : 'Save Non-Critical Inspection'}
                 </button>
-                <button onClick={onCancel} className="footer-btn footer-btn-secondary">Cancel</button>
+                <button onClick={onCancel} className="footer-btn footer-btn-secondary" disabled={saving}>Cancel</button>
             </footer>
         </div>
     );

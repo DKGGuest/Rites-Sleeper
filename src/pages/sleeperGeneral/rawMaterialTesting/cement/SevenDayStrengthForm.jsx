@@ -6,7 +6,7 @@ import { saveCement7DayStrength } from "../../../../services/workflowService";
 
 export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
     const { selectedShift, dutyDate, dutyLocation } = useShift();
-    const { showToast } = useToast();
+    const toast = useToast();
     const user = getStoredUser();
 
     const [loading, setLoading] = useState(false);
@@ -94,11 +94,13 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
                 }))
             };
 
-            showToast("Cement 7-Day Strength record saved successfully!", "success");
+            await saveCement7DayStrength(payload);
+
+            toast.success("Cement 7-Day Strength record saved successfully!");
             if (onSave) onSave();
         } catch (error) {
             console.error("Save failed:", error);
-            showToast("Error saving record. Please check console.", "error");
+            toast.error("Error saving record. Please check console.");
         } finally {
             setLoading(false);
         }

@@ -96,11 +96,7 @@
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
     margin-bottom: 40px;
-    position: sticky;
-    top: 90px;
-    /* Below the header */
     background: #fdfdfd;
-    z-index: 99;
     padding-bottom: 20px;
     border-bottom: 1px solid #f1f5f9;
     overflow-x: auto;
@@ -194,7 +190,7 @@
 .modal-content {
     background: #fff;
     width: 100%;
-    max-width: 500px;
+    max-width: 350px;
     max-height: 90vh;
     border-radius: var(--border-radius-lg);
     display: flex;
@@ -207,7 +203,7 @@
 }
 
 .modal-header {
-    padding: 1.25rem 1.5rem;
+    padding: 0.2rem 0.5rem;
     background: #FBF6EC;
     border-bottom: 1px solid var(--border-color);
     display: flex;
@@ -223,13 +219,13 @@
 }
 
 .modal-body {
-    padding: 2rem 1.5rem;
+    padding: 1.5rem 1.5rem;
 }
 
 .duty-form {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1rem;
 }
 
 .duty-form label {
@@ -243,8 +239,8 @@
 
 .duty-form input,
 .duty-form select {
-    height: 42px;
-    padding: 0 12px;
+    height: 38px;
+    padding: 0 10px;
     border: 1px solid var(--neutral-300);
     border-radius: 6px;
     font-size: var(--fs-md);
@@ -257,6 +253,14 @@
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(33, 128, 141, 0.1);
+}
+
+.duty-form select:disabled,
+.read-only-dropdown {
+    background: #f8fafc;
+    color: var(--text-muted);
+    cursor: not-allowed;
+    border-color: #e2e8f0;
 }
 
 .modal-actions {

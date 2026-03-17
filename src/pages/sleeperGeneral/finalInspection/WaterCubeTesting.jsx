@@ -1,22 +1,39 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import EnhancedDataTable from '../../../components/common/EnhancedDataTable';
 import WaterCuredCubeForm from './WaterCuredCubeForm';
+import { 
+    getProductionDeclarationsByUser, 
+    saveWaterCubeSample, 
+    getWaterCubeSamplesByUser, 
+    deleteWaterCubeSample,
+    saveWaterCubeTestResult,
+    getWaterCubeTestResultsByUser
+} from '../../../services/workflowService';
+import { getStoredUser } from '../../../services/authService';
+import { useShift } from '../../../context/ShiftContext';
+
+// Helper to handle DD/MM/YYYY or YYYY-MM-DD
+const parseDate = (dateStr) => {
+    if (!dateStr || dateStr === 'N/A') return null;
+    if (dateStr.includes('/')) {
+        const [d, m, y] = dateStr.split('/').map(Number);
+        return new Date(y, m - 1, d);
+    }
+    return new Date(dateStr);
+};
 
 // Helper to check 15 day eligibility
 const checkEligibility = (castingDate) => {
-    const today = new Date();
-    const castDate = new Date(castingDate);
-    const diffTime = today - castDate;
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays >= 15;
+    // Temporary override: allow testing immediately
+    return true;
 };
 
 // Mock Data for Batches pending declaration
-const MOCK_PENDING_DECLARATION = [
-    { batchNo: 'B-801', date: '2026-01-28', grade: 'M55', sleepers: 160, typesCount: 1 },
-    { batchNo: 'B-802', date: '2026-01-29', grade: 'M60', sleepers: 160, typesCount: 2 },
-    { batchNo: 'B-803', date: '2026-01-30', grade: 'M55', sleepers: 80, typesCount: 1 },
-];
+// const MOCK_PENDING_DECLARATION = [
+//     { batchNo: 'B-801', date: '2026-01-28', grade: 'M55', sleepers: 160, typesCount: 1 },
+//     { batchNo: 'B-802', date: '2026-01-29', grade: 'M60', sleepers: 160, typesCount: 2 },
+//     { batchNo: 'B-803', date: '2026-01-30', grade: 'M55', sleepers: 80, typesCount: 1 },
+// ];
 
 export const WaterCubeStats = () => {
     const [filters, setFilters] = useState({ batch: '', grade: 'All', dateRange: '' });
@@ -61,61 +78,296 @@ export const WaterCubeStats = () => {
 
 const WaterCubeTesting = () => {
     const [activeTab, setActiveTab] = useState('pending'); // 'declaration', 'pending', 'done'
-    const [showDeclareModal, setShowDeclareModal] = useState(false);
-    const [selectedBatch, setSelectedBatch] = useState(null);
-    const [showTestModal, setShowTestModal] = useState(false);
-    const [showTestForm, setShowTestForm] = useState(false);
-    const [doneTests, setDoneTests] = useState([
-        {
-            batchNo: 'B-680', castingDate: '2026-01-10', testDate: '2026-01-25',
-            sample1Results: [62.4, 61.8, 63.1], sample2Results: [59.8, 60.5, 61.2],
-            avgStrength: 61.47, status: 'PASS'
-        },
-        {
-            batchNo: 'B-675', castingDate: '2026-01-08', testDate: '2026-01-23',
-            sample1Results: [58.2, 57.5, 59.1], sample2Results: [56.4, 55.8, 57.2],
-            avgStrength: 57.37, status: 'PASS'
+    const [isModifying, setIsModifying] = useState(false);
+    const { selectedShift, dutyLocation } = useShift();
+    
+    // Live Data State
+    const [pendingDeclarations, setPendingDeclarations] = useState([]);
+    const [loadingDeclarations, setLoadingDeclarations] = useState(false);
+    
+    // Active declarations (saved to DB)
+    const [activeDeclarations, setActiveDeclarations] = useState([]);
+    const [loadingActive, setLoadingActive] = useState(false);
+
+    const [isSampleModalOpen, setIsSampleModalOpen] = useState(false);
+    const [selectedBatch, setSelectedBatch] = useState(null); 
+
+    useEffect(() => {
+        fetchDeclarations();
+        fetchActiveDeclarations();
+    }, []);
+
+    const fetchDeclarations = async () => {
+        setLoadingDeclarations(true);
+        try {
+            const currentUser = getStoredUser();
+            const currentUserId = currentUser?.userId;
+
+            if (!currentUserId) {
+                setPendingDeclarations([]);
+                return [];
+            }
+
+            // Fetch active declarations first to filter out already declared batches
+            const activeData = await fetchActiveDeclarations();
+            const activeDeclarationIds = activeData.map(d => d.productionDeclarationId);
+
+            // Fast API: only fetches declarations for this user at the DB level
+            const data = await getProductionDeclarationsByUser(currentUserId);
+            if (data && data.length > 0) {
+                const mappedData = data
+                    .map(d => ({
+                        id: d.id,
+                        batchNo: d.batchNumber || 'N/A',
+                        date: d.castingDate || 'N/A',
+                        grade: d.mixDesignReference || 'N/A',
+                        sleepers: d.totalCastedSleepers || 0,
+                        typesCount: d.totalSleeperTypes || 0,
+                        raw: d
+                    }))
+                    .filter(d => !activeDeclarationIds.includes(d.id)); // Filter out declared batches
+                setPendingDeclarations(mappedData);
+            } else {
+                setPendingDeclarations([]);
+            }
+        } catch (error) {
+            console.error("Error fetching declarations:", error);
+            setPendingDeclarations([]);
+        } finally {
+            setLoadingDeclarations(false);
         }
-    ]);
-
-    const handleSaveTestData = (data) => {
-        const s1Results = data.cubes.filter(c => c.sample === 1).map(c => c.strength);
-        const s2Results = data.cubes.filter(c => c.sample === 2).map(c => c.strength);
-
-        const finalLog = {
-            batchNo: selectedBatch.batchNo,
-            castingDate: selectedBatch.castingDate,
-            testDate: new Date().toISOString().split('T')[0],
-            sample1Results: s1Results,
-            sample2Results: s2Results,
-            avgStrength: data.results.x,
-            status: data.results.testResult
-        };
-
-        setDoneTests([finalLog, ...doneTests]);
-        setDeclaredBatches(prev => prev.filter(b => b.batchNo !== selectedBatch.batchNo));
-        setShowTestForm(false);
-        setActiveTab('done');
     };
 
-    const [declaredBatches, setDeclaredBatches] = useState([
-        {
-            batchNo: 'B-701', grade: 'M55', castingDate: '2026-01-15',
-            declarationTime: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-            sample1Raw: [{ bench: '201', seq: 'A' }, { bench: '210', seq: 'B' }, { bench: '315', seq: 'D' }],
-            sample2Raw: [{ bench: '209', seq: 'D' }, { bench: '415', seq: 'B' }, { bench: '410', seq: 'B' }],
-            sample1: ['201A', '210B', '315D'], sample2: ['209D', '415B', '410B'],
-            status: 'Testing Pending'
-        },
-        {
-            batchNo: 'B-750', grade: 'M60', castingDate: new Date().toISOString().split('T')[0],
-            declarationTime: new Date().toISOString(),
-            sample1Raw: [{ bench: '101', seq: 'A' }, { bench: '102', seq: 'A' }, { bench: '103', seq: 'A' }],
-            sample2Raw: [{ bench: '104', seq: 'A' }, { bench: '105', seq: 'A' }, { bench: '106', seq: 'A' }],
-            sample1: ['101A', '102A', '103A'], sample2: ['104A', '105A', '106A'],
-            status: 'Not Eligible for Testing'
+    const fetchActiveDeclarations = async () => {
+        setLoadingActive(true);
+        try {
+            const currentUser = getStoredUser();
+            const currentUserId = currentUser?.userId;
+
+            if (!currentUserId) {
+                setActiveDeclarations([]);
+                return [];
+            }
+
+            // Fetch both in parallel to filter out completed tests
+            const [data, testResults] = await Promise.all([
+                getWaterCubeSamplesByUser(currentUserId),
+                getWaterCubeTestResultsByUser(currentUserId).catch(() => []) 
+            ]);
+
+            const completedTestIds = new Set(
+                 (testResults || [])
+                    .map(tr => tr.waterCubeSampleDeclarationId)
+                    .filter(id => id != null)
+            );
+
+            if (data && data.length > 0) {
+                const mappedData = data
+                    .filter(d => !completedTestIds.has(d.id))
+
+                    .map(d => ({
+                    id: d.id,
+                    productionDeclarationId: d.productionDeclarationId,
+                    batchNo: d.batchNumber,
+                    grade: d.concreteGrade,
+                    castingDate: d.castingDate,
+                    shift: d.shift,
+                    lineNo: d.lineNo,
+                    sample1Raw: d.details?.filter(det => det.sampleNumber === 1).map(det => ({ bench: det.benchNumber, seq: det.sequence })) || [],
+                    sample2Raw: d.details?.filter(det => det.sampleNumber === 2).map(det => ({ bench: det.benchNumber, seq: det.sequence })) || [],
+                    sample1: d.details?.filter(det => det.sampleNumber === 1).map(det => `${det.benchNumber}${det.sequence}`) || [],
+                    sample2: d.details?.filter(det => det.sampleNumber === 2).map(det => `${det.benchNumber}${det.sequence}`) || [],
+                    status: 'Testing Pending',
+                    raw: d
+                }));
+                setActiveDeclarations(mappedData);
+                return mappedData;
+            } else {
+                setActiveDeclarations([]);
+                return [];
+            }
+
+        } catch (error) {
+            console.error("Error fetching active water cube samples:", error);
+            setActiveDeclarations([]);
+            return [];
+        } finally {
+            setLoadingActive(false);
         }
-    ]);
+    };
+
+    const handleFinalizeSample = async (formData) => {
+        try {
+            const currentUser = getStoredUser();
+            const currentUserId = currentUser?.userId;
+
+            if (!currentUserId) {
+                alert("User not authenticated.");
+                return;
+            }
+
+            const payload = {
+                productionDeclarationId: selectedBatch.id,
+                castingDate: formData.castingDate,
+                batchNumber: formData.batchNo,
+                shift: selectedShift || 'General',
+                lineNo: dutyLocation || 'N/A',
+                concreteGrade: formData.grade,
+                details: [
+                    ...formData.sample1Raw.map((c, i) => ({ sampleNumber: 1, cubeNumber: i + 1, benchNumber: c.bench, sequence: c.seq })),
+                    ...formData.sample2Raw.map((c, i) => ({ sampleNumber: 2, cubeNumber: i + 1, benchNumber: c.bench, sequence: c.seq }))
+                ],
+                createdBy: currentUserId
+            };
+
+            let response;
+            if (isModifying && selectedBatch?.id) {
+                response = await saveWaterCubeSample(payload, selectedBatch.id); // Assuming saveWaterCubeSample can handle updates
+                alert("Sample declaration updated successfully!");
+            } else {
+                response = await saveWaterCubeSample(payload);
+                alert("Sample declaration saved successfully!");
+            }
+            
+            setIsSampleModalOpen(false);
+            fetchActiveDeclarations(); // Refresh the list of active declarations
+            fetchDeclarations(); // Refresh pending declarations as one might have been moved
+        } catch (error) {
+            console.error("Error saving sample declaration:", error);
+            alert("Failed to save sample declaration.");
+        }
+    };
+
+    const handleDeleteSample = async (sampleId) => {
+        if (window.confirm("Are you sure you want to delete this sample declaration? This action cannot be undone.")) {
+            try {
+                await deleteWaterCubeSample(sampleId);
+                alert("Sample declaration deleted successfully!");
+                fetchActiveDeclarations();
+                fetchDeclarations(); // Refresh pending declarations
+            } catch (error) {
+                console.error("Error deleting sample declaration:", error);
+                alert("Failed to delete sample declaration.");
+            }
+        }
+    };
+
+    const [showTestModal, setShowTestModal] = useState(false);
+    const [showTestForm, setShowTestForm] = useState(false);
+    const [doneTests, setDoneTests] = useState([]);
+
+    // Fetch done tests on mount or when active tab changes
+    useEffect(() => {
+        const fetchDoneTests = async () => {
+            const currentUser = getStoredUser();
+            if (currentUser?.userId) {
+                try {
+                    const results = await getWaterCubeTestResultsByUser(currentUser.userId);
+                    if (results && results.length > 0) {
+                        const mapped = results.map(r => ({
+                            batchNo: r.batchNumber,
+                            castingDate: r.castingDate,
+                            testDate: r.createdDate ? new Date(r.createdDate).toISOString().split('T')[0] : '',
+                            sample1Results: r.details?.filter(d => d.sampleNumber === 1).map(d => d.strengthNmm2) || [],
+                            sample2Results: r.details?.filter(d => d.sampleNumber === 2).map(d => d.strengthNmm2) || [],
+                            avgStrength: r.avgX,
+                            status: r.finalTestResult
+                        }));
+                        setDoneTests(mapped);
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch done tests:", error);
+                }
+            }
+        };
+        fetchDoneTests();
+    }, [activeTab]);
+
+    const handleSaveTestData = async (data) => {
+        try {
+            const currentUser = getStoredUser();
+            const currentUserId = currentUser?.userId;
+
+            if (!currentUserId) {
+                alert("User not authenticated.");
+                return;
+            }
+
+            const calculateAge = (castingDate) => {
+                const dt = parseDate(castingDate);
+                if (!dt) return 0;
+                const diffTime = Math.abs(new Date() - dt);
+                return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            };
+
+            const fckTarget = selectedBatch.grade === 'M55' ? 55 : (selectedBatch.grade === 'M60' ? 60 : 55);
+
+            const payload = {
+                productionDeclarationId: selectedBatch.productionDeclarationId,
+                waterCubeSampleDeclarationId: selectedBatch.id,
+                batchNumber: selectedBatch.batchNo,
+                concreteGrade: selectedBatch.grade,
+                castingDate: selectedBatch.castingDate,
+                shift: selectedBatch.shift || 'General',
+                lineNo: selectedBatch.lineNo || 'N/A',
+                fckTarget: fckTarget,
+                ageDays: calculateAge(selectedBatch.castingDate),
+                s1Avg: data.results.s1Avg,
+                s2Avg: data.results.s2Avg,
+                avgX: data.results.x,
+                minY: data.results.y,
+                s1Variation: data.results.s1Variation,
+                s2Variation: data.results.s2Variation,
+                condition1: data.results.condition1,
+                condition2: data.results.condition2,
+                condition3: data.results.condition3,
+                mrSamplesRequired: data.results.mrSamples,
+                finalTestResult: data.results.testResult,
+                createdBy: currentUserId,
+                details: data.cubes.map((c, idx) => ({
+                    sampleNumber: c.sample,
+                    cubeIndex: c.id,
+                    cubeId: c.sample === 1 
+                        ? (selectedBatch.sample1[idx] || `1-${c.id}`) 
+                        : (selectedBatch.sample2[idx - 3] || `2-${c.id}`),
+                    weightKg: parseFloat(c.weight) || 0,
+                    loadKn: parseFloat(c.load) || 0,
+                    strengthNmm2: parseFloat(c.strength) || 0,
+                    testingDate: c.date,
+                    testingTime: c.time
+                }))
+            };
+
+            await saveWaterCubeTestResult(payload);
+            alert("Test results saved successfully!");
+
+            setShowTestForm(false);
+            setActiveTab('done');
+            fetchActiveDeclarations(); // Refresh the active list
+        } catch (error) {
+            console.error("Error saving test data:", error);
+            alert("Failed to save test results.");
+        }
+    };
+
+    // const [declaredBatches, setDeclaredBatches] = useState([ // Removed, now using activeDeclarations
+    //     {
+    //         batchNo: 'B-701', grade: 'M55', castingDate: '2026-01-15',
+    //         declarationTime: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    //         sample1Raw: [{ bench: '201', seq: 'A' }, { bench: '210', seq: 'B' }, { bench: '315', seq: 'D' }],
+    //         sample2Raw: [{ bench: '209', seq: 'D' }, { bench: '415', seq: 'B' }, { bench: '410', seq: 'B' }],
+    //         sample1: ['201A', '210B', '315D'], sample2: ['209D', '415B', '410B'],
+    //         status: 'Testing Pending'
+    //     },
+    //     {
+    //         batchNo: 'B-750', grade: 'M60', castingDate: new Date().toISOString().split('T')[0],
+    //         declarationTime: new Date().toISOString(),
+    //         sample1Raw: [{ bench: '101', seq: 'A' }, { bench: '102', seq: 'A' }, { bench: '103', seq: 'A' }],
+    //         sample2Raw: [{ bench: '104', seq: 'A' }, { bench: '105', seq: 'A' }, { bench: '106', seq: 'A' }],
+    //         sample1: ['101A', '102A', '103A'], sample2: ['104A', '105A', '106A'],
+    //         status: 'Not Eligible for Testing'
+    //     }
+    // ]);
 
     const declarationColumns = [
         { key: 'batchNo', label: 'Batch No' },
@@ -129,7 +381,7 @@ const WaterCubeTesting = () => {
             render: (_, row) => (
                 <button
                     className="btn-verify"
-                    onClick={() => { setSelectedBatch(row); setIsModifying(false); setShowDeclareModal(true); }}
+                    onClick={() => { setSelectedBatch(row); setIsModifying(false); setIsSampleModalOpen(true); }}
                 >
                     Declare Samples
                 </button>
@@ -186,6 +438,15 @@ const WaterCubeTesting = () => {
                         >
                             Open Details
                         </button>
+                        {canModify && (
+                            <button
+                                className="btn-delete"
+                                style={{ fontSize: '10px', padding: '4px 10px', background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626' }}
+                                onClick={() => handleDeleteSample(row.id)}
+                            >
+                                Delete
+                            </button>
+                        )}
                     </div>
                 );
             }
@@ -226,7 +487,7 @@ const WaterCubeTesting = () => {
                                 <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>Source: SCADA / Vendor Inventory</span>
                             </div>
                         </div>
-                        <EnhancedDataTable columns={declarationColumns} data={MOCK_PENDING_DECLARATION} selectable={false} />
+                        <EnhancedDataTable columns={declarationColumns} data={pendingDeclarations} selectable={false} loading={loadingDeclarations} />
                     </div>
                 )}
 
@@ -235,7 +496,7 @@ const WaterCubeTesting = () => {
                         <div style={{ marginBottom: '20px' }}>
                             <h4 style={{ margin: 0, color: '#1e293b', fontWeight: '800' }}>Batches with Active Declarations</h4>
                         </div>
-                        <EnhancedDataTable columns={pendingColumns} data={declaredBatches} selectable={false} />
+                        <EnhancedDataTable columns={pendingColumns} data={activeDeclarations} selectable={false} loading={loadingActive} />
                     </div>
                 )}
 
@@ -298,19 +559,12 @@ const WaterCubeTesting = () => {
             </div>
 
             {/* Declaration Modal */}
-            {showDeclareModal && (
+            {isSampleModalOpen && (
                 <SampleDeclarationModal
                     batch={selectedBatch}
                     isModifying={isModifying}
-                    onClose={() => setShowDeclareModal(false)}
-                    onSave={(data) => {
-                        if (isModifying) {
-                            setDeclaredBatches(prev => prev.map(b => b.batchNo === data.batchNo ? { ...b, ...data } : b));
-                        } else {
-                            setDeclaredBatches([{ ...data, declarationTime: new Date().toISOString() }, ...declaredBatches]);
-                        }
-                        setShowDeclareModal(false);
-                    }}
+                    onClose={() => setIsSampleModalOpen(false)}
+                    onSave={handleFinalizeSample}
                 />
             )}
 
@@ -361,11 +615,66 @@ const SampleDeclarationModal = ({ batch, isModifying, onClose, onSave }) => {
         sample2: isModifying ? batch.sample2Raw : [{ bench: '', seq: '' }, { bench: '', seq: '' }, { bench: '', seq: '' }]
     });
 
+    // Build a map of Bench Number -> Available Sleeper Suffixes from live API data
+    const benchToSleepers = useMemo(() => {
+        const map = {};
+        const rawData = batch?.raw;
+        if (!rawData) return map;
+
+        // Handle Stress Bench (Chambers -> BenchGroups -> Sleepers)
+        if (rawData.chambers && rawData.chambers.length > 0) {
+            rawData.chambers.forEach(chamber => {
+                chamber.benchGroups?.forEach(group => {
+                    const bNo = String(group.benchNo);
+                    if (!map[bNo]) map[bNo] = [];
+                    group.sleepers?.forEach(s => {
+                        // Extract suffix: if sleeper is "1A" and bench is "1", suffix is "A"
+                        // Handle cases where suffix might be different (e.g., "11A" for bench 11)
+                        const suffix = s.startsWith(bNo) ? s.substring(bNo.length) : s;
+                        map[bNo].push({ full: s, suffix: suffix });
+                    });
+                });
+            });
+        }
+        return map;
+    }, [batch]);
+
     const handleUpdate = (sampleIdx, cubeIdx, field, val) => {
         const key = `sample${sampleIdx + 1}`;
         const updated = [...form[key]];
         updated[cubeIdx][field] = val;
+        
+        // If bench changes, clear the sequence if it's no longer valid? 
+        // For now, let the user pick.
+        
         setForm({ ...form, [key]: updated });
+    };
+
+    const renderSequenceOptions = (benchNo) => {
+        const available = benchToSleepers[benchNo];
+        if (available && available.length > 0) {
+            return (
+                <>
+                    <optgroup label="Casted Sleepers">
+                        {available.map(s => (
+                            <option key={s.full} value={s.suffix}>{s.suffix}</option>
+                        ))}
+                    </optgroup>
+                </>
+            );
+        }
+        
+        // Fallback to defaults if no live data or bench not found
+        return (
+            <>
+                <optgroup label="Single Bench">
+                    {['A', 'B', 'C', 'D'].map(s => <option key={s} value={s}>{s}</option>)}
+                </optgroup>
+                <optgroup label="Twin Bench">
+                    {['E', 'F', 'G', 'H'].map(s => <option key={s} value={s}>{s}</option>)}
+                </optgroup>
+            </>
+        );
     };
 
     return (
@@ -403,12 +712,7 @@ const SampleDeclarationModal = ({ batch, isModifying, onClose, onSave }) => {
                                         <div className="input-group">
                                             <select value={c.seq} onChange={(e) => handleUpdate(sIdx, cIdx, 'seq', e.target.value)}>
                                                 <option value="">Select No.</option>
-                                                <optgroup label="Single Bench">
-                                                    {['A', 'B', 'C', 'D'].map(s => <option key={s} value={s}>{s}</option>)}
-                                                </optgroup>
-                                                <optgroup label="Twin Bench">
-                                                    {['E', 'F', 'G', 'H'].map(s => <option key={s} value={s}>{s}</option>)}
-                                                </optgroup>
+                                                {renderSequenceOptions(c.bench)}
                                             </select>
                                         </div>
                                     </div>
@@ -480,7 +784,12 @@ const TestDetailPopup = ({ batch, onClose, onModify, onSaveTest }) => {
 
                         {!isEligible && (
                             <div style={{ background: '#fff7ed', padding: '12px', borderRadius: '8px', border: '1px solid #ffedd5', color: '#c2410c', fontSize: '11px', fontWeight: '700', marginBottom: '20px' }}>
-                                Testing will become eligible on {new Date(new Date(batch.castingDate).getTime() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                                {(() => {
+                                    const castDate = parseDate(batch.castingDate);
+                                    if (!castDate || isNaN(castDate.getTime())) return "Check casting date format";
+                                    const eligibleDate = new Date(castDate.getTime() + 15 * 24 * 60 * 60 * 1000);
+                                    return `Testing will become eligible on ${eligibleDate.toLocaleDateString('en-GB')}`;
+                                })()}
                             </div>
                         )}
 

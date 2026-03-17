@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useShift } from '../../context/ShiftContext';
+import { getCompanyMappingByUser, getShedsByVendorCode } from '../../services/workflowService';
 import './MainDashboard.css';
 
 /**
@@ -69,12 +70,63 @@ const MainDashboard = () => {
     } = useShift();
 
     const [showDutyForm, setShowDutyForm] = useState(false);
+    const [companyNames, setCompanyNames] = useState([]);
+    const [unitVendorMap, setUnitVendorMap] = useState({});
+    const [companyUnitMap, setCompanyUnitMap] = useState({});
+    const [vendorSheds, setVendorSheds] = useState([]);
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         shift: '',
+        companyName: '',
         unit: '',
         location: '',
     });
+
+    useEffect(() => {
+        const fetchCompanyMapping = async () => {
+            const userId = localStorage.getItem('userId');
+            if (userId) {
+                const response = await getCompanyMappingByUser(userId);
+                if (response) {
+                    if (response.unitVendorMap) {
+                        setUnitVendorMap(response.unitVendorMap);
+                    }
+                    if (response.companyUnitMap) {
+                        setCompanyUnitMap(response.companyUnitMap);
+                    }
+                    if (response.companyNames) {
+                        setCompanyNames(response.companyNames);
+                        if (response.companyNames.length === 1) {
+                            setFormData(prev => ({ ...prev, companyName: response.companyNames[0] }));
+                        }
+                    } else if (response.companyName) {
+                        // Fallback
+                        setCompanyNames([response.companyName]);
+                        setFormData(prev => ({ ...prev, companyName: response.companyName }));
+                    }
+                }
+            }
+        };
+        fetchCompanyMapping();
+    }, []);
+
+    // Effect to fetch sheds when unit changes
+    useEffect(() => {
+        const fetchSheds = async () => {
+            if (formData.unit && unitVendorMap[formData.unit]) {
+                const vendorCode = unitVendorMap[formData.unit];
+                const sheds = await getShedsByVendorCode(vendorCode);
+                if (sheds) {
+                    setVendorSheds(sheds.sort((a,b) => a - b));
+                } else {
+                    setVendorSheds([]);
+                }
+            } else {
+                setVendorSheds([]);
+            }
+        };
+        fetchSheds();
+    }, [formData.unit, unitVendorMap]);
 
     const hasActiveDuty = dutyStarted;
 
@@ -189,6 +241,23 @@ const MainDashboard = () => {
                                 </label>
 
                                 <label>
+                                    Company Name
+                                    <select
+                                        name="companyName"
+                                        value={formData.companyName}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={companyNames.length <= 1}
+                                        className={companyNames.length <= 1 ? "read-only-dropdown" : ""}
+                                    >
+                                        <option value="">Select Company</option>
+                                        {companyNames.map((name, idx) => (
+                                            <option key={idx} value={name}>{name}</option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label>
                                     Casting Date
                                     <input
                                         type="date"
@@ -208,11 +277,29 @@ const MainDashboard = () => {
                                         required
                                     >
                                         <option value="">Select Unit</option>
-                                        {plantVerificationData?.profiles?.map(profile => (
-                                            <option key={profile.id} value={profile.plantName}>
-                                                {profile.plantName} {profile.status !== 'Verified' ? `(${profile.status})` : ''}
-                                            </option>
-                                        ))}
+                                        {(() => {
+                                            const options = [];
+                                            if (formData.companyName && companyUnitMap[formData.companyName]) {
+                                                companyUnitMap[formData.companyName].forEach((unitName, idx) => {
+                                                    const profile = plantVerificationData?.profiles?.find(p => p.plantName === unitName);
+                                                    const statusText = (profile && profile.status !== 'Verified') ? ` (${profile.status})` : '';
+                                                    options.push(
+                                                        <option key={`${unitName}-${idx}`} value={unitName}>
+                                                            {unitName}{statusText}
+                                                        </option>
+                                                    );
+                                                });
+                                            } else {
+                                                plantVerificationData?.profiles?.forEach(profile => {
+                                                    options.push(
+                                                        <option key={profile.id} value={profile.plantName}>
+                                                            {profile.plantName} {profile.status !== 'Verified' ? `(${profile.status})` : ''}
+                                                        </option>
+                                                    );
+                                                });
+                                            }
+                                            return options;
+                                        })()}
                                     </select>
                                 </label>
 
@@ -227,22 +314,31 @@ const MainDashboard = () => {
                                     >
                                         <option value="">Select Location</option>
                                         {(() => {
-                                            const selectedProfile = plantVerificationData?.profiles?.find(p => p.plantName === formData.unit);
-                                            if (!selectedProfile || selectedProfile.status !== 'Verified') return null;
-
                                             const locations = [];
-                                            if (selectedProfile.lines) {
-                                                for (let i = 1; i <= selectedProfile.lines; i++) {
-                                                    const roman = i === 1 ? 'I' : i === 2 ? 'II' : i === 3 ? 'III' : i === 4 ? 'IV' : i === 5 ? 'V' : i;
-                                                    locations.push(`Line ${roman}`);
-                                                }
-                                            }
-                                            if (selectedProfile.sheds) {
-                                                for (let i = 1; i <= selectedProfile.sheds; i++) {
-                                                    const roman = i === 1 ? 'I' : i === 2 ? 'II' : i === 3 ? 'III' : i === 4 ? 'IV' : i === 5 ? 'V' : i;
+                                            const selectedProfile = plantVerificationData?.profiles?.find(p => p.plantName === formData.unit);
+                                            
+                                            if (vendorSheds && vendorSheds.length > 0) {
+                                                vendorSheds.forEach(shedStr => {
+                                                    const shedNum = Number(shedStr);
+                                                    const roman = shedNum === 1 ? 'I' : shedNum === 2 ? 'II' : shedNum === 3 ? 'III' : shedNum === 4 ? 'IV' : shedNum === 5 ? 'V' : shedNum;
                                                     locations.push(`Shed ${roman}`);
+                                                });
+                                            } else if (selectedProfile && selectedProfile.status === 'Verified') {
+                                                // Fallback to old behavior if no vendor sheds are fetched
+                                                if (selectedProfile.sheds) {
+                                                    for (let i = 1; i <= selectedProfile.sheds; i++) {
+                                                        const roman = i === 1 ? 'I' : i === 2 ? 'II' : i === 3 ? 'III' : i === 4 ? 'IV' : i === 5 ? 'V' : i;
+                                                        locations.push(`Shed ${roman}`);
+                                                    }
+                                                }
+                                                if (selectedProfile.lines) {
+                                                    for (let i = 1; i <= selectedProfile.lines; i++) {
+                                                        const roman = i === 1 ? 'I' : i === 2 ? 'II' : i === 3 ? 'III' : i === 4 ? 'IV' : i === 5 ? 'V' : i;
+                                                        locations.push(`Line ${roman}`);
+                                                    }
                                                 }
                                             }
+
                                             return locations.map(loc => (
                                                 <option key={loc} value={loc}>{loc}</option>
                                             ));

@@ -9,11 +9,7 @@
 /* ── Modern Header ── */
 .ie-modern-header {
     margin-bottom: 24px;
-    position: sticky;
-    top: -32px;
-    /* Offset for container padding */
     background: #fdfdfd;
-    z-index: 100;
     padding-top: 32px;
     padding-bottom: 16px;
 }
@@ -96,11 +92,7 @@
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 16px;
     margin-bottom: 40px;
-    position: sticky;
-    top: 90px;
-    /* Below the header */
     background: #fdfdfd;
-    z-index: 99;
     padding-bottom: 20px;
     border-bottom: 1px solid #f1f5f9;
 }
