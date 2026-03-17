@@ -1,360 +1,397 @@
-import React, { useState } from 'react';
-import { useShift } from '../../../context/ShiftContext';
+import React, { useState, useEffect, useCallback } from 'react';
+import { apiService } from '../../../services/api';
+import VerificationDetailModal from '../rawMaterialVerification/VerificationDetailModal';
 import './PlantDeclarationVerification.css';
 
+// ─────────────────────────────────────────────────────
+//  Constants – must match sleeper_module table
+// ─────────────────────────────────────────────────────
+const LOGGED_IN_USER_ID = 119; // Hardcoded IE user
+
 /**
- * PlantDeclarationVerification Component
- * This module enables the Inspecting Engineer (IE) in the General Shift to review, 
- * verify, reject, or unlock the master plant data declared by the Vendor.
+ * sleeper_module table mapping (Plant Declaration group):
+ *  id | module_name
+ *   1 | PLANT_PROFILE
+ *   2 | BENCH_MOULD_MASTER
+ *   3 | RAW_MATERIAL_SOURCE
+ *   4 | MIX_DESIGN
  */
+const PLANT_DECLARATION_MODULES = [
+    { moduleId: 1, label: 'Plant Profile',     color: '#7c3aed' },
+    { moduleId: 2, label: 'Bench / Mould',     color: '#7c3aed' },
+    { moduleId: 3, label: 'Raw Material Src',  color: '#7c3aed' },
+    { moduleId: 4, label: 'Mix Design',        color: '#7c3aed' },
+];
 
-const STATUS_CONFIG = {
-    'Pending': { label: 'Pending Verification', cls: 'status-pending' },
-    'Verified': { label: 'Verified', cls: 'status-verified' },
-    'Rejected': { label: 'Seek Clarification', cls: 'status-rejected' },
-    'Unlocked': { label: 'Unlocked for Vendor', cls: 'status-unlocked' },
+const MODULE_TABLE_FIELDS = {
+    1: [
+        { label: 'Plant Name',     key: 'plantNameLocation' },
+        { label: 'Vendor Code',    key: 'vendorCode' },
+        { label: 'Type Of Plant',  key: 'plantType' },
+        { label: 'Sheds / Lines',  key: 'numberOfSheds' },
+    ],
+    2: [
+        { label: 'Shed/Line No',   key: 'lineShedNo' },
+        { label: 'Bench/Gang No',  key: 'benchGangNo' },
+        { label: 'Sleeper Type',   key: 'sleeperType' },
+    ],
+    3: [
+        { label: 'Material Type',  key: 'rawMaterialType' },
+        { label: 'Supplier Name',  key: 'supplierName' },
+        { label: 'Approval Ref',   key: 'approvalReference' },
+    ],
+    4: [
+        { label: 'Mix ID',         key: 'identification' },
+        { label: 'Grade',          key: 'concreteGrade' },
+        { label: 'Authority',      key: 'authorityOfApproval' },
+    ],
 };
 
-const StatusBadge = ({ status }) => {
-    const cfg = STATUS_CONFIG[status] || { label: status, cls: '' };
-    return <span className={`pdv-badge ${cfg.cls}`}>{cfg.label}</span>;
+/** Fetch the actual record data for a given moduleId + requestId */
+const fetchRecordDetail = async (moduleId, requestId) => {
+    const fetchers = {
+        1: apiService.getPlantProfileById,
+        2: apiService.getBenchMouldMasterById,
+        3: apiService.getRawMaterialSourceById,
+        4: apiService.getMixDesignById,
+    };
+    const fn = fetchers[moduleId];
+    if (!fn) return null;
+    try {
+        const res = await fn(requestId);
+        return res?.responseData ?? res ?? null;
+    } catch (err) {
+        console.error('Error fetching record detail', err);
+        return null;
+    }
 };
 
+// Shared table cell styles
+const thStyle = {
+    padding: '10px 16px', textAlign: 'left',
+    fontSize: '11px', fontWeight: '700', color: '#64748b',
+    textTransform: 'uppercase', letterSpacing: '0.5px',
+    borderBottom: '1px solid #e2e8f0',
+};
+const tdStyle = {
+    padding: '12px 16px', color: '#334155', verticalAlign: 'middle',
+};
+
+// ─────────────────────────────────────────────────────
+//  Main Component
+// ─────────────────────────────────────────────────────
 const PlantDeclarationVerification = () => {
-    const { plantVerificationData, setPlantVerificationData } = useShift();
-    const [activeTab, setActiveTab] = useState(1);
-    const [rejectingItem, setRejectingItem] = useState(null);
-    const [rejectionRemarks, setRejectionRemarks] = useState('');
-    const [selectedBenches, setSelectedBenches] = useState(new Set());
+    const [loading, setLoading]                   = useState(false);
+    const [error, setError]                       = useState(null);
+    const [allRecords, setAllRecords]             = useState([]);
+    const [enrichedByModule, setEnrichedByModule] = useState({});
+    const [selectedModuleId, setSelectedModuleId] = useState(null);
+    const [showHistory, setShowHistory]           = useState(false);
+    const [detailModal, setDetailModal]           = useState(null); // row open in detail modal
 
-    // --- Helper Functions ---
+    // ── Load Data ──
+    const loadData = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = showHistory
+                ? await apiService.getAllWorkflowTransitions('IE')
+                : await apiService.getAllPendingWorkflowTransitions('IE');
 
-    const handleStatusChange = (category, id, newStatus, remarks = '') => {
-        setPlantVerificationData(prev => ({
-            ...prev,
-            [category]: prev[category].map(item =>
-                item.id === id ? { ...item, status: newStatus, rejectionRemarks: remarks } : item
-            )
-        }));
-    };
+            const rawList = Array.isArray(res)
+                ? res
+                : (Array.isArray(res?.responseData) ? res.responseData : []);
 
-    const handleBulkVerifyBenches = () => {
-        if (selectedBenches.size === 0) return;
-        setPlantVerificationData(prev => ({
-            ...prev,
-            benches: prev.benches.map(item =>
-                selectedBenches.has(item.id) && (item.status === 'Pending' || item.status === 'Unlocked')
-                    ? { ...item, status: 'Verified' }
-                    : item
-            )
-        }));
-        setSelectedBenches(new Set());
-    };
+            // Keep only records accessible by this IE user
+            const myRecords = rawList.filter(r =>
+                Array.isArray(r.accessibleUserIds) &&
+                r.accessibleUserIds.includes(LOGGED_IN_USER_ID)
+            );
 
-    const handleVerifyAllBenches = () => {
-        setPlantVerificationData(prev => ({
-            ...prev,
-            benches: prev.benches.map(item =>
-                (item.status === 'Pending' || item.status === 'Unlocked')
-                    ? { ...item, status: 'Verified' }
-                    : item
-            )
-        }));
-    };
+            // Filter to Plant Declaration modules (1-4)
+            const plantModuleIds = PLANT_DECLARATION_MODULES.map(m => m.moduleId);
+            const plantRecords   = myRecords.filter(r => plantModuleIds.includes(r.moduleId));
 
-    const openRejectModal = (category, item) => {
-        setRejectingItem({ category, item });
-        setRejectionRemarks('');
-    };
+            setAllRecords(plantRecords);
 
-    const submitRejection = () => {
-        if (!rejectingItem || !rejectionRemarks.trim()) return;
-        handleStatusChange(rejectingItem.category, rejectingItem.item.id, 'Rejected', rejectionRemarks);
-        setRejectingItem(null);
-    };
+            // Group by moduleId
+            const grouped = {};
+            for (const mod of PLANT_DECLARATION_MODULES) {
+                grouped[mod.moduleId] = [];
+            }
+            for (const item of plantRecords) {
+                const mid = item.moduleId;
+                if (grouped[mid]) grouped[mid].push(item);
+            }
 
-    const toggleBenchSelection = (id) => {
-        const next = new Set(selectedBenches);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        setSelectedBenches(next);
-    };
+            // Fetch detail for each record in parallel
+            const enriched = {};
+            await Promise.all(
+                Object.entries(grouped).map(async ([modId, items]) => {
+                    const numId   = Number(modId);
+                    const modConf = PLANT_DECLARATION_MODULES.find(m => m.moduleId === numId);
+                    enriched[numId] = await Promise.all(
+                        items.map(async item => {
+                            const detail = await fetchRecordDetail(numId, item.requestId);
+                            return {
+                                ...item,
+                                detail:      detail || {},
+                                moduleLabel: modConf?.label || `Module ${numId}`,
+                            };
+                        })
+                    );
+                })
+            );
+            setEnrichedByModule(enriched);
 
-    // --- Sub-components for Tabs ---
+            // Auto-select first module that has records
+            if (selectedModuleId === null) {
+                const firstWithRecords = PLANT_DECLARATION_MODULES.find(
+                    m => (enriched[m.moduleId] || []).length > 0
+                );
+                setSelectedModuleId(
+                    firstWithRecords
+                        ? firstWithRecords.moduleId
+                        : PLANT_DECLARATION_MODULES[0].moduleId
+                );
+            }
+        } catch (err) {
+            setError(err.message || 'Failed to load records.');
+        } finally {
+            setLoading(false);
+        }
+    }, [showHistory]); // eslint-disable-line
 
-    // Tab 1: Plant Profile Verification
-    const renderPlantProfile = () => (
-        <div className="pdv-table-container">
-            <table className="pdv-table">
-                <thead>
-                    <tr>
-                        <th>Plant Name & Location</th>
-                        <th>Vendor Code</th>
-                        <th>Type of Plant</th>
-                        <th>Sheds / Lines</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {plantVerificationData.profiles.map(row => (
-                        <tr key={row.id}>
-                            <td>
-                                <div className="pdv-main-text">{row.plantName}</div>
-                                <div className="pdv-sub-text">{row.location}</div>
-                            </td>
-                            <td>{row.vendorCode}</td>
-                            <td>{row.plantType}</td>
-                            <td>{row.plantType === 'Long Line' ? `${row.lines} Lines` : `${row.sheds} Sheds`}</td>
-                            <td><StatusBadge status={row.status} /></td>
-                            <td>
-                                <div className="pdv-actions">
-                                    {(row.status === 'Pending' || row.status === 'Unlocked') && (
-                                        <>
-                                            <button className="pdv-btn-verify" onClick={() => handleStatusChange('profiles', row.id, 'Verified')}>Verify</button>
-                                            <button className="pdv-btn-reject" title="Seek Clarification" onClick={() => openRejectModal('profiles', row)}>Seek Clarification</button>
-                                        </>
-                                    )}
-                                    {row.status === 'Verified' && (
-                                        <button className="pdv-btn-unlock" onClick={() => handleStatusChange('profiles', row.id, 'Unlocked')}>Unlock</button>
-                                    )}
-                                </div>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
 
-    // Tab 2: Bench / Mould Master Verification
-    const renderBenchMaster = () => (
-        <div className="pdv-table-container">
-            <div className="pdv-bulk-actions">
-                <button
-                    className="pdv-btn-bulk-verify"
-                    disabled={selectedBenches.size === 0}
-                    onClick={handleBulkVerifyBenches}
-                >
-                    Verify Selected ({selectedBenches.size})
-                </button>
-                <button
-                    className="pdv-btn-bulk-verify"
-                    onClick={handleVerifyAllBenches}
-                >
-                    Verify All
-                </button>
-            </div>
-            <table className="pdv-table">
-                <thead>
-                    <tr>
-                        <th style={{ width: '40px' }}><input type="checkbox" onChange={(e) => {
-                            if (e.target.checked) {
-                                const allPending = plantVerificationData.benches
-                                    .filter(b => b.status === 'Pending' || b.status === 'Unlocked')
-                                    .map(b => b.id);
-                                setSelectedBenches(new Set(allPending));
-                            } else {
-                                setSelectedBenches(new Set());
-                            }
-                        }} /></th>
-                        <th>Bench/Line No.</th>
-                        <th>Total Moulds</th>
-                        <th>Sleeper Type Assigned</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {plantVerificationData.benches.map(row => (
-                        <tr key={row.id}>
-                            <td>
-                                {(row.status === 'Pending' || row.status === 'Unlocked') && (
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedBenches.has(row.id)}
-                                        onChange={() => toggleBenchSelection(row.id)}
-                                    />
-                                )}
-                            </td>
-                            <td>{row.benchNo}</td>
-                            <td>{row.moulds}</td>
-                            <td>{row.sleeperType}</td>
-                            <td><StatusBadge status={row.status} /></td>
-                            <td>
-                                <div className="pdv-actions">
-                                    {(row.status === 'Pending' || row.status === 'Unlocked') && (
-                                        <>
-                                            <button className="pdv-btn-verify" onClick={() => handleStatusChange('benches', row.id, 'Verified')}>Verify</button>
-                                            <button className="pdv-btn-reject" title="Seek Clarification" onClick={() => openRejectModal('benches', row)}>Seek Clarification</button>
-                                        </>
-                                    )}
-                                    {row.status === 'Verified' && (
-                                        <button className="pdv-btn-unlock" onClick={() => handleStatusChange('benches', row.id, 'Unlocked')}>Unlock</button>
-                                    )}
-                                </div>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
+    const totalCount     = allRecords.length;
+    const currentRecords = enrichedByModule[selectedModuleId] || [];
 
-    // Tab 3: Raw Material Source Verification
-    const renderRawMaterial = () => (
-        <div className="pdv-table-container">
-            <table className="pdv-table">
-                <thead>
-                    <tr>
-                        <th>Material Type</th>
-                        <th>Supplier Name & Source</th>
-                        <th>Approval Reference</th>
-                        <th>Validity Period</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {plantVerificationData.rawMaterials.map(row => {
-                        const expiryDate = new Set(['expired', 'warning']);
-                        const today = new Date();
-                        const validUntil = new Date(row.validUpto);
-                        const diffDays = Math.ceil((validUntil - today) / (1000 * 60 * 60 * 24));
-                        const isExpiringSoon = diffDays <= 30 && diffDays >= 0;
-                        const isExpired = diffDays < 0;
-
-                        return (
-                            <tr key={row.id}>
-                                <td><strong>{row.materialType}</strong></td>
-                                <td>
-                                    <div className="pdv-main-text">{row.supplierName}</div>
-                                    <div className="pdv-sub-text">{row.sourceLocation}</div>
-                                </td>
-                                <td>{row.approvalRef}</td>
-                                <td>
-                                    <span className={isExpired ? "pdv-expired" : isExpiringSoon ? "pdv-warning" : ""}>
-                                        {row.validUpto} {isExpiringSoon && `(${diffDays} days left)`} {isExpired && "(Expired)"}
-                                    </span>
-                                </td>
-                                <td><StatusBadge status={row.status} /></td>
-                                <td>
-                                    <div className="pdv-actions">
-                                        <button className="pdv-btn-view">View Doc</button>
-                                        {(row.status === 'Pending' || row.status === 'Unlocked') && (
-                                            <>
-                                                <button className="pdv-btn-verify" onClick={() => handleStatusChange('rawMaterials', row.id, 'Verified')}>Verify</button>
-                                                <button className="pdv-btn-reject" title="Seek Clarification" onClick={() => openRejectModal('rawMaterials', row)}>Seek Clarification</button>
-                                            </>
-                                        )}
-                                        {row.status === 'Verified' && (
-                                            <button className="pdv-btn-unlock" onClick={() => handleStatusChange('rawMaterials', row.id, 'Unlocked')}>Unlock</button>
-                                        )}
-                                    </div>
-                                </td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
-        </div>
-    );
-
-    // Tab 4: Mix Design Verification
-    const renderMixDesign = () => (
-        <div className="pdv-table-container">
-            <table className="pdv-table">
-                <thead>
-                    <tr>
-                        <th>Mix ID & Grade</th>
-                        <th>Authority</th>
-                        <th>Proportions (Kg/m³)</th>
-                        <th>A/C & W/C Ratio</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {plantVerificationData.mixDesigns.map(row => (
-                        <tr key={row.id}>
-                            <td>
-                                <div className="pdv-main-text">{row.designId}</div>
-                                <div className="pdv-sub-text">{row.grade}</div>
-                            </td>
-                            <td>{row.authority}</td>
-                            <td>
-                                <div className="pdv-proportions-grid">
-                                    <span>C: {row.cement}</span>
-                                    <span>CA1: {row.ca1}</span>
-                                    <span>CA2: {row.ca2}</span>
-                                    <span>FA: {row.fa}</span>
-                                    <span>W: {row.water}L</span>
-                                </div>
-                            </td>
-                            <td>
-                                <div className="pdv-main-text">A/C: {row.ac}</div>
-                                <div className="pdv-sub-text">W/C: {row.wc}</div>
-                            </td>
-                            <td><StatusBadge status={row.status} /></td>
-                            <td>
-                                <div className="pdv-actions">
-                                    {(row.status === 'Pending' || row.status === 'Unlocked') && (
-                                        <>
-                                            <button className="pdv-btn-verify" onClick={() => handleStatusChange('mixDesigns', row.id, 'Verified')}>Verify</button>
-                                            <button className="pdv-btn-reject" title="Seek Clarification" onClick={() => openRejectModal('mixDesigns', row)}>Seek Clarification</button>
-                                        </>
-                                    )}
-                                    {row.status === 'Verified' && (
-                                        <button className="pdv-btn-unlock" onClick={() => handleStatusChange('mixDesigns', row.id, 'Unlocked')}>Unlock</button>
-                                    )}
-                                </div>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
-
+    // ── Render ──
     return (
-        <div className="pdv-container">
-            <div className="pdv-header">
-                <h2>Plant Declaration Verification</h2>
-                <p className="pdv-header-desc">Review and authenticate vendor declarations for live production activation.</p>
-            </div>
+        <>
+            <div className="pdv-api-container" style={{ fontFamily: "'Inter', sans-serif" }}>
 
-            <div className="pdv-tabs-nav">
-                <button className={activeTab === 1 ? 'active' : ''} onClick={() => setActiveTab(1)}>Plant Profile</button>
-                <button className={activeTab === 2 ? 'active' : ''} onClick={() => setActiveTab(2)}>Bench / Mould</button>
-                <button className={activeTab === 3 ? 'active' : ''} onClick={() => setActiveTab(3)}>Raw Material</button>
-                <button className={activeTab === 4 ? 'active' : ''} onClick={() => setActiveTab(4)}>Mix Design</button>
-            </div>
+                {/* ── Header ── */}
+                <header className="pdv-api-header">
+                    <div>
+                        <h2 className="pdv-api-title">Plant Declaration Verification</h2>
+                        <p className="pdv-api-subtitle">
+                            Review and authenticate vendor declarations for live production activation.
+                        </p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button
+                            onClick={() => setShowHistory(!showHistory)}
+                            className={`pdv-api-btn-secondary ${showHistory ? 'active' : ''}`}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {showHistory ? 'Show Pending' : 'Historical Logs'}
+                        </button>
+                        <button onClick={loadData} disabled={loading} className="pdv-api-btn-secondary">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                            </svg>
+                            {loading ? 'Refreshing…' : 'Refresh'}
+                        </button>
+                    </div>
+                </header>
 
-            <div className="pdv-tabs-content">
-                {activeTab === 1 && renderPlantProfile()}
-                {activeTab === 2 && renderBenchMaster()}
-                {activeTab === 3 && renderRawMaterial()}
-                {activeTab === 4 && renderMixDesign()}
-            </div>
-
-            {rejectingItem && (
-                <div className="pdv-modal-overlay">
-                    <div className="pdv-modal">
-                        <h3>Clarification Remarks</h3>
-                        <p>Action: Seeking clarification for <strong>{rejectingItem.item.plantName || rejectingItem.item.benchNo || rejectingItem.item.materialType || rejectingItem.item.designId}</strong></p>
-                        <textarea
-                            placeholder="Enter clarification details..."
-                            value={rejectionRemarks}
-                            onChange={(e) => setRejectionRemarks(e.target.value)}
-                        />
-                        <div className="pdv-modal-buttons">
-                            <button className="pdv-btn-cancel" onClick={() => setRejectingItem(null)}>Cancel</button>
-                            <button className="pdv-btn-submit-reject" onClick={submitRejection} disabled={!rejectionRemarks.trim()}>Submit Clarification Request</button>
+                {/* ── Summary Banner ── */}
+                <div className={`pdv-api-banner ${(totalCount > 0 && !showHistory) ? 'warning' : 'success'}`}>
+                    <span className="pdv-api-banner-icon">
+                        {(totalCount > 0 && !showHistory) ? '🔔' : '✅'}
+                    </span>
+                    <div>
+                        <strong className="pdv-api-banner-title">
+                            {showHistory
+                                ? `Showing ${totalCount} historical record(s) for Plant Declaration`
+                                : (totalCount > 0
+                                    ? `${totalCount} record(s) pending your verification`
+                                    : 'All records verified — no pending items')}
+                        </strong>
+                        <div className="pdv-api-banner-sub">
+                            Source: GET /sleeper-workflow/{showHistory ? 'allWorkflowTransition' : 'allPendingWorkflowTransition'}?roleName=IE
                         </div>
                     </div>
                 </div>
+
+                {/* ── Error ── */}
+                {error && (
+                    <div className="pdv-api-error">⚠️ {error}</div>
+                )}
+
+                {/* ── Loading ── */}
+                {loading && (
+                    <div className="pdv-api-loading">
+                        <div style={{ fontSize: '24px', marginBottom: '8px' }}>⏳</div>
+                        Loading pending workflow transitions…
+                    </div>
+                )}
+
+                {!loading && (
+                    <>
+                        {/* ── Module Cards ── */}
+                        <div className="pdv-api-module-cards">
+                            {PLANT_DECLARATION_MODULES.map(mod => {
+                                const count    = (enrichedByModule[mod.moduleId] || []).length;
+                                const isActive = selectedModuleId === mod.moduleId;
+                                return (
+                                    <div
+                                        key={mod.moduleId}
+                                        onClick={() => setSelectedModuleId(mod.moduleId)}
+                                        className={`pdv-api-module-card ${isActive ? 'active' : ''}`}
+                                        style={{
+                                            borderColor: isActive ? mod.color : '#e2e8f0',
+                                            background:  isActive ? `${mod.color}15` : '#fff',
+                                        }}
+                                    >
+                                        <div className="pdv-api-mod-id">Module {mod.moduleId}</div>
+                                        <div className="pdv-api-mod-label" style={{ color: isActive ? mod.color : '#334155' }}>
+                                            {mod.label}
+                                        </div>
+                                        <div className="pdv-api-mod-badge-wrap">
+                                            {count > 0 ? (
+                                                <span className={`pdv-api-mod-badge ${showHistory ? 'history' : 'pending'}`}>
+                                                    {count} {showHistory ? 'Total' : 'Pending'}
+                                                </span>
+                                            ) : (
+                                                <span className="pdv-api-mod-badge none">None found</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* ── Records Table ── */}
+                        {selectedModuleId && (
+                            <div className="pdv-api-table-card">
+                                {/* Table Header */}
+                                <div className="pdv-api-table-header">
+                                    <h3 className="pdv-api-table-title">
+                                        {PLANT_DECLARATION_MODULES.find(m => m.moduleId === selectedModuleId)?.label}
+                                        {' '}—{' '}
+                                        {showHistory ? 'Historical Logs' : 'Pending Records'}
+                                    </h3>
+                                    <span className="pdv-api-table-meta">moduleId = {selectedModuleId}</span>
+                                </div>
+
+                                {currentRecords.length === 0 ? (
+                                    <div className="pdv-api-empty">
+                                        <div style={{ fontSize: '32px', marginBottom: '10px' }}>✅</div>
+                                        <strong>No pending records for this module.</strong>
+                                        <div style={{ fontSize: '12px', marginTop: '4px' }}>
+                                            All records have been verified or none have been submitted yet.
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                                        <thead>
+                                            <tr style={{ background: '#f8fafc' }}>
+                                                <th style={thStyle}>#</th>
+                                                <th style={thStyle}>Request ID</th>
+                                                <th style={thStyle}>Workflow Transition ID</th>
+                                                <th style={thStyle}>Assigned To</th>
+                                                {MODULE_TABLE_FIELDS[selectedModuleId]?.map(col => (
+                                                    <th key={col.key} style={thStyle}>{col.label}</th>
+                                                ))}
+                                                <th style={thStyle}>Status</th>
+                                                <th style={thStyle}>Details</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {currentRecords.map((row, idx) => (
+                                                <tr
+                                                    key={row.workflowTransitionId || idx}
+                                                    style={{ borderBottom: '1px solid #f1f5f9' }}
+                                                    onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                                                    onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                                                >
+                                                    <td style={tdStyle}>{idx + 1}</td>
+                                                    <td style={{ ...tdStyle, fontWeight: '700', color: '#7c3aed' }}>
+                                                        #{row.requestId}
+                                                    </td>
+                                                    <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: '12px', color: '#64748b' }}>
+                                                        {row.workflowTransitionId}
+                                                    </td>
+                                                    <td style={tdStyle}>
+                                                        <span style={{
+                                                            background: '#ede9fe', color: '#5b21b6',
+                                                            padding: '2px 8px', borderRadius: '6px',
+                                                            fontSize: '11px', fontWeight: '600',
+                                                        }}>
+                                                            User {row.assignedTo}
+                                                        </span>
+                                                    </td>
+                                                    {MODULE_TABLE_FIELDS[selectedModuleId]?.map(col => (
+                                                        <td key={col.key} style={tdStyle}>
+                                                            {row.detail?.[col.key] ?? '-'}
+                                                        </td>
+                                                    ))}
+                                                    <td style={tdStyle}>
+                                                        <span style={{
+                                                            background: '#fef3c7', color: '#92400e',
+                                                            padding: '3px 8px', borderRadius: '6px',
+                                                            fontSize: '11px',
+                                                        }}>
+                                                            {row.status}
+                                                        </span>
+                                                    </td>
+                                                    <td style={tdStyle}>
+                                                        <button
+                                                            onClick={() => setDetailModal(row)}
+                                                            style={{
+                                                                background: '#7c3aed',
+                                                                color: '#fff',
+                                                                border: 'none',
+                                                                borderRadius: '8px',
+                                                                padding: '7px 14px',
+                                                                fontSize: '12px',
+                                                                fontWeight: '700',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '6px',
+                                                                whiteSpace: 'nowrap',
+                                                                transition: 'background 0.15s',
+                                                            }}
+                                                            onMouseEnter={e => e.currentTarget.style.background = '#6d28d9'}
+                                                            onMouseLeave={e => e.currentTarget.style.background = '#7c3aed'}
+                                                        >
+                                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                                            </svg>
+                                                            Open Detail
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+
+            {/* ── Detail + Action Modal ── */}
+            {detailModal && (
+                <VerificationDetailModal
+                    row={detailModal}
+                    moduleLabel={PLANT_DECLARATION_MODULES.find(m => m.moduleId === detailModal.moduleId)?.label || `Module ${detailModal.moduleId}`}
+                    actionBy={LOGGED_IN_USER_ID}
+                    onClose={() => setDetailModal(null)}
+                    onDone={loadData}
+                />
             )}
-        </div>
+        </>
     );
 };
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiService } from '../../../services/api';
+import VerificationDetailModal from './VerificationDetailModal';
 
 // ─────────────────────────────────────────────
 //  Constants – must match sleeper_module table
@@ -285,6 +286,7 @@ const MODULE_TABLE_FIELDS = {
 // ─────────────────────────────────────────────
 //  Main Dashboard Component
 // ─────────────────────────────────────────────
+
 const IncomingVerificationDashboard = ({ initialGroup = null }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -297,8 +299,7 @@ const IncomingVerificationDashboard = ({ initialGroup = null }) => {
     const [enrichedByModule, setEnrichedByModule] = useState({}); // { moduleId: [{...transition, detail, moduleLabel}] }
 
     const [selectedModuleId, setSelectedModuleId] = useState(null);
-    const [detailModal, setDetailModal] = useState(null);     // the selected record row
-    const [acting, setActing] = useState(false);
+    const [detailModal, setDetailModal] = useState(null); // row to show in the detail modal
 
     // Filter MODULE_CONFIG by initialGroup if provided
     const filteredModules = initialGroup
@@ -375,29 +376,8 @@ const IncomingVerificationDashboard = ({ initialGroup = null }) => {
         loadData();
     }, [loadData]);
 
-    const handleAction = async (row, action) => {
-        setActing(true);
-        try {
-            await apiService.performTransitionAction({
-                workflowTransitionId: row.workflowTransitionId,
-                moduleId: row.moduleId,
-                requestId: row.requestId,
-                action: action,
-                actionBy: LOGGED_IN_USER_ID,
-                remarks: action === "VERIFY" ? "Verified by IE" : "Requested for change"
-            });
-
-            alert(action === 'VERIFY'
-                ? '✓ Record verified successfully.'
-                : '↩ Change request submitted.');
-
-            loadData();
-        } catch (err) {
-            alert(`Action failed: ${err.message}`);
-        } finally {
-            setActing(false);
-        }
-    };
+    // Action is now handled inside VerificationDetailModal — kept only for API compatibility
+    // loadData is passed to modal's onDone prop
 
     const countLabel = showHistory ? 'total records' : 'pending records';
     const totalCount = allRecords.length;
@@ -574,7 +554,7 @@ const IncomingVerificationDashboard = ({ initialGroup = null }) => {
                                                 <th key={col.key} style={thStyle}>{col.label}</th>
                                             ))}
                                             <th style={thStyle}>Status</th>
-                                            <th style={thStyle}>Action</th>
+                                            <th style={thStyle}>Details</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -631,50 +611,31 @@ const IncomingVerificationDashboard = ({ initialGroup = null }) => {
                                                         </span>
                                                     </td>
                                                     <td style={tdStyle}>
-                                                        {row.status === 'VERIFIED' || row.status === 'Verified' ? (
-                                                            <div style={{ color: '#059669', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                                                    <polyline points="20 6 9 17 4 12" />
-                                                                </svg>
-                                                                Verified
-                                                            </div>
-                                                        ) : (
-                                                            <>
-                                                                <button
-                                                                    onClick={() => handleAction(row, "VERIFY")}
-                                                                    style={{
-                                                                        background: '#059669',
-                                                                        color: '#fff',
-                                                                        border: 'none',
-                                                                        borderRadius: '6px',
-                                                                        padding: '6px 12px',
-                                                                        fontSize: '12px',
-                                                                        marginRight: '6px',
-                                                                        cursor: 'pointer',
-                                                                        opacity: acting ? 0.7 : 1
-                                                                    }}
-                                                                    disabled={acting}
-                                                                >
-                                                                    Verify
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleAction(row, "REQUEST_BACK")}
-                                                                    style={{
-                                                                        background: '#dc2626',
-                                                                        color: '#fff',
-                                                                        border: 'none',
-                                                                        borderRadius: '6px',
-                                                                        padding: '6px 12px',
-                                                                        fontSize: '12px',
-                                                                        cursor: 'pointer',
-                                                                        opacity: acting ? 0.7 : 1
-                                                                    }}
-                                                                    disabled={acting}
-                                                                >
-                                                                    Request Back
-                                                                </button>
-                                                            </>
-                                                        )}
+                                                        <button
+                                                            onClick={() => setDetailModal(row)}
+                                                            style={{
+                                                                background: '#0369a1',
+                                                                color: '#fff',
+                                                                border: 'none',
+                                                                borderRadius: '8px',
+                                                                padding: '7px 14px',
+                                                                fontSize: '12px',
+                                                                fontWeight: '700',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '6px',
+                                                                whiteSpace: 'nowrap',
+                                                                transition: 'background 0.15s',
+                                                            }}
+                                                            onMouseEnter={e => e.currentTarget.style.background = '#075985'}
+                                                            onMouseLeave={e => e.currentTarget.style.background = '#0369a1'}
+                                                        >
+                                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                                            </svg>
+                                                            Open Detail
+                                                        </button>
                                                     </td>
                                                 </tr>
                                             );
@@ -687,15 +648,16 @@ const IncomingVerificationDashboard = ({ initialGroup = null }) => {
                 </>
             )}
 
-            {/* Detail + Action Modal */}
-            {/* {detailModal && (
-                <DetailModal
-                    record={detailModal}
+            {/* ── Detail + Action Modal ── */}
+            {detailModal && (
+                <VerificationDetailModal
+                    row={detailModal}
+                    moduleLabel={MODULE_CONFIG.find(m => m.moduleId === detailModal.moduleId)?.label || `Module ${detailModal.moduleId}`}
+                    actionBy={LOGGED_IN_USER_ID}
                     onClose={() => setDetailModal(null)}
-                    onAction={handleAction}
-                    acting={acting}
+                    onDone={loadData}
                 />
-            )} */}
+            )}
         </div>
     );
 };

@@ -17,13 +17,13 @@ import './SleeperProcessIEGeneral.css';
 const SUB_COLUMNS = [
     {
         id: 'plant-declaration-verification',
-        label: 'Plant Declaration',
+        label: 'Plant Declaration Verification',
         description: 'Review & Verify Master Data',
         icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0-4.4-3.6-8-8-8s-8 3.6-8 8" /><path d="M20 22h-16" /><path d="M20 15v7" /><path d="M4 15v7" /><path d="M8 22v-4" /><path d="M16 22v-4" /><path d="m17 7-5-5-5 5" /><path d="M12 2v20" /></svg>
     },
     {
         id: 'incoming-verification',
-        label: 'Incoming Verification',
+        label: 'Incoming Raw Material Verification',
         description: 'Verify Raw Material Entry',
         icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
     },
@@ -146,7 +146,7 @@ const SleeperProcessIEGeneral = () => {
                 )}
 
                 {activeSubView === 'incoming-verification' && (
-                    <IncomingVerificationDashboard />
+                    <IncomingVerificationDashboard initialGroup="Incoming Verification" />
                 )}
 
                 {activeSubView === 'inventory' && (
