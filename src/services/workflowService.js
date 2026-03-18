@@ -238,6 +238,33 @@ export const getWaterCubeSamplesByUser = async (userId) => {
 };
 
 /**
+ * Fetch all Water Cube Sample Declarations
+ * @returns {Promise<Array>} List of declarations
+ */
+export const getWaterCubeSamples = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/water-cube-sample/getAll`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to fetch all water cube sample declarations');
+      }
+  
+      const data = await response.json();
+      return data.responseData || data;
+    } catch (error) {
+      console.error('Error fetching all water cube sample declarations:', error);
+      return [];
+    }
+  };
+
+/**
  * Delete Water Cube Sample Declaration
  * @param {number|string} id - Declaration ID
  * @returns {Promise<void>}

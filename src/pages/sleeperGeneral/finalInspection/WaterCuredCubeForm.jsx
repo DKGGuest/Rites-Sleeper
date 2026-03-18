@@ -104,12 +104,6 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
                 const updated = { ...c, [field]: value };
                 // If weight or load changes, we can calculate strength, 
                 // but if they enter strength directly, we respect that.
-                if (field === 'load') {
-                    const loadVal = parseFloat(value);
-                    if (!isNaN(loadVal)) {
-                        updated.strength = parseFloat((loadVal * 1000 / AREA).toFixed(2));
-                    }
-                }
                 if (field === 'strength') {
                     updated.strength = parseFloat(value) || 0;
                 }

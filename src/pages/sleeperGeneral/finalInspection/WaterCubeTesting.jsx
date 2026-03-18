@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import EnhancedDataTable from '../../../components/common/EnhancedDataTable';
 import WaterCuredCubeForm from './WaterCuredCubeForm';
 import { 
-    getProductionDeclarationsByUser, 
+    getProductionDeclarations, 
     saveWaterCubeSample, 
-    getWaterCubeSamplesByUser, 
+    getWaterCubeSamples, 
     deleteWaterCubeSample,
     saveWaterCubeTestResult,
     getWaterCubeTestResultsByUser
@@ -113,7 +113,7 @@ const WaterCubeTesting = () => {
             const activeDeclarationIds = activeData.map(d => d.productionDeclarationId);
 
             // Fast API: only fetches declarations for this user at the DB level
-            const data = await getProductionDeclarationsByUser(currentUserId);
+            const data = await getProductionDeclarations();
             if (data && data.length > 0) {
                 const mappedData = data
                     .map(d => ({
@@ -151,7 +151,7 @@ const WaterCubeTesting = () => {
 
             // Fetch both in parallel to filter out completed tests
             const [data, testResults] = await Promise.all([
-                getWaterCubeSamplesByUser(currentUserId),
+                getWaterCubeSamples(),
                 getWaterCubeTestResultsByUser(currentUserId).catch(() => []) 
             ]);
 

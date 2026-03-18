@@ -126,7 +126,7 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
     const [detailLoading, setDetailLoading] = useState(true);
     const [detailError, setDetailError]    = useState(null);
 
-    const [pendingAction, setPendingAction] = useState(null); // 'VERIFY' | 'REQUEST_BACK'
+    const [pendingAction, setPendingAction] = useState(null); // 'VERIFY' | 'REQUEST_BACK' | 'REJECT'
     const [remarks, setRemarks]       = useState('');
     const [submitting, setSubmitting] = useState(false);
 
@@ -149,23 +149,26 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
     }, [row.moduleId, row.requestId]);
 
     const handleConfirm = async () => {
-        if (pendingAction === 'REQUEST_BACK' && !remarks.trim()) {
-            alert('Please enter remarks before requesting a change.');
+        if ((pendingAction === 'REQUEST_BACK' || pendingAction === 'REJECT') && !remarks.trim()) {
+            alert(`Please enter remarks before ${pendingAction === 'REJECT' ? 'rejecting' : 'returning'} the record.`);
             return;
         }
         setSubmitting(true);
         try {
+            const actionLabel = pendingAction === 'VERIFY' ? 'verified' : (pendingAction === 'REJECT' ? 'rejected' : 'returned');
+            
             await apiService.performTransitionAction({
                 workflowTransitionId: row.workflowTransitionId,
                 moduleId:             row.moduleId,
                 requestId:            row.requestId,
                 action:               pendingAction,
                 actionBy,
-                remarks: remarks.trim() || (pendingAction === 'VERIFY' ? 'Verified by IE' : 'Requested for change'),
+                remarks: remarks.trim() || (pendingAction === 'VERIFY' ? 'Verified by IE' : (pendingAction === 'REJECT' ? 'Rejected by IE' : 'Returned for change')),
             });
+            
             alert(pendingAction === 'VERIFY'
                 ? '✓ Record verified successfully.'
-                : '↩ Change request submitted.');
+                : (pendingAction === 'REJECT' ? '✖ Record rejected.' : '↩ Record returned to vendor.'));
             onDone();
             onClose();
         } catch (err) {
@@ -176,8 +179,14 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
     };
 
     // ── Render ──
+    // ── Render ──
     const isAlreadyVerified = row.status === 'VERIFIED' || row.status === 'Verified';
-    const accentColor = pendingAction === 'VERIFY' ? '#059669' : '#dc2626';
+    const accentColors = {
+        'VERIFY': '#059669',     // Green
+        'REQUEST_BACK': '#d97706', // Orange/Amber
+        'REJECT': '#dc2626',     // Red
+    };
+    const accentColor = accentColors[pendingAction] || '#0369a1';
 
     return (
         <>
@@ -359,18 +368,18 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
                         </div>
                     ) : !pendingAction ? (
                         /* Choose action */
-                        <div style={{ display: 'flex', gap: '12px' }}>
+                        <div style={{ display: 'flex', gap: '10px' }}>
                             <button
                                 onClick={() => setPendingAction('VERIFY')}
                                 style={{
                                     flex: 1, padding: '14px', border: 'none', borderRadius: '12px',
-                                    background: '#059669', color: '#fff',
-                                    fontWeight: '700', fontSize: '15px', cursor: 'pointer',
+                                    background: accentColors.VERIFY, color: '#fff',
+                                    fontWeight: '700', fontSize: '14px', cursor: 'pointer',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                                     transition: 'background 0.15s',
                                 }}
                                 onMouseEnter={e => e.currentTarget.style.background = '#047857'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#059669'}
+                                onMouseLeave={e => e.currentTarget.style.background = accentColors.VERIFY}
                             >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                     <polyline points="20 6 9 17 4 12" />
@@ -381,18 +390,35 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
                                 onClick={() => setPendingAction('REQUEST_BACK')}
                                 style={{
                                     flex: 1, padding: '14px', border: 'none', borderRadius: '12px',
-                                    background: '#dc2626', color: '#fff',
-                                    fontWeight: '700', fontSize: '15px', cursor: 'pointer',
+                                    background: accentColors.REQUEST_BACK, color: '#fff',
+                                    fontWeight: '700', fontSize: '14px', cursor: 'pointer',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                                     transition: 'background 0.15s',
                                 }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#b91c1c'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#dc2626'}
+                                onMouseEnter={e => e.currentTarget.style.background = '#b45309'}
+                                onMouseLeave={e => e.currentTarget.style.background = accentColors.REQUEST_BACK}
                             >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                     <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-3.36" />
                                 </svg>
-                                Request Back
+                                Return
+                            </button>
+                            <button
+                                onClick={() => setPendingAction('REJECT')}
+                                style={{
+                                    flex: 1, padding: '14px', border: 'none', borderRadius: '12px',
+                                    background: accentColors.REJECT, color: '#fff',
+                                    fontWeight: '700', fontSize: '14px', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                    transition: 'background 0.15s',
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#b91c1c'}
+                                onMouseLeave={e => e.currentTarget.style.background = accentColors.REJECT}
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                                Reject
                             </button>
                         </div>
                     ) : (
@@ -405,13 +431,13 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
                                 margin: '0 0 12px', fontWeight: '700',
                                 fontSize: '14px', color: accentColor,
                             }}>
-                                {pendingAction === 'VERIFY' ? '✓ Confirm Verification' : '↩ Confirm Request Change'}
+                                {pendingAction === 'VERIFY' ? '✓ Confirm Verification' : (pendingAction === 'REJECT' ? '✖ Confirm Rejection' : '↩ Confirm Return')}
                             </p>
                             <textarea
                                 rows={3}
                                 placeholder={pendingAction === 'VERIFY'
                                     ? 'Remarks (optional)…'
-                                    : 'Enter reason for requesting change (required)…'}
+                                    : (pendingAction === 'REJECT' ? 'Enter reason for rejection (required)…' : 'Enter reason for returning (required)…')}
                                 value={remarks}
                                 onChange={e => setRemarks(e.target.value)}
                                 style={{

@@ -5,12 +5,14 @@ import './CriticalDimensionForm.css';
 const NonCriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
     // List of all sleepers in the batch
     const allSleepersPool = useMemo(() => {
-        return batch?.sleepers?.map(s => ({
-            ...s,
-            id: s.sleeperId,
-            displayNo: s.sleeperNo,
-            isRejected: s.status === 'REJECTED'
-        })) || [];
+        return batch?.sleepers
+            ?.filter(s => s.status?.toUpperCase() !== 'REJECTED')
+            ?.map(s => ({
+                ...s,
+                id: s.sleeperId,
+                displayNo: s.sleeperNo,
+                isRejected: false
+            })) || [];
     }, [batch]);
 
     const [selectedSleepers, setSelectedSleepers] = useState([]);
