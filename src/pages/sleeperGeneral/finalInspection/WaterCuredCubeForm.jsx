@@ -102,10 +102,10 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
         setCubes(prev => prev.map(c => {
             if (c.id === id) {
                 const updated = { ...c, [field]: value };
-                // If weight or load changes, we can calculate strength, 
-                // but if they enter strength directly, we respect that.
-                if (field === 'strength') {
-                    updated.strength = parseFloat(value) || 0;
+                // Auto-calculate strength from load: strength (N/mm²) = (Load kN × 1000) / Area (22500 mm²)
+                if (field === 'load') {
+                    const loadKN = parseFloat(value) || 0;
+                    updated.strength = parseFloat(((loadKN * 1000) / AREA).toFixed(2));
                 }
                 return updated;
             }
@@ -160,21 +160,19 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
                                             background: cube.strength >= FCK ? '#f0fdf4' : (cube.strength > 0 ? '#fff1f2' : 'transparent'),
                                             padding: '4px'
                                         }}>
-                                            <input
-                                                type="number"
-                                                step="0.01"
-                                                value={cube.strength || ''}
-                                                onChange={(e) => handleCubeChange(cube.id, 'strength', e.target.value)}
+                                            <div
                                                 style={{
-                                                    background: 'transparent',
-                                                    border: 'none',
                                                     textAlign: 'right',
                                                     fontWeight: '800',
                                                     color: cube.strength >= FCK ? '#166534' : (cube.strength > 0 ? '#991b1b' : '#64748b'),
-                                                    width: '100%',
-                                                    padding: '4px 8px'
+                                                    padding: '4px 8px',
+                                                    fontSize: '13px',
+                                                    userSelect: 'none'
                                                 }}
-                                            />
+                                                title="Auto-calculated from Load — not editable"
+                                            >
+                                                {cube.strength > 0 ? cube.strength.toFixed(2) : '—'}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -225,21 +223,19 @@ const WaterCuredCubeForm = ({ batch, onSave, onCancel }) => {
                                             background: cube.strength >= FCK ? '#f0fdf4' : (cube.strength > 0 ? '#fff1f2' : 'transparent'),
                                             padding: '4px'
                                         }}>
-                                            <input
-                                                type="number"
-                                                step="0.01"
-                                                value={cube.strength || ''}
-                                                onChange={(e) => handleCubeChange(cube.id, 'strength', e.target.value)}
+                                            <div
                                                 style={{
-                                                    background: 'transparent',
-                                                    border: 'none',
                                                     textAlign: 'right',
                                                     fontWeight: '800',
                                                     color: cube.strength >= FCK ? '#166534' : (cube.strength > 0 ? '#991b1b' : '#64748b'),
-                                                    width: '100%',
-                                                    padding: '4px 8px'
+                                                    padding: '4px 8px',
+                                                    fontSize: '13px',
+                                                    userSelect: 'none'
                                                 }}
-                                            />
+                                                title="Auto-calculated from Load — not editable"
+                                            >
+                                                {cube.strength > 0 ? cube.strength.toFixed(2) : '—'}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

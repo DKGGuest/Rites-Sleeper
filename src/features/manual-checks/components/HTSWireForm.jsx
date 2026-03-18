@@ -93,17 +93,18 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
         const layLen = parseFloat(formData.layLength);
 
         const isWiresOk = wires === rules.wires;
-        const isDiaOk = dia >= rules.diaMin && dia <= rules.diaMax;
+        const isDiaOk = !isNaN(dia) && dia >= rules.diaMin && dia <= rules.diaMax;
         const isLayLenOk = !isNaN(layLen) && layLen >= 72 && layLen <= 108;
 
-        // 🔥 Auto-assume Arrangement status based on Lay Length
-        // If layLength is entered and is out of tolerance, force "Not OK"
-        if (formData.layLength && !isLayLenOk && formData.arrangement !== 'Not OK') {
+        // 🔥 Arrangement OK is independently controlled by the user.
+        // EXCEPTION: If Lay Length OR HTS Wire Diameter is out of range,
+        // automatically force Arrangement OK to "Not OK".
+        const layLengthOutOfRange = formData.layLength !== '' && !isNaN(layLen) && !isLayLenOk;
+        const wireDiaOutOfRange = formData.wireDia !== '' && !isNaN(dia) && !isDiaOk;
+
+        if ((layLengthOutOfRange || wireDiaOutOfRange) && formData.arrangement !== 'Not OK') {
             setFormData(prev => ({ ...prev, arrangement: 'Not OK' }));
-        } 
-        // If it's valid and was empty, we can auto-assume "OK"
-        else if (formData.layLength && isLayLenOk && !formData.arrangement) {
-            setFormData(prev => ({ ...prev, arrangement: 'OK' }));
+            return; // Let next render cycle recalculate overall status
         }
 
         const isArrangementOk = formData.arrangement === 'OK';
