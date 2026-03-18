@@ -72,12 +72,19 @@ export const apiService = {
     updateSteamCube: (id, payload) => api.put(`/SteamCube/update/${id}`, payload),
     deleteSteamCube: (id) => api.delete(`/SteamCube/delete/${id}`),
 
-    // ================= Bench Mould Inspection =================
-    getAllBenchMouldInspections: () => api.get('/bench-mould-inspection/get-all'),
-    getBenchMouldInspectionById: (id) => api.get(`/bench-mould-inspection/get/${id}`),
-    createBenchMouldInspection: (payload) => api.post('/bench-mould-inspection/create', payload),
-    updateBenchMouldInspection: (id, payload) => api.put(`/bench-mould-inspection/update/${id}`, payload),
-    deleteBenchMouldInspection: (id) => api.delete(`/bench-mould-inspection/delete/${id}`),
+    // ================= Stress Bench / Mould Master =================
+    getAllStressBenches: () => api.get('/stress-bench/getAll'),
+    getStressBenchById: (id) => api.get(`/stress-bench/get/${id}`),
+    createStressBench: (payload) => api.post('/stress-bench/create', payload),
+    updateStressBench: (id, payload) => api.put(`/stress-bench/update/${id}`, payload),
+    deleteStressBench: (id) => api.delete(`/stress-bench/delete/${id}`),
+
+    // ================= Bench / Mould Shift Inspection =================
+    getAllBenchMouldInspections: () => api.get('/api/bench-mould-inspection/get-all'),
+    getBenchMouldInspectionById: (id) => api.get(`/api/bench-mould-inspection/get/${id}`),
+    createBenchMouldInspection: (payload) => api.post('/api/bench-mould-inspection/create', payload),
+    updateBenchMouldInspection: (id, payload) => api.put(`/api/bench-mould-inspection/update/${id}`, payload),
+    deleteBenchMouldInspection: (id) => api.delete(`/api/bench-mould-inspection/delete/${id}`),
 
     // ================= Wire Tensioning =================
     getAllWireTensioning: () => api.get('/wire-tensioning/get-all'),
@@ -177,8 +184,8 @@ export const apiService = {
     getDistinctShedsByVendorCode: (vendorCode) => api.get(`/plant-profile/vendor/${vendorCode}/sheds`),
 
 
-    // moduleId=2  BENCH_MOULD_MASTER
-    getBenchMouldMasterById: (id) => api.get(`/bench-mould-inspection/get/${id}`),
+    // moduleId=2  STRESS_BENCH_MASTER
+    getBenchMouldMasterById: (id) => api.get(`/stress-bench/get/${id}`),
 
     // moduleId=3  RAW_MATERIAL_SOURCE
     getRawMaterialSourceById: (id) => api.get(`/raw-material-source/${id}`),

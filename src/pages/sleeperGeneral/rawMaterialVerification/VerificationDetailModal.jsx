@@ -28,11 +28,14 @@ const KEY_LABELS = {
     numberOfLines:       'Number of Lines',
     contactPerson:       'Contact Person',
     contactNumber:       'Contact Number',
-    // Module 2 — Bench / Mould
-    lineShedNo:          'Line / Shed No.',
-    benchGangNo:         'Bench / Gang No.',
-    sleeperType:         'Sleeper Type',
-    numberOfMoulds:      'Number of Moulds',
+    // Module 2 — Stress Bench / Mould Master
+    entryType:           'Entry Type',
+    benchNo:             'Bench No. (Single)',
+    benchFrom:           'Bench From',
+    benchTo:             'Bench To',
+    noOfBenches:         'Total Benches',
+    sleeperCategory:     'Sleeper Category',
+    mouldsPerBench:      'Moulds Per Bench',
     mouldCondition:      'Mould Condition',
     // Module 3 — Raw Material Source
     rawMaterialType:     'Material Type',
@@ -96,6 +99,15 @@ const KEY_LABELS = {
     modifiedBy:          'Updated By',
     lastModifiedBy:      'Updated By',
     remarks:             'Remarks',
+};
+
+const getStatusDisplay = (status) => {
+    if (!status) return { label: '-', bg: '#f1f5f9', color: '#475569' };
+    const s = status.toUpperCase();
+    if (s === 'CREATED') return { label: 'Verification Pending', bg: '#fff7ed', color: '#c2410c' }; // Orange/Yellow
+    if (s === 'COMPLETED') return { label: 'Verified and Locked', bg: '#ecfdf5', color: '#047857' }; // Green
+    if (s === 'REJECTED_CLOSED') return { label: 'Rejected', bg: '#fef2f2', color: '#991b1b' }; // Red
+    return { label: status, bg: '#f1f5f9', color: '#475569' };
 };
 
 const formatKey = (key) =>
@@ -295,17 +307,66 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
                                 color: '#64748b', fontWeight: '700',
                                 textTransform: 'uppercase', letterSpacing: '0.6px'
                             }}>
-                                📋 Vendor Submitted Data
+                                📋 Record Information
                             </p>
+
+                            {/* Prominent Audit Info Bar */}
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                                gap: '16px',
+                                background: '#fff',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '12px',
+                                padding: '16px',
+                                marginBottom: '16px'
+                            }}>
+                                <div>
+                                    <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '600' }}>Updated By</div>
+                                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>
+                                        {formatValue(detail.updatedBy || detail.modifiedBy || detail.lastModifiedBy || detail.createdBy)}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '600' }}>Updated Date</div>
+                                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>
+                                        {formatValue(detail.updatedDate || detail.updatedAt || detail.modifiedDate || detail.modifiedAt || detail.lastModifiedDate)}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '600' }}>Status</div>
+                                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>
+                                        {formatValue(detail.status || detail.recordStatus || '-')}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p style={{
+                                margin: '20px 0 12px', fontSize: '10px',
+                                color: '#94a3b8', fontWeight: '700',
+                                textTransform: 'uppercase', letterSpacing: '0.6px'
+                            }}>
+                                Details
+                            </p>
+
                             <div style={{
                                 display: 'grid',
                                 gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
                                 gap: '14px',
                             }}>
                                 {Object.entries(detail).map(([key, val]) => {
-                                    // Skip nested objects/arrays (already rendered as JSON or skip)
+                                    // Skip nested objects/arrays
                                     if (val !== null && typeof val === 'object' && !Array.isArray(val)) return null;
                                     if (Array.isArray(val)) return null;
+
+                                    // Skip audit fields already shown prominently
+                                    const auditKeys = [
+                                        'updatedBy', 'modifiedBy', 'lastModifiedBy', 'createdBy',
+                                        'updatedDate', 'updatedAt', 'modifiedDate', 'modifiedAt', 'lastModifiedDate',
+                                        'status', 'recordStatus'
+                                    ];
+                                    if (auditKeys.includes(key)) return null;
+
                                     return (
                                         <div key={key} style={{
                                             background: '#fff',
@@ -345,11 +406,22 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
                         </div>
                         <div>
                             <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Current Status</div>
-                            <span style={{
-                                background: '#fef3c7', color: '#92400e',
-                                padding: '2px 10px', borderRadius: '6px',
-                                fontSize: '12px', fontWeight: '700',
-                            }}>{row.status}</span>
+                            {(() => {
+                                const { label, bg, color } = getStatusDisplay(row.status);
+                                return (
+                                    <span style={{
+                                        background: bg,
+                                        color: color,
+                                        padding: '3px 10px',
+                                        borderRadius: '6px',
+                                        fontSize: '11px',
+                                        fontWeight: '700',
+                                        border: `1px solid ${color}20`
+                                    }}>
+                                        {label}
+                                    </span>
+                                );
+                            })()}
                         </div>
                     </div>
 

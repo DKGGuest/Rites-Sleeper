@@ -136,6 +136,7 @@ const MomentOfFailure = () => {
         { key: 'castingDate', label: 'Date of Casting' },
         { key: 'concreteGrade', label: 'Concrete Grade' },
         { key: 'shedLineNumber', label: 'Shed/Line No.' },
+        { key: 'sleeperType', label: 'Drawing No.' },
         { key: 'sampleIdentification', label: 'Sample Identification' },
         { key: 'sampleType', label: 'Type' },
         {
@@ -165,7 +166,7 @@ const MomentOfFailure = () => {
         { key: 'testingDate', label: 'Date of Testing' },
         { key: 'sampleIdentification', label: 'Shed / Identification', render: (_, row) => {
             const sample = declaredSamples.find(s => s.id === row.modulusOfFailureId);
-            return sample ? `${sample.shedLineNumber} / ${sample.sampleIdentification}` : '-';
+            return sample ? `${sample.shedLineNumber} / ${sample.sampleIdentification} (${sample.sleeperType || '-'})` : '-';
         }},
         { key: 'batchNo', label: 'Batch No.', render: (_, row) => {
             const sample = declaredSamples.find(s => s.id === row.modulusOfFailureId);
@@ -219,7 +220,7 @@ const MomentOfFailure = () => {
                 {viewMode === 'statistics' && !loading && (
                     <div className="fade-in">
                         <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-                            {['RT-1234', 'RT-5678', 'RT-9012'].map(type => (
+                            {['RT-8746', 'RT-1234', 'RT-5678', 'RT-9012'].map(type => (
                                 <button
                                     key={type}
                                     onClick={() => setSelectedSleeperType(type)}
@@ -319,7 +320,8 @@ const MFSampleDeclarationModal = ({ sample, isModifying, onClose, onSave, saving
         benchGangNumber: sample.benchGangNumber,
         mouldNo: sample.mouldNo,
         mrResult: sample.mrResult,
-        sampleType: sample.sampleType
+        sampleType: sample.sampleType,
+        sleeperType: sample.sleeperType || ''
     } : {
         samplingDate: new Date().toISOString().split('T')[0],
         concreteGrade: '',
@@ -330,7 +332,8 @@ const MFSampleDeclarationModal = ({ sample, isModifying, onClose, onSave, saving
         benchGangNumber: '',
         mouldNo: '',
         mrResult: 'PASS',
-        sampleType: ''
+        sampleType: '',
+        sleeperType: 'RT-8746'
     });
 
     const identification = `${formData.shedLineNumber} + ${formData.benchGangNumber} + ${formData.mouldNo}`;
@@ -402,6 +405,16 @@ const MFSampleDeclarationModal = ({ sample, isModifying, onClose, onSave, saving
                             <input type="text" value={formData.mrResult} onChange={e => setFormData({ ...formData, mrResult: e.target.value })} />
                         </div>
                         <div className="input-group">
+                            <label>Drawing No. (Sleeper Type)</label>
+                            <select value={formData.sleeperType} onChange={e => setFormData({ ...formData, sleeperType: e.target.value })}>
+                                <option value="">Select Drawing</option>
+                                <option>RT-8746</option>
+                                <option>RT-1234</option>
+                                <option>RT-5678</option>
+                                <option>RT-9012</option>
+                            </select>
+                        </div>
+                        <div className="input-group">
                             <label>Type of Sample (Retest/ Fresh)</label>
                             <select value={formData.sampleType} onChange={e => setFormData({ ...formData, sampleType: e.target.value })}>
                                 <option value="">Select Type</option>
@@ -429,14 +442,21 @@ const MFSampleDeclarationModal = ({ sample, isModifying, onClose, onSave, saving
 const MFTestDetailsModal = ({ sample, onClose, onSave, saving }) => {
     const [testData, setTestData] = useState({
         testingDate: new Date().toISOString().split('T')[0],
-        strength1: '',
-        strength2: '',
+        strength: '',
         remarks: ''
     });
 
     const isRetest = sample.sampleType === 'Retest';
-    const strength = isRetest ? (parseFloat(testData.strength1 || 0) + parseFloat(testData.strength2 || 0)) / 2 : parseFloat(testData.strength1 || 0);
-    const result = !isNaN(strength) && strength >= 7.5 ? 'Pass' : 'Fail';
+    const strengthVal = parseFloat(testData.strength || 0);
+    
+    // Dynamic Requirement based on Drawing
+    const getMinRequired = (drawing) => {
+        if (drawing === 'RT-8746') return 535;
+        return 500; // Default or as provided later
+    };
+    
+    const minReq = getMinRequired(sample.sleeperType);
+    const result = !isNaN(strengthVal) && testData.strength !== '' && strengthVal >= minReq ? 'Pass' : 'Fail';
 
     return (
         <div className="form-modal-overlay" onClick={onClose}>
@@ -452,8 +472,13 @@ const MFTestDetailsModal = ({ sample, onClose, onSave, saving }) => {
                             <div><span style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Batch No</span><div style={{ fontWeight: '700' }}>{sample.batchNo}</div></div>
                             <div><span style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Casting Date</span><div style={{ fontWeight: '700' }}>{sample.castingDate}</div></div>
                             <div><span style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Grade</span><div style={{ fontWeight: '700' }}>{sample.concreteGrade}</div></div>
+                            <div><span style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Drawing No</span><div style={{ fontWeight: '700', color: '#7c3aed' }}>{sample.sleeperType}</div></div>
                             <div style={{ gridColumn: 'span 3' }}><span style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Sample Identification</span><div style={{ fontWeight: '800', color: '#42818c' }}>{sample.sampleIdentification}</div></div>
                         </div>
+                    </div>
+                    
+                    <div style={{ marginBottom: '20px', padding: '12px', background: '#fef3c7', borderRadius: '8px', border: '1px solid #fde68a', fontSize: '12px', fontWeight: '700', color: '#92400e' }}>
+                        Minimum MF Required for {sample.sleeperType}: {minReq} N/mm²
                     </div>
 
                     <div className="form-grid" style={{ gridTemplateColumns: '1fr', gap: '20px' }}>
@@ -462,27 +487,14 @@ const MFTestDetailsModal = ({ sample, onClose, onSave, saving }) => {
                             <input type="date" value={testData.testingDate} onChange={e => setTestData({ ...testData, testingDate: e.target.value })} />
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: isRetest ? '1fr 1fr' : '1fr', gap: '20px' }}>
-                            <div className="input-group">
-                                <label>Strength (N/mm²) {isRetest && '(Input 1)'}</label>
-                                <input type="number" step="0.01" value={testData.strength1} onChange={e => setTestData({ ...testData, strength1: e.target.value })} placeholder="0.00" />
-                            </div>
-                            {isRetest && (
-                                <div className="input-group">
-                                    <label>Strength (N/mm²) (Input 2)</label>
-                                    <input type="number" step="0.01" value={testData.strength2} onChange={e => setTestData({ ...testData, strength2: e.target.value })} placeholder="0.00" />
-                                </div>
-                            )}
-                        </div>
-
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                             <div className="input-group">
-                                <label>Result à Auto fill</label>
-                                <input readOnly value={testData.strength1 ? result : 'PENDING'} style={{ color: result === 'Pass' ? '#059669' : '#dc2626', fontWeight: '900', background: '#f8fafc', textAlign: 'center' }} />
+                                <label>Strength (N/mm²)</label>
+                                <input type="number" step="0.01" value={testData.strength} onChange={e => setTestData({ ...testData, strength: e.target.value })} placeholder="0.00" />
                             </div>
                             <div className="input-group">
-                                <label>Final Strength Calculated</label>
-                                <input readOnly value={testData.strength1 ? strength.toFixed(2) : '-'} style={{ background: '#f8fafc', fontWeight: '700', textAlign: 'center' }} />
+                                <label>Result à Auto fill</label>
+                                <input readOnly value={testData.strength ? result : 'PENDING'} style={{ color: result === 'Pass' ? '#059669' : '#dc2626', fontWeight: '900', background: '#f8fafc', textAlign: 'center' }} />
                             </div>
                         </div>
 
@@ -493,7 +505,7 @@ const MFTestDetailsModal = ({ sample, onClose, onSave, saving }) => {
                     </div>
 
                     <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
-                        <button className="btn-verify" disabled={saving} style={{ flex: 1 }} onClick={() => onSave({ ...testData, strength: strength.toFixed(2), result })}>{saving ? 'Saving...' : 'Save & Finalize Test'}</button>
+                        <button className="btn-verify" disabled={saving} style={{ flex: 1 }} onClick={() => onSave({ ...testData, result })}>{saving ? 'Saving...' : 'Save & Finalize Test'}</button>
                         <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#64748b', border: 'none' }} onClick={onClose}>Cancel</button>
                     </div>
                 </div>

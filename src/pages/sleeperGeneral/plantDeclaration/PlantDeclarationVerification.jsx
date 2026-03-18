@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiService } from '../../../services/api';
+import { getAllCompletedCalls } from '../../../services/workflowService';
 import VerificationDetailModal from '../rawMaterialVerification/VerificationDetailModal';
 import './PlantDeclarationVerification.css';
 
@@ -31,9 +32,10 @@ const MODULE_TABLE_FIELDS = {
         { label: 'Sheds / Lines',  key: 'numberOfSheds' },
     ],
     2: [
-        { label: 'Shed/Line No',   key: 'lineShedNo' },
-        { label: 'Bench/Gang No',  key: 'benchGangNo' },
-        { label: 'Sleeper Type',   key: 'sleeperType' },
+        { label: 'Entry Type',     key: 'entryType' },
+        { label: 'Bench(es)',      key: 'benchIdentifier' }, // Custom key for display logic
+        { label: 'Sleeper Cat',    key: 'sleeperCategory' },
+        { label: 'Moulds/Bench',   key: 'mouldsPerBench' },
     ],
     3: [
         { label: 'Material Type',  key: 'rawMaterialType' },
@@ -66,6 +68,15 @@ const fetchRecordDetail = async (moduleId, requestId) => {
     }
 };
 
+const getStatusDisplay = (status) => {
+    if (!status) return { label: '-', bg: '#f1f5f9', color: '#475569' };
+    const s = status.toUpperCase();
+    if (s === 'CREATED') return { label: 'Verification Pending', bg: '#fff7ed', color: '#c2410c' }; // Orange/Yellow
+    if (s === 'COMPLETED') return { label: 'Verified and Locked', bg: '#ecfdf5', color: '#047857' }; // Green
+    if (s === 'REJECTED_CLOSED') return { label: 'Rejected', bg: '#fef2f2', color: '#991b1b' }; // Red
+    return { label: status, bg: '#f1f5f9', color: '#475569' };
+};
+
 // Shared table cell styles
 const thStyle = {
     padding: '10px 16px', textAlign: 'left',
@@ -83,12 +94,14 @@ const tdStyle = {
 const PlantDeclarationVerification = () => {
     const [loading, setLoading]                   = useState(false);
     const [error, setError]                       = useState(null);
-    const [allRecords, setAllRecords]             = useState([]);
-    const [enrichedByModule, setEnrichedByModule] = useState({});
+    
+    // Data states
+    const [pendingByModule, setPendingByModule]     = useState({}); 
+    const [completedByModule, setCompletedByModule] = useState({});
+
     const [selectedModuleId, setSelectedModuleId] = useState(null);
-    const [showHistory, setShowHistory]           = useState(false);
-    const [detailModal, setDetailModal]           = useState(null); // row open in detail modal
-    const [benchType, setBenchType]               = useState('STRESS_BENCH'); // 'STRESS_BENCH' | 'LONG_LINE'
+    const [detailModal, setDetailModal]           = useState(null); 
+    const [benchType, setBenchType]               = useState('STRESS_BENCH'); 
     const [submitting, setSubmitting]             = useState(false);
 
     // ── Load Data ──
@@ -96,73 +109,67 @@ const PlantDeclarationVerification = () => {
         setLoading(true);
         setError(null);
         try {
-            const res = showHistory
-                ? await apiService.getAllWorkflowTransitions('IE')
-                : await apiService.getAllPendingWorkflowTransitions('IE');
+            // Fetch both in parallel
+            const [pendingRes, completedRes] = await Promise.all([
+                apiService.getAllPendingWorkflowTransitions('IE'),
+                getAllCompletedCalls()
+            ]);
 
-            const rawList = Array.isArray(res)
-                ? res
-                : (Array.isArray(res?.responseData) ? res.responseData : []);
+            const rawPending = Array.isArray(pendingRes) ? pendingRes : (pendingRes?.responseData || []);
+            const rawCompleted = Array.isArray(completedRes) ? completedRes : (completedRes?.responseData || []);
 
-            // Keep only records accessible by this IE user
-            const myRecords = rawList.filter(r =>
-                Array.isArray(r.accessibleUserIds) &&
-                r.accessibleUserIds.includes(LOGGED_IN_USER_ID)
-            );
+            // Helper to process a list into enriched-by-module map
+            const processRecords = async (rawList) => {
+                const myRecords = rawList.filter(r =>
+                    Array.isArray(r.accessibleUserIds) &&
+                    r.accessibleUserIds.includes(LOGGED_IN_USER_ID)
+                );
+                const plantModuleIds = PLANT_DECLARATION_MODULES.map(m => m.moduleId);
+                const plantRecords = myRecords.filter(r => plantModuleIds.includes(r.moduleId));
 
-            // Filter to Plant Declaration modules (1-4)
-            const plantModuleIds = PLANT_DECLARATION_MODULES.map(m => m.moduleId);
-            const plantRecords   = myRecords.filter(r => plantModuleIds.includes(r.moduleId));
+                const grouped = {};
+                for (const mod of PLANT_DECLARATION_MODULES) { grouped[mod.moduleId] = []; }
+                for (const item of plantRecords) {
+                    if (grouped[item.moduleId]) grouped[item.moduleId].push(item);
+                }
 
-            setAllRecords(plantRecords);
+                const enriched = {};
+                await Promise.all(
+                    Object.entries(grouped).map(async ([mid, items]) => {
+                        const numId = Number(mid);
+                        const modConf = PLANT_DECLARATION_MODULES.find(m => m.moduleId === numId);
+                        enriched[numId] = await Promise.all(
+                            items.map(async item => {
+                                const detail = await fetchRecordDetail(numId, item.requestId);
+                                return {
+                                    ...item,
+                                    detail: detail || {},
+                                    moduleLabel: modConf?.label || `Module ${numId}`,
+                                };
+                            })
+                        );
+                    })
+                );
+                return enriched;
+            };
 
-            // Group by moduleId
-            const grouped = {};
-            for (const mod of PLANT_DECLARATION_MODULES) {
-                grouped[mod.moduleId] = [];
-            }
-            for (const item of plantRecords) {
-                const mid = item.moduleId;
-                if (grouped[mid]) grouped[mid].push(item);
-            }
+            const [pEnriched, cEnriched] = await Promise.all([
+                processRecords(rawPending),
+                processRecords(rawCompleted)
+            ]);
 
-            // Fetch detail for each record in parallel
-            const enriched = {};
-            await Promise.all(
-                Object.entries(grouped).map(async ([modId, items]) => {
-                    const numId   = Number(modId);
-                    const modConf = PLANT_DECLARATION_MODULES.find(m => m.moduleId === numId);
-                    enriched[numId] = await Promise.all(
-                        items.map(async item => {
-                            const detail = await fetchRecordDetail(numId, item.requestId);
-                            return {
-                                ...item,
-                                detail:      detail || {},
-                                moduleLabel: modConf?.label || `Module ${numId}`,
-                            };
-                        })
-                    );
-                })
-            );
-            setEnrichedByModule(enriched);
+            setPendingByModule(pEnriched);
+            setCompletedByModule(cEnriched);
 
-            // Auto-select first module that has records
             if (selectedModuleId === null) {
-                const firstWithRecords = PLANT_DECLARATION_MODULES.find(
-                    m => (enriched[m.moduleId] || []).length > 0
-                );
-                setSelectedModuleId(
-                    firstWithRecords
-                        ? firstWithRecords.moduleId
-                        : PLANT_DECLARATION_MODULES[0].moduleId
-                );
+                setSelectedModuleId(PLANT_DECLARATION_MODULES[0].moduleId);
             }
         } catch (err) {
             setError(err.message || 'Failed to load records.');
         } finally {
             setLoading(false);
         }
-    }, [showHistory]); // eslint-disable-line
+    }, [selectedModuleId]);
 
     useEffect(() => {
         loadData();
@@ -194,307 +201,176 @@ const PlantDeclarationVerification = () => {
         }
     };
 
-    const totalCount     = allRecords.length;
-    let currentRecords = enrichedByModule[selectedModuleId] || [];
+    const renderTable = (records, isHistory = false) => {
+        if (!records || records.length === 0) {
+            return (
+                <div className="pdv-api-empty" style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
+                    <div style={{ fontSize: '24px', marginBottom: '8px' }}>🌑</div>
+                    <strong style={{ fontSize: '13px' }}>No records found.</strong>
+                </div>
+            );
+        }
 
-    // Filter Module 2 by Bench Type
-    if (selectedModuleId === 2) {
-        currentRecords = currentRecords.filter(r => {
-            // Assuming the detail has a field that identifies the type. 
-            // If not found, we show all or try to guess.
-            // For now, let's look for 'benchType' or 'plantType' in the detail.
-            const type = r.detail?.benchType || r.detail?.plantType || '';
-            if (!type) return true; // Show if unknown
-            return type.toUpperCase().includes(benchType === 'STRESS_BENCH' ? 'STRESS' : 'LONG');
-        });
-    }
+        return (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                    <tr style={{ background: '#f8fafc' }}>
+                        <th style={thStyle}>#</th>
+                        <th style={thStyle}>Request ID</th>
+                        <th style={thStyle}>Transition ID</th>
+                        <th style={thStyle}>Assigned</th>
+                        {MODULE_TABLE_FIELDS[selectedModuleId]?.map(col => (
+                            <th key={col.key} style={thStyle}>{col.label}</th>
+                        ))}
+                        <th style={thStyle}>Status</th>
+                        <th style={thStyle}>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {records.map((row, idx) => (
+                        <tr key={row.workflowTransitionId || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={tdStyle}>{idx + 1}</td>
+                            <td style={{ ...tdStyle, fontWeight: '700', color: '#7c3aed' }}>#{row.requestId}</td>
+                            <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: '12px', color: '#64748b' }}>{row.workflowTransitionId}</td>
+                            <td style={tdStyle}>User {row.assignedTo}</td>
+                            {MODULE_TABLE_FIELDS[selectedModuleId]?.map(col => {
+                                if (col.key === 'benchIdentifier') {
+                                    const bNo = row.detail?.benchNo;
+                                    const bFrom = row.detail?.benchFrom;
+                                    const bTo = row.detail?.benchTo;
+                                    const display = bNo ? bNo : (bFrom && bTo ? `${bFrom}-${bTo}` : '-');
+                                    return <td key={col.key} style={tdStyle}>{display}</td>;
+                                }
+                                return <td key={col.key} style={tdStyle}>{row.detail?.[col.key] ?? '-'}</td>;
+                            })}
+                            <td style={tdStyle}>
+                                {(() => {
+                                    const { label, bg, color } = getStatusDisplay(row.status);
+                                    return (
+                                        <span style={{ 
+                                            background: bg, color: color, padding: '3px 10px', 
+                                            borderRadius: '6px', fontSize: '11px', fontWeight: '700',
+                                            border: `1px solid ${color}20`
+                                        }}>
+                                            {label}
+                                        </span>
+                                    );
+                                })()}
+                            </td>
+                            <td style={tdStyle}>
+                                {selectedModuleId === 2 ? (
+                                    <div style={{ display: 'flex', gap: '6px' }}>
+                                        {/* Pending Actions */}
+                                        {!isHistory && (row.status === 'CREATED' || row.status?.toUpperCase() === 'UNLOCKED') && (
+                                            <>
+                                                <button onClick={() => handleAction(row, 'VERIFY')} disabled={submitting} className="pdv-verify-btn">Verify</button>
+                                                <button onClick={() => handleAction(row, 'REQUEST_BACK')} disabled={submitting} className="pdv-return-btn">Return</button>
+                                            </>
+                                        )}
+                                        <button onClick={() => setDetailModal(row)} className="pdv-view-mini">View</button>
+                                    </div>
+                                ) : (
+                                    <button onClick={() => setDetailModal(row)} className="pdv-view-full" style={{
+                                        background: isHistory ? '#059669' : '#7c3aed',
+                                        color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 12px', fontWeight: '700', cursor: 'pointer'
+                                    }}>View</button>
+                                )}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        );
+    };
 
     // ── Render ──
     return (
-        <>
-            <div className="pdv-api-container" style={{ fontFamily: "'Inter', sans-serif" }}>
-
-                {/* ── Header ── */}
-                <header className="pdv-api-header">
-                    <div>
-                        <h2 className="pdv-api-title">Plant Declaration Verification</h2>
-                        <p className="pdv-api-subtitle">
-                            Review and authenticate vendor declarations for live production activation.
-                        </p>
-                    </div>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                        <button
-                            onClick={() => setShowHistory(!showHistory)}
-                            className={`pdv-api-btn-secondary ${showHistory ? 'active' : ''}`}
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            {showHistory ? 'Show Pending' : 'Historical Logs'}
-                        </button>
-                        <button onClick={loadData} disabled={loading} className="pdv-api-btn-secondary">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
-                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-                            </svg>
-                            {loading ? 'Refreshing…' : 'Refresh'}
-                        </button>
-                    </div>
-                </header>
-
-                {/* ── Summary Banner ── */}
-                <div className={`pdv-api-banner ${(totalCount > 0 && !showHistory) ? 'warning' : 'success'}`}>
-                    <span className="pdv-api-banner-icon">
-                        {(totalCount > 0 && !showHistory) ? '🔔' : '✅'}
-                    </span>
-                    <div>
-                        <strong className="pdv-api-banner-title">
-                            {showHistory
-                                ? `Showing ${totalCount} historical record(s) for Plant Declaration`
-                                : (totalCount > 0
-                                    ? `${totalCount} record(s) pending your verification`
-                                    : 'All records verified — no pending items')}
-                        </strong>
-                        <div className="pdv-api-banner-sub">
-                            Source: GET /sleeper-workflow/{showHistory ? 'allWorkflowTransition' : 'allPendingWorkflowTransition'}?roleName=IE
-                        </div>
-                    </div>
+        <div className="pdv-api-container" style={{ fontFamily: "'Inter', sans-serif" }}>
+            <header className="pdv-api-header">
+                <div>
+                    <h2 className="pdv-api-title">Plant Declaration Verification</h2>
+                    <p className="pdv-api-subtitle">Reviewing vendor declarations with integrated historical logs.</p>
                 </div>
+                <button onClick={loadData} disabled={loading} className="pdv-api-btn-secondary">
+                    {loading ? 'Refreshing…' : 'Refresh Data'}
+                </button>
+            </header>
 
-                {/* ── Error ── */}
-                {error && (
-                    <div className="pdv-api-error">⚠️ {error}</div>
-                )}
 
-                {/* ── Loading ── */}
-                {loading && (
-                    <div className="pdv-api-loading">
-                        <div style={{ fontSize: '24px', marginBottom: '8px' }}>⏳</div>
-                        Loading pending workflow transitions…
-                    </div>
-                )}
 
-                {!loading && (
-                    <>
-                        {/* ── Module Cards ── */}
-                        <div className="pdv-api-module-cards">
-                            {PLANT_DECLARATION_MODULES.map(mod => {
-                                const count    = (enrichedByModule[mod.moduleId] || []).length;
-                                const isActive = selectedModuleId === mod.moduleId;
-                                return (
-                                    <div
-                                        key={mod.moduleId}
-                                        onClick={() => setSelectedModuleId(mod.moduleId)}
-                                        className={`pdv-api-module-card ${isActive ? 'active' : ''}`}
-                                        style={{
-                                            borderColor: isActive ? mod.color : '#e2e8f0',
-                                            background:  isActive ? `${mod.color}15` : '#fff',
-                                        }}
-                                    >
-                                        <div className="pdv-api-mod-id">Module {mod.moduleId}</div>
-                                        <div className="pdv-api-mod-label" style={{ color: isActive ? mod.color : '#334155' }}>
-                                            {mod.label}
-                                        </div>
-                                        <div className="pdv-api-mod-badge-wrap">
-                                            {count > 0 ? (
-                                                <span className={`pdv-api-mod-badge ${showHistory ? 'history' : 'pending'}`}>
-                                                    {count} {showHistory ? 'Total' : 'Pending'}
-                                                </span>
-                                            ) : (
-                                                <span className="pdv-api-mod-badge none">None found</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+            {error && <div className="pdv-api-error">⚠️ {error}</div>}
 
-                        {/* ── Records Table ── */}
-                        {selectedModuleId && (
-                            <div className="pdv-api-table-card">
-                                {/* Table Header */}
-                                <div className="pdv-api-table-header">
-                                    <h3 className="pdv-api-table-title">
-                                        {PLANT_DECLARATION_MODULES.find(m => m.moduleId === selectedModuleId)?.label}
-                                        {' '}—{' '}
-                                        {showHistory ? 'Historical Logs' : 'Pending Records'}
-                                    </h3>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                        {selectedModuleId === 2 && (
-                                            <div className="pdv-bench-toggle" style={{
-                                                display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', border: '1px solid #e2e8f0'
-                                            }}>
-                                                <button
-                                                    onClick={() => setBenchType('STRESS_BENCH')}
-                                                    style={{
-                                                        padding: '5px 12px', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: '700', cursor: 'pointer',
-                                                        background: benchType === 'STRESS_BENCH' ? '#7c3aed' : 'transparent',
-                                                        color: benchType === 'STRESS_BENCH' ? '#fff' : '#64748b',
-                                                        transition: 'all 0.2s'
-                                                    }}
-                                                >Stress Bench</button>
-                                                <button
-                                                    onClick={() => setBenchType('LONG_LINE')}
-                                                    style={{
-                                                        padding: '5px 12px', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: '700', cursor: 'pointer',
-                                                        background: benchType === 'LONG_LINE' ? '#7c3aed' : 'transparent',
-                                                        color: benchType === 'LONG_LINE' ? '#fff' : '#64748b',
-                                                        transition: 'all 0.2s'
-                                                    }}
-                                                >Long Line</button>
-                                            </div>
-                                        )}
-                                        <span className="pdv-api-table-meta">moduleId = {selectedModuleId}</span>
+            {loading ? (
+                <div className="pdv-api-loading">Loading transitions…</div>
+            ) : (
+                <>
+                    {/* Module Tabs */}
+                    <div className="pdv-api-module-cards">
+                        {PLANT_DECLARATION_MODULES.map(mod => {
+                            const pCount = (pendingByModule[mod.moduleId] || []).length;
+                            const hCount = (completedByModule[mod.moduleId] || []).length;
+                            const isActive = selectedModuleId === mod.moduleId;
+                            return (
+                                <div
+                                    key={mod.moduleId}
+                                    onClick={() => setSelectedModuleId(mod.moduleId)}
+                                    className={`pdv-api-module-card ${isActive ? 'active' : ''}`}
+                                    style={{ borderColor: isActive ? mod.color : '#e2e8f0', background: isActive ? `${mod.color}10` : '#fff' }}
+                                >
+                                    <div className="pdv-api-mod-label" style={{ color: isActive ? mod.color : '#334155' }}>{mod.label}</div>
+                                    <div style={{ display: 'flex', gap: '5px', marginTop: '8px' }}>
+                                        <span style={{ fontSize: '10px', background: '#fff7ed', color: '#c2410c', padding: '2px 6px', borderRadius: '4px' }}>P: {pCount}</span>
+                                        <span style={{ fontSize: '10px', background: '#ecfdf5', color: '#047857', padding: '2px 6px', borderRadius: '4px' }}>V: {hCount}</span>
                                     </div>
                                 </div>
+                            );
+                        })}
+                    </div>
 
-                                {currentRecords.length === 0 ? (
-                                    <div className="pdv-api-empty">
-                                        <div style={{ fontSize: '32px', marginBottom: '10px' }}>✅</div>
-                                        <strong>No pending records for this module.</strong>
-                                        <div style={{ fontSize: '12px', marginTop: '4px' }}>
-                                            All records have been verified or none have been submitted yet.
+                    {/* Tables */}
+                    {selectedModuleId && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', marginTop: '10px' }}>
+                            
+                            {/* Pending Table */}
+                            <div className="pdv-api-table-card" style={{ borderTop: '4px solid #f59e0b' }}>
+                                <div className="pdv-api-table-header">
+                                    <h3 style={{ margin: 0, fontSize: '16px', color: '#92400e' }}>Pending Verification</h3>
+                                    {selectedModuleId === 2 && (
+                                        <div className="pdv-bench-toggle">
+                                            <button onClick={() => setBenchType('STRESS_BENCH')} className={benchType === 'STRESS_BENCH' ? 'active' : ''}>Stress</button>
+                                            <button onClick={() => setBenchType('LONG_LINE')} className={benchType === 'LONG_LINE' ? 'active' : ''}>Long Line</button>
                                         </div>
-                                    </div>
-                                ) : (
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                                        <thead>
-                                            <tr style={{ background: '#f8fafc' }}>
-                                                <th style={thStyle}>#</th>
-                                                <th style={thStyle}>Request ID</th>
-                                                <th style={thStyle}>Workflow Transition ID</th>
-                                                <th style={thStyle}>Assigned To</th>
-                                                {MODULE_TABLE_FIELDS[selectedModuleId]?.map(col => (
-                                                    <th key={col.key} style={thStyle}>{col.label}</th>
-                                                ))}
-                                                <th style={thStyle}>Status</th>
-                                                <th style={thStyle}>{selectedModuleId === 2 ? 'Quick Actions' : 'Details'}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {currentRecords.map((row, idx) => (
-                                                <tr
-                                                    key={row.workflowTransitionId || idx}
-                                                    style={{ borderBottom: '1px solid #f1f5f9' }}
-                                                    onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                                                    onMouseLeave={e => e.currentTarget.style.background = '#fff'}
-                                                >
-                                                    <td style={tdStyle}>{idx + 1}</td>
-                                                    <td style={{ ...tdStyle, fontWeight: '700', color: '#7c3aed' }}>
-                                                        #{row.requestId}
-                                                    </td>
-                                                    <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: '12px', color: '#64748b' }}>
-                                                        {row.workflowTransitionId}
-                                                    </td>
-                                                    <td style={tdStyle}>
-                                                        <span style={{
-                                                            background: '#ede9fe', color: '#5b21b6',
-                                                            padding: '2px 8px', borderRadius: '6px',
-                                                            fontSize: '11px', fontWeight: '600',
-                                                        }}>
-                                                            User {row.assignedTo}
-                                                        </span>
-                                                    </td>
-                                                    {MODULE_TABLE_FIELDS[selectedModuleId]?.map(col => (
-                                                        <td key={col.key} style={tdStyle}>
-                                                            {row.detail?.[col.key] ?? '-'}
-                                                        </td>
-                                                    ))}
-                                                    <td style={tdStyle}>
-                                                        <span style={{
-                                                            background: '#fef3c7', color: '#92400e',
-                                                            padding: '3px 8px', borderRadius: '6px',
-                                                            fontSize: '11px',
-                                                        }}>
-                                                            {row.status}
-                                                        </span>
-                                                    </td>
-                                                    <td style={tdStyle}>
-                                                        {selectedModuleId === 2 ? (
-                                                            <div style={{ display: 'flex', gap: '6px' }}>
-                                                                {/* Pending or Unlocked -> Verify & Return */}
-                                                                {(row.status === 'Pending' || row.status === 'UNLOCKED' || row.status === 'Unlocked') && (
-                                                                    <>
-                                                                        <button
-                                                                            onClick={() => handleAction(row, 'VERIFY')}
-                                                                            disabled={submitting}
-                                                                            style={{
-                                                                                background: '#059669', color: '#fff', border: 'none', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', fontWeight: '600', cursor: 'pointer'
-                                                                            }}
-                                                                        >Verify</button>
-                                                                        <button
-                                                                            onClick={() => handleAction(row, 'REQUEST_BACK')}
-                                                                            disabled={submitting}
-                                                                            style={{
-                                                                                background: '#dc2626', color: '#fff', border: 'none', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', fontWeight: '600', cursor: 'pointer'
-                                                                            }}
-                                                                        >Return</button>
-                                                                    </>
-                                                                )}
-                                                                {/* Verified -> Unlock */}
-                                                                {(row.status === 'VERIFIED' || row.status === 'Verified') && (
-                                                                    <button
-                                                                        onClick={() => handleAction(row, 'UNLOCK')}
-                                                                        disabled={submitting}
-                                                                        style={{
-                                                                            background: '#0369a1', color: '#fff', border: 'none', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', fontWeight: '600', cursor: 'pointer'
-                                                                        }}
-                                                                    >Unlock</button>
-                                                                )}
-                                                                {/* Returned -> Label */}
-                                                                {(row.status?.includes('REQUEST') || row.status === 'Returned') && (
-                                                                    <span style={{ fontSize: '10px', color: '#94a3b8', fontStyle: 'italic' }}>Pending Resubmission</span>
-                                                                )}
-                                                                <button
-                                                                    onClick={() => setDetailModal(row)}
-                                                                    style={{
-                                                                        background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer'
-                                                                    }}
-                                                                    title="Full View"
-                                                                >
-                                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-                                                                </button>
-                                                            </div>
-                                                        ) : (
-                                                            <button
-                                                                onClick={() => setDetailModal(row)}
-                                                                style={{
-                                                                    background: '#7c3aed',
-                                                                    color: '#fff',
-                                                                    border: 'none',
-                                                                    borderRadius: '8px',
-                                                                    padding: '7px 14px',
-                                                                    fontSize: '12px',
-                                                                    fontWeight: '700',
-                                                                    cursor: 'pointer',
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    gap: '6px',
-                                                                    whiteSpace: 'nowrap',
-                                                                    transition: 'background 0.15s',
-                                                                }}
-                                                                onMouseEnter={e => e.currentTarget.style.background = '#6d28d9'}
-                                                                onMouseLeave={e => e.currentTarget.style.background = '#7c3aed'}
-                                                            >
-                                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                                    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                                                                </svg>
-                                                                View
-                                                            </button>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                    )}
+                                </div>
+                                {renderTable(
+                                    (pendingByModule[selectedModuleId] || []).filter(r => {
+                                        if (selectedModuleId !== 2) return true;
+                                        const t = r.detail?.benchType || r.detail?.plantType || '';
+                                        return !t || t.toUpperCase().includes(benchType === 'STRESS_BENCH' ? 'STRESS' : 'LONG');
+                                    }),
+                                    false
                                 )}
                             </div>
-                        )}
-                    </>
-                )}
-            </div>
 
-            {/* ── Detail + Action Modal ── */}
+                            {/* Completed Table */}
+                            <div className="pdv-api-table-card" style={{ borderTop: '4px solid #10b981' }}>
+                                <div className="pdv-api-table-header">
+                                    <h3 style={{ margin: 0, fontSize: '16px', color: '#065f46' }}>Verified and Locked Log</h3>
+                                </div>
+                                {renderTable(
+                                    (completedByModule[selectedModuleId] || []).filter(r => {
+                                        if (selectedModuleId !== 2) return true;
+                                        const t = r.detail?.benchType || r.detail?.plantType || '';
+                                        return !t || t.toUpperCase().includes(benchType === 'STRESS_BENCH' ? 'STRESS' : 'LONG');
+                                    }),
+                                    true
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </>
+            )}
+
             {detailModal && (
                 <VerificationDetailModal
                     row={detailModal}
@@ -504,7 +380,7 @@ const PlantDeclarationVerification = () => {
                     onDone={loadData}
                 />
             )}
-        </>
+        </div>
     );
 };
 

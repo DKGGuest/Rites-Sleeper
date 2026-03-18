@@ -11,11 +11,14 @@ const CriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
                 ...s,
                 id: s.sleeperId,
                 displayNo: s.sleeperNo,
-                isRejected: false
+                isRejected: false,
+                isAlreadyPassed: s.status?.toUpperCase() === 'OK' || s.status?.toUpperCase() === 'PASSED'
             })) || [];
     }, [batch]);
 
-    const [selectedSleepers, setSelectedSleepers] = useState([]);
+    const [selectedSleepers, setSelectedSleepers] = useState(() => 
+        allSleepersPool.filter(s => s.isAlreadyPassed).map(s => s.id)
+    );
     const [saving, setSaving] = useState(false);
 
     const toggleSleeperSelection = (id) => {
@@ -29,12 +32,17 @@ const CriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
 
     const parametersToCheck = [
         { id: 7, label: 'ToeGap' },
+        { id: 10, label: 'Location of Inserts' },
         { id: 8, label: 'Dist b/w Inserts (Rail Seat)' },
+        { id: 11, label: 'Dist b/w Outer Most Inserts' },
         { id: 9, label: 'Slope Gauge' }
     ];
 
     const [checklistState, setChecklistState] = useState(
-        parametersToCheck.reduce((acc, p) => ({ ...acc, [p.label]: false }), {})
+        parametersToCheck.reduce((acc, p) => ({ 
+            ...acc, 
+            [p.label]: allSleepersPool.some(s => s.isAlreadyPassed) // Pre-check if any passed
+        }), {})
     );
 
     const [overallResult, setOverallResult] = useState(null); // 'ok', 'partial-ok', 'all-rejected'
@@ -87,6 +95,8 @@ const CriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
             case 'ToeGap': return ['ToeGap(LT) - Inner', 'ToeGap (LT) - Outer', 'ToeGap (RT)-Inner', 'ToeGap (RT) - Outer'];
             case 'Slope Gauge': return ['Slope Gauge (LT)', 'Slope Gauge (RT)'];
             case 'Dist b/w Inserts (Rail Seat)': return ['Dist b/w Inserts (LT)', 'Dist b/w Inserts (RT)'];
+            case 'Location of Inserts': return ['Position Error (LT)', 'Position Error (RT)', 'Skewed / Tilted Insert'];
+            case 'Dist b/w Outer Most Inserts': return ['Distance Error (LT)', 'Distance Error (RT)', 'Total Outer-to-Outer Error'];
             default: return [];
         }
     };

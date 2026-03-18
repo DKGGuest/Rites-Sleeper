@@ -11,11 +11,14 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
                 ...s,
                 id: s.sleeperId,
                 displayNo: s.sleeperNo,
-                isRejected: false
+                isRejected: false,
+                isAlreadyPassed: s.status?.toUpperCase() === 'OK' || s.status?.toUpperCase() === 'PASSED'
             })) || [];
     }, [batch]);
 
-    const [selectedSleepers, setSelectedSleepers] = useState([]);
+    const [selectedSleepers, setSelectedSleepers] = useState(() => 
+        allSleepersPool.filter(s => s.isAlreadyPassed).map(s => s.id)
+    );
     const [saving, setSaving] = useState(false);
 
     const toggleSleeperSelection = (id) => {
@@ -37,7 +40,10 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
     ];
 
     const [checklistState, setChecklistState] = useState(
-        parametersToCheck.reduce((acc, p) => ({ ...acc, [p.label]: false }), {})
+        parametersToCheck.reduce((acc, p) => ({ 
+            ...acc, 
+            [p.label]: allSleepersPool.some(s => s.isAlreadyPassed) // Pre-check if any passed
+        }), {})
     );
 
     const [overallResult, setOverallResult] = useState(null); // 'ok', 'partial-ok', 'all-rejected'

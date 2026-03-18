@@ -16,7 +16,9 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
     }, [batch]);
 
     const [sleepers, setSleepers] = useState(initialSleepers);
-    const [selectedSleepers, setSelectedSleepers] = useState([]);
+    const [selectedSleepers, setSelectedSleepers] = useState(() => 
+        initialSleepers.filter(s => s.status === 'passed').map(s => s.id)
+    );
     const [saving, setSaving] = useState(false);
 
     const toggleSleeperSelection = (id) => {
@@ -38,27 +40,56 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
         sections.reduce((acc, s) => ({
             ...acc,
             [s.id]: {
-                allChecked: false,
-                result: 'all-ok', // 'all-ok', 'partial-ok', 'all-rejected'
+                allChecked: initialSleepers.some(sl => sl.status === 'passed'), // Auto-check if some already passed
+                result: 'all-ok', 
                 failedSleepers: [],
-                remarks: {}
+                rejectionDetails: {},
+                globalReason: '',
+                globalSubReason: ''
             }
         }), {})
     );
 
     const handleSectionChange = (sectionId, field, value) => {
+        setSectionStates(prev => {
+            const newState = {
+                ...prev,
+                [sectionId]: {
+                    ...prev[sectionId],
+                    [field]: value
+                }
+            };
+
+            // If switching to all-rejected, automatically fail all selected sleepers
+            if (field === 'result' && value === 'all-rejected') {
+                newState[sectionId].failedSleepers = [...selectedSleepers];
+            } else if (field === 'result' && value === 'all-ok') {
+                newState[sectionId].failedSleepers = [];
+            }
+
+            return newState;
+        });
+
+        // Update sleeper statuses based on all sections
+        if (field !== 'globalReason' && field !== 'globalSubReason' && field !== 'rejectionDetails') {
+            updateSleeperStatuses(sectionId, field, value);
+        }
+    };
+
+    const handleSleeperRejectionUpdate = (sectionId, sleeperId, field, value) => {
         setSectionStates(prev => ({
             ...prev,
             [sectionId]: {
                 ...prev[sectionId],
-                [field]: value
+                rejectionDetails: {
+                    ...prev[sectionId].rejectionDetails,
+                    [sleeperId]: {
+                        ...(prev[sectionId].rejectionDetails[sleeperId] || { reason: '', subReason: '' }),
+                        [field]: value
+                    }
+                }
             }
         }));
-
-        // Update sleeper statuses based on all sections
-        if (field !== 'globalRemark' && field !== 'remarks') {
-            updateSleeperStatuses(sectionId, field, value);
-        }
     };
 
     const updateSleeperStatuses = (changedSectionId, field, value) => {
@@ -97,8 +128,7 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
 
     const getRejectionOptions = (sectionId) => {
         if (sectionId === 'visual') return [
-            'Rail Seat Damage (LT)',
-            'Rail Seat Damage (RT)',
+            'Rail Seat Damage',
             'Surface Honeycomb',
             'Surface Damage',
             'Foreign Object in Sleeper',
@@ -113,6 +143,24 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
             'Camber Check'
         ];
         return null;
+    };
+
+    const getSubReasons = (sectionId, reason) => {
+        if (!reason) return [];
+        if (sectionId === 'visual') {
+            switch (reason) {
+                case 'Rail Seat Damage': return ['Damage LT', 'Damage RT', 'Crack', 'Spalling'];
+                case 'Surface Honeycomb': return ['Major Honeycomb', 'Minor Honeycomb', 'Side Face', 'Bottom Face'];
+                case 'Surface Damage': return ['Corner Chipped', 'Edge Damage', 'Scratch'];
+                case 'Position of HTS Wire': return ['Shifted LT', 'Shifted RT', 'Too High', 'Too Low'];
+                case 'Foreign Object in Sleeper': return ['Wood', 'Stone', 'Metal Part'];
+                default: return ['Others'];
+            }
+        }
+        if (sectionId === 'dimension') {
+            return ['+ve Deviation', '-ve Deviation', 'Out of Tolerance'];
+        }
+        return ['General Defect'];
     };
 
     const handleSave = async () => {
@@ -147,10 +195,16 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
                     let rejectionReason = '';
                     sections.forEach(sect => {
                         const sectState = sectionStates[sect.id];
-                        if (sectState.result === 'all-rejected') {
-                            rejectionReason += `${sect.label}: ${sectState.globalRemark || 'Rejected'}; `;
-                        } else if (sectState.result === 'partial-ok' && sectState.failedSleepers.includes(s.id)) {
-                            rejectionReason += `${sect.label}: ${sectState.remarks[s.id] || 'Rejected'}; `;
+                        if (sectState.failedSleepers.includes(s.id)) {
+                            const details = sectState.rejectionDetails[s.id] || {};
+                            const reason = details.reason || (sectState.result === 'all-rejected' ? sectState.globalReason : '');
+                            const subReason = details.subReason || (sectState.result === 'all-rejected' ? sectState.globalSubReason : '');
+                            
+                            if (reason) {
+                                rejectionReason += `${sect.label}: ${reason}${subReason ? ' (' + subReason + ')' : ''}; `;
+                            } else {
+                                rejectionReason += `${sect.label}: Rejected; `;
+                            }
                         }
                     });
 
@@ -289,104 +343,93 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
                                                     </div>
                                                 </div>
 
-                                                {sectionStates[s.id].result === 'all-rejected' && s.id !== 'ftc' && (
-                                                    <div style={{ marginTop: '12px', background: '#fee2e2', padding: '12px', borderRadius: '8px', border: '1px solid #fecaca' }}>
-                                                        <label style={{ fontSize: '11px', fontWeight: '700', color: '#b91c1c', display: 'block', marginBottom: '6px' }}>Reason for rejecting ALL sleepers:</label>
-                                                        {getRejectionOptions(s.id) ? (
-                                                            <select
-                                                                style={{ width: '100%', padding: '6px', fontSize: '11px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-                                                                value={sectionStates[s.id].globalRemark || ''}
-                                                                onChange={(e) => handleSectionChange(s.id, 'globalRemark', e.target.value)}
-                                                            >
-                                                                <option value="">-- Select --</option>
-                                                                {getRejectionOptions(s.id).map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                                            </select>
-                                                        ) : (
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Enter reason..."
-                                                                style={{ width: '100%', padding: '6px', fontSize: '11px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-                                                                value={sectionStates[s.id].globalRemark || ''}
-                                                                onChange={(e) => handleSectionChange(s.id, 'globalRemark', e.target.value)}
-                                                            />
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                {sectionStates[s.id].result === 'partial-ok' && (
-                                                    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
-                                                        <div style={{ marginBottom: '8px', color: '#42818c', fontWeight: '700', fontSize: '11px' }}>Select Rejected Sleepers:</div>
-                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                                            {sleepers.filter(sl => selectedSleepers.includes(sl.id)).map(sl => {
-                                                                const isRejectedElsewhere = sections.some(otherSection =>
-                                                                    otherSection.id !== s.id &&
-                                                                    (sectionStates[otherSection.id].result === 'all-rejected' ||
-                                                                        sectionStates[otherSection.id].failedSleepers.includes(sl.id))
-                                                                );
-                                                                const isCurrentlyRejected = sectionStates[s.id].failedSleepers.includes(sl.id);
-
-                                                                return (
-                                                                    <div
-                                                                        key={sl.id}
-                                                                        onClick={() => {
-                                                                            if (isRejectedElsewhere) return;
-                                                                            const failed = sectionStates[s.id].failedSleepers;
-                                                                            const newVal = failed.includes(sl.id)
-                                                                                ? failed.filter(fid => fid !== sl.id)
-                                                                                : [...failed, sl.id];
-                                                                            handleSectionChange(s.id, 'failedSleepers', newVal);
-                                                                        }}
-                                                                        style={{
-                                                                            padding: '2px 8px',
-                                                                            borderRadius: '4px',
-                                                                            fontSize: '10px',
-                                                                            cursor: isRejectedElsewhere ? 'not-allowed' : 'pointer',
-                                                                            border: '1px solid',
-                                                                            borderColor: isCurrentlyRejected ? '#ef4444' : '#e2e8f0',
-                                                                            background: isCurrentlyRejected ? '#fee2e2' : isRejectedElsewhere ? '#f1f5f9' : '#fff',
-                                                                            color: isCurrentlyRejected ? '#b91c1c' : isRejectedElsewhere ? '#94a3b8' : '#64748b',
-                                                                            fontWeight: '600',
-                                                                            opacity: isRejectedElsewhere ? 0.5 : 1
-                                                                        }}
-                                                                    >
-                                                                        {sl.displayNo}
-                                                                    </div>
-                                                                );
-                                                            })}
+                                                {(sectionStates[s.id].result === 'all-rejected' || sectionStates[s.id].result === 'partial-ok') && (
+                                                    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', marginTop: '8px' }}>
+                                                        <div style={{ marginBottom: '12px' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                                                <span style={{ color: '#42818c', fontWeight: '700', fontSize: '11px' }}>
+                                                                    {sectionStates[s.id].result === 'all-rejected' ? 'All Sleepers Rejected' : 'Select Rejected Sleepers:'}
+                                                                </span>
+                                                                <span style={{ fontSize: '10px', color: '#94a3b8' }}>{sectionStates[s.id].failedSleepers.length} Sleeper(s)</span>
+                                                            </div>
+                                                            
+                                                            {sectionStates[s.id].result === 'partial-ok' && (
+                                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                                                    {sleepers.filter(sl => selectedSleepers.includes(sl.id)).map(sl => {
+                                                                        const isRejectedElsewhere = sections.some(otherSect => 
+                                                                            otherSect.id !== s.id && 
+                                                                            (sectionStates[otherSect.id].result === 'all-rejected' || sectionStates[otherSect.id].failedSleepers.includes(sl.id))
+                                                                        );
+                                                                        const isCurrentlyRejected = sectionStates[s.id].failedSleepers.includes(sl.id);
+                                                                        return (
+                                                                            <div
+                                                                                key={sl.id}
+                                                                                onClick={() => {
+                                                                                    if (isRejectedElsewhere) return;
+                                                                                    const failed = sectionStates[s.id].failedSleepers;
+                                                                                    const newVal = failed.includes(sl.id) ? failed.filter(fid => fid !== sl.id) : [...failed, sl.id];
+                                                                                    handleSectionChange(s.id, 'failedSleepers', newVal);
+                                                                                }}
+                                                                                style={{
+                                                                                    padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: '600',
+                                                                                    cursor: isRejectedElsewhere ? 'not-allowed' : 'pointer',
+                                                                                    border: '1px solid',
+                                                                                    borderColor: isCurrentlyRejected ? '#ef4444' : '#e2e8f0',
+                                                                                    background: isCurrentlyRejected ? '#fee2e2' : isRejectedElsewhere ? '#f1f5f9' : '#fff',
+                                                                                    color: isCurrentlyRejected ? '#b91c1c' : isRejectedElsewhere ? '#94a3b8' : '#64748b'
+                                                                                }}
+                                                                            >
+                                                                                {sl.displayNo}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
                                                         </div>
 
                                                         {sectionStates[s.id].failedSleepers.length > 0 && s.id !== 'ftc' && (
-                                                            <div style={{ marginTop: '12px' }}>
-                                                                <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px', fontWeight: '600' }}>Rejection Remarks:</div>
-                                                                {sectionStates[s.id].failedSleepers.map(fid => (
-                                                                    <div key={fid} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                                                                        <span style={{ fontSize: '10px', fontWeight: '700', width: '60px' }}>#{sleepers.find(sl => sl.id === fid)?.displayNo}</span>
-                                                                        {getRejectionOptions(s.id) ? (
-                                                                            <select
-                                                                                style={{ flex: 1, padding: '4px 8px', fontSize: '11px' }}
-                                                                                value={sectionStates[s.id].remarks[fid] || ''}
-                                                                                onChange={(e) => {
-                                                                                    const newRemarks = { ...sectionStates[s.id].remarks, [fid]: e.target.value };
-                                                                                    handleSectionChange(s.id, 'remarks', newRemarks);
-                                                                                }}
-                                                                            >
-                                                                                <option value="">-- Select --</option>
-                                                                                {getRejectionOptions(s.id).map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                                                            </select>
-                                                                        ) : (
-                                                                            <input
-                                                                                type="text"
-                                                                                placeholder="Reason for rejection..."
-                                                                                style={{ flex: 1, padding: '4px 8px', fontSize: '11px' }}
-                                                                                value={sectionStates[s.id].remarks[fid] || ''}
-                                                                                onChange={(e) => {
-                                                                                    const newRemarks = { ...sectionStates[s.id].remarks, [fid]: e.target.value };
-                                                                                    handleSectionChange(s.id, 'remarks', newRemarks);
-                                                                                }}
-                                                                            />
-                                                                        )}
-                                                                    </div>
-                                                                ))}
+                                                            <div style={{ marginTop: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
+                                                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
+                                                                    <thead>
+                                                                        <tr style={{ color: '#64748b', textAlign: 'left' }}>
+                                                                            <th style={{ padding: '4px' }}>Sleeper</th>
+                                                                            <th style={{ padding: '4px' }}>Reason</th>
+                                                                            <th style={{ padding: '4px' }}>Sub-Reason</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {sectionStates[s.id].failedSleepers.map(fid => {
+                                                                            const sl = sleepers.find(item => item.id === fid);
+                                                                            const details = sectionStates[s.id].rejectionDetails[fid] || { reason: '', subReason: '' };
+                                                                            return (
+                                                                                <tr key={fid} style={{ borderBottom: '1px dotted #f1f5f9' }}>
+                                                                                    <td style={{ padding: '4px', fontWeight: '700', color: '#334155' }}>#{sl?.displayNo}</td>
+                                                                                    <td style={{ padding: '4px' }}>
+                                                                                        <select 
+                                                                                            style={{ width: '100%', padding: '4px', fontSize: '10px', borderRadius: '4px', border: '1px solid #e2e8f0' }}
+                                                                                            value={details.reason}
+                                                                                            onChange={(e) => handleSleeperRejectionUpdate(s.id, fid, 'reason', e.target.value)}
+                                                                                        >
+                                                                                            <option value="">-- Reason --</option>
+                                                                                            {getRejectionOptions(s.id)?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                                                        </select>
+                                                                                    </td>
+                                                                                    <td style={{ padding: '4px' }}>
+                                                                                        <select 
+                                                                                            style={{ width: '100%', padding: '4px', fontSize: '10px', borderRadius: '4px', border: '1px solid #e2e8f0' }}
+                                                                                            value={details.subReason}
+                                                                                            onChange={(e) => handleSleeperRejectionUpdate(s.id, fid, 'subReason', e.target.value)}
+                                                                                            disabled={!details.reason}
+                                                                                        >
+                                                                                            <option value="">-- Sub Reason --</option>
+                                                                                            {getSubReasons(s.id, details.reason).map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                                                                                        </select>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            );
+                                                                        })}
+                                                                    </tbody>
+                                                                </table>
                                                             </div>
                                                         )}
                                                     </div>

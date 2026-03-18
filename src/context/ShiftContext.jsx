@@ -47,13 +47,7 @@ export const ShiftProvider = ({ children }) => {
             { id: 'PP-002', plantName: 'Sleeper Plant – Unit 2', location: 'Raipur, Chhattisgarh', vendorCode: 'VND-2202', plantType: 'Long Line', sheds: null, lines: 5, status: 'Verified', rejectionRemarks: '' },
             { id: 'PP-003', plantName: 'Sleeper Plant – Unit 3', location: 'Durg, Chhattisgarh', vendorCode: 'VND-2203', plantType: 'Stress Bench – Single', sheds: 2, lines: null, status: 'Rejected', rejectionRemarks: 'Invalid vendor code format provided.' },
         ],
-        benches: [
-            { id: 'BM-101', benchNo: 'B-01', moulds: 8, sleeperType: 'RT-8746', status: 'Pending', rejectionRemarks: '' },
-            { id: 'BM-102', benchNo: 'B-02', moulds: 8, sleeperType: 'RT-8746', status: 'Verified', rejectionRemarks: '' },
-            { id: 'BM-103', benchNo: 'B-03', moulds: 6, sleeperType: 'RT-4149', status: 'Pending', rejectionRemarks: '' },
-            { id: 'BM-104', benchNo: 'B-04', moulds: 6, sleeperType: 'RT-4149', status: 'Rejected', rejectionRemarks: 'Mould count exceeds declared capacity.' },
-            { id: 'BM-105', benchNo: 'L-01 (Line)', moulds: 2000, sleeperType: 'RT-8746', status: 'Pending', rejectionRemarks: '' },
-        ],
+        benches: [],
         rawMaterials: [
             { id: 'RM-001', materialType: 'Cement', supplierName: 'Ultra Tech Cements Ltd', sourceLocation: 'Bhilai', approvalRef: 'RDSO/2023/CE-441', validUpto: '2026-05-01', status: 'Pending', rejectionRemarks: '' },
             { id: 'RM-002', materialType: 'HTS Wire', supplierName: 'Usha Martin Ltd', sourceLocation: 'Ranchi', approvalRef: 'RDSO/2022/HW-209', validUpto: '2026-03-25', status: 'Verified', rejectionRemarks: '' },
@@ -75,20 +69,9 @@ export const ShiftProvider = ({ children }) => {
     const [steamRecords, setSteamRecords] = useState([]);
     const [testedRecords, setTestedRecords] = useState([]);
 
-    const [benchMouldCheckRecords, setBenchMouldCheckRecords] = useState([
-        { id: 1, type: 'Bench', assetNo: '210-A', location: 'Line I', dateOfChecking: '2026-01-30', checkTime: '10:30', visualResult: 'ok', dimensionResult: 'ok', overallResult: 'OK', timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(), lastCasting: '2026-01-25', sleeperType: 'RT-1234' },
-        { id: 2, type: 'Bench', assetNo: '210', location: 'Line I', dateOfChecking: '2026-01-30', checkTime: '11:15', visualResult: 'ok', dimensionResult: 'ok', overallResult: 'OK', timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(), lastCasting: '2026-01-29', sleeperType: 'RT-1234' },
-        { id: 3, type: 'Mould', assetNo: 'M-205', location: 'Line I', dateOfChecking: '2026-01-29', checkTime: '14:20', visualResult: 'ok', dimensionResult: 'not-ok', overallResult: 'FAIL', dimensionReason: 'Rail Seat distance error', timestamp: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(), lastCasting: '2026-01-29', sleeperType: 'RT-1234' }
-    ]);
+    const [benchMouldCheckRecords, setBenchMouldCheckRecords] = useState([]);
 
-    const [allBenchesMoulds, setAllBenchesMoulds] = useState([
-        { id: 1, type: 'Bench', name: 'Bench 210-A', lastCasting: '2026-01-25', lastChecking: '2026-01-30' },
-        { id: 2, type: 'Bench', name: 'Twin Bench-210', lastCasting: '2026-01-29', lastChecking: '2026-01-30' },
-        { id: 3, type: 'Bench', name: 'Bench 211-B', lastCasting: '2026-01-28', lastChecking: '2026-01-15' },
-        { id: 4, type: 'Mould', name: 'Mould M-101', lastCasting: '2025-12-15', lastChecking: '2025-11-20' },
-        { id: 5, type: 'Mould', name: 'Mould M-205', lastCasting: '2026-01-29', lastChecking: '2026-01-29' },
-        { id: 6, type: 'Mould', name: 'Mould M-310', lastCasting: '2026-01-30', lastChecking: '2026-01-28' }
-    ]);
+    const [allBenchesMoulds, setAllBenchesMoulds] = useState([]);
 
     const [newContainer, setNewContainer] = useState({ type: 'Line', name: '' });
     const containerValues = [
@@ -119,7 +102,7 @@ export const ShiftProvider = ({ children }) => {
 
     const loadShiftData = async () => {
         try {
-            const [moisture, mouldPrep, htsWireResponse, demoulding, benchMould, wireTensionResponse, compactionResponse, steamResponse, batchWeighmentResponse] = await Promise.all([
+            const [moisture, mouldPrep, htsWireResponse, demoulding, benchMould, wireTensionResponse, compactionResponse, steamResponse, batchWeighmentResponse, stressBenches] = await Promise.all([
                 apiService.getAllMoistureAnalysis(),
                 apiService.getAllMouldPreparations(),
                 apiService.getAllHtsWirePlacement(),
@@ -128,7 +111,8 @@ export const ShiftProvider = ({ children }) => {
                 apiService.getAllWireTensioning(),
                 apiService.getAllCompaction(),
                 apiService.getAllSteamCuring(),
-                apiService.getAllBatchWeighment()
+                apiService.getAllBatchWeighment(),
+                apiService.getAllStressBenches()
             ]);
 
             if (moisture?.responseData) setMoistureRecords(moisture.responseData);
@@ -333,6 +317,30 @@ export const ShiftProvider = ({ children }) => {
                 demoulding: demoulding?.responseData || []
             });
             if (benchMould?.responseData) setBenchMouldCheckRecords(benchMould.responseData);
+            
+            if (stressBenches?.responseData) {
+                // Map to both master list and plant verification data
+                const masterList = stressBenches.responseData.map(b => ({
+                    id: b.id,
+                    type: 'Bench',
+                    name: b.entryType === 'Single' ? `Bench ${b.benchNo}` : `Range ${b.benchFrom}-${b.benchTo}`,
+                    assetNo: b.entryType === 'Single' ? b.benchNo : `${b.benchFrom}-${b.benchTo}`,
+                    lastCasting: b.latestCastingDate || '2025-01-31',
+                    lastChecking: b.lastCheckingDate || '2026-01-30',
+                    sleeperType: b.sleeperCategory
+                }));
+                setAllBenchesMoulds(masterList);
+                
+                setPlantVerificationData(prev => ({
+                    ...prev,
+                    benches: stressBenches.responseData.map(b => ({
+                        ...b,
+                        moduleId: 2,
+                        requestId: b.id,
+                        status: b.status || 'Pending'
+                    }))
+                }));
+            }
         } catch (error) {
             console.error("Error loading shift data:", error);
         }

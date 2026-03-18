@@ -212,11 +212,12 @@ const MODULE_TABLE_FIELDS = {
         { label: "Sheds / Lines", key: "numberOfSheds" }
     ],
 
-    // 2️ Bench / Mould
+    // 2️ Stress Bench / Mould Master
     2: [
-        { label: "Shed/Line No", key: "lineShedNo" },
-        { label: "Bench/Gang No", key: "benchGangNo" },
-        { label: "Sleeper Type", key: "sleeperType" }
+        { label: "Entry Type", key: "entryType" },
+        { label: "Bench(es)", key: "benchIdentifier" },
+        { label: "Category", key: "sleeperCategory" },
+        { label: "Moulds/Bench", key: "mouldsPerBench" }
     ],
 
     // 3️ Raw Material Source
@@ -281,6 +282,15 @@ const MODULE_TABLE_FIELDS = {
         { label: "Date", key: "castingDate" },
         { label: "Batch No.", key: "batchNumber" }
     ]
+};
+
+const getStatusDisplay = (status) => {
+    if (!status) return { label: '-', bg: '#f1f5f9', color: '#475569' };
+    const s = status.toUpperCase();
+    if (s === 'CREATED') return { label: 'Verification Pending', bg: '#fff7ed', color: '#c2410c' }; // Orange/Yellow
+    if (s === 'COMPLETED') return { label: 'Verified and Locked', bg: '#ecfdf5', color: '#047857' }; // Green
+    if (s === 'REJECTED_CLOSED') return { label: 'Rejected', bg: '#fef2f2', color: '#991b1b' }; // Red
+    return { label: status, bg: '#f1f5f9', color: '#475569' };
 };
 
 // ─────────────────────────────────────────────
@@ -593,23 +603,39 @@ const IncomingVerificationDashboard = ({ initialGroup = null }) => {
                                                             User {row.assignedTo}
                                                         </span>
                                                     </td>
-                                                    {MODULE_TABLE_FIELDS[selectedModuleId]?.map(col => (
-                                                        <td key={col.key} style={tdStyle}>
-                                                            {row.detail?.[col.key] ?? '-'}
-                                                        </td>
-                                                    ))}
+                                                    {MODULE_TABLE_FIELDS[selectedModuleId]?.map(col => {
+                                                        if (col.key === 'benchIdentifier') {
+                                                            const bNo = row.detail?.benchNo;
+                                                            const bFrom = row.detail?.benchFrom;
+                                                            const bTo = row.detail?.benchTo;
+                                                            const displayValue = bNo ? bNo : (bFrom && bTo ? `${bFrom}-${bTo}` : '-');
+                                                            return <td key={col.key} style={tdStyle}>{displayValue}</td>;
+                                                        }
+                                                        return (
+                                                            <td key={col.key} style={tdStyle}>
+                                                                {row.detail?.[col.key] ?? '-'}
+                                                            </td>
+                                                        );
+                                                    })}
 
-                                                    <td style={tdStyle}>
-                                                        <span style={{
-                                                            background: '#fef3c7',
-                                                            color: '#92400e',
-                                                            padding: '3px 8px',
-                                                            borderRadius: '6px',
-                                                            fontSize: '11px'
-                                                        }}>
-                                                            {row.status}
-                                                        </span>
-                                                    </td>
+                                                     <td style={tdStyle}>
+                                                        {(() => {
+                                                            const { label, bg, color } = getStatusDisplay(row.status);
+                                                            return (
+                                                                <span style={{
+                                                                    background: bg,
+                                                                    color: color,
+                                                                    padding: '3px 10px',
+                                                                    borderRadius: '6px',
+                                                                    fontSize: '11px',
+                                                                    fontWeight: '700',
+                                                                    border: `1px solid ${color}20`
+                                                                }}>
+                                                                    {label}
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                     </td>
                                                     <td style={tdStyle}>
                                                         <button
                                                             onClick={() => setDetailModal(row)}
