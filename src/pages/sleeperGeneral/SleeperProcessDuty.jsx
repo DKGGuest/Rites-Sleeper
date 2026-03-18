@@ -96,8 +96,7 @@ const SleeperProcessDuty = () => {
         { id: 'Steam Curing', title: 'Steam Curing', description: 'Chamber temperature profile logs' },
         { id: 'Mould & Bench Checking', title: 'Mould & Bench Checking', description: 'Asset integrity & dimensional check' },
         { id: 'Steam Cube Testing', title: 'Steam Cube Testing', description: '7-hour & 28-day strength analysis' },
-        { id: 'Raw Material Inventory', title: 'Inventory Levels', description: 'Daily stock & consumption tracking' },
-        { id: 'Production Verification', title: 'Production Verification', description: 'Real-time production data verification', alert: true }
+        { id: 'Raw Material Inventory', title: 'Inventory Levels', description: 'Daily stock & consumption tracking' }
     ];
 
     if (!dutyStarted) {
@@ -280,11 +279,7 @@ const SleeperProcessDuty = () => {
                         </div>
                     )}
 
-                    {activeTab === 'Production Verification' && (
-                        <div style={{ width: '100%' }}>
-                            <IncomingVerificationDashboard initialGroup="Production Verification" />
-                        </div>
-                    )}
+
                 </div>
 
                 {detailView === 'detail_modal' && (

@@ -238,26 +238,17 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                 </div>
 
                 {/* 2. Properly Bound using VALUE and ONCHANGE */}
-                <div className="form-field">
-                    <label htmlFor="dim-inspectionDate" style={{ fontSize: '11px', fontWeight: '700' }}>Date <span className="required">*</span></label>
+                <div className="form-field" style={{ gridColumn: 'span 2' }}>
+                    <label htmlFor="dim-inspectionDateTime" style={{ fontSize: '11px', fontWeight: '700' }}>Inspection Date & Time <span className="required">*</span></label>
                     <input
-                        id="dim-inspectionDate"
-                        type="date"
+                        id="dim-inspectionDateTime"
+                        type="datetime-local"
                         className="form-input-standard"
-                        value={formData.inspectionDate}
-                        onChange={e => handleChange('inspectionDate', e.target.value)}
-                    />
-                </div>
-
-                <div className="form-field">
-                    <label htmlFor="dim-inspectionTime" style={{ fontSize: '11px', fontWeight: '700' }}>Time <span className="required">*</span></label>
-                    <input
-                        id="dim-inspectionTime"
-                        type="time"
-                        className="form-input-standard"
-                        value={formData.inspectionTime}
-                        onChange={e => handleChange('inspectionTime', e.target.value)}
-                        required
+                        value={`${formData.inspectionDate}T${formData.inspectionTime}`}
+                        onChange={e => {
+                            const [d, t] = e.target.value.split('T');
+                            setFormData(prev => ({ ...prev, inspectionDate: d, inspectionTime: t }));
+                        }}
                     />
                 </div>
 

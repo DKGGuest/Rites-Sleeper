@@ -457,10 +457,20 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                 </div>
             </div>
 
-            <div className="form-actions-center">
+            <div className="form-actions-center" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                 <button className="toggle-btn" onClick={handleSubmit}>
                     {initialData ? 'Update Analysis' : 'Submit Analysis'}
                 </button>
+                {onCancel && (
+                    <button
+                        className="toggle-btn secondary"
+                        type="button"
+                        onClick={onCancel}
+                        style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' }}
+                    >
+                        Cancel
+                    </button>
+                )}
             </div>
         </div>
     );

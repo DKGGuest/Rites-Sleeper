@@ -62,6 +62,7 @@ const extractTime = (dateTimeStr) => {
 const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], setRecords, displayMode = 'modal', showForm, setShowForm }) => {
     const [view, setView] = useState(initialView);
     const [editRecord, setEditRecord] = useState(null);
+    const formRef = React.useRef(null);
 
     const isFormOpen = showForm !== undefined ? showForm : false;
     const closeForm = () => {
@@ -219,11 +220,17 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
 
 
     const handleEdit = async (record) => {
-        // Fallback: Use the record from the list directly. 
-        // The backend for MoistureAnalysis currently returns 404/Resources not found for single ID lookups.
         setEditRecord(record);
         if (setShowForm) setShowForm(true);
         setView('entry');
+        // Scroll the form container to top
+        setTimeout(() => {
+            if (formRef.current) {
+                formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }, 50);
     };
 
     // Calculate statistics based on section types
@@ -247,8 +254,38 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
 
     const content = (
         <div className={displayMode === 'modal' ? "modal-body" : "inline-container"} style={{ padding: displayMode === 'modal' ? '1.5rem' : '0', width: '100%' }}>
-            {(isFormOpen || editRecord) && (
-                <div style={{ display: 'flex', justifyContent: 'center', width: '100%', paddingBottom: '2rem' }}>
+            {(isFormOpen || editRecord) ? (
+                <div ref={formRef} style={{ width: '100%', paddingBottom: '2rem' }}>
+                    {/* Form Header with Cancel */}
+                    <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        marginBottom: '1.25rem', padding: '12px 16px',
+                        background: '#f0f9ff', borderRadius: '10px',
+                        border: '1px solid #bae6fd'
+                    }}>
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: '#0c4a6e' }}>
+                                {editRecord ? '✏️ Modifying Moisture Record' : '➕ New Moisture Entry'}
+                            </h3>
+                            {editRecord && (
+                                <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#0369a1' }}>
+                                    Batch {editRecord.batchNo} • {formatDateForDisplay(editRecord.date)}
+                                </p>
+                            )}
+                        </div>
+                        <button
+                            onClick={closeForm}
+                            style={{
+                                background: '#fff', border: '1px solid #cbd5e1',
+                                borderRadius: '8px', padding: '8px 16px',
+                                cursor: 'pointer', fontSize: '13px',
+                                color: '#475569', fontWeight: '700',
+                                display: 'flex', alignItems: 'center', gap: '6px'
+                            }}
+                        >
+                            ✕ Cancel
+                        </button>
+                    </div>
                     <div style={{ width: '100%', maxWidth: '1100px' }}>
                         <MoistureEntryForm
                             onCancel={closeForm}
@@ -257,9 +294,8 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                         />
                     </div>
                 </div>
-            )}
-            
-            <div className={`list-view fade-in ${(isFormOpen || editRecord) ? 'dimmed' : ''}`} style={{ opacity: (isFormOpen || editRecord) ? 0.4 : 1, pointerEvents: (isFormOpen || editRecord) ? 'none' : 'auto', transition: 'opacity 0.3s' }}>
+            ) : (
+            <div className="list-view fade-in">
                 {/* Statistics Cards */}
                 <div style={{ marginBottom: '1.5rem' }}>
                     <h3 style={{ fontSize: '0.8125rem', fontWeight: '800', color: '#444', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Average Free Moisture Content</h3>
@@ -332,7 +368,6 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                                                     id: group.id,
                                                     date: formatFromBackendDate(group.date),
                                                     mixDesignId: group.records[0]?.mixDesignId || group.mixDesignId || 'MIX-01',
-                                                    // Map group back to UI state for editing
                                                     ca1Details: {
                                                         wetSample: group.records.find(r => r.sectionType === 'CA1')?.wtWetSample ?? consolidated?.wtWetSample ?? '',
                                                         driedSample: group.records.find(r => r.sectionType === 'CA1')?.wtDriedSample ?? consolidated?.wtDriedSample ?? '',
@@ -366,7 +401,8 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                     </table>
                 </div>
             </div>
-        </div >
+            )}
+        </div>
     );
 
     if (displayMode === 'inline') {

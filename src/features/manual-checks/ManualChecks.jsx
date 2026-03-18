@@ -287,10 +287,9 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                                         ) : (
                                             <>
                                                 <th style={{ width: '80px', background: '#fffbeb' }}>Location</th>
-                                                <th style={{ background: '#fffbeb' }}>Date</th>
+                                                <th style={{ background: '#fffbeb' }}>Date & Time</th>
                                                 {mod === 'demoulding' ? (
                                                     <>
-                                                        <th style={{ background: '#fffbeb' }}>Time</th>
                                                         <th style={{ background: '#fffbeb' }}>Batch</th>
                                                         <th style={{ background: '#fffbeb' }}>Bench No.</th>
                                                         <th style={{ background: '#fffbeb' }}>Sleeper Type</th>
@@ -299,9 +298,7 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                                                         <th style={{ background: '#fffbeb' }}>Check Status</th>
                                                     </>
                                                 ) : (
-                                                    <>
-                                                        <th style={{ background: '#fffbeb' }}>{fieldLabel} No.</th>
-                                                    </>
+                                                    <th style={{ background: '#fffbeb' }}>{fieldLabel} No.</th>
                                                 )}
                                             </>
                                         )}
@@ -364,17 +361,13 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                                             <>
                                                 <td style={{ fontSize: '11px', color: '#64748b' }}>{entry.lineShedNo || entry.location || 'N/A'}</td>
                                                 <td>
-                                                    <div style={{ fontSize: '13px', fontWeight: '700' }}>
+                                                    <div style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b' }}>
+                                                        {extractTime(entry.inspectionTime || entry.checkingTime || entry.checkedTime || entry.createdDate)}
+                                                    </div>
+                                                    <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700' }}>
                                                         {formatDate(entry.inspectionDate || entry.checkingDate || (entry.createdDate ? entry.createdDate.split('T')[0] : entry.date))}
                                                     </div>
                                                 </td>
-                                                {mod === 'demoulding' && (
-                                                    <td>
-                                                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b' }}>
-                                                            {extractTime(entry.inspectionTime || entry.checkingTime || entry.checkedTime || entry.createdDate)}
-                                                        </div>
-                                                    </td>
-                                                )}
                                                 <td>
                                                     <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '700' }}>
                                                         {entry.batchNo || entry.batch || '-'}
