@@ -47,7 +47,6 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
         defaultValues: {
             date: new Date().toISOString().split('T')[0],
             consignmentNo: '',
-            lotNo: '',
             supplier: '',
             approvalValidity: '',
             ritesIc: '',
@@ -63,29 +62,46 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
         name: "readings"
     });
 
-    const selectedLotNo = watch('lotNo');
     const readings = watch('readings');
+    const selectedType = watch('type');
 
-    useEffect(() => {
-        const lot = availableLots.find(l => l.lotNo === selectedLotNo);
-        if (lot) {
-            setValue('supplier', lot.supplier);
-            setValue('approvalValidity', lot.approvalValidity);
-            setValue('ritesIc', lot.ritesIc);
-            setValue('ritesBook', lot.ritesBook);
-            setValue('type', lot.type);
-            setValue('inventoryId', lot.id);
-        }
-    }, [selectedLotNo, availableLots, setValue]);
+    const handleAppend = () => {
+        const lastRow = readings.length > 0 ? readings[readings.length - 1] : null;
+        append({
+            heatNo: lastRow ? lastRow.heatNo : '',
+            patternNo: lastRow ? lastRow.patternNo : '',
+            weight: '',
+            dimensionalNotOk: false,
+            hammerNotOk: false,
+            result: 'PASS'
+        });
+    };
 
     useEffect(() => {
         readings.forEach((r, idx) => {
             const w = parseFloat(r.weight);
-            const isWeightOk = w >= 1.4395 && w <= 1.5285;
+            let isWeightOk = false;
+            
+            // Weight thresholds:
+            // T-6901: 1.484 kg min
+            // T-3705: 1.95 kg min
+            // T-3815: 1.55 kg min
+            const typeLower = (selectedType || '').toLowerCase();
+            if (typeLower.includes('6901')) {
+                isWeightOk = w >= 1.484;
+            } else if (typeLower.includes('3705')) {
+                isWeightOk = w >= 1.95;
+            } else if (typeLower.includes('3815')) {
+                isWeightOk = w >= 1.55;
+            } else {
+                // Default fallback if type is unknown/not selected yet
+                isWeightOk = w >= 1.4395 && w <= 1.5285;
+            }
+
             const res = (isWeightOk && !r.dimensionalNotOk && !r.hammerNotOk) ? 'PASS' : 'FAIL';
             if (r.result !== res) setValue(`readings.${idx}.result`, res);
         });
-    }, [readings, setValue]);
+    }, [readings, selectedType, setValue]);
 
     const summary = useMemo(() => {
         const total = readings.length;
@@ -107,7 +123,7 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
             const payload = {
                 testDate: data.date,
                 consignmentNo: data.consignmentNo,
-                lotNo: data.lotNo,
+                consignmentNo: data.consignmentNo,
                 supplier: data.supplier,
                 type: data.type,
                 ritesIc: data.ritesIc,
@@ -173,7 +189,7 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                         reset({
                             date: new Date().toISOString().split('T')[0],
                             consignmentNo: row.consignmentNo,
-                            lotNo: row.details?.invoiceNumber || row.consignmentNo,
+                            consignmentNo: row.consignmentNo,
                             supplier: row.vendor,
                             ritesIc: row.details?.ritesIcNumber || 'N/A',
                             type: row.details?.gradeType || 'N/A',
@@ -191,7 +207,7 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
 
     const historyColumns = [
         { key: 'testDate', label: 'Date', render: (val) => val ? val.split('-').reverse().join('/') : '' },
-        { key: 'lotNo', label: 'Lot No.' },
+        { key: 'consignmentNo', label: 'Consignment' },
         { key: 'supplier', label: 'Supplier' },
         { key: 'checked', label: 'Tested' },
         { key: 'accepted', label: 'Pass' },
@@ -208,7 +224,7 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                             onClick={() => {
                                 reset({
                                     date: row.testDate,
-                                    lotNo: row.lotNo,
+                                    consignmentNo: row.consignmentNo,
                                     supplier: row.supplier,
                                     readings: []
                                 });
@@ -312,8 +328,13 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                                         </select>
                                     </div>
                                     <div className="input-group">
-                                        <label>Lot No.</label>
-                                        <input type="text" placeholder="Enter Lot No" {...register('lotNo')} />
+                                        <label>Insert Type</label>
+                                        <select {...register('type')}>
+                                            <option value="">-- Select --</option>
+                                            <option value="T-6901">T-6901</option>
+                                            <option value="T-3705">T-3705</option>
+                                            <option value="T-3815">T-3815</option>
+                                        </select>
                                     </div>
                                     <div className="input-group">
                                         <label>Supplier</label>
@@ -328,12 +349,12 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                                 <div className="section-divider"></div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                                     <h3 style={{ fontSize: '14px' }}>Readings</h3>
-                                    <button type="button" className="btn-save" style={{ width: 'auto', padding: '0 12px' }} onClick={() => append({ heatNo: '', patternNo: '', weight: '', dimensionalNotOk: false, hammerNotOk: false, result: 'PASS' })}>+ Add Row</button>
+                                    <button type="button" className="btn-save" style={{ width: 'auto', padding: '0 12px' }} onClick={handleAppend}>+ Add Row</button>
                                 </div>
 
                                 <div className="table-wrapper" style={{ maxHeight: '300px', overflowY: 'auto' }}>
                                     <table>
-                                        <thead><tr><th>Heat No.</th><th>Pattern</th><th>Weight</th><th>Dim</th><th>Hammer</th><th>Result</th><th></th></tr></thead>
+                                        <thead><tr><th>Heat No.</th><th>Pattern</th><th>Weight</th><th>Dim Not ok</th><th>Hammer not ok</th><th>Result</th><th></th></tr></thead>
                                         <tbody>
                                             {fields.map((field, index) => (
                                                 <tr key={field.id}>

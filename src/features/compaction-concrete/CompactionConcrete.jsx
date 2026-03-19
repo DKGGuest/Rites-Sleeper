@@ -85,6 +85,7 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
     });
 
     const [editingId, setEditingId] = useState(null);
+    const [editOnly, setEditOnly] = useState(false);
 
     // Keep form batch in sync
     useEffect(() => {
@@ -127,50 +128,6 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
         }
     };
 
-    const handleEdit = async (entry) => {
-        try {
-            let fetchedData = entry;
-            // Check if it's a real backend numeric ID (vibration records might use Date.now() for local ones)
-            if (entry.id && !isNaN(entry.id) && !String(entry.id).includes('-')) {
-                const response = await apiService.getCompactionById(entry.id);
-                fetchedData = response?.responseData || entry;
-            }
-
-            setEditingId(fetchedData.id);
-            setManualForm({
-                date: fetchedData.date,
-                time: fetchedData.time,
-                batchNo: fetchedData.batchNo,
-                benchNo: fetchedData.benchNo,
-                tachoCount: fetchedData.tachoCount,
-                workingTachos: fetchedData.workingTachos,
-                minRpm: fetchedData.minRpm,
-                maxRpm: fetchedData.maxRpm,
-                minDuration: fetchedData.minDuration || '',
-                maxDuration: fetchedData.maxDuration || '',
-                duration: fetchedData.duration
-            });
-            setShowForm(true);
-        } catch (error) {
-            console.error("Error fetching compaction details:", error);
-            // Fallback
-            setEditingId(entry.id);
-            setManualForm({
-                date: entry.date,
-                time: entry.time,
-                batchNo: entry.batchNo,
-                benchNo: entry.benchNo,
-                tachoCount: entry.tachoCount,
-                workingTachos: entry.workingTachos,
-                minRpm: entry.minRpm,
-                maxRpm: entry.maxRpm,
-                minDuration: entry.minDuration || '',
-                maxDuration: entry.maxDuration || '',
-                duration: entry.duration
-            });
-            setShowForm(true);
-        }
-    };
 
     const handleFinalSave = async () => {
         if (!selectedBatch) {
@@ -229,8 +186,47 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
         }
     };
 
+    const handleEdit = async (entry) => {
+        try {
+            const response = await apiService.getCompactionById(entry.id);
+            const fetchedData = response?.responseData || entry;
+            setEditingId(fetchedData.id || entry.id);
+            setManualForm({
+                date: fetchedData.date || entry.date,
+                time: fetchedData.time || entry.time,
+                batchNo: fetchedData.batchNo || entry.batchNo,
+                benchNo: fetchedData.benchNo || entry.benchNo,
+                tachoCount: fetchedData.tachoCount || entry.tachoCount,
+                workingTachos: fetchedData.workingTachos || entry.workingTachos,
+                minRpm: fetchedData.minRpm || entry.minRpm,
+                maxRpm: fetchedData.maxRpm || entry.maxRpm,
+                minDuration: fetchedData.minDuration || entry.minDuration || '',
+                maxDuration: fetchedData.maxDuration || entry.maxDuration || '',
+                duration: fetchedData.duration || entry.duration
+            });
+        } catch (error) {
+            console.error('Fetch failed, using local data:', error);
+            setEditingId(entry.id);
+            setManualForm({
+                date: entry.date,
+                time: entry.time,
+                batchNo: entry.batchNo,
+                benchNo: entry.benchNo,
+                tachoCount: entry.tachoCount,
+                workingTachos: entry.workingTachos,
+                minRpm: entry.minRpm,
+                maxRpm: entry.maxRpm,
+                minDuration: entry.minDuration || '',
+                maxDuration: entry.maxDuration || '',
+                duration: entry.duration
+            });
+        }
+        setShowForm(true);
+        setEditOnly(true);
+    };
 
-    const handleSaveManual = () => {
+
+    const handleSaveManual = async () => {
         if (!manualForm.batchNo || !manualForm.benchNo) {
             alert('Batch and Bench required');
             return;
@@ -243,8 +239,27 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
             source: 'Manual'
         };
         if (editingId) {
-            setEntries(prev => prev.map(e => e.id === editingId ? newEntry : e));
-            setEditingId(null);
+            try {
+                const payload = {
+                    id: editingId,
+                    batchNo: String(manualForm.batchNo),
+                    benchNo: String(manualForm.benchNo),
+                    minRpm: parseInt(manualForm.minRpm) || 0,
+                    maxRpm: parseInt(manualForm.maxRpm) || 0,
+                    minDuration: parseInt(manualForm.minDuration) || 0,
+                    maxDuration: parseInt(manualForm.maxDuration) || 0,
+                    duration: parseInt(manualForm.duration) || 0
+                };
+                await apiService.updateCompaction(editingId, payload);
+                setEntries(prev => prev.map(e => e.id === editingId ? newEntry : e));
+                alert('Record updated successfully');
+            } catch (error) {
+                console.error('Update failed:', error);
+                alert(`Failed to update: ${error.message}`);
+            } finally {
+                setEditingId(null);
+                setEditOnly(false);
+            }
         } else {
             setEntries(prev => [newEntry, ...prev]);
         }
@@ -253,7 +268,6 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
             batchNo: selectedBatch, benchNo: '', minRpm: '', maxRpm: '', minDuration: '', maxDuration: '', duration: '',
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
         });
-        alert('Manual entry saved to local session.');
         setShowForm(false);
     };
 
@@ -279,19 +293,22 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
         </div>
     );
 
+    const closeForm = () => { setShowForm(false); setEditOnly(false); setEditingId(null); };
+
     const renderForm = () => (
-        <div className="compaction-form-overlay" onClick={() => setShowForm(false)}>
+        <div className="compaction-form-overlay" onClick={closeForm}>
             <div className="compaction-form-card" onClick={e => e.stopPropagation()}>
                 <div className="compaction-card-header">
                     <div>
-                        <h2>{editingId ? 'Modify' : 'New'} Compaction Entry</h2>
+                        <h2>{editOnly ? 'Edit' : 'New'} Compaction Entry</h2>
                         <p className="card-subtitle">Monitoring & Assurance</p>
                     </div>
-                    <button onClick={() => setShowForm(false)} className="close-mini-btn">✕</button>
+                    <button onClick={closeForm} className="close-mini-btn">✕</button>
                 </div>
 
                 <div className="compaction-card-body">
                     <div className="compaction-form-stack">
+                        {!editOnly && (
                         <section className="compaction-section section-blue">
                             <div className="section-header">
                                 <span className="step-number blue-bg">1</span>
@@ -313,7 +330,9 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                                 <div className="form-field"><label>Date</label><input type="text" value={manualForm.date ? manualForm.date.split('-').reverse().join('/') : ''} readOnly /></div>
                             </div>
                         </section>
+                        )}
 
+                        {!editOnly && (
                         <section className="compaction-section section-amber">
                             <div className="section-header">
                                 <span className="step-number amber-bg">2</span>
@@ -361,6 +380,7 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                                 </table>
                             </div>
                         </section>
+                        )}
 
                         <section className="compaction-section section-green">
                             <div className="section-header">
@@ -377,6 +397,7 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                             <div className="action-row-center" style={{ marginTop: '1rem' }}><button className="toggle-btn" onClick={handleSaveManual}>{editingId ? 'Update Record' : 'Save Manual Record'}</button></div>
                         </section>
 
+                        {!editOnly && (
                         <section className="compaction-section section-slate" style={{ borderBottom: 'none' }}>
                             <div className="section-header">
                                 <span className="step-number slate-bg">4</span>
@@ -403,11 +424,13 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                                 </table>
                             </div>
                         </section>
+                        )}
                     </div>
                 </div>
 
+                {!editOnly && (
                 <div className="compaction-card-footer" style={{ padding: '1.5rem', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '1rem', background: '#f8fafc' }}>
-                    <button className="btn-action" onClick={() => setShowForm(false)} style={{ padding: '10px 20px' }}>Cancel</button>
+                    <button className="btn-action" onClick={closeForm} style={{ padding: '10px 20px' }}>Cancel</button>
                     <button
                         className="toggle-btn"
                         onClick={handleFinalSave}
@@ -421,6 +444,7 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                         {isSaving ? 'Processing...' : 'Save / Finish Batch'}
                     </button>
                 </div>
+                )}
             </div>
         </div>
     );

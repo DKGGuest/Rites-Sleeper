@@ -68,6 +68,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
     const [wiresPerSleeper] = useState(18);
     const [editId, setEditId] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [editOnly, setEditOnly] = useState(false);
 
     // Dynamic Batch List: Merge declared batches with those found in SCADA or existing logs
     const availableBatches = useMemo(() => {
@@ -264,7 +265,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
     };
 
 
-    const handleSaveManual = () => {
+    const handleSaveManual = async () => {
         if (!formData.benchNo || !formData.finalLoad) {
             alert('Required fields missing');
             return;
@@ -281,9 +282,33 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
         };
 
         if (editId) {
-            setTensionRecords(prev => prev.map(r => r.id === editId ? newEntry : r));
-            setEditId(null);
-            alert('Record updated successfully');
+            // Call update API
+            try {
+                const payload = {
+                    id: editId,
+                    batchNo: String(formData.batchNo),
+                    benchNo: String(formData.benchNo),
+                    time: formData.time,
+                    wireLength: parseFloat(formData.wireLength) || 0,
+                    crossSection: parseFloat(formData.crossSection) || 0,
+                    youngsModulus: parseFloat(formData.modulus) || 0,
+                    measuredElongation: parseFloat(formData.measuredElongation) || 0,
+                    forceElongation: parseFloat(formData.forceElongation) || 0,
+                    totalLoad: parseFloat(formData.totalLoad) || 0,
+                    finalLoad: parseFloat(formData.finalLoad) || 0
+                };
+                await apiService.updateWireTensioning(editId, payload);
+                setTensionRecords(prev => prev.map(r => r.id === editId ? newEntry : r));
+                alert('Record updated successfully');
+                if (loadShiftData) loadShiftData().catch(console.error);
+            } catch (error) {
+                console.error('Update failed:', error);
+                alert(`Failed to update: ${error.message}`);
+            } finally {
+                setEditId(null);
+                setEditOnly(false);
+                setShowForm(false);
+            }
         } else {
             setTensionRecords(prev => [newEntry, ...prev]);
         }
@@ -304,31 +329,24 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
 
     const handleEdit = async (record) => {
         try {
-            let fetchedData = record;
-            // Only fetch from backend if ID is a real numeric ID (not a local timestamp or string)
-            if (record.id && !isNaN(record.id) && !String(record.id).includes('-')) {
-                const response = await apiService.getWireTensioningById(record.id);
-                fetchedData = response?.responseData || record;
-            }
-
+            const response = await apiService.getWireTensioningById(record.id);
+            const fetchedData = response?.responseData || record;
             setFormData({
-                time: fetchedData.time,
-                batchNo: fetchedData.batchNo,
-                benchNo: fetchedData.benchNo,
-                wireLength: fetchedData.wireLength || '',
-                crossSection: fetchedData.crossSection || '',
-                modulus: fetchedData.modulus || '',
-                measuredElongation: fetchedData.measuredElongation || '',
-                forceElongation: fetchedData.forceElongation || '',
-                totalLoad: fetchedData.totalLoad || '',
-                finalLoad: fetchedData.finalLoad,
-                type: fetchedData.type || 'RT-1234'
+                time: fetchedData.time || record.time,
+                batchNo: fetchedData.batchNo || record.batchNo,
+                benchNo: fetchedData.benchNo || record.benchNo,
+                wireLength: fetchedData.wireLength || record.wireLength || '',
+                crossSection: fetchedData.crossSection || record.crossSection || '',
+                modulus: fetchedData.youngsModulus || fetchedData.modulus || record.modulus || '',
+                measuredElongation: fetchedData.measuredElongation || record.measuredElongation || '',
+                forceElongation: fetchedData.forceElongation || record.forceElongation || '',
+                totalLoad: fetchedData.totalLoad || record.totalLoad || '',
+                finalLoad: fetchedData.finalLoad || record.finalLoad,
+                type: fetchedData.type || record.type || 'RT-1234'
             });
-            setEditId(fetchedData.id);
-            if (setShowForm) setShowForm(true); else setViewMode('form');
+            setEditId(fetchedData.id || record.id);
         } catch (error) {
-            console.error("Error fetching wire tensioning details:", error);
-            // Fallback
+            console.error('Fetch failed, using local data:', error);
             setFormData({
                 time: record.time,
                 batchNo: record.batchNo,
@@ -343,8 +361,9 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                 type: record.type || 'RT-1234'
             });
             setEditId(record.id);
-            if (setShowForm) setShowForm(true); else setViewMode('form');
         }
+        setEditOnly(true);
+        if (setShowForm) setShowForm(true); else setViewMode('form');
     };
 
     const renderCards = () => (
@@ -367,23 +386,26 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
         </div>
     );
 
+    const closeForm = () => { setShowForm(false); setEditOnly(false); setEditId(null); };
+
     const renderForm = () => (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setShowForm(false)}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={closeForm}>
             <div className="fade-in" style={{ width: '100%', maxWidth: '850px', maxHeight: '92vh', background: '#fff', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
 
                 {/* Header - Cream Background */}
                 <div style={{ background: '#FFF8E7', padding: '1rem 1.5rem', borderBottom: '1px solid #F3E8FF', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                        <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: '#1e293b', letterSpacing: '-0.5px' }}>New Tensioning Entry</h2>
-                        <p style={{ margin: '2px 0 0 0', color: '#64748b', fontSize: '10px', fontWeight: '700' }}>Record load values & verify SCADA data</p>
+                        <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: '#1e293b', letterSpacing: '-0.5px' }}>{editOnly ? 'Edit Tensioning Entry' : 'New Tensioning Entry'}</h2>
+                        <p style={{ margin: '2px 0 0 0', color: '#64748b', fontSize: '10px', fontWeight: '700' }}>{editOnly ? 'Modify manual record values' : 'Record load values & verify SCADA data'}</p>
                     </div>
-                    <button onClick={() => setShowForm(false)} style={{ background: 'transparent', border: '1px solid #cbd5e1', borderRadius: '8px', width: '28px', height: '28px', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', fontSize: '14px' }}>✕</button>
+                    <button onClick={closeForm} style={{ background: 'transparent', border: '1px solid #cbd5e1', borderRadius: '8px', width: '28px', height: '28px', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', fontSize: '14px' }}>✕</button>
                 </div>
 
                 {/* Scrollable Body */}
                 <div style={{ padding: '1.5rem', overflowY: 'auto', flexGrow: 1, overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        {/* 1. Initial Declaration (Blue) */}
+                        {/* 1. Initial Declaration (Blue) - hidden for edit-only */}
+                        {!editOnly && (
                         <div style={{ background: '#eff6ff', padding: '1.5rem', borderRadius: '8px', border: '1px solid #dbeafe', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
                             <div style={{ paddingBottom: '1rem', marginBottom: '1.25rem', borderBottom: '1px solid #dbeafe', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <span style={{ background: '#3b82f6', color: '#fff', fontSize: '0.75rem', fontWeight: '800', width: '24px', height: '24px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>1</span>
@@ -411,8 +433,10 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                                 </div>
                             </div>
                         </div>
+                        )}
 
-                        {/* 2. Scada Fetched Values (Amber) */}
+                        {/* 2. Scada Fetched Values (Amber) - hidden for edit-only */}
+                        {!editOnly && (
                         <div style={{ background: '#fffbeb', padding: '1.5rem', borderRadius: '8px', border: '1px solid #fef3c7', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
                             <div style={{ paddingBottom: '1rem', marginBottom: '1.25rem', borderBottom: '1px solid #fcd34d', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <span style={{ background: '#d97706', color: '#fff', fontSize: '0.75rem', fontWeight: '800', width: '24px', height: '24px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>2</span>
@@ -455,6 +479,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                                 </tbody>
                             </table>
                         </div>
+                        )}
 
                         {/* 3. Manual Entry Form (Green) */}
                         <div style={{ background: '#f0fdf4', padding: '1.5rem', borderRadius: '8px', border: '1px solid #dcfce7', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
@@ -509,7 +534,8 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                             </div>
                         </div>
 
-                        {/* 4. Logs Saved for Current Batch (Slate) */}
+                        {/* 4. Logs Saved for Current Batch (Slate) - hidden for edit-only */}
+                        {!editOnly && (
                         <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
                             <div style={{ paddingBottom: '1rem', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <span style={{ background: '#475569', color: '#fff', fontSize: '0.75rem', fontWeight: '800', width: '24px', height: '24px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>4</span>
@@ -556,8 +582,10 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                                 </table>
                             </div>
                         </div>
+                        )}
 
-                        {/* Final Save Button */}
+                        {/* Final Save Button - hidden for edit-only */}
+                        {!editOnly && (
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
                             <button
                                 className="toggle-btn"
@@ -577,6 +605,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                                 {isSaving ? 'Processing...' : 'Save / Finish Batch'}
                             </button>
                         </div>
+                        )}
 
                     </div>
                 </div>

@@ -23,8 +23,6 @@ const DimensionalTesting = ({ type }) => {
         try {
             setLoading(true);
             const data = await apiService.getFinalInspectionBatches();
-            // Batch should not be shown in this list before verification of production for that batch.
-            const verifiedBatches = (data || []).filter(b => b.status === 'VERIFIED' || b.productionStatus === 'VERIFIED' || true); // Assuming status or productionStatus
             setBatches(data || []);
         } catch (error) {
             console.error('Error fetching batches:', error);
@@ -60,11 +58,7 @@ const DimensionalTesting = ({ type }) => {
         { key: 'batchNumber', label: 'Batch No.' },
         { key: 'totalBatchQty', label: 'Total Batch Qty' },
         { key: 'sleeperType', label: 'Type of Sleeper' },
-        { 
-            key: 'noOfSleepers', 
-            label: 'No. of Sleepers (Type)',
-            render: (_, row) => row.sleepers?.length || row.noOfSleepers || 0
-        },
+        { key: 'noOfSleepers', label: 'No. of Sleepers (Type)' },
         {
             key: 'testedPercentage',
             label: 'Tested (%)',

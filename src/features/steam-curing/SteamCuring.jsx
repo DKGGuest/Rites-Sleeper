@@ -120,6 +120,7 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
 
     const [editingId, setEditingId] = useState(null);
     const [showForm, setShowForm] = useState(false);
+    const [editOnly, setEditOnly] = useState(false);
 
     const [manualForm, setManualForm] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -207,22 +208,19 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
 
     const handleEdit = async (entry) => {
         try {
-            let fetchedData = entry;
-            if (entry.id && !isNaN(entry.id) && !String(entry.id).includes('-')) {
-                const response = await apiService.getSteamCuringById(entry.id);
-                fetchedData = response?.responseData || entry;
-            }
-            setEditingId(fetchedData.id);
+            const response = await apiService.getSteamCuringById(entry.id);
+            const fetchedData = response?.responseData || entry;
+            setEditingId(fetchedData.id || entry.id);
             setManualForm({
-                date: fetchedData.date,
-                batchNo: fetchedData.batchNo,
-                chamberNo: fetchedData.chamberNo,
-                benches: fetchedData.benches,
-                minConstTemp: fetchedData.minConstTemp,
-                maxConstTemp: fetchedData.maxConstTemp
+                date: fetchedData.date || entry.date,
+                batchNo: fetchedData.batchNo || entry.batchNo,
+                chamberNo: fetchedData.chamberNo || entry.chamberNo,
+                benches: fetchedData.benches || entry.benches,
+                minConstTemp: fetchedData.minConstTemp ?? fetchedData.constTempMin ?? entry.minConstTemp,
+                maxConstTemp: fetchedData.maxConstTemp ?? fetchedData.constTempMax ?? entry.maxConstTemp
             });
-            setShowForm(true);
         } catch (error) {
+            console.error('Fetch failed, using local data:', error);
             setEditingId(entry.id);
             setManualForm({
                 date: entry.date,
@@ -232,11 +230,12 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                 minConstTemp: entry.minConstTemp,
                 maxConstTemp: entry.maxConstTemp
             });
-            setShowForm(true);
         }
+        setShowForm(true);
+        setEditOnly(true);
     };
 
-    const handleSaveManual = () => {
+    const handleSaveManual = async () => {
         if (!manualForm.batchNo || !manualForm.chamberNo) {
             alert('Batch and Chamber numbers required');
             return;
@@ -255,13 +254,29 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
             status: (minVal >= 55 && maxVal <= 60) ? 'OK' : 'NOT OK'
         };
         if (editingId) {
-            setEntries(prev => prev.map(e => e.id === editingId ? newEntry : e));
-            setEditingId(null);
+            try {
+                const payload = {
+                    id: editingId,
+                    batchNo: String(manualForm.batchNo),
+                    chamber: String(manualForm.chamberNo),
+                    minTemp: parseFloat(manualForm.minConstTemp) || 0,
+                    maxTemp: parseFloat(manualForm.maxConstTemp) || 0
+                };
+                await apiService.updateSteamCuring(editingId, payload);
+                setEntries(prev => prev.map(e => e.id === editingId ? newEntry : e));
+                alert('Record updated successfully');
+            } catch (error) {
+                console.error('Update failed:', error);
+                alert(`Failed to update: ${error.message}`);
+            } finally {
+                setEditingId(null);
+                setEditOnly(false);
+                setShowForm(false);
+            }
         } else {
             setEntries(prev => [newEntry, ...prev]);
         }
         setManualForm({ date: new Date().toISOString().split('T')[0], batchNo: '', chamberNo: '', benches: '', minConstTemp: '', maxConstTemp: '' });
-        alert('Manual entry added to local session.');
     };
 
     const handleFinalSave = async () => {
@@ -466,8 +481,10 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
         );
     };
 
+    const closeForm = () => { setShowForm(false); setEditOnly(false); setEditingId(null); };
+
     const renderForm = () => (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setShowForm(false)}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.4)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={closeForm}>
             <div className="fade-in" style={{ width: '100%', maxWidth: '1280px', maxHeight: '92vh', background: '#fff', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div style={{ background: '#FFF8E7', padding: '1rem 1.5rem', borderBottom: '1px solid #F3E8FF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
@@ -475,13 +492,14 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                         <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: '#1e293b', letterSpacing: '-0.5px' }}>{editingId ? 'Modify' : 'New'} Steam Curing Entry</h2>
                         <p style={{ margin: '2px 0 0 0', color: '#64748b', fontSize: '10px', fontWeight: '700' }}>Heat Treatment Cycle Assurance</p>
                     </div>
-                    <button onClick={() => setShowForm(false)} style={{ background: 'transparent', border: '1px solid #cbd5e1', borderRadius: '8px', width: '28px', height: '28px', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>✕</button>
+                    <button onClick={closeForm} style={{ background: 'transparent', border: '1px solid #cbd5e1', borderRadius: '8px', width: '28px', height: '28px', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>✕</button>
                 </div>
 
                 <div style={{ padding: '1.5rem', overflowY: 'auto', flexGrow: 1, overscrollBehavior: 'contain' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-                        {/* SECTION 1: Initial Declaration */}
+                        {/* SECTION 1: Initial Declaration - hidden for edit-only */}
+                        {!editOnly && (
                         <div style={{ background: '#eff6ff', padding: '1.25rem', borderRadius: '8px', border: '1px solid #dbeafe' }}>
                             <div style={{ paddingBottom: '0.75rem', marginBottom: '1rem', borderBottom: '1px solid #dbeafe', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <span style={{ background: '#3b82f6', color: '#fff', fontSize: '10px', fontWeight: '800', width: '20px', height: '20px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>1</span>
@@ -523,8 +541,10 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                                 <div className="form-field"><label style={{ fontSize: '10px' }}>Date</label><input type="text" value={manualForm.date ? manualForm.date.split('-').reverse().join('/') : ''} readOnly style={{ background: '#fff', fontSize: '13px', padding: '6px' }} /></div>
                             </div>
                         </div>
+                        )}
 
-                        {/* SECTION 2: SCADA Data Fetched */}
+                        {/* SECTION 2: SCADA Data Fetched - hidden for edit-only */}
+                        {!editOnly && (
                         <div style={{ background: '#fffbeb', padding: '1.25rem', borderRadius: '8px', border: '1px solid #fef3c7' }}>
                             <div style={{ paddingBottom: '0.75rem', marginBottom: '1rem', borderBottom: '1px solid #fcd34d', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -537,6 +557,7 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                             </div>
                             {renderScadaDataPanel(activeRecord)}
                         </div>
+                        )}
 
                         {/* SECTION 3: Manual Entry Form */}
                         <div style={{ background: '#f0fdf4', padding: '1.25rem', borderRadius: '8px', border: '1px solid #dcfce7' }}>
@@ -589,7 +610,8 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                             <div style={{ marginTop: '1rem', textAlign: 'center' }}><button className="toggle-btn" onClick={handleSaveManual}>{editingId ? 'Update Record' : 'Save Manual Record'}</button></div>
                         </div>
 
-                        {/* SECTION 4: Recent Witness Logs */}
+                        {/* SECTION 4: Recent Witness Logs - hidden for edit-only */}
+                        {!editOnly && (
                         <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                             <div style={{ paddingBottom: '0.75rem', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <span style={{ background: '#64748b', color: '#fff', fontSize: '10px', fontWeight: '800', width: '20px', height: '20px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>4</span>
@@ -620,16 +642,19 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
                                 </tbody>
                             </table>
                         </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Footer */}
+                {/* Footer - hidden for edit-only */}
+                {!editOnly && (
                 <div style={{ padding: '1.25rem 1.5rem', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                    <button onClick={() => setShowForm(false)} style={{ padding: '10px 20px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: '700', color: '#64748b', cursor: 'pointer' }}>Cancel</button>
+                    <button onClick={closeForm} style={{ padding: '10px 20px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: '700', color: '#64748b', cursor: 'pointer' }}>Cancel</button>
                     <button onClick={handleFinalSave} disabled={isSaving} style={{ padding: '10px 30px', background: isSaving ? '#94a3b8' : '#0f172a', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: isSaving ? 'not-allowed' : 'pointer' }}>
                         {isSaving ? 'Processing...' : 'Save / Finish Batch'}
                     </button>
                 </div>
+                )}
             </div>
         </div>
     );
