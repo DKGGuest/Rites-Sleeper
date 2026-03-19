@@ -22,6 +22,7 @@ const PLANT_DECLARATION_MODULES = [
     { moduleId: 2, label: 'Bench / Mould',     color: '#7c3aed' },
     { moduleId: 3, label: 'Raw Material Src',  color: '#7c3aed' },
     { moduleId: 4, label: 'Mix Design',        color: '#7c3aed' },
+    { moduleId: 12, label: 'Long Line',        color: '#7c3aed', hidden: true },
 ];
 
 const MODULE_TABLE_FIELDS = {
@@ -34,6 +35,12 @@ const MODULE_TABLE_FIELDS = {
     2: [
         { label: 'Entry Type',     key: 'entryType' },
         { label: 'Bench(es)',      key: 'benchIdentifier' }, // Custom key for display logic
+        { label: 'Sleeper Cat',    key: 'sleeperCategory' },
+        { label: 'Moulds/Bench',   key: 'mouldsPerBench' },
+    ],
+    12: [
+        { label: 'Entry Type',     key: 'entryType' },
+        { label: 'Bench(es)',      key: 'benchIdentifier' }, 
         { label: 'Sleeper Cat',    key: 'sleeperCategory' },
         { label: 'Moulds/Bench',   key: 'mouldsPerBench' },
     ],
@@ -56,6 +63,7 @@ const fetchRecordDetail = async (moduleId, requestId) => {
         2: apiService.getBenchMouldMasterById,
         3: apiService.getRawMaterialSourceById,
         4: apiService.getMixDesignById,
+        12: apiService.getBenchMouldMasterById,
     };
     const fn = fetchers[moduleId];
     if (!fn) return null;
@@ -219,7 +227,7 @@ const PlantDeclarationVerification = () => {
                         <th style={thStyle}>Request ID</th>
                         <th style={thStyle}>Transition ID</th>
                         <th style={thStyle}>Assigned</th>
-                        {MODULE_TABLE_FIELDS[selectedModuleId]?.map(col => (
+                        {MODULE_TABLE_FIELDS[records[0]?.moduleId || selectedModuleId]?.map(col => (
                             <th key={col.key} style={thStyle}>{col.label}</th>
                         ))}
                         <th style={thStyle}>Status</th>
@@ -233,7 +241,7 @@ const PlantDeclarationVerification = () => {
                             <td style={{ ...tdStyle, fontWeight: '700', color: '#7c3aed' }}>#{row.requestId}</td>
                             <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: '12px', color: '#64748b' }}>{row.workflowTransitionId}</td>
                             <td style={tdStyle}>User {row.assignedTo}</td>
-                            {MODULE_TABLE_FIELDS[selectedModuleId]?.map(col => {
+                            {MODULE_TABLE_FIELDS[row.moduleId || selectedModuleId]?.map(col => {
                                 if (col.key === 'benchIdentifier') {
                                     const bNo = row.detail?.benchNo;
                                     const bFrom = row.detail?.benchFrom;
@@ -258,7 +266,7 @@ const PlantDeclarationVerification = () => {
                                 })()}
                             </td>
                             <td style={tdStyle}>
-                                {selectedModuleId === 2 ? (
+                                {(row.moduleId === 2 || row.moduleId === 12) ? (
                                     <div style={{ display: 'flex', gap: '6px' }}>
                                         {/* Pending Actions */}
                                         {!isHistory && (row.status === 'CREATED' || row.status?.toUpperCase() === 'UNLOCKED') && (
@@ -306,9 +314,16 @@ const PlantDeclarationVerification = () => {
                 <>
                     {/* Module Tabs */}
                     <div className="pdv-api-module-cards">
-                        {PLANT_DECLARATION_MODULES.map(mod => {
-                            const pCount = (pendingByModule[mod.moduleId] || []).length;
-                            const hCount = (completedByModule[mod.moduleId] || []).length;
+                        {PLANT_DECLARATION_MODULES.filter(m => !m.hidden).map(mod => {
+                            let pCount = (pendingByModule[mod.moduleId] || []).length;
+                            let hCount = (completedByModule[mod.moduleId] || []).length;
+                            
+                            // If it's the Bench/Mould tab, include Long Line (12) counts
+                            if (mod.moduleId === 2) {
+                                pCount += (pendingByModule[12] || []).length;
+                                hCount += (completedByModule[12] || []).length;
+                            }
+
                             const isActive = selectedModuleId === mod.moduleId;
                             return (
                                 <div
@@ -343,11 +358,9 @@ const PlantDeclarationVerification = () => {
                                     )}
                                 </div>
                                 {renderTable(
-                                    (pendingByModule[selectedModuleId] || []).filter(r => {
-                                        if (selectedModuleId !== 2) return true;
-                                        const t = r.detail?.benchType || r.detail?.plantType || '';
-                                        return !t || t.toUpperCase().includes(benchType === 'STRESS_BENCH' ? 'STRESS' : 'LONG');
-                                    }),
+                                    benchType === 'STRESS_BENCH' 
+                                        ? (pendingByModule[2] || []) 
+                                        : (pendingByModule[12] || []),
                                     false
                                 )}
                             </div>
@@ -356,13 +369,17 @@ const PlantDeclarationVerification = () => {
                             <div className="pdv-api-table-card" style={{ borderTop: '4px solid #10b981' }}>
                                 <div className="pdv-api-table-header">
                                     <h3 style={{ margin: 0, fontSize: '16px', color: '#065f46' }}>Verified and Locked Log</h3>
+                                    {selectedModuleId === 2 && (
+                                        <div className="pdv-bench-toggle">
+                                            <button onClick={() => setBenchType('STRESS_BENCH')} className={benchType === 'STRESS_BENCH' ? 'active' : ''}>Stress</button>
+                                            <button onClick={() => setBenchType('LONG_LINE')} className={benchType === 'LONG_LINE' ? 'active' : ''}>Long Line</button>
+                                        </div>
+                                    )}
                                 </div>
                                 {renderTable(
-                                    (completedByModule[selectedModuleId] || []).filter(r => {
-                                        if (selectedModuleId !== 2) return true;
-                                        const t = r.detail?.benchType || r.detail?.plantType || '';
-                                        return !t || t.toUpperCase().includes(benchType === 'STRESS_BENCH' ? 'STRESS' : 'LONG');
-                                    }),
+                                    benchType === 'STRESS_BENCH' 
+                                        ? (completedByModule[2] || []) 
+                                        : (completedByModule[12] || []),
                                     true
                                 )}
                             </div>

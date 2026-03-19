@@ -16,6 +16,7 @@ const MODULE_FETCHERS = {
     9:  (id) => apiService.getSgciRecordById(id),
     10: (id) => apiService.getDowelRecordById(id),
     11: (id) => apiService.getProductionDeclarationRecordById(id),
+    12: (id) => apiService.getBenchMouldMasterById(id),
 };
 
 // Human-readable labels for common backend keys

@@ -98,10 +98,39 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
     }, [records.length]);
 
     // Group records by batch number and date to show unified rows in UI
+    // Note: New API returns unified objects, but we keep grouping logic for compatibility 
+    // and to handle any legacy flat records if they exist.
     const groupRecordsByBatch = (flatRecords) => {
         const groups = {};
         flatRecords.forEach(r => {
-            const key = `${r.batchNo}_${r.entryDate || r.createdDate?.split('T')[0]}`;
+            // New API structure has 'sections' array
+            if (r.sections && r.sections.length > 0) {
+                const ca1 = r.sections.find(s => s.sectionType === 'CA1');
+                const ca2 = r.sections.find(s => s.sectionType === 'CA2');
+                const fa = r.sections.find(s => s.sectionType === 'FA');
+
+                groups[r.id] = {
+                    id: r.id,
+                    batchNo: r.batchNo,
+                    date: r.entryDate,
+                    shift: r.shift,
+                    timing: r.entryTime,
+                    ca1Free: ca1 ? ca1.freeMoisturePercent : '-',
+                    ca2Free: ca2 ? ca2.freeMoisturePercent : '-',
+                    faFree: fa ? fa.freeMoisturePercent : '-',
+                    totalFree: r.totalFreeMoisture,
+                    timestamp: r.createdDate || r.timestamp || new Date().toISOString(),
+                    ca1Val: ca1 ? parseFloat(ca1.freeMoisturePercent) || 0 : 0,
+                    ca2Val: ca2 ? parseFloat(ca2.freeMoisturePercent) || 0 : 0,
+                    faVal: fa ? parseFloat(fa.freeMoisturePercent) || 0 : 0,
+                    fullRecord: r,
+                    records: [r] // for backward compatibility in some UI parts
+                };
+                return;
+            }
+
+            // Legacy fallback for flat records
+            const key = `${r.batchNo}_${r.entryDate || r.createdDate?.split('T')[0]}_${r.timing || r.entryTime}`;
             if (!groups[key]) {
                 const isAll = r.sectionType === 'ALL';
                 groups[key] = {
@@ -110,28 +139,19 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                     date: r.entryDate || r.createdDate?.split('T')[0],
                     shift: r.shift,
                     timing: r.entryTime || r.createdDate?.substring(11, 16),
-                    ca1Free: isAll ? (r.batchWtDryCa1 > 0 ? (((r.wtAdoptedCa1 - r.batchWtDryCa1) / r.batchWtDryCa1) * 100).toFixed(2) : '0') : (r.sectionType === 'CA1' ? r.freeMoisturePercent : '-'),
-                    ca2Free: isAll ? (r.batchWtDryCa2 > 0 ? (((r.wtAdoptedCa2 - r.batchWtDryCa2) / r.batchWtDryCa2) * 100).toFixed(2) : '0') : (r.sectionType === 'CA2' ? r.freeMoisturePercent : '-'),
-                    faFree: isAll ? (r.batchWtDryFa > 0 ? (((r.wtAdoptedFa - r.batchWtDryFa) / r.batchWtDryFa) * 100).toFixed(2) : '0') : (r.sectionType === 'FA' ? r.freeMoisturePercent : '-'),
+                    ca1Free: r.sectionType === 'CA1' ? r.freeMoisturePercent : '-',
+                    ca2Free: r.sectionType === 'CA2' ? r.freeMoisturePercent : '-',
+                    faFree: r.sectionType === 'FA' ? r.freeMoisturePercent : '-',
                     totalFree: r.totalFreeMoisture,
                     timestamp: r.createdDate || r.timestamp || new Date().toISOString(),
-                    // Chart-friendly numeric values
-                    ca1Val: isAll ? (r.batchWtDryCa1 > 0 ? ((r.wtAdoptedCa1 - r.batchWtDryCa1) / r.batchWtDryCa1) * 100 : 0) : (r.sectionType === 'CA1' ? parseFloat(r.freeMoisturePercent) || 0 : 0),
-                    ca2Val: isAll ? (r.batchWtDryCa2 > 0 ? ((r.wtAdoptedCa2 - r.batchWtDryCa2) / r.batchWtDryCa2) * 100 : 0) : (r.sectionType === 'CA2' ? parseFloat(r.freeMoisturePercent) || 0 : 0),
-                    faVal: isAll ? (r.batchWtDryFa > 0 ? ((r.wtAdoptedFa - r.batchWtDryFa) / r.batchWtDryFa) * 100 : 0) : (r.sectionType === 'FA' ? parseFloat(r.freeMoisturePercent) || 0 : 0),
+                    ca1Val: r.sectionType === 'CA1' ? parseFloat(r.freeMoisturePercent) || 0 : 0,
+                    ca2Val: r.sectionType === 'CA2' ? parseFloat(r.freeMoisturePercent) || 0 : 0,
+                    faVal: r.sectionType === 'FA' ? parseFloat(r.freeMoisturePercent) || 0 : 0,
                     records: [r]
                 };
             } else {
                 const current = groups[key];
-                if (r.sectionType === 'ALL') {
-                    current.id = r.id; // Prefer the consolidated record ID
-                    current.ca1Free = r.batchWtDryCa1 > 0 ? (((r.wtAdoptedCa1 - r.batchWtDryCa1) / r.batchWtDryCa1) * 100).toFixed(2) : current.ca1Free;
-                    current.ca2Free = r.batchWtDryCa2 > 0 ? (((r.wtAdoptedCa2 - r.batchWtDryCa2) / r.batchWtDryCa2) * 100).toFixed(2) : current.ca2Free;
-                    current.faFree = r.batchWtDryFa > 0 ? (((r.wtAdoptedFa - r.batchWtDryFa) / r.batchWtDryFa) * 100).toFixed(2) : current.faFree;
-                    current.ca1Val = r.batchWtDryCa1 > 0 ? ((r.wtAdoptedCa1 - r.batchWtDryCa1) / r.batchWtDryCa1) * 100 : current.ca1Val;
-                    current.ca2Val = r.batchWtDryCa2 > 0 ? ((r.wtAdoptedCa2 - r.batchWtDryCa2) / r.batchWtDryCa2) * 100 : current.ca2Val;
-                    current.faVal = r.batchWtDryFa > 0 ? ((r.wtAdoptedFa - r.batchWtDryFa) / r.batchWtDryFa) * 100 : current.faVal;
-                } else if (r.sectionType === 'CA1') {
+                if (r.sectionType === 'CA1') {
                     current.ca1Free = r.freeMoisturePercent;
                     current.ca1Val = parseFloat(r.freeMoisturePercent) || 0;
                 } else if (r.sectionType === 'CA2') {
@@ -156,25 +176,8 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
     const handleSaveEntry = async (uiData) => {
         setSaving(true);
         try {
-            const getSectionData = (section, result) => ({
-                entryDate: formatToBackendDate(uiData.date),
-                shift: uiData.shift,
-                entryTime: uiData.timing,
-                batchNo: String(uiData.batchNo),
-                batchWtDryCa1: parseFloat(uiData.userDryCA1) || 0,
-                batchWtDryCa2: parseFloat(uiData.userDryCA2) || 0,
-                batchWtDryFa: parseFloat(uiData.userDryFA) || 0,
-                batchWtDryWater: parseFloat(uiData.userDryWater) || 0,
-                batchWtDryAdmix: parseFloat(uiData.userDryAdmix) || 0,
-                batchWtDryCement: parseFloat(uiData.userDryCement) || 0,
-                wtAdoptedCa1: parseFloat(uiData.ca1Result?.wtAdopted) || 0,
-                wtAdoptedCa2: parseFloat(uiData.ca2Result?.wtAdopted) || 0,
-                wtAdoptedFa: parseFloat(uiData.faResult?.wtAdopted) || 0,
-                totalFreeMoisture: parseFloat(uiData.totalFree) || 0,
-                adjustedWaterWt: parseFloat(uiData.adjustedWater) || 0,
-                wcRatio: parseFloat(uiData.wcRatio) || 0,
-                acRatio: parseFloat(uiData.acRatio) || 0,
-                sectionType: section,
+            const getSectionPayload = (type, result) => ({
+                sectionType: type,
                 wtWetSample: parseFloat(result?.wetSample) || 0,
                 wtDriedSample: parseFloat(result?.driedSample) || 0,
                 wtMoistureSample: parseFloat(result?.moistureInSample) || 0,
@@ -184,35 +187,56 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                 batchWtDry: parseFloat(result?.batchWtDry) || 0,
                 freeMoistureKg: parseFloat(result?.freeMoistureKg) || 0,
                 adjustedWeight: parseFloat(result?.adjustedWt) || 0,
-                adoptedWeight: parseFloat(result?.wtAdopted) || 0,
-                createdBy: 0,
-                updatedBy: 0
+                adoptedWeight: parseFloat(result?.wtAdopted) || 0
             });
 
-            const payloads = [
-                { type: 'CA1', data: getSectionData('CA1', uiData.ca1Result) },
-                { type: 'CA2', data: getSectionData('CA2', uiData.ca2Result) },
-                { type: 'FA', data: getSectionData('FA', uiData.faResult) }
-            ];
+            const payload = {
+                entryDate: formatToBackendDate(uiData.date),
+                shift: uiData.shift,
+                entryTime: uiData.timing,
+                batchNo: String(uiData.batchNo),
+                approvedMixDesign: uiData.designValues?.name || '',
+                designAC: parseFloat(uiData.designAC) || 0,
+                designWC: parseFloat(uiData.designWC) || 0,
+                designCement: parseFloat(uiData.designValues?.cement) || 0,
+                designCA1: parseFloat(uiData.designValues?.ca1) || 0,
+                designCA2: parseFloat(uiData.designValues?.ca2) || 0,
+                designFA: parseFloat(uiData.designValues?.fa) || 0,
+                designWater: parseFloat(uiData.designValues?.water) || 0,
+                designAdmix: parseFloat(uiData.designValues?.admix) || 0,
+                actualCement: parseFloat(uiData.userDryCement) || 0,
+                actualCA1: parseFloat(uiData.userDryCA1) || 0,
+                actualCA2: parseFloat(uiData.userDryCA2) || 0,
+                actualFA: parseFloat(uiData.userDryFA) || 0,
+                actualWater: parseFloat(uiData.userDryWater) || 0,
+                actualAdmix: parseFloat(uiData.userDryAdmix || '1.44') || 0,
+                wtAdoptedCa1: parseFloat(uiData.ca1Result?.wtAdopted) || 0,
+                wtAdoptedCa2: parseFloat(uiData.ca2Result?.wtAdopted) || 0,
+                wtAdoptedFa: parseFloat(uiData.faResult?.wtAdopted) || 0,
+                totalFreeMoisture: parseFloat(uiData.totalFree) || 0,
+                adjustedWaterWt: parseFloat(uiData.adjustedWater) || 0,
+                wcRatio: parseFloat(uiData.wcRatio) || 0,
+                acRatio: parseFloat(uiData.acRatio) || 0,
+                sections: [
+                    getSectionPayload('CA1', uiData.ca1Result),
+                    getSectionPayload('CA2', uiData.ca2Result),
+                    getSectionPayload('FA', uiData.faResult)
+                ],
+                createdBy: 1, // Default, can be refined based on user auth
+                updatedBy: 0
+            };
 
-            for (const { type, data } of payloads) {
-                if (editRecord) {
-                    const existingRecord = editRecord.records?.find(r => r.sectionType === type);
-                    if (existingRecord) {
-                        await apiService.updateMoistureAnalysis(existingRecord.id, data);
-                    } else {
-                        await apiService.createMoistureAnalysis(data);
-                    }
-                } else {
-                    await apiService.createMoistureAnalysis(data);
-                }
+            if (editRecord && editRecord.id) {
+                await apiService.updateMoistureAnalysis(editRecord.id, payload);
+            } else {
+                await apiService.createMoistureAnalysis(payload);
             }
 
             onSave();
             closeForm();
         } catch (error) {
             console.error("Error saving moisture analysis:", error);
-            alert("Failed to save. Please try again.");
+            alert("Failed to save: " + (error.message || "Unknown error"));
         } finally {
             setSaving(false);
         }
@@ -349,33 +373,40 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                                     <td>
                                         {isRecordEditable(group.timestamp) ? (
                                             <button className="btn-action" style={{ fontSize: '10px' }} onClick={() => {
-                                                const consolidated = group.records.find(r => r.sectionType === 'ALL');
+                                                const r = group.fullRecord || group.records[0];
+                                                const ca1 = r.sections?.find(s => s.sectionType === 'CA1');
+                                                const ca2 = r.sections?.find(s => s.sectionType === 'CA2');
+                                                const fa = r.sections?.find(s => s.sectionType === 'FA');
+
                                                 handleEdit({
                                                     ...group,
-                                                    id: group.id,
-                                                    date: formatFromBackendDate(group.date),
-                                                    mixDesignId: group.records[0]?.mixDesignId || group.mixDesignId || 'MIX-01',
+                                                    id: r.id,
+                                                    date: formatFromBackendDate(r.entryDate),
+                                                    shift: r.shift,
+                                                    timing: r.entryTime,
+                                                    batchNo: r.batchNo,
+                                                    mixDesignId: 'MIX-01', // Should ideally be matched by name
                                                     ca1Details: {
-                                                        wetSample: group.records.find(r => r.sectionType === 'CA1')?.wtWetSample ?? consolidated?.wtWetSample ?? '',
-                                                        driedSample: group.records.find(r => r.sectionType === 'CA1')?.wtDriedSample ?? consolidated?.wtDriedSample ?? '',
-                                                        absorption: group.records.find(r => r.sectionType === 'CA1')?.absorptionPercent ?? consolidated?.absorptionPercent ?? ''
+                                                        wetSample: ca1?.wtWetSample ?? '',
+                                                        driedSample: ca1?.wtDriedSample ?? '',
+                                                        absorption: ca1?.absorptionPercent ?? ''
                                                     },
                                                     ca2Details: {
-                                                        wetSample: group.records.find(r => r.sectionType === 'CA2')?.wtWetSample ?? '',
-                                                        driedSample: group.records.find(r => r.sectionType === 'CA2')?.wtDriedSample ?? '',
-                                                        absorption: group.records.find(r => r.sectionType === 'CA2')?.absorptionPercent ?? ''
+                                                        wetSample: ca2?.wtWetSample ?? '',
+                                                        driedSample: ca2?.wtDriedSample ?? '',
+                                                        absorption: ca2?.absorptionPercent ?? ''
                                                     },
                                                     faDetails: {
-                                                        wetSample: group.records.find(r => r.sectionType === 'FA')?.wtWetSample ?? consolidated?.wtWetSample ?? '',
-                                                        driedSample: group.records.find(r => r.sectionType === 'FA')?.wtDriedSample ?? consolidated?.wtDriedSample ?? '',
-                                                        absorption: group.records.find(r => r.sectionType === 'FA')?.absorptionPercent ?? consolidated?.absorptionPercent ?? ''
+                                                        wetSample: fa?.wtWetSample ?? '',
+                                                        driedSample: fa?.wtDriedSample ?? '',
+                                                        absorption: fa?.absorptionPercent ?? ''
                                                     },
-                                                    userDryCA1: group.records.find(r => r.batchWtDryCa1)?.batchWtDryCa1 ?? consolidated?.batchWtDryCa1 ?? '',
-                                                    userDryCA2: group.records.find(r => r.batchWtDryCa2)?.batchWtDryCa2 ?? consolidated?.batchWtDryCa2 ?? '',
-                                                    userDryFA: group.records.find(r => r.batchWtDryFa)?.batchWtDryFa ?? consolidated?.batchWtDryFa ?? '',
-                                                    userDryWater: group.records.find(r => r.batchWtDryWater)?.batchWtDryWater ?? consolidated?.batchWtDryWater ?? '',
-                                                    userDryCement: group.records.find(r => r.batchWtDryCement)?.batchWtDryCement ?? consolidated?.batchWtDryCement ?? '',
-                                                    userDryAdmix: group.records.find(r => r.batchWtDryAdmix)?.batchWtDryAdmix ?? consolidated?.batchWtDryAdmix ?? '1.44'
+                                                    userDryCA1: r.actualCA1 || '',
+                                                    userDryCA2: r.actualCA2 || '',
+                                                    userDryFA: r.actualFA || '',
+                                                    userDryWater: r.actualWater || '',
+                                                    userDryCement: r.actualCement || '',
+                                                    userDryAdmix: r.actualAdmix || '1.44'
                                                 });
                                             }}>Modify</button>
                                         ) : (
