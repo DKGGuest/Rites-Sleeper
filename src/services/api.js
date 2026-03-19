@@ -122,11 +122,11 @@ export const apiService = {
     deleteCementInventory: (id) => api.delete(`/inventory/cement/delete/${id}`),
 
     // ================= Inventory – HTS Wire =================
-    getAllHtsWireInventory: () => api.get('/api/hts-wire-daily-test/all'),
-    getHtsWireInventoryById: (id) => api.get(`/api/hts-wire-daily-test/${id}`),
-    createHtsWireInventory: (payload) => api.post('/api/hts-wire-daily-test/create', payload),
-    updateHtsWireInventory: (id, payload) => api.put(`/api/hts-wire-daily-test/update/${id}`, payload),
-    deleteHtsWireInventory: (id) => api.delete(`/api/hts-wire-daily-test/delete/${id}`),
+    getAllHtsWireInventory: () => api.get('/inventory/hts-wire/all'),
+    getHtsWireInventoryById: (id) => api.get(`/inventory/hts-wire/${id}`),
+    createHtsWireInventory: (payload) => api.post('/inventory/hts-wire/create', payload),
+    updateHtsWireInventory: (id, payload) => api.put(`/inventory/hts-wire/update/${id}`, payload),
+    deleteHtsWireInventory: (id) => api.delete(`/inventory/hts-wire/delete/${id}`),
 
     // ================= Inventory – Aggregate =================
     getAllAggregateInventory: () => api.get('/inventory/aggregate/all'),

@@ -123,7 +123,6 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
             const payload = {
                 testDate: data.date,
                 consignmentNo: data.consignmentNo,
-                consignmentNo: data.consignmentNo,
                 supplier: data.supplier,
                 type: data.type,
                 ritesIc: data.ritesIc,
@@ -188,7 +187,6 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                     onClick={() => {
                         reset({
                             date: new Date().toISOString().split('T')[0],
-                            consignmentNo: row.consignmentNo,
                             consignmentNo: row.consignmentNo,
                             supplier: row.vendor,
                             ritesIc: row.details?.ritesIcNumber || 'N/A',

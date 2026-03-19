@@ -121,6 +121,7 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
     const [editingId, setEditingId] = useState(null);
     const [showForm, setShowForm] = useState(false);
     const [editOnly, setEditOnly] = useState(false);
+    const [editParentId, setEditParentId] = useState(null);
 
     const [manualForm, setManualForm] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -208,20 +209,30 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
 
     const handleEdit = async (entry) => {
         try {
-            const response = await apiService.getSteamCuringById(entry.id);
-            const fetchedData = response?.responseData || entry;
-            setEditingId(fetchedData.id || entry.id);
+            const fetchId = entry.parentId || entry.id;
+            const response = await apiService.getSteamCuringById(fetchId);
+            const fetchedBatch = response?.responseData;
+
+            let target = entry;
+            if (fetchedBatch) {
+                const found = (fetchedBatch.manualRecords || []).find(m => m.id === entry.manualId || m.id === entry.id);
+                if (found) target = { ...found, parentId: fetchedBatch.id };
+            }
+
+            setEditingId(entry.id);
+            setEditParentId(target.parentId || null);
             setManualForm({
-                date: fetchedData.date || entry.date,
-                batchNo: fetchedData.batchNo || entry.batchNo,
-                chamberNo: fetchedData.chamberNo || entry.chamberNo,
-                benches: fetchedData.benches || entry.benches,
-                minConstTemp: fetchedData.minConstTemp ?? fetchedData.constTempMin ?? entry.minConstTemp,
-                maxConstTemp: fetchedData.maxConstTemp ?? fetchedData.constTempMax ?? entry.maxConstTemp
+                date: target.date || entry.date,
+                batchNo: target.batchNo || entry.batchNo,
+                chamberNo: target.chamberNo || entry.chamberNo,
+                benches: target.benches || entry.benches,
+                minConstTemp: target.minConstTemp ?? target.minTemp ?? entry.minConstTemp,
+                maxConstTemp: target.maxConstTemp ?? target.maxTemp ?? entry.maxConstTemp
             });
         } catch (error) {
-            console.error('Fetch failed, using local data:', error);
+            console.error('Fetch failed:', error);
             setEditingId(entry.id);
+            setEditParentId(entry.parentId || null);
             setManualForm({
                 date: entry.date,
                 batchNo: entry.batchNo,
@@ -253,23 +264,37 @@ const SteamCuring = ({ onBack, steamRecords: propSteamRecords, setSteamRecords: 
             source: 'Manual',
             status: (minVal >= 55 && maxVal <= 60) ? 'OK' : 'NOT OK'
         };
+
         if (editingId) {
             try {
-                const payload = {
-                    id: editingId,
-                    batchNo: String(manualForm.batchNo),
-                    chamber: String(manualForm.chamberNo),
-                    minTemp: parseFloat(manualForm.minConstTemp) || 0,
-                    maxTemp: parseFloat(manualForm.maxConstTemp) || 0
-                };
-                await apiService.updateSteamCuring(editingId, payload);
+                if (editParentId) {
+                    const batchResult = await apiService.getSteamCuringById(editParentId);
+                    const batchData = batchResult?.responseData;
+                    if (batchData) {
+                        batchData.manualRecords = (batchData.manualRecords || []).map(m => {
+                            // Match by manualId if we came from backend
+                            const entryInState = entries.find(e => e.id === editingId);
+                            if (m.id === entryInState?.manualId || m.id === editingId) {
+                                return {
+                                    ...m,
+                                    chamber: String(manualForm.chamberNo),
+                                    minTemp: parseFloat(manualForm.minConstTemp) || 0,
+                                    maxTemp: parseFloat(manualForm.maxConstTemp) || 0
+                                };
+                            }
+                            return m;
+                        });
+                        await apiService.updateSteamCuring(editParentId, batchData);
+                    }
+                }
                 setEntries(prev => prev.map(e => e.id === editingId ? newEntry : e));
                 alert('Record updated successfully');
             } catch (error) {
                 console.error('Update failed:', error);
-                alert(`Failed to update: ${error.message}`);
+                alert(`Update failed: ${error.message}`);
             } finally {
                 setEditingId(null);
+                setEditParentId(null);
                 setEditOnly(false);
                 setShowForm(false);
             }

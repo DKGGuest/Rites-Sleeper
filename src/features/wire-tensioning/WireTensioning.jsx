@@ -43,7 +43,7 @@ const TensionSubCard = ({ id, title, color, statusDetail, isActive, onClick }) =
     );
 };
 
-const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'modal', showForm: propsShowForm, setShowForm: propsSetShowForm, loadShiftData }) => {
+const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'modal', showForm: propsShowForm, setShowForm: propsSetShowForm, loadShiftData, activeContainer }) => {
     const { tensionRecords, setTensionRecords } = sharedState;
     const [viewMode, setViewMode] = useState('witnessed'); // Default to History/Logs
     const [localShowForm, setLocalShowForm] = useState(false);
@@ -69,6 +69,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
     const [editId, setEditId] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
     const [editOnly, setEditOnly] = useState(false);
+    const [editParentId, setEditParentId] = useState(null);
 
     // Dynamic Batch List: Merge declared batches with those found in SCADA or existing logs
     const availableBatches = useMemo(() => {
@@ -266,7 +267,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
 
 
     const handleSaveManual = async () => {
-        if (!formData.benchNo || !formData.finalLoad) {
+        if (!formData.batchNo || !formData.finalLoad) {
             alert('Required fields missing');
             return;
         }
@@ -282,22 +283,42 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
         };
 
         if (editId) {
-            // Call update API
             try {
-                const payload = {
-                    id: editId,
-                    batchNo: String(formData.batchNo),
-                    benchNo: String(formData.benchNo),
-                    time: formData.time,
-                    wireLength: parseFloat(formData.wireLength) || 0,
-                    crossSection: parseFloat(formData.crossSection) || 0,
-                    youngsModulus: parseFloat(formData.modulus) || 0,
-                    measuredElongation: parseFloat(formData.measuredElongation) || 0,
-                    forceElongation: parseFloat(formData.forceElongation) || 0,
-                    totalLoad: parseFloat(formData.totalLoad) || 0,
-                    finalLoad: parseFloat(formData.finalLoad) || 0
-                };
-                await apiService.updateWireTensioning(editId, payload);
+                // If this is a backend-linked record (has parentId), update via Batch API
+                if (editParentId) {
+                    const batchResult = await apiService.getWireTensioningById(editParentId);
+                    const batchData = batchResult?.responseData;
+
+                    if (batchData) {
+                        // Update individual record in list
+                        batchData.manualRecords = (batchData.manualRecords || []).map(m => {
+                            if (m.id === editId) {
+                                return {
+                                    ...m,
+                                    batchNo: String(formData.batchNo),
+                                    benchNo: String(formData.benchNo),
+                                    time: formData.time,
+                                    wireLength: parseFloat(formData.wireLength) || 0,
+                                    crossSection: parseFloat(formData.crossSection) || 0,
+                                    youngsModulus: parseFloat(formData.modulus) || 0,
+                                    measuredElongation: parseFloat(formData.measuredElongation) || 0,
+                                    forceElongation: parseFloat(formData.forceElongation) || 0,
+                                    totalLoad: parseFloat(formData.totalLoad) || 0,
+                                    finalLoad: parseFloat(formData.finalLoad) || 0
+                                };
+                            }
+                            return m;
+                        });
+
+                        // Ensure keys match Swagger DTO
+                        await apiService.updateWireTensioning(editParentId, batchData);
+                    }
+                } else {
+                    // This was a purely local session record, handle accordingly (maybe call creation if we wanted, 
+                    // but for now we just update local state if no parent exists)
+                    console.warn("Editing local record without parentId. Updating state only.");
+                }
+
                 setTensionRecords(prev => prev.map(r => r.id === editId ? newEntry : r));
                 alert('Record updated successfully');
                 if (loadShiftData) loadShiftData().catch(console.error);
@@ -306,6 +327,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                 alert(`Failed to update: ${error.message}`);
             } finally {
                 setEditId(null);
+                setEditParentId(null);
                 setEditOnly(false);
                 setShowForm(false);
             }
@@ -329,22 +351,39 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
 
     const handleEdit = async (record) => {
         try {
-            const response = await apiService.getWireTensioningById(record.id);
-            const fetchedData = response?.responseData || record;
+            // Use parentId (Batch ID) for API call, if it exists
+            const fetchId = record.parentId || record.id;
+            const response = await apiService.getWireTensioningById(fetchId);
+            const fetchedBatch = response?.responseData;
+
+            // If we fetched a batch, find the record in it
+            let targetRecord = record;
+            if (fetchedBatch) {
+                const foundInManual = (fetchedBatch.manualRecords || []).find(m => m.id === record.id);
+                if (foundInManual) {
+                    targetRecord = { 
+                        ...foundInManual, 
+                        parentId: fetchedBatch.id, // Ensure we keep track of the batch ID
+                        batchNo: fetchedBatch.batchNo // Ensure batch info is kept
+                    };
+                }
+            }
+
             setFormData({
-                time: fetchedData.time || record.time,
-                batchNo: fetchedData.batchNo || record.batchNo,
-                benchNo: fetchedData.benchNo || record.benchNo,
-                wireLength: fetchedData.wireLength || record.wireLength || '',
-                crossSection: fetchedData.crossSection || record.crossSection || '',
-                modulus: fetchedData.youngsModulus || fetchedData.modulus || record.modulus || '',
-                measuredElongation: fetchedData.measuredElongation || record.measuredElongation || '',
-                forceElongation: fetchedData.forceElongation || record.forceElongation || '',
-                totalLoad: fetchedData.totalLoad || record.totalLoad || '',
-                finalLoad: fetchedData.finalLoad || record.finalLoad,
-                type: fetchedData.type || record.type || 'RT-1234'
+                time: targetRecord.time,
+                batchNo: targetRecord.batchNo,
+                benchNo: targetRecord.benchNo,
+                wireLength: targetRecord.wireLength || '',
+                crossSection: targetRecord.crossSection || '',
+                modulus: targetRecord.youngsModulus || targetRecord.modulus || '',
+                measuredElongation: targetRecord.measuredElongation || '',
+                forceElongation: targetRecord.forceElongation || '',
+                totalLoad: targetRecord.totalLoad || '',
+                finalLoad: targetRecord.finalLoad,
+                type: targetRecord.sleeperType || 'RT-1234'
             });
-            setEditId(fetchedData.id || record.id);
+            setEditId(targetRecord.id);
+            setEditParentId(targetRecord.parentId || null);
         } catch (error) {
             console.error('Fetch failed, using local data:', error);
             setFormData({
@@ -361,6 +400,7 @@ const WireTensioning = ({ onBack, batches = [], sharedState, displayMode = 'moda
                 type: record.type || 'RT-1234'
             });
             setEditId(record.id);
+            setEditParentId(record.parentId || null);
         }
         setEditOnly(true);
         if (setShowForm) setShowForm(true); else setViewMode('form');

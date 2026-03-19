@@ -128,7 +128,8 @@ export const ShiftProvider = ({ children }) => {
                         flattenedRecords.push({
                             ...m,
                             batchNo,
-                            modulus: m.modulus || m.youngsModulus, // Unified key for UI
+                            parentId: batchRecord.id, // Store Batch ID for editing
+                            modulus: m.modulus || m.youngsModulus,
                             source: 'Manual',
                             sleeperType,
                             wiresPerSleeper,
@@ -136,13 +137,14 @@ export const ShiftProvider = ({ children }) => {
                         });
                     });
 
-                    // Add witnessed scada records (those already in the batch aggregate)
+                    // Add witnessed scada records
                     (batchRecord.scadaRecords || []).forEach(s => {
                         flattenedRecords.push({
                             ...s,
                             batchNo,
-                            time: s.time || s.plcTime, // Unified key for UI
-                            modulus: s.modulus || s.youngsModulus, // Unified key for UI
+                            parentId: batchRecord.id, // Store Batch ID for editing
+                            time: s.time || s.plcTime,
+                            modulus: s.modulus || s.youngsModulus,
                             source: 'Scada',
                             sleeperType,
                             wiresPerSleeper,
@@ -167,6 +169,7 @@ export const ShiftProvider = ({ children }) => {
                         flattenedRecords.push({
                             ...m,
                             batchNo,
+                            parentId: batchRecord.id, // Batch ID for updates
                             date: entryDate,
                             source: 'Manual',
                             sleeperType
@@ -177,6 +180,7 @@ export const ShiftProvider = ({ children }) => {
                         flattenedRecords.push({
                             ...s,
                             batchNo,
+                            parentId: batchRecord.id, // Batch ID for updates
                             date: entryDate,
                             source: 'Scada',
                             sleeperType
@@ -277,7 +281,8 @@ export const ShiftProvider = ({ children }) => {
                         flattenedRecords.push({
                             ...m,
                             id: `${id}-m-${flattenedRecords.length}`,
-                            batchId: id,
+                            manualId: m.id, // Store actual manual record ID
+                            parentId: id, // Batch ID
                             batchNo,
                             chamberNo: chamber,
                             date: entryDate,
@@ -292,13 +297,13 @@ export const ShiftProvider = ({ children }) => {
                         flattenedRecords.push({
                             ...s,
                             id: `${id}-s-${flattenedRecords.length}`,
-                            batchId: id,
+                            parentId: id, // Batch ID
                             batchNo,
                             chamberNo: chamber,
                             date: entryDate,
                             source: 'Scada',
                             grade,
-                            minConstTemp: s.minTemp || 0, // Backend doesn't have min/max in scadaRecords yet?
+                            minConstTemp: s.minTemp || 0,
                             maxConstTemp: s.maxTemp || 0
                         });
                     });

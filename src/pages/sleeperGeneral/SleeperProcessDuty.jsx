@@ -182,6 +182,7 @@ const SleeperProcessDuty = () => {
                                     tensionRecords,
                                     setTensionRecords: (data) => setAllTensionRecords(prev => ({ ...prev, [activeContainerId]: typeof data === 'function' ? data(prev[activeContainerId] || []) : data }))
                                 }}
+                                activeContainer={activeContainer}
                                 showForm={showWireTensionForm}
                                 setShowForm={setShowWireTensionForm}
                                 loadShiftData={loadShiftData}
@@ -326,6 +327,7 @@ const SleeperProcessDuty = () => {
                                     tensionRecords,
                                     setTensionRecords: (data) => setAllTensionRecords(prev => ({ ...prev, [activeContainerId]: typeof data === 'function' ? data(prev[activeContainerId] || []) : data }))
                                 }}
+                                activeContainer={activeContainer}
                                 loadShiftData={loadShiftData}
                             />
                         ) : activeTab === 'Compaction of Concrete (Vibrator Report)' ? (

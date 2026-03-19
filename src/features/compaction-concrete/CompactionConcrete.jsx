@@ -86,6 +86,7 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
 
     const [editingId, setEditingId] = useState(null);
     const [editOnly, setEditOnly] = useState(false);
+    const [editParentId, setEditParentId] = useState(null);
 
     // Keep form batch in sync
     useEffect(() => {
@@ -188,37 +189,39 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
 
     const handleEdit = async (entry) => {
         try {
-            const response = await apiService.getCompactionById(entry.id);
-            const fetchedData = response?.responseData || entry;
-            setEditingId(fetchedData.id || entry.id);
+            const fetchId = entry.parentId || entry.id;
+            const response = await apiService.getCompactionById(fetchId);
+            const fetchedBatch = response?.responseData;
+
+            let target = entry;
+            if (fetchedBatch) {
+                const found = (fetchedBatch.manualRecords || []).find(m => m.id === entry.id);
+                if (found) target = { ...found, parentId: fetchedBatch.id };
+            }
+
+            setEditingId(target.id);
+            setEditParentId(target.parentId || null);
             setManualForm({
-                date: fetchedData.date || entry.date,
-                time: fetchedData.time || entry.time,
-                batchNo: fetchedData.batchNo || entry.batchNo,
-                benchNo: fetchedData.benchNo || entry.benchNo,
-                tachoCount: fetchedData.tachoCount || entry.tachoCount,
-                workingTachos: fetchedData.workingTachos || entry.workingTachos,
-                minRpm: fetchedData.minRpm || entry.minRpm,
-                maxRpm: fetchedData.maxRpm || entry.maxRpm,
-                minDuration: fetchedData.minDuration || entry.minDuration || '',
-                maxDuration: fetchedData.maxDuration || entry.maxDuration || '',
-                duration: fetchedData.duration || entry.duration
+                date: target.date || entry.date,
+                time: target.time || entry.time,
+                batchNo: target.batchNo || entry.batchNo,
+                benchNo: target.benchNo || entry.benchNo,
+                tachoCount: target.tachoCount || entry.tachoCount,
+                workingTachos: target.workingTachos || entry.workingTachos,
+                minRpm: target.minRpm || entry.minRpm,
+                maxRpm: target.maxRpm || entry.maxRpm,
+                minDuration: target.minDuration || entry.minDuration || '',
+                maxDuration: target.maxDuration || entry.maxDuration || '',
+                duration: target.duration || entry.duration
             });
         } catch (error) {
-            console.error('Fetch failed, using local data:', error);
+            console.error('Fetch failed:', error);
             setEditingId(entry.id);
+            setEditParentId(entry.parentId || null);
             setManualForm({
-                date: entry.date,
-                time: entry.time,
-                batchNo: entry.batchNo,
-                benchNo: entry.benchNo,
-                tachoCount: entry.tachoCount,
-                workingTachos: entry.workingTachos,
-                minRpm: entry.minRpm,
-                maxRpm: entry.maxRpm,
+                ...entry,
                 minDuration: entry.minDuration || '',
-                maxDuration: entry.maxDuration || '',
-                duration: entry.duration
+                maxDuration: entry.maxDuration || ''
             });
         }
         setShowForm(true);
@@ -238,26 +241,38 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
             location: manualForm.location || 'N/A',
             source: 'Manual'
         };
+
         if (editingId) {
             try {
-                const payload = {
-                    id: editingId,
-                    batchNo: String(manualForm.batchNo),
-                    benchNo: String(manualForm.benchNo),
-                    minRpm: parseInt(manualForm.minRpm) || 0,
-                    maxRpm: parseInt(manualForm.maxRpm) || 0,
-                    minDuration: parseInt(manualForm.minDuration) || 0,
-                    maxDuration: parseInt(manualForm.maxDuration) || 0,
-                    duration: parseInt(manualForm.duration) || 0
-                };
-                await apiService.updateCompaction(editingId, payload);
+                if (editParentId) {
+                    const batchResult = await apiService.getCompactionById(editParentId);
+                    const batchData = batchResult?.responseData;
+                    if (batchData) {
+                        batchData.manualRecords = (batchData.manualRecords || []).map(m => {
+                            if (m.id === editingId) {
+                                return {
+                                    ...m,
+                                    benchNo: String(manualForm.benchNo),
+                                    minRpm: parseInt(manualForm.minRpm) || 0,
+                                    maxRpm: parseInt(manualForm.maxRpm) || 0,
+                                    minDuration: parseInt(manualForm.minDuration) || 0,
+                                    maxDuration: parseInt(manualForm.maxDuration) || 0,
+                                    duration: parseInt(manualForm.duration) || 0
+                                };
+                            }
+                            return m;
+                        });
+                        await apiService.updateCompaction(editParentId, batchData);
+                    }
+                }
                 setEntries(prev => prev.map(e => e.id === editingId ? newEntry : e));
                 alert('Record updated successfully');
             } catch (error) {
                 console.error('Update failed:', error);
-                alert(`Failed to update: ${error.message}`);
+                alert(`Update failed: ${error.message}`);
             } finally {
                 setEditingId(null);
+                setEditParentId(null);
                 setEditOnly(false);
             }
         } else {
