@@ -80,11 +80,11 @@ export const apiService = {
     deleteStressBench: (id) => api.delete(`/stress-bench/delete/${id}`),
 
     // ================= Bench / Mould Shift Inspection =================
-    getAllBenchMouldInspections: () => api.get('/api/bench-mould-inspection/get-all'),
-    getBenchMouldInspectionById: (id) => api.get(`/api/bench-mould-inspection/get/${id}`),
-    createBenchMouldInspection: (payload) => api.post('/api/bench-mould-inspection/create', payload),
-    updateBenchMouldInspection: (id, payload) => api.put(`/api/bench-mould-inspection/update/${id}`, payload),
-    deleteBenchMouldInspection: (id) => api.delete(`/api/bench-mould-inspection/delete/${id}`),
+    getAllBenchMouldInspections: () => api.get('/bench-mould-inspection/get-all'),
+    getBenchMouldInspectionById: (id) => api.get(`/bench-mould-inspection/get/${id}`),
+    createBenchMouldInspection: (payload) => api.post('/bench-mould-inspection/create', payload),
+    updateBenchMouldInspection: (id, payload) => api.put(`/bench-mould-inspection/update/${id}`, payload),
+    deleteBenchMouldInspection: (id) => api.delete(`/bench-mould-inspection/delete/${id}`),
 
     // ================= Wire Tensioning =================
     getAllWireTensioning: () => api.get('/wire-tensioning/get-all'),
@@ -122,11 +122,11 @@ export const apiService = {
     deleteCementInventory: (id) => api.delete(`/inventory/cement/delete/${id}`),
 
     // ================= Inventory – HTS Wire =================
-    getAllHtsWireInventory: () => api.get('/inventory/hts-wire/all'),
-    getHtsWireInventoryById: (id) => api.get(`/inventory/hts-wire/${id}`),
-    createHtsWireInventory: (payload) => api.post('/inventory/hts-wire/create', payload),
-    updateHtsWireInventory: (id, payload) => api.put(`/inventory/hts-wire/update/${id}`, payload),
-    deleteHtsWireInventory: (id) => api.delete(`/inventory/hts-wire/delete/${id}`),
+    getAllHtsWireInventory: () => api.get('/api/hts-wire-daily-test/all'),
+    getHtsWireInventoryById: (id) => api.get(`/api/hts-wire-daily-test/${id}`),
+    createHtsWireInventory: (payload) => api.post('/api/hts-wire-daily-test/create', payload),
+    updateHtsWireInventory: (id, payload) => api.put(`/api/hts-wire-daily-test/update/${id}`, payload),
+    deleteHtsWireInventory: (id) => api.delete(`/api/hts-wire-daily-test/delete/${id}`),
 
     // ================= Inventory – Aggregate =================
     getAllAggregateInventory: () => api.get('/inventory/aggregate/all'),
@@ -135,12 +135,12 @@ export const apiService = {
     updateAggregateInventory: (id, payload) => api.put(`/inventory/aggregate/update/${id}`, payload),
     deleteAggregateInventory: (id) => api.delete(`/inventory/aggregate/delete/${id}`),
 
-    // ================= Inventory – Admixture =================
-    getAllAdmixtureInventory: () => api.get('/inventory/admixture/all'),
-    getAdmixtureInventoryById: (id) => api.get(`/inventory/admixture/${id}`),
-    createAdmixtureInventory: (payload) => api.post('/inventory/admixture/create', payload),
-    updateAdmixtureInventory: (id, payload) => api.put(`/inventory/admixture/update/${id}`, payload),
-    deleteAdmixtureInventory: (id) => api.delete(`/inventory/admixture/delete/${id}`),
+    // // ================= Inventory – Admixture =================
+    // getAllAdmixtureInventory: () => api.get('/inventory/admixture/all'),
+    // getAdmixtureInventoryById: (id) => api.get(`/inventory/admixture/${id}`),
+    // createAdmixtureInventory: (payload) => api.post('/inventory/admixture/create', payload),
+    // updateAdmixtureInventory: (id, payload) => api.put(`/inventory/admixture/update/${id}`, payload),
+    // deleteAdmixtureInventory: (id) => api.delete(`/inventory/admixture/delete/${id}`),
 
     // ================= Inventory – SGCI Insert =================
     getAllSgciInventory: () => api.get('/inventory/sgci/all'),
@@ -216,6 +216,11 @@ export const apiService = {
 
     getAllWorkflowTransitions: (roleName = 'IE') =>
         api.get(`/sleeper-workflow/allWorkflowTransition?roleName=${roleName}`),
+
+
+    // moduleId=12 STRESS_BENCH_MASTER 
+    getBenchMouldMasterById: (id) => api.get(`/stress-bench/get/${id}`),
+
 
     // ================= POI IE Mapping ================= //
     getCompanyUnitsByUser: (userId) => api.get(`/sleeper-mapping/company-units/${userId}`),

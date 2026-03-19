@@ -161,7 +161,20 @@ const AdmixtureTesting = ({ onBack, inventoryData = [] }) => {
         <div className="admixture-testing-root cement-forms-scope fade-in">
             <div className="content-title-row" style={{ marginBottom: '24px' }}>
                 <h2 style={{ margin: 0 }}>Admixture Quality Control</h2>
-                <button className="toggle-btn secondary mini" onClick={onBack}>Back to Dashboard</button>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                    <button className="toggle-btn mini" onClick={() => { 
+                        reset({
+                            testDate: new Date().toISOString().split('T')[0],
+                            consignmentNo: 'PERIODIC',
+                            vendor: '',
+                            dosage: '',
+                            density: '',
+                            ph: ''
+                        });
+                        setShowForm(true); 
+                    }}>+ Add New (Periodic)</button>
+                    <button className="toggle-btn secondary mini" onClick={onBack}>Back to Dashboard</button>
+                </div>
             </div>
 
             <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap' }}>

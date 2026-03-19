@@ -256,9 +256,8 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
         <div className={displayMode === 'modal' ? "modal-body" : "inline-container"} style={{ padding: displayMode === 'modal' ? '1.5rem' : '0', width: '100%' }}>
             {(isFormOpen || editRecord) ? (
                 <div ref={formRef} style={{ width: '100%', paddingBottom: '2rem' }}>
-                    {/* Form Header with Cancel */}
+                    {/* Form Header */}
                     <div style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         marginBottom: '1.25rem', padding: '12px 16px',
                         background: '#f0f9ff', borderRadius: '10px',
                         border: '1px solid #bae6fd'
@@ -273,18 +272,6 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                                 </p>
                             )}
                         </div>
-                        <button
-                            onClick={closeForm}
-                            style={{
-                                background: '#fff', border: '1px solid #cbd5e1',
-                                borderRadius: '8px', padding: '8px 16px',
-                                cursor: 'pointer', fontSize: '13px',
-                                color: '#475569', fontWeight: '700',
-                                display: 'flex', alignItems: 'center', gap: '6px'
-                            }}
-                        >
-                            ✕ Cancel
-                        </button>
                     </div>
                     <div style={{ width: '100%', maxWidth: '1100px' }}>
                         <MoistureEntryForm

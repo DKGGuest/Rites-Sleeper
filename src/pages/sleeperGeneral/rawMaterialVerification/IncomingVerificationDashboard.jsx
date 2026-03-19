@@ -215,7 +215,7 @@ const MODULE_TABLE_FIELDS = {
     // 2️ Stress Bench / Mould Master
     2: [
         { label: "Entry Type", key: "entryType" },
-        { label: "Bench(es)", key: "benchIdentifier" },
+        { label: "Bench(es)", key: "benchNo" },
         { label: "Category", key: "sleeperCategory" },
         { label: "Moulds/Bench", key: "mouldsPerBench" }
     ],
@@ -281,7 +281,14 @@ const MODULE_TABLE_FIELDS = {
         { label: "Location", key: "productionUnit" },
         { label: "Date", key: "castingDate" },
         { label: "Batch No.", key: "batchNumber" }
-    ]
+    ],
+    // 12 Stress Bench / Mould Master
+    12: [
+        { label: "Entry Type", key: "entryType" },
+        { label: "Bench(es)", key: "benchNo" },
+        { label: "Category", key: "sleeperCategory" },
+        { label: "Moulds/Bench", key: "mouldsPerBench" }
+    ],
 };
 
 const getStatusDisplay = (status) => {
@@ -618,7 +625,7 @@ const IncomingVerificationDashboard = ({ initialGroup = null }) => {
                                                         );
                                                     })}
 
-                                                     <td style={tdStyle}>
+                                                    <td style={tdStyle}>
                                                         {(() => {
                                                             const { label, bg, color } = getStatusDisplay(row.status);
                                                             return (
@@ -635,7 +642,7 @@ const IncomingVerificationDashboard = ({ initialGroup = null }) => {
                                                                 </span>
                                                             );
                                                         })()}
-                                                     </td>
+                                                    </td>
                                                     <td style={tdStyle}>
                                                         <button
                                                             onClick={() => setDetailModal(row)}

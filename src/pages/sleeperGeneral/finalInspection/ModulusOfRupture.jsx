@@ -161,16 +161,14 @@ const ModulusOfRupture = () => {
                         )}
                         <button
                             className="btn-verify"
-                            disabled={!canTest}
                             style={{
                                 fontSize: '10px',
                                 padding: '4px 8px',
-                                opacity: canTest ? 1 : 0.5,
-                                cursor: canTest ? 'pointer' : 'not-allowed'
+                                cursor: 'pointer'
                             }}
                             onClick={() => handleEnterTestDetails(row)}
                         >
-                            Enter Test Details {!canTest && '(Needs 15 Days)'}
+                            Enter Test Details
                         </button>
                     </div>
                 );

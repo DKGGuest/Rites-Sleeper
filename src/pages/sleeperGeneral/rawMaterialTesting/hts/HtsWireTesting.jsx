@@ -41,7 +41,6 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
         ...h,
         nominalWeight: h.weight,
         strandDiameter: h.diameter,
-        coilNo: h.lotNo,
         createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
     })));
 
@@ -51,21 +50,14 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
         defaultValues: {
             testDate: new Date().toISOString().split('T')[0],
             consignmentNo: '',
-            coilNo: '',
-            inventoryId: '',
+            lotNo: '',
             nominalWeight: '',
             layLength: '',
             strandDiameter: ''
         }
     });
 
-    const selectedCoilNo = watch('coilNo');
-
-    useEffect(() => {
-        const coil = availableCoils.find(c => c.coilNo === selectedCoilNo);
-        if (coil) setValue('inventoryId', coil.id);
-        else setValue('inventoryId', '');
-    }, [selectedCoilNo, availableCoils, setValue]);
+    // Removed coilNo watch and useEffect
 
     const canModify = (createdAt) => {
         if (!createdAt) return false;
@@ -86,13 +78,13 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
 
             await saveHtsWireDailyTest(payload);
             showToast("HTS Wire daily test result saved!", "success");
-
-            setShowForm(false);
-            reset();
             // In real app re-fetch history
         } catch (error) {
             console.error("Error saving HTS wire test:", error);
             showToast("Failed to save HTS wire test result.", "error");
+        } finally {
+            setShowForm(false);
+            reset();
         }
     };
 
@@ -105,13 +97,13 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
     const inventoryColumns = [
         { key: 'vendor', label: 'Registered Agency' },
         { 
-            key: 'coilNo', 
-            label: 'Coil No.', 
+            key: 'lotNo', 
+            label: 'Lot No. *', 
             isHeaderHighlight: true,
             render: (_, row) => {
-                const coils = row.details?.coilDetails || [];
-                if (coils.length > 0) return coils.map(c => c.coilNo).join(', ');
-                return row.coilNo || 'N/A';
+                const items = row.details?.coilDetails || row.details?.lotDetails || [];
+                if (items.length > 0) return items.map(c => c.lotNo || c.coilNo).join(', ');
+                return row.lotNo || row.coilNo || 'N/A';
             }
         },
         { 
@@ -127,12 +119,10 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
                 <button
                     className="btn-action mini"
                     onClick={() => {
-                        const firstCoil = row.details?.coilDetails?.[0]?.coilNo || row.coilNo;
                         reset({
                             testDate: new Date().toISOString().split('T')[0],
                             consignmentNo: row.consignmentNo,
-                            coilNo: firstCoil,
-                            inventoryId: row.requestId
+                            lotNo: ''
                         });
                         setShowForm(true);
                     }}
@@ -146,7 +136,7 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
     const historyColumns = [
         { key: 'testDate', label: 'Date', render: (val) => val ? val.split('-').reverse().join('/') : '' },
         { key: 'consignmentNo', label: 'Consignment' },
-        { key: 'coilNo', label: 'Coil No.' },
+        { key: 'lotNo', label: 'Lot No.' },
         { key: 'nominalWeight', label: 'Weight' },
         { key: 'layLength', label: 'Lay Length' },
         {
@@ -264,15 +254,8 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
                                         </select>
                                     </div>
                                     <div className="input-group">
-                                        <label>Coil No. <span className="required">*</span></label>
-                                        <select {...register('coilNo', { required: 'Coil No. is required' })}>
-                                            <option value="">-- Select --</option>
-                                            {availableCoils.map(c => <option key={c.id} value={c.coilNo}>{c.coilNo}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="input-group">
-                                        <label>Inventory ID</label>
-                                        <input type="text" readOnly className="readOnly" {...register('inventoryId')} />
+                                        <label>Lot No. <span className="required">*</span></label>
+                                        <input type="text" {...register('lotNo', { required: 'Lot No. is required' })} />
                                     </div>
                                     <div className="input-group">
                                         <label>Nominal Weight <span className="required">*</span></label>

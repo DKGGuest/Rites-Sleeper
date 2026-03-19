@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import CollapsibleSection from '../../components/common/CollapsibleSection';
 import { apiService } from '../../services/api';
 import './MouldBenchCheck.css';
@@ -299,7 +299,7 @@ const InspectionForm = ({ formState, setFormState, onSave, onCancel, editingEntr
                 <div className="mould-form-header-info">
                     <div className="form-field">
                         <label className="field-label-mini">LINE / SHED NO.</label>
-                        <input className="field-input-static highlight-location" value={formState.location} readOnly />
+                        <input className="field-input highlight-location" placeholder="e.g. Line 1" value={formState.location} onChange={e => setFormState({ ...formState, location: e.target.value })} />
                     </div>
                     <div className="form-field">
                         <label className="field-label-mini">DATE OF CHECKING</label>
@@ -446,6 +446,15 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
     const [viewMode, setViewMode] = useState(initialViewMode === 'form' ? 'form' : 'dashboard');
     const [activeModule, setActiveModule] = useState(initialModule || 'summary');
     const [editingEntry, setEditingEntry] = useState(null);
+    const formRef = useRef(null);
+
+    const scrollToForm = () => {
+        setTimeout(() => {
+            if (formRef.current) {
+                formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 100);
+    };
 
     const effectiveShowForm = showForm !== undefined ? showForm : (viewMode === 'form');
 
@@ -608,6 +617,7 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
             remarks: ''
         });
         if (setShowForm) setShowForm(true); else setViewMode('form');
+        scrollToForm();
     };
 
     const handleCloseForm = () => {
@@ -654,16 +664,18 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
                         }
                         setEditingEntry(fetchedData);
                         if (setShowForm) setShowForm(true); else setViewMode('form');
+                        scrollToForm();
                     } catch (error) {
                         console.error("Error fetching inspection details:", error);
                         setEditingEntry(r);
                         if (setShowForm) setShowForm(true); else setViewMode('form');
+                        scrollToForm();
                     }
                 }} onDelete={handleDelete} />}
                 {activeModule === 'allAssets' && <AssetMasterList allAssets={allAssets} records={normalizedRecords} />}
 
                 {effectiveShowForm && (
-                    <div style={{ marginTop: '32px' }}>
+                    <div ref={formRef} style={{ marginTop: '32px' }}>
                         <InspectionForm
                             formState={formState}
                             setFormState={setFormState}

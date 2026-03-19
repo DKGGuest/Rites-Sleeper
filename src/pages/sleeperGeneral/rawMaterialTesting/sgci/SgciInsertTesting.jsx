@@ -124,13 +124,13 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
 
             await saveSgciInsertAudit(payload);
             showToast("SGCI Insert Audit record saved!", "success");
-
-            setShowForm(false);
-            reset();
             // Re-fetch historical logs in real app
         } catch (error) {
             console.error("Error saving SGCI audit:", error);
             showToast("Failed to save SGCI Insert Audit report.", "error");
+        } finally {
+            setShowForm(false);
+            reset();
         }
     };
 
@@ -313,13 +313,16 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                                     </div>
                                     <div className="input-group">
                                         <label>Lot No.</label>
-                                        <select {...register('lotNo')}>
-                                            <option value="">-- Select --</option>
-                                            {availableLots.map(l => <option key={l.id} value={l.lotNo}>{l.lotNo}</option>)}
-                                        </select>
+                                        <input type="text" placeholder="Enter Lot No" {...register('lotNo')} />
                                     </div>
-                                    <div className="input-group"><label>Supplier</label><input type="text" readOnly className="readOnly" {...register('supplier')} /></div>
-                                    <div className="input-group"><label>Validity</label><input type="text" readOnly className="readOnly" {...register('approvalValidity')} /></div>
+                                    <div className="input-group">
+                                        <label>Supplier</label>
+                                        <input type="text" placeholder="Enter Supplier" {...register('supplier')} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label>Validity</label>
+                                        <input type="text" placeholder="Enter Validity" {...register('approvalValidity')} />
+                                    </div>
                                 </div>
 
                                 <div className="section-divider"></div>

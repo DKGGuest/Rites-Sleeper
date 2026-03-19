@@ -1,0 +1,139 @@
+{
+  "responseStatus": {
+    "statusCode": 0,
+    "message": null,
+    "errorCode": null,
+    "errorType": null
+  },
+  "responseData": {
+    "id": 29,
+    "plantType": "STRESS",
+    "productionUnit": "Stress Bench B",
+    "castingDate": "17/03/2026",
+    "shift": "A",
+    "batchNumber": "101",
+    "mixDesignReference": "M60 - Design A (Active)",
+    "lbcTime": "15:14:00",
+    "totalCastedSleepers": 40,
+    "totalSleeperTypes": 2,
+    "totalRft": 10,
+    "remarks": "",
+    "createdBy": 118,
+    "createdDate": "2026-03-17T09:51:44",
+    "updatedBy": null,
+    "updatedDate": null,
+    "status": "Completed",
+    "chambers": [
+      {
+        "id": 32,
+        "chamberNo": 7,
+        "benchGroups": [
+          {
+            "id": 49,
+            "benchNo": 202,
+            "sleeperType": "RT-8521",
+            "mouldPerBench": 8,
+            "rft": 0,
+            "sleepers": [
+              "202A",
+              "202B",
+              "202C",
+              "202D",
+              "202E",
+              "202F",
+              "202G",
+              "202H"
+            ]
+          },
+          {
+            "id": 50,
+            "benchNo": 208,
+            "sleeperType": "RT-8521",
+            "mouldPerBench": 8,
+            "rft": 0,
+            "sleepers": [
+              "208A",
+              "208B",
+              "208C",
+              "208D",
+              "208E",
+              "208F",
+              "208G",
+              "208H"
+            ]
+          },
+          {
+            "id": 51,
+            "benchNo": 209,
+            "sleeperType": "RT-8521",
+            "mouldPerBench": 8,
+            "rft": 0,
+            "sleepers": [
+              "209A",
+              "209B",
+              "209C",
+              "209D",
+              "209E",
+              "209F",
+              "209G",
+              "209H"
+            ]
+          },
+          {
+            "id": 52,
+            "benchNo": 120,
+            "sleeperType": "RT-8746 (PnC)",
+            "mouldPerBench": 4,
+            "rft": 2.5,
+            "sleepers": [
+              "120A",
+              "120B",
+              "120C",
+              "120D"
+            ]
+          },
+          {
+            "id": 53,
+            "benchNo": 420,
+            "sleeperType": "RT-8746 (PnC)",
+            "mouldPerBench": 4,
+            "rft": 2.5,
+            "sleepers": [
+              "420A",
+              "420B",
+              "420C",
+              "420D"
+            ]
+          },
+          {
+            "id": 54,
+            "benchNo": 320,
+            "sleeperType": "RT-8746 (PnC)",
+            "mouldPerBench": 4,
+            "rft": 2.5,
+            "sleepers": [
+              "320A",
+              "320B",
+              "320C",
+              "320D"
+            ]
+          },
+          {
+            "id": 55,
+            "benchNo": 220,
+            "sleeperType": "RT-8746 (PnC)",
+            "mouldPerBench": 4,
+            "rft": 2.5,
+            "sleepers": [
+              "220A",
+              "220B",
+              "220C",
+              "220D"
+            ]
+          }
+        ]
+      }
+    ],
+    "gangs": []
+  }
+}

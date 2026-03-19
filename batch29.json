@@ -1,0 +1,209 @@
+{
+  "batchId": 29,
+  "batchNumber": "101",
+  "castingDate": "2026-03-17",
+  "sleeperType": null,
+  "totalSleepers": 40,
+  "sleepers": [
+    {
+      "sleeperId": 337,
+      "sleeperNo": "202A",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 338,
+      "sleeperNo": "202B",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 339,
+      "sleeperNo": "202C",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 340,
+      "sleeperNo": "202D",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 341,
+      "sleeperNo": "202E",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 342,
+      "sleeperNo": "202F",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 343,
+      "sleeperNo": "202G",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 344,
+      "sleeperNo": "202H",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 345,
+      "sleeperNo": "208A",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 346,
+      "sleeperNo": "208B",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 347,
+      "sleeperNo": "208C",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 348,
+      "sleeperNo": "208D",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 349,
+      "sleeperNo": "208E",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 350,
+      "sleeperNo": "208F",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 351,
+      "sleeperNo": "208G",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 352,
+      "sleeperNo": "208H",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 353,
+      "sleeperNo": "209A",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 354,
+      "sleeperNo": "209B",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 355,
+      "sleeperNo": "209C",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 356,
+      "sleeperNo": "209D",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 357,
+      "sleeperNo": "209E",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 358,
+      "sleeperNo": "209F",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 359,
+      "sleeperNo": "209G",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 360,
+      "sleeperNo": "209H",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 361,
+      "sleeperNo": "120A",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 362,
+      "sleeperNo": "120B",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 363,
+      "sleeperNo": "120C",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 364,
+      "sleeperNo": "120D",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 365,
+      "sleeperNo": "420A",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 366,
+      "sleeperNo": "420B",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 367,
+      "sleeperNo": "420C",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 368,
+      "sleeperNo": "420D",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 369,
+      "sleeperNo": "320A",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 370,
+      "sleeperNo": "320B",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 371,
+      "sleeperNo": "320C",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 372,
+      "sleeperNo": "320D",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 373,
+      "sleeperNo": "220A",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 374,
+      "sleeperNo": "220B",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 375,
+      "sleeperNo": "220C",
+      "status": "PENDING"
+    },
+    {
+      "sleeperId": 376,
+      "sleeperNo": "220D",
+      "status": "PENDING"
+    }
+  ]
+}
