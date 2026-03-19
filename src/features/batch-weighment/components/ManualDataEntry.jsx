@@ -135,10 +135,7 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
                         )}
                     </div>
                     <div className="form-grid" style={{ gap: small ? '1rem' : '1.25rem 2rem' }}>
-                        <div className="form-field">
-                            <label htmlFor="manual-shed" style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Shed / Line No.</label>
-                            <input id="manual-shed" name="lineShed" type="text" readOnly value={activeContainer?.name || ''} className="readOnly" style={{ background: '#f8fafc', height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem' }} />
-                        </div>
+
                         <div className="form-field">
                             <label htmlFor="manual-date" style={{ fontSize: small ? '0.65rem' : '0.725rem' }}>Date</label>
                             <input id="manual-date" name="date" type="text" readOnly value={formData.date ? formData.date.split('-').reverse().join('/') : ''} style={{ height: small ? '28px' : '32px', fontSize: small ? '0.75rem' : '0.8rem', background: '#f8fafc' }} />
@@ -203,9 +200,6 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
                     </div>
 
                     {(() => {
-                        const lineRecords = witnessedRecords.filter(r => !(r.location || '').toLowerCase().includes('shed'));
-                        const shedRecords = witnessedRecords.filter(r => (r.location || '').toLowerCase().includes('shed'));
-
                         const renderTable = (recordsSubset, title, groupColor) => (
                             <div style={{ marginBottom: '2.5rem' }}>
                                 <div style={{ padding: '8px 16px', background: `${groupColor}10`, borderLeft: `4px solid ${groupColor}`, marginBottom: '12px' }}>
@@ -238,12 +232,12 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
                                                     <td data-label="Time" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.time}</td>
                                                     <td data-label="Grade" style={{ fontSize: small ? '0.65rem' : '0.8rem', color: '#0369a1', fontWeight: '700' }}>{record.concreteGrade || '-'}</td>
                                                     <td data-label="Batch" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}><strong>{record.batchNo}</strong></td>
-                                                    <td data-label="CA1" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.ca1}</td>
-                                                    <td data-label="CA2" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.ca2}</td>
-                                                    <td data-label="FA" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.fa}</td>
-                                                    <td data-label="Cement" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.cement}</td>
-                                                    <td data-label="Water" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.water}</td>
-                                                    <td data-label="Admix" style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.admixture}</td>
+                                                    <td style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.ca1}</td>
+                                                    <td style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.ca2}</td>
+                                                    <td style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.fa}</td>
+                                                    <td style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.cement}</td>
+                                                    <td style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.water}</td>
+                                                    <td style={{ fontSize: small ? '0.65rem' : '0.8rem' }}>{record.admixture}</td>
                                                     <td data-label="Source">
                                                         <span className={`status-pill ${record.source?.toLowerCase().includes('scada') ? 'witnessed' : 'manual'}`} style={{ fontSize: small ? '0.6rem' : '0.65rem' }}>
                                                             {record.source}
@@ -277,9 +271,9 @@ const ManualDataEntry = ({ batches, witnessedRecords, onSave, hideHistory = fals
 
                         return (
                             <>
-                                {lineRecords.length > 0 && renderTable(lineRecords, "LONG LINE BATCHES", "#3b82f6")}
-                                {shedRecords.length > 0 && renderTable(shedRecords, "SHED BATCHES", "#8b5cf6")}
-                                {witnessedRecords.length === 0 && (
+                                {witnessedRecords.length > 0 ? (
+                                    renderTable(witnessedRecords, "BATCH WEIGHMENT LOGS", "#10b981")
+                                ) : (
                                     <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b', fontStyle: 'italic', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                                         No witnessed declarations found.
                                     </div>

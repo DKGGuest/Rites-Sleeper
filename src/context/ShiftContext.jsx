@@ -204,8 +204,8 @@ export const ShiftProvider = ({ children }) => {
                     const matchedContainer = containers.find(c => c.name === session.lineNo);
                     const containerId = matchedContainer ? matchedContainer.id : 1;
 
-                    // Map Declarations
-                    allDeclarations[containerId] = (session.batchDetails || []).map(d => ({
+                    // Map Declarations (Append to existing)
+                    const newDeclarations = (session.batchDetails || []).map(d => ({
                         id: d.id,
                         parentId: session.id, // Important for updates
                         batchNo: d.batchNo,
@@ -219,13 +219,14 @@ export const ShiftProvider = ({ children }) => {
                             cement: d.cementRef, water: d.waterRef, admixture: d.admixtureRef
                         }
                     }));
+                    allDeclarations[containerId] = [...(allDeclarations[containerId] || []), ...newDeclarations];
 
                     allConfigs[containerId] = {
                         sandType: session.sandType,
                         sensorStatus: (session.moistureSensorStatus || 'working').toLowerCase()
                     };
 
-                    // Map Witnessed Records (Flattened)
+                    // Map Witnessed Records (Flattened, Append to existing)
                     const witnessed = [];
                     (session.scadaRecords || []).forEach(s => {
                         witnessed.push({
@@ -263,7 +264,7 @@ export const ShiftProvider = ({ children }) => {
                             admixture: m.admixtureActual
                         });
                     });
-                    allWitnessed[containerId] = witnessed;
+                    allWitnessed[containerId] = [...(allWitnessed[containerId] || []), ...witnessed];
                 });
 
                 setAllWitnessedRecords(allWitnessed);
