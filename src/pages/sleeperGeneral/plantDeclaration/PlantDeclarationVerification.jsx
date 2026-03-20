@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSelector } from 'react-redux';
 import { apiService } from '../../../services/api';
 import { getAllCompletedCalls } from '../../../services/workflowService';
 import VerificationDetailModal from '../rawMaterialVerification/VerificationDetailModal';
@@ -8,6 +7,7 @@ import './PlantDeclarationVerification.css';
 // ─────────────────────────────────────────────────────
 //  Constants – must match sleeper_module table
 // ─────────────────────────────────────────────────────
+const LOGGED_IN_USER_ID = 119; // Hardcoded IE user
 
 /**
  * sleeper_module table mapping (Plant Declaration group):
@@ -100,7 +100,6 @@ const tdStyle = {
 //  Main Component
 // ─────────────────────────────────────────────────────
 const PlantDeclarationVerification = () => {
-    const { userId } = useSelector(state => state.auth);
     const [loading, setLoading]                   = useState(false);
     const [error, setError]                       = useState(null);
     
@@ -131,7 +130,7 @@ const PlantDeclarationVerification = () => {
             const processRecords = async (rawList) => {
                 const myRecords = rawList.filter(r =>
                     Array.isArray(r.accessibleUserIds) &&
-                    r.accessibleUserIds.includes(parseInt(userId))
+                    r.accessibleUserIds.includes(LOGGED_IN_USER_ID)
                 );
                 const plantModuleIds = PLANT_DECLARATION_MODULES.map(m => m.moduleId);
                 const plantRecords = myRecords.filter(r => plantModuleIds.includes(r.moduleId));
@@ -198,7 +197,7 @@ const PlantDeclarationVerification = () => {
                 moduleId: row.moduleId,
                 requestId: row.requestId,
                 action: action,
-                actionBy: userId,
+                actionBy: LOGGED_IN_USER_ID,
                 remarks: action === 'VERIFY' ? 'Verified by IE' : (action === 'UNLOCK' ? 'Unlocked by IE' : 'Returned for resubmission')
             });
             alert(`Succesfully performed: ${action}`);
@@ -359,9 +358,11 @@ const PlantDeclarationVerification = () => {
                                     )}
                                 </div>
                                 {renderTable(
-                                    benchType === 'STRESS_BENCH' 
-                                        ? (pendingByModule[2] || []) 
-                                        : (pendingByModule[12] || []),
+                                    selectedModuleId === 2
+                                        ? (benchType === 'STRESS_BENCH' 
+                                            ? (pendingByModule[2] || []) 
+                                            : (pendingByModule[12] || []))
+                                        : (pendingByModule[selectedModuleId] || []),
                                     false
                                 )}
                             </div>
@@ -378,9 +379,11 @@ const PlantDeclarationVerification = () => {
                                     )}
                                 </div>
                                 {renderTable(
-                                    benchType === 'STRESS_BENCH' 
-                                        ? (completedByModule[2] || []) 
-                                        : (completedByModule[12] || []),
+                                    selectedModuleId === 2
+                                        ? (benchType === 'STRESS_BENCH' 
+                                            ? (completedByModule[2] || []) 
+                                            : (completedByModule[12] || []))
+                                        : (completedByModule[selectedModuleId] || []),
                                     true
                                 )}
                             </div>
@@ -393,7 +396,7 @@ const PlantDeclarationVerification = () => {
                 <VerificationDetailModal
                     row={detailModal}
                     moduleLabel={PLANT_DECLARATION_MODULES.find(m => m.moduleId === detailModal.moduleId)?.label || `Module ${detailModal.moduleId}`}
-                    actionBy={userId}
+                    actionBy={LOGGED_IN_USER_ID}
                     onClose={() => setDetailModal(null)}
                     onDone={loadData}
                 />

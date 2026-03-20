@@ -1,12 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useSelector } from 'react-redux';
 import EnhancedDataTable from '../../../components/common/EnhancedDataTable';
 import CollapsibleSection from '../../../components/common/CollapsibleSection';
 import TrendChart from '../../../components/common/TrendChart';
 import { apiService } from '../../../services/api';
 
 const ModulusOfRupture = () => {
-    const { userId } = useSelector(state => state.auth);
     const [viewMode, setViewMode] = useState('statistics'); // 'statistics', 'declared', 'tested'
     const [showDeclareModal, setShowDeclareModal] = useState(false);
     const [showTestModal, setShowTestModal] = useState(false);
@@ -92,12 +90,12 @@ const ModulusOfRupture = () => {
             if (isModifying) {
                 await apiService.updateMORSample(selectedSample.id, {
                     ...formData,
-                    updatedBy: userId || 118
+                    updatedBy: 118
                 });
             } else {
                 await apiService.createMORSample({
                     ...formData,
-                    createdBy: userId || 118
+                    createdBy: 118
                 });
             }
             setShowDeclareModal(false);
@@ -115,7 +113,7 @@ const ModulusOfRupture = () => {
             await apiService.createMORTest({
                 ...testData,
                 morSampleId: selectedSample.id,
-                createdBy: userId || 118
+                createdBy: 118
             });
             setShowTestModal(false);
             fetchData();

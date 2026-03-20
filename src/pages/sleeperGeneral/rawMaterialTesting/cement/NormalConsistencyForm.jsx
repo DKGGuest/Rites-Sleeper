@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { useSelector } from "react-redux";
 import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
+import { getStoredUser } from "../../../../services/authService";
 import { saveCementNormalConsistency } from "../../../../services/workflowService";
 
 
@@ -14,9 +14,9 @@ const emptyRow = {
 };
 
 export default function NormalConsistencyForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
-    const { userId } = useSelector(state => state.auth);
     const { selectedShift, dutyDate, dutyLocation } = useShift();
     const { showToast } = useToast();
+    const user = getStoredUser();
 
     const [loading, setLoading] = useState(false);
     const [header, setHeader] = useState({
@@ -67,7 +67,7 @@ export default function NormalConsistencyForm({ onSave, onCancel, inventoryData 
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate,
-                createdBy: userId || 0,
+                createdBy: user?.userId || 0,
                 observations: rows
                     .filter(r => r.percent && r.volume)
                     .map(r => ({

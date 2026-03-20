@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
 import InitialDeclaration from './InitialDeclaration';
 import WeightBatching from './WeightBatching';
 import ManualDataEntry from './ManualDataEntry';
@@ -18,7 +17,6 @@ const BatchEntryForm = ({
     sessionConfig,
     setSessionConfig
 }) => {
-    const { userId } = useSelector(state => state.auth);
     const [formSections, setFormSections] = useState({ declaration: true, scada: true, manual: true, witness: true });
     const [isSaving, setIsSaving] = useState(false);
     const [witnessInfo, setWitnessInfo] = useState({ verifiedBy: '', remarks: '' });
@@ -35,8 +33,8 @@ const BatchEntryForm = ({
                 verifiedBy: witnessInfo.verifiedBy || "Operator",
                 remarks: witnessInfo.remarks || "Batch session sync",
                 entryMode: "MIXED",
-                createdBy: userId || 118,
-                updatedBy: userId || 118,
+                createdBy: 118,
+                updatedBy: 118,
                 batchDetails: batchDeclarations.map(d => ({
                     id: (typeof d.id === 'number' && d.id < 1000000) ? d.id : 0,
                     batchNo: String(d.batchNo || "0"),

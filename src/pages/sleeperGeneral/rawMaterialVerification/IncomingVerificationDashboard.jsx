@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSelector } from 'react-redux';
 import { apiService } from '../../../services/api';
 import VerificationDetailModal from './VerificationDetailModal';
 
 // ─────────────────────────────────────────────
 //  Constants – must match sleeper_module table
 // ─────────────────────────────────────────────
+const LOGGED_IN_USER_ID = 119; // Hardcoded IE user
 
 /**
  * sleeper_module table mapping:
@@ -305,7 +305,6 @@ const getStatusDisplay = (status) => {
 // ─────────────────────────────────────────────
 
 const IncomingVerificationDashboard = ({ initialGroup = null }) => {
-    const { userId } = useSelector(state => state.auth);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -339,7 +338,7 @@ const IncomingVerificationDashboard = ({ initialGroup = null }) => {
 
             const myRecords = rawList.filter(r =>
                 Array.isArray(r.accessibleUserIds) &&
-                r.accessibleUserIds.includes(parseInt(userId))
+                r.accessibleUserIds.includes(LOGGED_IN_USER_ID)
             );
 
             // Filter by initialGroup's module IDs
@@ -414,7 +413,7 @@ const IncomingVerificationDashboard = ({ initialGroup = null }) => {
                         IE {initialGroup || 'Verification'} Dashboard
                     </h2>
                     <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '12px' }}>
-                        Records assigned to User ID: {userId}
+                        Records assigned to User ID: {LOGGED_IN_USER_ID}
                     </p>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
@@ -687,7 +686,7 @@ const IncomingVerificationDashboard = ({ initialGroup = null }) => {
                 <VerificationDetailModal
                     row={detailModal}
                     moduleLabel={MODULE_CONFIG.find(m => m.moduleId === detailModal.moduleId)?.label || `Module ${detailModal.moduleId}`}
-                    actionBy={userId}
+                    actionBy={LOGGED_IN_USER_ID}
                     onClose={() => setDetailModal(null)}
                     onDone={loadData}
                 />

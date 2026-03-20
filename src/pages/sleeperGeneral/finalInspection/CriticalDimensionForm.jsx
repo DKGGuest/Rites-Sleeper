@@ -1,10 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { useSelector } from 'react-redux';
 import { apiService } from '../../../services/api';
 import './CriticalDimensionForm.css';
 
 const CriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
-    const { userId } = useSelector(state => state.auth);
     // List of all sleepers in the batch
     const allSleepersPool = useMemo(() => {
         return batch?.sleepers
@@ -115,7 +113,7 @@ const CriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
                 batchId: batch.batchId,
                 moduleId: 2,
                 shift: shift || 'General',
-                createdBy: userId || 118,
+                createdBy: 118,
                 sleepers: selectedSleepers.map(sid => {
                     const sleeper = allSleepersPool.find(s => s.id === sid);
                     const isRejected = !!rejectionDetails[sid];

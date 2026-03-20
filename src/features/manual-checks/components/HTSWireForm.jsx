@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
 import '../../../components/common/Checkbox.css';
 
 const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initialData, activeContainer, sharedBatchNo, sharedBenchNo, onShiftFieldChange }) => {
-    const { userId } = useSelector(state => state.auth);
     // 1. dateTime, noOfWires, and arrangement Stored in form state
     const getLocalISOString = () => {
         const now = new Date();
@@ -176,8 +174,8 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
             arrangementOk: formData.arrangement === 'OK',
             overallStatus: formData.status,
             remarks: formData.remarks || '',
-            createdBy: userId || 0,
-            updatedBy: userId || 0
+            createdBy: 0,
+            updatedBy: 0
         };
 
         onSave(payload);

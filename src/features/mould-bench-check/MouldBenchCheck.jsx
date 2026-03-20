@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useSelector } from 'react-redux';
 import CollapsibleSection from '../../components/common/CollapsibleSection';
 import { apiService } from '../../services/api';
 import './MouldBenchCheck.css';
@@ -443,7 +442,6 @@ const InspectionForm = ({ formState, setFormState, onSave, onCancel, editingEntr
 // --- Main Component ---
 
 const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, activeContainer, isInline = false, showForm, setShowForm }) => {
-    const { userId } = useSelector(state => state.auth);
     const { records, setRecords, allAssets } = sharedState;
     const [viewMode, setViewMode] = useState(initialViewMode === 'form' ? 'form' : 'dashboard');
     const [activeModule, setActiveModule] = useState(initialModule || 'summary');
@@ -553,7 +551,7 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
             mouldVisualResult: formState.mould.visualResult,
             mouldDimensionalResult: formState.mould.dimensionResult,
             combinedRemarks: autoRemarks.trim(),
-            createdBy: userId || 118
+            createdBy: 118
         };
 
         try {

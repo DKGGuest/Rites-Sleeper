@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
 import MoistureEntryForm from './components/MoistureEntryForm';
 import { apiService } from '../../services/api';
 import TrendChart from '../../components/common/TrendChart';
@@ -61,7 +60,6 @@ const extractTime = (dateTimeStr) => {
  * Displays moisture analysis statistics, trend chart, and recent entries.
  */
 const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], setRecords, displayMode = 'modal', showForm, setShowForm }) => {
-    const { userId } = useSelector(state => state.auth);
     const [view, setView] = useState(initialView);
     const [editRecord, setEditRecord] = useState(null);
     const formRef = React.useRef(null);
@@ -224,8 +222,8 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                     getSectionPayload('CA2', uiData.ca2Result),
                     getSectionPayload('FA', uiData.faResult)
                 ],
-                createdBy: userId || 1, // Default, can be refined based on user auth
-                updatedBy: userId || 0
+                createdBy: 1, // Default, can be refined based on user auth
+                updatedBy: 0
             };
 
             if (editRecord && editRecord.id) {

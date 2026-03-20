@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
 import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
+import { getStoredUser } from "../../../../services/authService";
 import { saveCementSettingTime } from "../../../../services/workflowService";
 
 const emptyRow = { time: "", needle: "", spot: "" };
 
 export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
-    const { userId } = useSelector(state => state.auth);
     const { selectedShift, dutyDate, dutyLocation } = useShift();
     const { showToast } = useToast();
+    const user = getStoredUser();
 
     const [loading, setLoading] = useState(false);
     const [header, setHeader] = useState({
@@ -94,7 +94,7 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate,
-                createdBy: userId || 0,
+                createdBy: user?.userId || 0,
                 observations: rows
                     .filter(r => r.time && r.needle)
                     .map(r => ({

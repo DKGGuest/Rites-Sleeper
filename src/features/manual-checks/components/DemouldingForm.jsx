@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
 import '../../../components/common/Checkbox.css';
 
 const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initialData, activeContainer, sharedBatchNo, sharedBenchNo, onShiftFieldChange }) => {
-    const { userId } = useSelector(state => state.auth);
     // 1. Exact State Mapping as requested by User
     // Helper for safe date/time (Forcing Asia/Kolkata to stop 12:54/UTC issues)
     const getSafeToday = () => {
@@ -182,8 +180,8 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
             visualCheck: formData.visualCheck || 'All OK',
             dimCheck: formData.dimCheck || 'All OK',
             overallRemarks: formData.remarks || '',
-            createdBy: String(userId || "0"),
-            updatedBy: String(userId || "0"),
+            createdBy: "0",
+            updatedBy: "0",
             defectiveSleepers: mappedDefectiveSleepers
         };
 

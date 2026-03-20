@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useSelector } from "react-redux";
 import { useForm } from "react-hook-form";
 import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
 import { saveAggregateSoundness } from "../../../../services/workflowService";
 
 export default function SoundnessTestForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
-    const { userId } = useSelector(state => state.auth);
     const { selectedShift, dutyLocation, dutyDate } = useShift();
     const { showToast } = useToast();
     const [submitting, setSubmitting] = useState(false);
@@ -43,7 +41,7 @@ export default function SoundnessTestForm({ onSave, onCancel, inventoryData = []
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
-                createdBy: userId || 1
+                createdBy: JSON.parse(localStorage.getItem('user'))?.id || 1
             };
 
             await saveAggregateSoundness(payload);

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
 import Sidebar from './Sidebar';
-import { logoutUser } from '../../services/authService';
+import { logoutUser, getStoredUser } from '../../services/authService';
 import { ROUTES } from '../../routes';
 import './MainLayout.css';
 
@@ -11,10 +10,11 @@ import './MainLayout.css';
  */
 const MainLayout = ({ children, activeItem, onItemClick }) => {
     const navigate = useNavigate();
-    const { userName, userId } = useSelector(state => state.auth);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSidebarPinned, setIsSidebarPinned] = useState(false);
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+
+    const user = getStoredUser();
 
     const handleLogout = () => {
         logoutUser();
@@ -71,11 +71,11 @@ const MainLayout = ({ children, activeItem, onItemClick }) => {
                     <div className="header-right">
                         <div className="user-profile-section">
                             <div className="header-user-avatar">
-                                {userName?.charAt(0).toUpperCase() || 'U'}
+                                {user?.userName?.charAt(0).toUpperCase() || 'U'}
                             </div>
                             <div className="user-details">
-                                <span className="user-name">{userName || 'User'}</span>
-                                <span className="user-code">Emp Code: {userId || 'N/A'}</span>
+                                <span className="user-name">{user?.userName || 'User'}</span>
+                                <span className="user-code">Emp Code: {user?.userId || 'N/A'}</span>
                             </div>
                         </div>
                         <div className="header-divider"></div>

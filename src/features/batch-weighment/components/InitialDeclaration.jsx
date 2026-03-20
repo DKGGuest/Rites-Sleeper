@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
 import { useToast } from '../../../context/ToastContext';
 import { apiService } from '../../../services/api';
 
@@ -8,7 +7,6 @@ import { apiService } from '../../../services/api';
  * Configures sensors and batch set values for the shift.
  */
 const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate, onSensorUpdate, activeContainer, loadShiftData, initialSensors }) => {
-    const { userId } = useSelector(state => state.auth);
     const [sensors, setSensors] = useState(initialSensors || {
         sensorStatus: 'working', // 'working', 'notAvailable', 'notWorking'
         sandType: ''
@@ -83,8 +81,8 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate, onSensorU
                 verifiedBy: "Operator",
                 remarks: "Initial declaration",
                 entryMode: "MANUAL",
-                createdBy: userId || 118,
-                updatedBy: userId || 118,
+                createdBy: 118,
+                updatedBy: 118,
                 batchDetails: batches.map(b => ({
                     batchNo: String(b.batchNo || "0"),
                     proportionStatus: b.proportionMatch || "OK",
