@@ -218,10 +218,6 @@ export const apiService = {
         api.get(`/sleeper-workflow/allWorkflowTransition?roleName=${roleName}`),
 
 
-    // moduleId=12 STRESS_BENCH_MASTER 
-    getBenchMouldMasterById: (id) => api.get(`/stress-bench/get/${id}`),
-
-
     // ================= POI IE Mapping ================= //
     getCompanyUnitsByUser: (userId) => api.get(`/sleeper-mapping/company-units/${userId}`),
 

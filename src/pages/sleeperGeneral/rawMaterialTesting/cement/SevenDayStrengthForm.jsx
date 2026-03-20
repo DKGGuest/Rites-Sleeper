@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
-import { getStoredUser } from "../../../../services/authService";
 import { saveCement7DayStrength } from "../../../../services/workflowService";
 
 export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+    const { userId } = useSelector(state => state.auth);
     const { selectedShift, dutyDate, dutyLocation } = useShift();
     const toast = useToast();
-    const user = getStoredUser();
 
     const [loading, setLoading] = useState(false);
     const [form, setForm] = useState({
@@ -83,7 +83,7 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A', // Using dutyLocation as shown in the screenshot pill
                 dateOfInspection: dutyDate,
-                createdBy: user?.userId || 0,
+                createdBy: userId || 0,
                 cubes: form.cubes.map(c => ({
                     castDate: formatToISO(c.castDate),
                     castTime: c.castTime ? `${c.castTime}:00` : null,

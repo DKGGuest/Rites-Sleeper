@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
 import { saveAggregateFlakiness } from "../../../../services/workflowService";
@@ -92,6 +93,7 @@ const FlakinessTable = ({ title, category, sieveData, onDataChange }) => {
 };
 
 export default function CombinedFlakinessElongation({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+    const { userId } = useSelector(state => state.auth);
     const { selectedShift, dutyLocation, dutyDate } = useShift();
     const { showToast } = useToast();
     const [testDate, setTestDate] = useState(new Date().toISOString().split('T')[0]);
@@ -120,7 +122,7 @@ export default function CombinedFlakinessElongation({ onSave, onCancel, inventor
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
-                createdBy: JSON.parse(localStorage.getItem('user'))?.id || 1
+                createdBy: userId || 1
             };
 
             await saveAggregateFlakiness(payload);

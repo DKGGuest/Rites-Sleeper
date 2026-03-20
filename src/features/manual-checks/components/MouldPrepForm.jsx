@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import '../../../components/common/Checkbox.css';
 
 const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initialData, activeContainer, sharedBatchNo, sharedBenchNo, onShiftFieldChange }) => {
+    const { userId } = useSelector(state => state.auth);
     const getLocalISOString = () => {
         const now = new Date();
         const offset = now.getTimezoneOffset() * 60000;
@@ -107,8 +109,8 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
             mouldCleaned: formData.mouldCleaned === 'Yes',
             oilApplied: formData.oilApplied === 'Yes',
             remarks: formData.remarks || '',
-            createdBy: 0,
-            updateBy: 0
+            createdBy: userId || 0,
+            updateBy: userId || 0
         };
 
         onSave(payload);

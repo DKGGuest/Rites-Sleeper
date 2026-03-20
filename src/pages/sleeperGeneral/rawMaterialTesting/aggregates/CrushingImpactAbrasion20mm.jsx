@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { useForm } from "react-hook-form";
 import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
 import { saveAggregate20mmQuality } from "../../../../services/workflowService";
 
 export default function CrushingImpactAbrasion20mm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+    const { userId } = useSelector(state => state.auth);
     const { selectedShift, dutyDate, dutyLocation } = useShift();
     const { showToast } = useToast();
     const [submitting, setSubmitting] = useState(false);
@@ -83,7 +85,7 @@ export default function CrushingImpactAbrasion20mm({ onSave, onCancel, inventory
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate,
-                createdBy: JSON.parse(localStorage.getItem('user'))?.id || 1
+                createdBy: userId || 1
             };
 
             await saveAggregate20mmQuality(payload);

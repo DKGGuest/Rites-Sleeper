@@ -9,7 +9,7 @@ import {
     saveWaterCubeTestResult,
     getWaterCubeTestResultsByUser
 } from '../../../services/workflowService';
-import { getStoredUser } from '../../../services/authService';
+import { useSelector } from 'react-redux';
 import { useShift } from '../../../context/ShiftContext';
 
 // Helper to handle DD/MM/YYYY or YYYY-MM-DD
@@ -77,6 +77,7 @@ export const WaterCubeStats = () => {
 };
 
 const WaterCubeTesting = () => {
+    const { userId } = useSelector(state => state.auth);
     const [activeTab, setActiveTab] = useState('pending'); // 'declaration', 'pending', 'done'
     const [isModifying, setIsModifying] = useState(false);
     const { selectedShift, dutyLocation } = useShift();
@@ -100,10 +101,7 @@ const WaterCubeTesting = () => {
     const fetchDeclarations = async () => {
         setLoadingDeclarations(true);
         try {
-            const currentUser = getStoredUser();
-            const currentUserId = currentUser?.userId;
-
-            if (!currentUserId) {
+            if (!userId) {
                 setPendingDeclarations([]);
                 return [];
             }
@@ -141,10 +139,7 @@ const WaterCubeTesting = () => {
     const fetchActiveDeclarations = async () => {
         setLoadingActive(true);
         try {
-            const currentUser = getStoredUser();
-            const currentUserId = currentUser?.userId;
-
-            if (!currentUserId) {
+            if (!userId) {
                 setActiveDeclarations([]);
                 return [];
             }
@@ -152,7 +147,7 @@ const WaterCubeTesting = () => {
             // Fetch both in parallel to filter out completed tests
             const [data, testResults] = await Promise.all([
                 getWaterCubeSamples(),
-                getWaterCubeTestResultsByUser(currentUserId).catch(() => []) 
+                getWaterCubeTestResultsByUser(userId).catch(() => []) 
             ]);
 
             const completedTestIds = new Set(
@@ -198,10 +193,7 @@ const WaterCubeTesting = () => {
 
     const handleFinalizeSample = async (formData) => {
         try {
-            const currentUser = getStoredUser();
-            const currentUserId = currentUser?.userId;
-
-            if (!currentUserId) {
+            if (!userId) {
                 alert("User not authenticated.");
                 return;
             }
@@ -217,7 +209,7 @@ const WaterCubeTesting = () => {
                     ...formData.sample1Raw.map((c, i) => ({ sampleNumber: 1, cubeNumber: i + 1, benchNumber: c.bench, sequence: c.seq })),
                     ...formData.sample2Raw.map((c, i) => ({ sampleNumber: 2, cubeNumber: i + 1, benchNumber: c.bench, sequence: c.seq }))
                 ],
-                createdBy: currentUserId
+                createdBy: userId
             };
 
             let response;
@@ -259,10 +251,9 @@ const WaterCubeTesting = () => {
     // Fetch done tests on mount or when active tab changes
     useEffect(() => {
         const fetchDoneTests = async () => {
-            const currentUser = getStoredUser();
-            if (currentUser?.userId) {
+            if (userId) {
                 try {
-                    const results = await getWaterCubeTestResultsByUser(currentUser.userId);
+                    const results = await getWaterCubeTestResultsByUser(userId);
                     if (results && results.length > 0) {
                         const mapped = results.map(r => ({
                             batchNo: r.batchNumber,
@@ -285,10 +276,7 @@ const WaterCubeTesting = () => {
 
     const handleSaveTestData = async (data) => {
         try {
-            const currentUser = getStoredUser();
-            const currentUserId = currentUser?.userId;
-
-            if (!currentUserId) {
+            if (!userId) {
                 alert("User not authenticated.");
                 return;
             }
@@ -323,7 +311,7 @@ const WaterCubeTesting = () => {
                 condition3: data.results.condition3,
                 mrSamplesRequired: data.results.mrSamples,
                 finalTestResult: data.results.testResult,
-                createdBy: currentUserId,
+                createdBy: userId,
                 details: data.cubes.map((c, idx) => ({
                     sampleNumber: c.sample,
                     cubeIndex: c.id,

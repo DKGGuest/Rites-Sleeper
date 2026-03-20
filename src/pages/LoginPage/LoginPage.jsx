@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { setAuth } from '../../store/slices/authSlice';
 import { loginUser, storeAuthData, isAuthenticated, getStoredUser } from '../../services/authService';
 import { ROUTES } from '../../routes';
 import './LoginPage.css';
@@ -9,6 +11,7 @@ import './LoginPage.css';
  * Matches the Sarthi landing page UI
  */
 const LoginPage = () => {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const [userId, setUserId] = useState('');
@@ -105,6 +108,7 @@ const LoginPage = () => {
     try {
       const userData = await loginUser(userId, password);
       storeAuthData(userData);
+      dispatch(setAuth(userData));
       navigate(ROUTES.DASHBOARD, { replace: true });
     } catch (err) {
       setError(err.message || 'Login failed. Please check your credentials.');

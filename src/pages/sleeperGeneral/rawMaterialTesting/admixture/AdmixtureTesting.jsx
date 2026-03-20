@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import EnhancedDataTable from '../../../../components/common/EnhancedDataTable';
 import { MOCK_INVENTORY, MOCK_VERIFIED_CONSIGNMENTS } from '../../../../utils/rawMaterialMockData';
@@ -31,6 +32,7 @@ const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
 );
 
 const AdmixtureTesting = ({ onBack, inventoryData = [] }) => {
+    const { userId } = useSelector(state => state.auth);
     const [viewMode, setViewMode] = useState('new-stocks');
     const [showForm, setShowForm] = useState(false);
     const { selectedShift, dutyDate, dutyLocation } = useShift();
@@ -73,7 +75,7 @@ const AdmixtureTesting = ({ onBack, inventoryData = [] }) => {
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
-                createdBy: 1, // Default for now
+                createdBy: userId || 1, // Default for now
                 result: 'PASS' // Business logic could be added here
             };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
 import { saveAggregateGranulometric } from "../../../../services/workflowService";
@@ -69,6 +70,7 @@ const SieveTable = ({ title, sectionType, sieveSizes, onDataChange }) => {
 };
 
 export default function CombinedGranulometricCurve({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+    const { userId } = useSelector(state => state.auth);
     const { selectedShift, dutyLocation, dutyDate } = useShift();
     const { showToast } = useToast();
     const sieveSizes = [
@@ -99,7 +101,7 @@ export default function CombinedGranulometricCurve({ onSave, onCancel, inventory
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
-                createdBy: JSON.parse(localStorage.getItem('user'))?.id || 1
+                createdBy: userId || 1
             };
 
             await saveAggregateGranulometric(payload);

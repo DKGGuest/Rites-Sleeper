@@ -1,8 +1,10 @@
 import React, { useState, useMemo } from 'react';
+import { useSelector } from 'react-redux';
 import { apiService } from '../../../services/api';
 import './CriticalDimensionForm.css'; // Reusing styles if applicable or ensuring consistency
 
 const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
+    const { userId } = useSelector(state => state.auth);
     // Sleeper data from batch details
     const initialSleepers = useMemo(() => {
         return batch?.sleepers
@@ -175,7 +177,7 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
                 batchId: batch.batchId,
                 moduleId: 1,
                 shift: shift || 'General',
-                createdBy: 118,
+                createdBy: userId || 118,
                 sleepers: sleepers.filter(s => selectedSleepers.includes(s.id)).map(s => {
                     const isPassed = s.status === 'passed';
                     const isRejected = s.status === 'rejected';

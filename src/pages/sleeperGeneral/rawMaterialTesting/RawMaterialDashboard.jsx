@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import CementTesting from './cement/CementTesting';
 import AggregateTesting from './aggregates/AggregatesTesting';
 import HtsWireTesting from './hts/HtsWireTesting';
@@ -6,14 +7,13 @@ import SgciInsertTesting from './sgci/SgciInsertTesting';
 import WaterTesting from './water/WaterTesting';
 import AdmixtureTesting from './admixture/AdmixtureTesting';
 import { getAllCompletedCalls } from '../../../services/workflowService';
-import { getStoredUser } from '../../../services/authService';
 
 const RawMaterialDashboard = () => {
+    const { userId } = useSelector(state => state.auth);
     const [selectedMaterial, setSelectedMaterial] = useState('cement');
     const [completedCalls, setCompletedCalls] = useState([]);
-    const [enrichedData, setEnrichedData] = useState({}); // { requestId: details }
-    const [loading, setLoading] = useState(true);
-    const user = getStoredUser();
+    const [enrichedData, setEnrichedData] = useState({});
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -59,8 +59,8 @@ const RawMaterialDashboard = () => {
     // 1. Module ID must match (Cement: 6, Aggregates: 8, HTS: 5, SGCI: 9, Water: 10)
     // 2. Current user ID must be in accessibleUserIds
     const filterCalls = (moduleId) => {
-        if (!user || !user.userId) return [];
-        const currentId = parseInt(user.userId);
+        if (!userId) return [];
+        const currentId = parseInt(userId);
         return completedCalls.filter(call => 
             call.moduleId === moduleId && 
             call.accessibleUserIds?.includes(currentId)

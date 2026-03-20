@@ -1,8 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import EnhancedDataTable from '../../../components/common/EnhancedDataTable';
 import { apiService } from '../../../services/api';
 
 const MomentOfFailure = () => {
+    const { userId } = useSelector(state => state.auth);
     const [viewMode, setViewMode] = useState('statistics'); // 'statistics', 'declared', 'tested'
     const [showDeclareModal, setShowDeclareModal] = useState(false);
     const [showTestModal, setShowTestModal] = useState(false);
@@ -90,12 +92,12 @@ const MomentOfFailure = () => {
             if (isModifying) {
                 await apiService.updateMFSample(selectedSample.id, {
                     ...formData,
-                    updatedBy: 118
+                    updatedBy: userId || 118
                 });
             } else {
                 await apiService.createMFSample({
                     ...formData,
-                    createdBy: 118
+                    createdBy: userId || 118
                 });
             }
             setShowDeclareModal(false);
@@ -113,7 +115,7 @@ const MomentOfFailure = () => {
             await apiService.createMFTest({
                 ...testData,
                 modulusOfFailureId: selectedSample.id,
-                createdBy: 118
+                createdBy: userId || 118
             });
             setShowTestModal(false);
             fetchData();

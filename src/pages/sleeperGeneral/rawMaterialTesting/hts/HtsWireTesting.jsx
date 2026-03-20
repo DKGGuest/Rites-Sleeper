@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import EnhancedDataTable from '../../../../components/common/EnhancedDataTable';
 import { MOCK_HTS_HISTORY, MOCK_INVENTORY, MOCK_VERIFIED_CONSIGNMENTS } from '../../../../utils/rawMaterialMockData';
@@ -32,6 +33,7 @@ const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
 );
 
 const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
+    const { userId } = useSelector(state => state.auth);
     const [viewMode, setViewMode] = useState('new-stocks'); // Default to new stocks
     const [showForm, setShowForm] = useState(false);
     const { selectedShift, dutyDate, dutyLocation } = useShift();
@@ -73,7 +75,7 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
-                createdBy: 1 // Default
+                createdBy: userId || 1 // Default
             };
 
             await saveHtsWireDailyTest(payload);
