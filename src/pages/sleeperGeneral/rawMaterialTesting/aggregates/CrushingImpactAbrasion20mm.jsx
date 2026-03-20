@@ -2,19 +2,38 @@ import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
-import { saveAggregate20mmQuality } from "../../../../services/workflowService";
+import { saveAggregate20mmQuality, getAggregate20mmQualityByReqId } from "../../../../services/workflowService";
 
-export default function CrushingImpactAbrasion20mm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+export default function CrushingImpactAbrasion20mm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId }) {
     const { selectedShift, dutyDate, dutyLocation } = useShift();
-    const { showToast } = useToast();
+    const toast = useToast();
     const [submitting, setSubmitting] = useState(false);
+    const [editId, setEditId] = useState(null);
 
-    const { register, watch, setValue, handleSubmit, formState: { errors } } = useForm({
+    const { register, watch, setValue, handleSubmit, reset, formState: { errors } } = useForm({
         defaultValues: {
             testDate: new Date().toISOString().split('T')[0],
             typeOfTesting: initialType
         }
     });
+
+    useEffect(() => {
+        if (activeRequestId) {
+            const row = inventoryData.find(i => i.requestId === activeRequestId);
+            if (row) {
+                setValue("consignmentNo", row.consignmentNo);
+            }
+            getAggregate20mmQualityByReqId(activeRequestId).then(record => {
+                if (record && record.id) {
+                    setEditId(record.id);
+                    reset({
+                        ...record,
+                        testDate: record.testDate ? record.testDate.substring(0, 10) : new Date().toISOString().split('T')[0]
+                    });
+                }
+            });
+        }
+    }, [activeRequestId, inventoryData, reset, setValue]);
 
     // Sections toggle state
     const [expanded, setExpanded] = useState({
@@ -83,16 +102,17 @@ export default function CrushingImpactAbrasion20mm({ onSave, onCancel, inventory
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate,
+                requestId: activeRequestId || null,
                 createdBy: JSON.parse(localStorage.getItem('user'))?.id || 1
             };
 
-            await saveAggregate20mmQuality(payload);
-            showToast("Test Report for 20mm Quality saved successfully!", "success");
+            await saveAggregate20mmQuality(payload, editId);
+            toast.success(`Test Report for 20mm Quality ${editId ? 'updated' : 'saved'} successfully!`);
             reset();
             onSave && onSave(payload);
         } catch (error) {
             console.error("Error saving 20mm quality data:", error);
-            showToast("Failed to save 20mm Quality report. Please try again.", "error");
+            toast.error("Failed to save 20mm Quality report. Please try again.");
         } finally {
             setSubmitting(false);
         }
@@ -114,13 +134,28 @@ export default function CrushingImpactAbrasion20mm({ onSave, onCancel, inventory
 
                         <div className="input-group">
                             <label>Consignment No. <span className="required">*</span></label>
-                            <select {...register("consignmentNo", { required: "Required" })}>
-                                <option value="">-- Select --</option>
-                                {inventoryData.map((c, i) => (
-                                    <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
-                                ))}
-                                <option value="PERIODIC">-- Periodic Testing --</option>
-                            </select>
+                            {activeRequestId ? (
+                                <input
+                                    type="text"
+                                    readOnly
+                                    className="readOnly"
+                                    style={{ background: '#f8fafc' }}
+                                    {...register("consignmentNo")}
+                                />
+                            ) : watch("typeOfTesting") === 'Periodic' ? (
+                                <input
+                                    type="text"
+                                    placeholder="Enter Consignment No"
+                                    {...register("consignmentNo", { required: "Required" })}
+                                />
+                            ) : (
+                                <select {...register("consignmentNo", { required: "Required" })}>
+                                    <option value="">-- Select --</option>
+                                    {inventoryData.map((c, i) => (
+                                        <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
+                                    ))}
+                                </select>
+                            )}
                             {errors.consignmentNo && <span className="hint-text" style={{ color: 'red' }}>{errors.consignmentNo.message}</span>}
                         </div>
 
@@ -229,7 +264,7 @@ export default function CrushingImpactAbrasion20mm({ onSave, onCancel, inventory
 
                     <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
                         <button type="submit" className="btn-save" disabled={submitting}>
-                            {submitting ? 'Saving...' : 'Submit Test Report'}
+                            {submitting ? 'Saving...' : editId ? 'Update Test Report' : 'Submit Test Report'}
                         </button>
                         {onCancel && <button type="button" onClick={onCancel} className="btn-save" style={{ background: '#64748b' }} disabled={submitting}>Cancel</button>}
                     </div>

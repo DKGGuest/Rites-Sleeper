@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
-import { saveAggregateGranulometric } from "../../../../services/workflowService";
+import { saveAggregateGranulometric, getAggregateGranulometricByReqId } from "../../../../services/workflowService";
 
-const SieveTable = ({ title, sectionType, sieveSizes, onDataChange }) => {
+const SieveTable = ({ title, sectionType, sieveSizes, initialRows, onDataChange }) => {
     const [rows, setRows] = useState(sieveSizes.map(size => ({
         sectionType: sectionType,
         sieveSize: size,
@@ -12,6 +12,12 @@ const SieveTable = ({ title, sectionType, sieveSizes, onDataChange }) => {
         pctRetained: 0,
         pctPassing: 100
     })));
+
+    useEffect(() => {
+        if (initialRows && initialRows.length > 0) {
+            setRows(initialRows);
+        }
+    }, [initialRows]);
 
     const handleWtChange = (idx, val) => {
         const newRows = [...rows];
@@ -68,9 +74,9 @@ const SieveTable = ({ title, sectionType, sieveSizes, onDataChange }) => {
     );
 };
 
-export default function CombinedGranulometricCurve({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+export default function CombinedGranulometricCurve({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId }) {
     const { selectedShift, dutyLocation, dutyDate } = useShift();
-    const { showToast } = useToast();
+    const toast = useToast();
     const sieveSizes = [
         "20 mm", "10 mm", "4.75 mm", "2.36 mm", "1.18 mm",
         "600 microns", "300 microns", "150 microns", "< 150 microns"
@@ -82,11 +88,35 @@ export default function CombinedGranulometricCurve({ onSave, onCancel, inventory
     const [ca2Data, setCa2Data] = useState({ rows: [], pctPassingList: Array(9).fill(100) });
     const [faData, setFaData] = useState({ rows: [], pctPassingList: Array(9).fill(100) });
     const [submitting, setSubmitting] = useState(false);
+    
+    const [editId, setEditId] = useState(null);
+    const [initCa1, setInitCa1] = useState([]);
+    const [initCa2, setInitCa2] = useState([]);
+    const [initFa, setInitFa] = useState([]);
+
+    useEffect(() => {
+        if (activeRequestId) {
+            const row = inventoryData.find(i => i.requestId === activeRequestId);
+            if (row) setConsignmentNo(row.consignmentNo);
+
+            getAggregateGranulometricByReqId(activeRequestId).then(record => {
+                if (record && record.id) {
+                    setEditId(record.id);
+                    setTestDate(record.testDate ? record.testDate.substring(0, 10) : new Date().toISOString().split('T')[0]);
+                    if (record.observations && record.observations.length > 0) {
+                        setInitCa1(record.observations.filter(o => o.sectionType === 'CA1'));
+                        setInitCa2(record.observations.filter(o => o.sectionType === 'CA2'));
+                        setInitFa(record.observations.filter(o => o.sectionType === 'FA'));
+                    }
+                }
+            });
+        }
+    }, [activeRequestId, inventoryData]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!consignmentNo) {
-            showToast("Please select a consignment", "warning");
+            toast.warning("Please select a consignment");
             return;
         }
 
@@ -99,16 +129,17 @@ export default function CombinedGranulometricCurve({ onSave, onCancel, inventory
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
+                requestId: activeRequestId || null,
                 createdBy: JSON.parse(localStorage.getItem('user'))?.id || 1
             };
 
-            await saveAggregateGranulometric(payload);
-            showToast("Granulometric Curve report saved successfully!", "success");
+            await saveAggregateGranulometric(payload, editId);
+            toast.success(`Granulometric Curve report ${editId ? 'updated' : 'saved'} successfully!`);
             setConsignmentNo("");
             onSave && onSave(payload);
         } catch (error) {
             console.error("Error saving granulometric data:", error);
-            showToast("Failed to save Granulometric report.", "error");
+            toast.error("Failed to save Granulometric report.");
         } finally {
             setSubmitting(false);
         }
@@ -129,17 +160,36 @@ export default function CombinedGranulometricCurve({ onSave, onCancel, inventory
 
                         <div className="input-group">
                             <label>Consignment No. <span className="required">*</span></label>
-                            <select
-                                value={consignmentNo}
-                                onChange={(e) => setConsignmentNo(e.target.value)}
-                                required
-                            >
-                                <option value="">-- Select --</option>
-                                {inventoryData.map((c, i) => (
-                                    <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
-                                ))}
-                                <option value="PERIODIC">-- Periodic Testing --</option>
-                            </select>
+                            {activeRequestId ? (
+                                <input
+                                    type="text"
+                                    value={consignmentNo}
+                                    readOnly
+                                    className="readOnly"
+                                    style={{ background: '#f8fafc' }}
+                                />
+                            ) : initialType === "Periodic" ? (
+                                <input
+                                    type="text"
+                                    value={consignmentNo}
+                                    placeholder="Enter Consignment No"
+                                    onChange={(e) => setConsignmentNo(e.target.value)}
+                                    required
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                />
+                            ) : (
+                                <select
+                                    value={consignmentNo}
+                                    onChange={(e) => setConsignmentNo(e.target.value)}
+                                    required
+                                >
+                                    <option value="">-- Select --</option>
+                                    {inventoryData.map((c, i) => (
+                                        <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
+                                    ))}
+                                    <option value="PERIODIC">-- Periodic Testing --</option>
+                                </select>
+                            )}
                         </div>
                     </div>
 

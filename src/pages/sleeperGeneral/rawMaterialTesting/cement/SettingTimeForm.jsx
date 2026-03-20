@@ -2,13 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
 import { getStoredUser } from "../../../../services/authService";
-import { saveCementSettingTime } from "../../../../services/workflowService";
+import { saveCementSettingTime, getCementSettingTimeByReqId } from "../../../../services/workflowService";
 
 const emptyRow = { time: "", needle: "", spot: "" };
 
-export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId }) {
     const { selectedShift, dutyDate, dutyLocation } = useShift();
-    const { showToast } = useToast();
+    const toast = useToast();
     const user = getStoredUser();
 
     const [loading, setLoading] = useState(false);
@@ -30,6 +30,40 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
     const [initialTime, setInitialTime] = useState(null);
     const [finalTime, setFinalTime] = useState(null);
     const [result, setResult] = useState("");
+    const [editId, setEditId] = useState(null);
+
+    useEffect(() => {
+        if (activeRequestId) {
+            const row = inventoryData.find(i => i.requestId === activeRequestId);
+            if (row && !header.consignment) {
+                setHeader(prev => ({ ...prev, consignment: row.consignmentNo }));
+            }
+            getCementSettingTimeByReqId(activeRequestId).then(record => {
+                if (record && record.id) {
+                    setEditId(record.id);
+                    setHeader(prev => ({
+                        ...prev,
+                        type: record.typeOfTesting || prev.type,
+                        consignment: record.consignmentNo || prev.consignment,
+                        temp: record.roomTemp || prev.temp,
+                        weight: record.weight || prev.weight,
+                        nc: record.normalConsistency || prev.nc,
+                        waterQty: record.waterAdded || prev.waterQty,
+                        waterAddTime: record.timeOfAddingWater ? record.timeOfAddingWater.substring(0, 5) : prev.waterAddTime,
+                        mouldTime: record.mouldReadyAt ? record.mouldReadyAt.substring(0, 5) : prev.mouldTime
+                    }));
+                    if (record.observations && record.observations.length > 0) {
+                        const mapped = record.observations.map(o => ({
+                            time: o.readingTime ? o.readingTime.substring(0, 5) : "",
+                            needle: o.needlePenetration || "",
+                            spot: o.finalSpot || ""
+                        }));
+                        setRows(mapped.length < 20 ? [...mapped, ...Array(20 - mapped.length).fill({ ...emptyRow })] : mapped);
+                    }
+                }
+            });
+        }
+    }, [activeRequestId]);
 
     const updateRow = (i, field, val) => {
         const copy = [...rows];
@@ -94,6 +128,7 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate,
+                requestId: activeRequestId || null,
                 createdBy: user?.userId || 0,
                 observations: rows
                     .filter(r => r.time && r.needle)
@@ -104,12 +139,12 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
                     }))
             };
 
-            await saveCementSettingTime(payload);
-            showToast("Setting Time Test record saved successfully!", "success");
+            await saveCementSettingTime(payload, editId);
+            toast.success(`Setting Time Test record ${editId ? 'updated' : 'saved'} successfully!`);
             if (onSave) onSave();
         } catch (error) {
             console.error("Save failed:", error);
-            showToast("Error saving record. Please check console.", "error");
+            toast.error("Error saving record. Please check console.");
         } finally {
             setLoading(false);
         }
@@ -144,17 +179,33 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
 
                     <div className="input-group">
                         <label>Consignment No <span className="required">*</span></label>
-                        <select 
-                            value={header.consignment}
-                            onChange={(e) => setHeader({ ...header, consignment: e.target.value })}
-                            required
-                        >
-                            <option value="">-- Select --</option>
-                            {inventoryData.map(c => (
-                                <option key={c.consignmentNo} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
-                            ))}
-                            <option value="PERIODIC">-- Periodic Testing --</option>
-                        </select>
+                        {activeRequestId ? (
+                            <input 
+                                type="text"
+                                value={header.consignment}
+                                readOnly
+                                style={{ background: '#f8fafc' }}
+                            />
+                        ) : header.type === 'Periodic' ? (
+                            <input 
+                                type="text"
+                                placeholder="Enter Consignment No"
+                                value={header.consignment}
+                                onChange={(e) => setHeader({ ...header, consignment: e.target.value })}
+                                required
+                            />
+                        ) : (
+                            <select 
+                                value={header.consignment}
+                                onChange={(e) => setHeader({ ...header, consignment: e.target.value })}
+                                required
+                            >
+                                <option value="">-- Select --</option>
+                                {inventoryData.map(c => (
+                                    <option key={c.consignmentNo} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
+                                ))}
+                            </select>
+                        )}
                     </div>
 
                     <div className="input-group">
@@ -299,7 +350,7 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
 
                 <div className="btn-group" style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
                     <button type="submit" className="btn-save" disabled={loading}>
-                        {loading ? "Saving..." : "Submit Test Report"}
+                        {loading ? "Saving..." : editId ? "Update Test Report" : "Submit Test Report"}
                     </button>
                     <button type="button" className="btn-save" style={{ background: '#64748b' }} onClick={onCancel}>
                         Cancel

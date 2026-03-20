@@ -2,19 +2,38 @@ import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
-import { saveAggregateSoundness } from "../../../../services/workflowService";
+import { saveAggregateSoundness, getAggregateSoundnessByReqId } from "../../../../services/workflowService";
 
-export default function SoundnessTestForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+export default function SoundnessTestForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId }) {
     const { selectedShift, dutyLocation, dutyDate } = useShift();
-    const { showToast } = useToast();
+    const toast = useToast();
     const [submitting, setSubmitting] = useState(false);
+    const [editId, setEditId] = useState(null);
 
-    const { register, watch, setValue, handleSubmit, formState: { errors } } = useForm({
+    const { register, watch, setValue, handleSubmit, reset, formState: { errors } } = useForm({
         defaultValues: {
             testDate: new Date().toISOString().split('T')[0],
             cycles: 5
         }
     });
+
+    useEffect(() => {
+        if (activeRequestId) {
+            const row = inventoryData.find(i => i.requestId === activeRequestId);
+            if (row) {
+                setValue("consignmentNo", row.consignmentNo);
+            }
+            getAggregateSoundnessByReqId(activeRequestId).then(record => {
+                if (record && record.id) {
+                    setEditId(record.id);
+                    reset({
+                        ...record,
+                        testDate: record.testDate ? record.testDate.substring(0, 10) : new Date().toISOString().split('T')[0]
+                    });
+                }
+            });
+        }
+    }, [activeRequestId, inventoryData, reset, setValue]);
 
     const initialWt = watch("initialWt");
     const finalWt = watch("finalWt");
@@ -41,16 +60,17 @@ export default function SoundnessTestForm({ onSave, onCancel, inventoryData = []
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
+                requestId: activeRequestId || null,
                 createdBy: JSON.parse(localStorage.getItem('user'))?.id || 1
             };
 
-            await saveAggregateSoundness(payload);
-            showToast("Soundness Test report saved successfully!", "success");
+            await saveAggregateSoundness(payload, editId);
+            toast.success(`Soundness Test report ${editId ? 'updated' : 'saved'} successfully!`);
             reset();
             onSave && onSave(payload);
         } catch (error) {
             console.error("Error saving soundness data:", error);
-            showToast("Failed to save Soundness report.", "error");
+            toast.error("Failed to save Soundness report.");
         } finally {
             setSubmitting(false);
         }
@@ -72,16 +92,33 @@ export default function SoundnessTestForm({ onSave, onCancel, inventoryData = []
 
                         <div className="input-group">
                             <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '600', color: '#475569' }}>Consignment No. <span className="required" style={{ color: 'red' }}>*</span></label>
-                            <select
-                                {...register("consignmentNo", { required: "Required" })}
-                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                            >
-                                <option value="">-- Select --</option>
-                                {inventoryData.map((c, i) => (
-                                    <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
-                                ))}
-                                <option value="PERIODIC">-- Periodic Testing --</option>
-                            </select>
+                            {activeRequestId ? (
+                                <input
+                                    type="text"
+                                    readOnly
+                                    className="readOnly"
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc' }}
+                                    {...register("consignmentNo")}
+                                />
+                            ) : initialType === "Periodic" ? (
+                                <input
+                                    type="text"
+                                    placeholder="Enter Consignment No"
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                    {...register("consignmentNo", { required: "Required" })}
+                                />
+                            ) : (
+                                <select
+                                    {...register("consignmentNo", { required: "Required" })}
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                >
+                                    <option value="">-- Select --</option>
+                                    {inventoryData.map((c, i) => (
+                                        <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
+                                    ))}
+                                    <option value="PERIODIC">-- Periodic Testing --</option>
+                                </select>
+                            )}
                         </div>
                     </div>
 
@@ -132,7 +169,7 @@ export default function SoundnessTestForm({ onSave, onCancel, inventoryData = []
 
                     <div style={{ marginTop: '32px', display: 'flex', gap: '16px' }}>
                         <button type="submit" className="btn-save" style={{ flex: 1, padding: '12px', background: '#42818c', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }} disabled={submitting}>
-                            {submitting ? 'Saving...' : 'Save Test Report'}
+                            {submitting ? 'Saving...' : editId ? 'Update Test Report' : 'Save Test Report'}
                         </button>
                         {onCancel && <button type="button" onClick={onCancel} className="btn-save" style={{ flex: 1, padding: '12px', background: '#64748b', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }} disabled={submitting}>Cancel</button>}
                     </div>

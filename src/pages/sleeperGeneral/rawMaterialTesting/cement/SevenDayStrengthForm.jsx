@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
 import { getStoredUser } from "../../../../services/authService";
-import { saveCement7DayStrength } from "../../../../services/workflowService";
+import { saveCement7DayStrength, getCement7DayStrengthByReqId } from "../../../../services/workflowService";
 
-export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId }) {
     const { selectedShift, dutyDate, dutyLocation } = useShift();
     const toast = useToast();
     const user = getStoredUser();
@@ -26,6 +26,51 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
         soundness: "",
         soundnessResult: ""
     });
+    const [editId, setEditId] = useState(null);
+
+    useEffect(() => {
+        if (activeRequestId) {
+            const row = inventoryData.find(i => i.requestId === activeRequestId);
+            if (row && !form.consignmentNo) {
+                setForm(prev => ({ ...prev, consignmentNo: row.consignmentNo }));
+            }
+            getCement7DayStrengthByReqId(activeRequestId).then(record => {
+                if (record && record.id) {
+                    setEditId(record.id);
+                    
+                    const formatFromISO = (d) => {
+                        if (!d) return "";
+                        if (d.includes('-') && d.split('-')[0].length === 4) {
+                            const [y, m, day] = d.split('-');
+                            return `${day}-${m}-${y}`;
+                        }
+                        return d;
+                    };
+
+                    setForm(prev => ({
+                        ...prev,
+                        typeOfTesting: record.typeOfTesting || prev.typeOfTesting,
+                        consignmentNo: record.consignmentNo || prev.consignmentNo,
+                        roomTemp: record.roomTemp || prev.roomTemp,
+                        normalConsistency: record.normalConsistency || prev.normalConsistency,
+                        waterRequired: record.waterRequired || prev.waterRequired,
+                        minStrength: record.minStrength || prev.minStrength,
+                        cubeResult: record.cubeResult || prev.cubeResult,
+                        soundness: record.soundness || prev.soundness,
+                        soundnessResult: record.soundnessResult || prev.soundnessResult,
+                        cubes: record.cubes && record.cubes.length > 0 ? record.cubes.map(c => ({
+                            castDate: formatFromISO(c.castDate),
+                            castTime: c.castTime ? c.castTime.substring(0, 5) : "",
+                            testDate: formatFromISO(c.testDate),
+                            testTime: c.testTime ? c.testTime.substring(0, 5) : "",
+                            load: c.loadKn || "",
+                            strength: c.strengthNmm2 || ""
+                        })) : prev.cubes
+                    }));
+                }
+            });
+        }
+    }, [activeRequestId]);
 
     // Auto calculate water required
     useEffect(() => {
@@ -83,6 +128,7 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A', // Using dutyLocation as shown in the screenshot pill
                 dateOfInspection: dutyDate,
+                requestId: activeRequestId || null,
                 createdBy: user?.userId || 0,
                 cubes: form.cubes.map(c => ({
                     castDate: formatToISO(c.castDate),
@@ -94,9 +140,9 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
                 }))
             };
 
-            await saveCement7DayStrength(payload);
+            await saveCement7DayStrength(payload, editId);
 
-            toast.success("Cement 7-Day Strength record saved successfully!");
+            toast.success(`Cement 7-Day Strength record ${editId ? 'updated' : 'saved'} successfully!`);
             if (onSave) onSave();
         } catch (error) {
             console.error("Save failed:", error);
@@ -135,17 +181,33 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
 
                     <div className="input-group">
                         <label>Consignment No <span className="required">*</span></label>
-                        <select
-                            value={form.consignmentNo}
-                            onChange={e => setForm({ ...form, consignmentNo: e.target.value })}
-                            required
-                        >
-                            <option value="">-- Select --</option>
-                            {inventoryData.map(c => (
-                                <option key={c.consignmentNo} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
-                            ))}
-                            <option value="PERIODIC">-- Periodic Testing --</option>
-                        </select>
+                        {activeRequestId ? (
+                            <input 
+                                type="text"
+                                value={form.consignmentNo}
+                                readOnly
+                                style={{ background: '#f8fafc' }}
+                            />
+                        ) : form.typeOfTesting === 'Periodic' ? (
+                            <input 
+                                type="text"
+                                placeholder="Enter Consignment No"
+                                value={form.consignmentNo}
+                                onChange={(e) => setForm({ ...form, consignmentNo: e.target.value })}
+                                required
+                            />
+                        ) : (
+                            <select
+                                value={form.consignmentNo}
+                                onChange={e => setForm({ ...form, consignmentNo: e.target.value })}
+                                required
+                            >
+                                <option value="">-- Select --</option>
+                                {inventoryData.map(c => (
+                                    <option key={c.consignmentNo} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
+                                ))}
+                            </select>
+                        )}
                         <div className="hint-text">Select verified consignment</div>
                     </div>
 
@@ -269,7 +331,7 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
 
                 <div className="btn-group" style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
                     <button type="submit" className="btn-save" disabled={loading}>
-                        {loading ? "Saving..." : "Save Inspection Report"}
+                        {loading ? "Saving..." : editId ? "Update Inspection Report" : "Save Inspection Report"}
                     </button>
                     <button type="button" className="btn-save" style={{ background: '#64748b' }} onClick={onCancel}>
                         Cancel

@@ -7,6 +7,7 @@ import CombinedFlakinessElongation from './CombinedFlakinessElongation';
 import CombinedGranulometricCurve from './CombinedGranulometricCurve';
 import SoundnessTestForm from './SoundnessTestForm';
 import { MOCK_INVENTORY, MOCK_AGGREGATES_HISTORY } from '../../../../utils/rawMaterialMockData';
+import { getAggregateBulkStatus } from '../../../../services/workflowService';
 import TrendChart from '../../../../components/common/TrendChart';
 import '../cement/CementForms.css';
 
@@ -45,6 +46,20 @@ const AggregateTesting = ({ onBack, inventoryData = [] }) => {
 
     const pendingStocks = inventoryData;
 
+    const [statusMap, setStatusMap] = useState({});
+    const [activeRequestId, setActiveRequestId] = useState(null);
+
+    React.useEffect(() => {
+        const fetchStatus = async () => {
+            if (pendingStocks.length > 0) {
+                const reqIds = pendingStocks.map(s => s.requestId);
+                const statuses = await getAggregateBulkStatus(reqIds);
+                setStatusMap(statuses);
+            }
+        };
+        fetchStatus();
+    }, [pendingStocks]);
+
     const canModify = (createdAt) => {
         if (!createdAt) return false;
         const entryTime = new Date(createdAt).getTime();
@@ -52,8 +67,13 @@ const AggregateTesting = ({ onBack, inventoryData = [] }) => {
         return (now - entryTime) < (60 * 60 * 1000);
     };
 
-    const handleSaveTest = () => {
-        setShowForm(false);
+    const handleSaveTest = (completedSectionId) => {
+        if (completedSectionId < 5) {
+            setActiveFormSection(completedSectionId + 1);
+        } else {
+            setShowForm(false);
+            setActiveRequestId(null);
+        }
     };
 
     const inventoryColumns = [
@@ -66,20 +86,33 @@ const AggregateTesting = ({ onBack, inventoryData = [] }) => {
         },
         { key: 'receivedDate', label: 'Arrival Date' },
         {
+            key: 'testingStatus',
+            label: 'Status',
+            render: (_, row) => {
+                const status = statusMap[row.requestId] || 'Pending';
+                const color = status === 'Completed' ? '#10b981' : '#f59e0b';
+                return <span style={{ color, fontWeight: 'bold' }}>{status}</span>;
+            }
+        },
+        {
             key: 'actions',
             label: 'Actions',
-            render: (_, row) => (
-                <button
-                    className="btn-action mini"
-                    onClick={() => {
-                        setInitialType("New Inventory");
-                        setActiveFormSection(1);
-                        setShowForm(true);
-                    }}
-                >
-                    Add Test Detail
-                </button>
-            )
+            render: (_, row) => {
+                const status = statusMap[row.requestId] || 'Pending';
+                return (
+                    <button
+                        className="btn-action mini"
+                        onClick={() => {
+                            setActiveRequestId(row.requestId);
+                            setInitialType("New Inventory");
+                            setActiveFormSection(1);
+                            setShowForm(true);
+                        }}
+                    >
+                        {status === 'Completed' ? 'Modify test details' : 'Add Test Detail'}
+                    </button>
+                );
+            }
         }
     ];
 
@@ -122,9 +155,10 @@ const AggregateTesting = ({ onBack, inventoryData = [] }) => {
     const renderActiveForm = () => {
         const props = {
             inventoryData,
-            onSave: handleSaveTest,
+            onSave: () => handleSaveTest(activeFormSection),
             onCancel: () => setShowForm(false),
-            initialType: initialType
+            initialType: initialType,
+            activeRequestId: activeRequestId
         };
 
         switch (activeFormSection) {

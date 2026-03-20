@@ -7,6 +7,7 @@ import NormalConsistencyForm from './NormalConsistencyForm';
 import SevenDayStrengthForm from './SevenDayStrengthForm';
 import FinenessTestForm from './FinenessTestForm';
 import { MOCK_INVENTORY, MOCK_CEMENT_HISTORY } from '../../../../utils/rawMaterialMockData';
+import { getCementBulkStatus } from '../../../../services/workflowService';
 import CollectionAwaitingInspection from '../../../../components/CollectionAwaitingInspection';
 import TrendChart from '../../../../components/common/TrendChart';
 import './CementForms.css';
@@ -48,6 +49,20 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
     // inventoryData is now passed from parent, already filtered by moduleId and accessibility
     const pendingStocks = inventoryData;
 
+    const [statusMap, setStatusMap] = useState({});
+    const [activeRequestId, setActiveRequestId] = useState(null);
+
+    React.useEffect(() => {
+        const fetchStatus = async () => {
+            if (pendingStocks.length > 0) {
+                const reqIds = pendingStocks.map(s => s.requestId);
+                const statuses = await getCementBulkStatus(reqIds);
+                setStatusMap(statuses);
+            }
+        };
+        fetchStatus();
+    }, [pendingStocks]);
+
     // Rule: Modify/Delete allowed only for 1 hour from entering
     const canModify = (createdAt) => {
         if (!createdAt) return false;
@@ -56,23 +71,15 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
         return (now - entryTime) < (60 * 60 * 1000); // 1 hour
     };
 
-    const handleSaveTest = () => {
-        const newEntry = {
-            id: Date.now(),
-            testDate: new Date().toISOString().split('T')[0],
-            createdAt: new Date().toISOString(),
-            testType: 'Manual',
-            consignmentNo: 'NEW-CON-001',
-            lotNo: 'NEW-LOT-01',
-            surface: '320',
-            initialSetting: '150',
-            finalSetting: '290',
-            consistency: '28%',
-            soundness: '0.6'
-        };
-        setCementHistory(prev => [newEntry, ...prev]);
-        setShowForm(false);
-        alert('Test record saved successfully!');
+    const handleSaveTest = (completedSectionId) => {
+        if (completedSectionId < 5) {
+            setActiveFormSection(completedSectionId + 1);
+        } else {
+            setShowForm(false);
+            // Re-fetch status if needed by forcing a parent refresh, 
+            // for now it will just close the modal.
+            setActiveRequestId(null);
+        }
     };
 
     const handleDelete = (id) => {
@@ -97,20 +104,33 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
         },
         { key: 'receivedDate', label: 'Arrival Date' },
         {
+            key: 'testingStatus',
+            label: 'Status',
+            render: (_, row) => {
+                const status = statusMap[row.requestId] || 'Pending';
+                const color = status === 'Completed' ? '#10b981' : '#f59e0b';
+                return <span style={{ color, fontWeight: 'bold' }}>{status}</span>;
+            }
+        },
+        {
             key: 'actions',
             label: 'Actions',
-            render: (_, row) => (
-                <button
-                    className="btn-action mini"
-                    onClick={() => {
-                        setInitialType("New Inventory");
-                        setActiveFormSection(1);
-                        setShowForm(true);
-                    }}
-                >
-                    Add Test Detail
-                </button>
-            )
+            render: (_, row) => {
+                const status = statusMap[row.requestId] || 'Pending';
+                return (
+                    <button
+                        className="btn-action mini"
+                        onClick={() => {
+                            setActiveRequestId(row.requestId);
+                            setInitialType("New Inventory");
+                            setActiveFormSection(1);
+                            setShowForm(true);
+                        }}
+                    >
+                        {status === 'Completed' ? 'Modify test details' : 'Add Test Detail'}
+                    </button>
+                );
+            }
         }
     ];
 
@@ -155,11 +175,11 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
     ];
 
     const sections = [
-        { id: 1, label: '7 Day Strength', component: <SevenDayStrengthForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} /> },
-        { id: 2, label: 'Normal Consistency', component: <NormalConsistencyForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} /> },
-        { id: 3, label: 'Specific Surface', component: <SpecificSurfaceForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} /> },
-        { id: 4, label: 'Setting Time', component: <SettingTimeForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} /> },
-        { id: 5, label: 'Fineness Test', component: <FinenessTestForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} /> }
+        { id: 1, label: '7 Day Strength', component: <SevenDayStrengthForm onSave={() => handleSaveTest(1)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} /> },
+        { id: 2, label: 'Normal Consistency', component: <NormalConsistencyForm onSave={() => handleSaveTest(2)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} /> },
+        { id: 3, label: 'Specific Surface', component: <SpecificSurfaceForm onSave={() => handleSaveTest(3)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} /> },
+        { id: 4, label: 'Setting Time', component: <SettingTimeForm onSave={() => handleSaveTest(4)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} /> },
+        { id: 5, label: 'Fineness Test', component: <FinenessTestForm onSave={() => handleSaveTest(5)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} /> }
     ];
 
     return (

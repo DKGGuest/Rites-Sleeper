@@ -2,11 +2,11 @@ import React, { useEffect, useState } from "react";
 import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
 import { getStoredUser } from "../../../../services/authService";
-import { saveCementFineness } from "../../../../services/workflowService";
+import { saveCementFineness, getCementFinenessByReqId } from "../../../../services/workflowService";
 
-export default function FinenessTestForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+export default function FinenessTestForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId }) {
     const { selectedShift, dutyDate, dutyLocation } = useShift();
-    const { showToast } = useToast();
+    const toast = useToast();
     const user = getStoredUser();
 
     const [loading, setLoading] = useState(false);
@@ -19,6 +19,28 @@ export default function FinenessTestForm({ onSave, onCancel, inventoryData = [],
 
     const [fineness, setFineness] = useState("");
     const [result, setResult] = useState("");
+    const [editId, setEditId] = useState(null);
+
+    useEffect(() => {
+        if (activeRequestId) {
+            const row = inventoryData.find(i => i.requestId === activeRequestId);
+            if (row && !header.consignmentNo) {
+                setHeader(prev => ({ ...prev, consignmentNo: row.consignmentNo }));
+            }
+            getCementFinenessByReqId(activeRequestId).then(record => {
+                if (record && record.id) {
+                    setEditId(record.id);
+                    setHeader(prev => ({
+                        ...prev,
+                        typeOfTesting: record.typeOfTesting || prev.typeOfTesting,
+                        consignmentNo: record.consignmentNo || prev.consignmentNo,
+                        sampleWt: record.sampleWeightW1 || prev.sampleWt,
+                        residueWt: record.residueWeightW2 || prev.residueWt
+                    }));
+                }
+            });
+        }
+    }, [activeRequestId]);
 
     useEffect(() => {
         const { sampleWt, residueWt } = header;
@@ -52,15 +74,16 @@ export default function FinenessTestForm({ onSave, onCancel, inventoryData = [],
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate,
+                requestId: activeRequestId || null,
                 createdBy: user?.userId || 0
             };
 
-            await saveCementFineness(payload);
-            showToast("Cement Fineness Test record saved successfully!", "success");
+            await saveCementFineness(payload, editId);
+            toast.success(`Cement Fineness Test record ${editId ? 'updated' : 'saved'} successfully!`);
             if (onSave) onSave();
         } catch (error) {
             console.error("Save failed:", error);
-            showToast("Error saving record. Please check console.", "error");
+            toast.error("Error saving record. Please check console.");
         } finally {
             setLoading(false);
         }
@@ -81,17 +104,33 @@ export default function FinenessTestForm({ onSave, onCancel, inventoryData = [],
 
                     <div className="input-group">
                         <label>Consignment No <span className="required">*</span></label>
-                        <select 
-                            value={header.consignmentNo}
-                            onChange={(e) => setHeader({ ...header, consignmentNo: e.target.value })}
-                            required
-                        >
-                            <option value="">-- Select --</option>
-                            {inventoryData.map(c => (
-                                <option key={c.consignmentNo} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
-                            ))}
-                            <option value="PERIODIC">-- Periodic Testing --</option>
-                        </select>
+                        {activeRequestId ? (
+                            <input 
+                                type="text"
+                                value={header.consignmentNo}
+                                readOnly
+                                style={{ background: '#f8fafc' }}
+                            />
+                        ) : header.typeOfTesting === 'Periodic' ? (
+                            <input 
+                                type="text"
+                                placeholder="Enter Consignment No"
+                                value={header.consignmentNo}
+                                onChange={(e) => setHeader({ ...header, consignmentNo: e.target.value })}
+                                required
+                            />
+                        ) : (
+                            <select 
+                                value={header.consignmentNo}
+                                onChange={(e) => setHeader({ ...header, consignmentNo: e.target.value })}
+                                required
+                            >
+                                <option value="">-- Select --</option>
+                                {inventoryData.map(c => (
+                                    <option key={c.consignmentNo} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
+                                ))}
+                            </select>
+                        )}
                     </div>
 
                     <div className="input-group">
@@ -141,7 +180,7 @@ export default function FinenessTestForm({ onSave, onCancel, inventoryData = [],
 
                 <div className="btn-group" style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
                     <button type="submit" className="btn-save" disabled={loading} style={{ flex: 1 }}>
-                        {loading ? "Saving..." : "Submit Test Report"}
+                        {loading ? "Saving..." : editId ? "Update Test Report" : "Submit Test Report"}
                     </button>
                     <button type="button" onClick={onCancel} className="btn-save" style={{ flex: 1, background: '#64748b' }}>
                         Cancel

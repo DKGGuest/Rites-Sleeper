@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
-import { saveAggregateFlakiness } from "../../../../services/workflowService";
+import { saveAggregateFlakiness, getAggregateFlakinessByReqId } from "../../../../services/workflowService";
 
-const FlakinessTable = ({ title, category, sieveData, onDataChange }) => {
+const FlakinessTable = ({ title, category, sieveData, initialRows, onDataChange }) => {
     const [rows, setRows] = useState(sieveData.map(s => ({
         category: category,
         passingSize: s.passing,
@@ -30,6 +30,12 @@ const FlakinessTable = ({ title, category, sieveData, onDataChange }) => {
 
     const combinedIndex = (sumA > 0 && sumC > 0) ? (((sumB / sumA) + (sumD / sumC)) * 100) : 0;
     const result = combinedIndex < 40 ? "OK" : "Not OK";
+
+    useEffect(() => {
+        if (initialRows && initialRows.length > 0) {
+            setRows(initialRows);
+        }
+    }, [initialRows]);
 
     useEffect(() => {
         onDataChange({ rows, combinedIndex, result });
@@ -91,14 +97,35 @@ const FlakinessTable = ({ title, category, sieveData, onDataChange }) => {
     );
 };
 
-export default function CombinedFlakinessElongation({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+export default function CombinedFlakinessElongation({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId }) {
     const { selectedShift, dutyLocation, dutyDate } = useShift();
-    const { showToast } = useToast();
+    const toast = useToast();
     const [testDate, setTestDate] = useState(new Date().toISOString().split('T')[0]);
     const [consignmentNo, setConsignmentNo] = useState("");
     const [data20, setData20] = useState({ rows: [] });
     const [data10, setData10] = useState({ rows: [] });
+    const [initRows20, setInitRows20] = useState([]);
+    const [initRows10, setInitRows10] = useState([]);
+    const [editId, setEditId] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (activeRequestId) {
+            const row = inventoryData.find(i => i.requestId === activeRequestId);
+            if (row) setConsignmentNo(row.consignmentNo);
+
+            getAggregateFlakinessByReqId(activeRequestId).then(record => {
+                if (record && record.id) {
+                    setEditId(record.id);
+                    setTestDate(record.testDate ? record.testDate.substring(0, 10) : new Date().toISOString().split('T')[0]);
+                    if (record.observations && record.observations.length > 0) {
+                        setInitRows20(record.observations.filter(o => o.category === '20mm'));
+                        setInitRows10(record.observations.filter(o => o.category === '10mm'));
+                    }
+                }
+            });
+        }
+    }, [activeRequestId, inventoryData]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -120,16 +147,17 @@ export default function CombinedFlakinessElongation({ onSave, onCancel, inventor
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
+                requestId: activeRequestId || null,
                 createdBy: JSON.parse(localStorage.getItem('user'))?.id || 1
             };
 
-            await saveAggregateFlakiness(payload);
-            showToast("Flakiness & Elongation report saved successfully!", "success");
+            await saveAggregateFlakiness(payload, editId);
+            toast.success(`Flakiness & Elongation report ${editId ? 'updated' : 'saved'} successfully!`);
             setConsignmentNo("");
             onSave && onSave(payload);
         } catch (error) {
             console.error("Error saving flakiness data:", error);
-            showToast("Failed to save Flakiness report.", "error");
+            toast.error("Failed to save Flakiness report.");
         } finally {
             setSubmitting(false);
         }
@@ -150,17 +178,36 @@ export default function CombinedFlakinessElongation({ onSave, onCancel, inventor
 
                         <div className="input-group">
                             <label>Consignment No. <span className="required">*</span></label>
-                            <select
-                                value={consignmentNo}
-                                onChange={(e) => setConsignmentNo(e.target.value)}
-                                required
-                            >
-                                <option value="">-- Select --</option>
-                                {inventoryData.map((c, i) => (
-                                    <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
-                                ))}
-                                <option value="PERIODIC">-- Periodic Testing --</option>
-                            </select>
+                            {activeRequestId ? (
+                                <input
+                                    type="text"
+                                    value={consignmentNo}
+                                    readOnly
+                                    className="readOnly"
+                                    style={{ background: '#f8fafc' }}
+                                />
+                            ) : initialType === "Periodic" ? (
+                                <input
+                                    type="text"
+                                    value={consignmentNo}
+                                    placeholder="Enter Consignment No"
+                                    onChange={(e) => setConsignmentNo(e.target.value)}
+                                    required
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                />
+                            ) : (
+                                <select
+                                    value={consignmentNo}
+                                    onChange={(e) => setConsignmentNo(e.target.value)}
+                                    required
+                                >
+                                    <option value="">-- Select --</option>
+                                    {inventoryData.map((c, i) => (
+                                        <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
+                                    ))}
+                                    <option value="PERIODIC">-- Periodic Testing --</option>
+                                </select>
+                            )}
                         </div>
                     </div>
 
@@ -172,6 +219,7 @@ export default function CombinedFlakinessElongation({ onSave, onCancel, inventor
                             { passing: 16, retained: 12.5 },
                             { passing: 12.5, retained: 10 }
                         ]}
+                        initialRows={initRows20}
                         onDataChange={setData20}
                     />
 
@@ -182,12 +230,13 @@ export default function CombinedFlakinessElongation({ onSave, onCancel, inventor
                             { passing: 12.5, retained: 10 },
                             { passing: 10, retained: 6.3 }
                         ]}
+                        initialRows={initRows10}
                         onDataChange={setData10}
                     />
 
                     <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
                         <button type="submit" className="btn-save" disabled={submitting}>
-                            {submitting ? 'Saving...' : 'Submit Test Report'}
+                            {submitting ? 'Saving...' : editId ? 'Update Test Report' : 'Submit Test Report'}
                         </button>
                         {onCancel && <button type="button" onClick={onCancel} className="btn-save" style={{ background: '#64748b' }} disabled={submitting}>Cancel</button>}
                     </div>

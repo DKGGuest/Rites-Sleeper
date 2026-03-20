@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
 import { getStoredUser } from "../../../../services/authService";
-import { saveCementNormalConsistency } from "../../../../services/workflowService";
+import { saveCementNormalConsistency, getCementNormalConsistencyByReqId } from "../../../../services/workflowService";
 
 
 const emptyRow = {
@@ -13,9 +13,9 @@ const emptyRow = {
     needle: "",
 };
 
-export default function NormalConsistencyForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+export default function NormalConsistencyForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId }) {
     const { selectedShift, dutyDate, dutyLocation } = useShift();
-    const { showToast } = useToast();
+    const toast = useToast();
     const user = getStoredUser();
 
     const [loading, setLoading] = useState(false);
@@ -35,6 +35,41 @@ export default function NormalConsistencyForm({ onSave, onCancel, inventoryData 
 
     const [normalConsistency, setNormalConsistency] = useState("");
     const [water85, setWater85] = useState("");
+    const [editId, setEditId] = useState(null);
+
+    useEffect(() => {
+        if (activeRequestId) {
+            const row = inventoryData.find(i => i.requestId === activeRequestId);
+            if (row && !header.consignmentNo) {
+                setHeader(prev => ({ ...prev, consignmentNo: row.consignmentNo }));
+            }
+            getCementNormalConsistencyByReqId(activeRequestId).then(record => {
+                if (record && record.id) {
+                    setEditId(record.id);
+                    setHeader(prev => ({
+                        ...prev,
+                        typeOfTesting: record.typeOfTesting || prev.typeOfTesting,
+                        consignmentNo: record.consignmentNo || prev.consignmentNo,
+                        roomTemp: record.roomTemp || prev.roomTemp,
+                        sampleWeight: record.sampleWeight || prev.sampleWeight
+                    }));
+                    if (record.observations && record.observations.length > 0) {
+                        const mapped = record.observations.map(o => ({
+                            percent: o.percentWaterAdded || "",
+                            volume: o.volume || "",
+                            addTime: o.timeOfAdding ? o.timeOfAdding.substring(0, 5) : "",
+                            readTime: o.readingTime ? o.readingTime.substring(0, 5) : "",
+                            needle: o.needleReading || ""
+                        }));
+                        const totalMap = mapped.length < 4 
+                            ? [...mapped, ...Array(4 - mapped.length).fill({ ...emptyRow })] 
+                            : mapped;
+                        setRows(totalMap);
+                    }
+                }
+            });
+        }
+    }, [activeRequestId]);
 
     // handle table input
     const updateRow = (index, field, value) => {
@@ -67,6 +102,7 @@ export default function NormalConsistencyForm({ onSave, onCancel, inventoryData 
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate,
+                requestId: activeRequestId || null,
                 createdBy: user?.userId || 0,
                 observations: rows
                     .filter(r => r.percent && r.volume)
@@ -79,11 +115,12 @@ export default function NormalConsistencyForm({ onSave, onCancel, inventoryData 
                     }))
             };
 
-            showToast("Cement Normal Consistency record saved successfully!", "success");
+            await saveCementNormalConsistency(payload, editId);
+            toast.success(`Cement Normal Consistency record ${editId ? 'updated' : 'saved'} successfully!`);
             if (onSave) onSave();
         } catch (error) {
             console.error("Save failed:", error);
-            showToast("Error saving record. Please check console.", "error");
+            toast.error("Error saving record. Please check console.");
         } finally {
             setLoading(false);
         }
@@ -118,17 +155,33 @@ export default function NormalConsistencyForm({ onSave, onCancel, inventoryData 
 
                     <div className="input-group">
                         <label>Consignment No <span className="required">*</span></label>
-                        <select
-                            value={header.consignmentNo}
-                            onChange={e => setHeader({ ...header, consignmentNo: e.target.value })}
-                            required
-                        >
-                            <option value="">-- Select --</option>
-                            {inventoryData.map(c => (
-                                <option key={c.consignmentNo} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
-                            ))}
-                            <option value="PERIODIC">-- Periodic Testing --</option>
-                        </select>
+                        {activeRequestId ? (
+                            <input 
+                                type="text"
+                                value={header.consignmentNo}
+                                readOnly
+                                style={{ background: '#f8fafc' }}
+                            />
+                        ) : header.typeOfTesting === 'Periodic' ? (
+                            <input 
+                                type="text"
+                                placeholder="Enter Consignment No"
+                                value={header.consignmentNo}
+                                onChange={(e) => setHeader({ ...header, consignmentNo: e.target.value })}
+                                required
+                            />
+                        ) : (
+                            <select
+                                value={header.consignmentNo}
+                                onChange={e => setHeader({ ...header, consignmentNo: e.target.value })}
+                                required
+                            >
+                                <option value="">-- Select --</option>
+                                {inventoryData.map(c => (
+                                    <option key={c.consignmentNo} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
+                                ))}
+                            </select>
+                        )}
                     </div>
 
                     <div className="input-group">
@@ -239,7 +292,7 @@ export default function NormalConsistencyForm({ onSave, onCancel, inventoryData 
 
                 <div className="btn-group" style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
                     <button type="submit" className="btn-save" disabled={loading}>
-                        {loading ? "Saving..." : "Submit Test Report"}
+                        {loading ? "Saving..." : editId ? "Update Test Report" : "Submit Test Report"}
                     </button>
                     <button type="button" className="btn-save" style={{ background: '#64748b' }} onClick={onCancel}>
                         Cancel

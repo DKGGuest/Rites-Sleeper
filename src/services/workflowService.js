@@ -292,11 +292,14 @@ export const deleteWaterCubeSample = async (id) => {
  * @param {Object} data - Test data record
  * @returns {Promise<Object>} Saved record
  */
-export const saveCement7DayStrength = async (data) => {
+export const saveCement7DayStrength = async (data, id = null) => {
   try {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/cement-7-day-strength`, {
-      method: 'POST',
+    const url = id 
+        ? `${API_BASE_URL}/cement-7-day-strength/${id}` 
+        : `${API_BASE_URL}/cement-7-day-strength`;
+    const response = await fetch(url, {
+      method: id ? 'PUT' : 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -320,11 +323,14 @@ export const saveCement7DayStrength = async (data) => {
  * @param {Object} data - Test data record
  * @returns {Promise<Object>} Saved record
  */
-export const saveCementNormalConsistency = async (data) => {
+export const saveCementNormalConsistency = async (data, id = null) => {
   try {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/cement-normal-consistency`, {
-      method: 'POST',
+    const url = id 
+        ? `${API_BASE_URL}/cement-normal-consistency/${id}` 
+        : `${API_BASE_URL}/cement-normal-consistency`;
+    const response = await fetch(url, {
+      method: id ? 'PUT' : 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -349,11 +355,14 @@ export const saveCementNormalConsistency = async (data) => {
  * @param {Object} data - Test data record
  * @returns {Promise<Object>} Saved record
  */
-export const saveCementSpecificSurface = async (data) => {
+export const saveCementSpecificSurface = async (data, id = null) => {
   try {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/cement-specific-surface`, {
-      method: 'POST',
+    const url = id 
+        ? `${API_BASE_URL}/cement-specific-surface/${id}` 
+        : `${API_BASE_URL}/cement-specific-surface`;
+    const response = await fetch(url, {
+      method: id ? 'PUT' : 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -378,11 +387,14 @@ export const saveCementSpecificSurface = async (data) => {
  * @param {Object} data - Test data record
  * @returns {Promise<Object>} Saved record
  */
-export const saveCementSettingTime = async (data) => {
+export const saveCementSettingTime = async (data, id = null) => {
   try {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/cement-setting-time`, {
-      method: 'POST',
+    const url = id 
+        ? `${API_BASE_URL}/cement-setting-time/${id}` 
+        : `${API_BASE_URL}/cement-setting-time`;
+    const response = await fetch(url, {
+      method: id ? 'PUT' : 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -407,18 +419,21 @@ export const saveCementSettingTime = async (data) => {
  * @param {Object} data - Test data record
  * @returns {Promise<Object>} Saved record
  */
-export const saveCementFineness = async (data) => {
+export const saveCementFineness = async (data, id = null) => {
   try {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/cement-fineness`, {
-      method: 'POST',
+    const url = id 
+        ? `${API_BASE_URL}/cement-fineness/${id}` 
+        : `${API_BASE_URL}/cement-fineness`;
+    const response = await fetch(url, {
+      method: id ? 'PUT' : 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(data)
     });
-
+    
     if (!response.ok) {
       throw new Error('Failed to save Fineness record');
     }
@@ -431,16 +446,58 @@ export const saveCementFineness = async (data) => {
   }
 };
 
+export const getCementBulkStatus = async (requestIds) => {
+    try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${API_BASE_URL}/cement-status/bulk`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(requestIds)
+        });
+        if (!response.ok) throw new Error('Failed to fetch bulk status');
+        const data = await response.json();
+        return data.responseData || data;
+    } catch (error) {
+        console.error('Error fetching bulk status:', error);
+        return {};
+    }
+};
+
+const getCementDataByRequestId = async (endpoint, requestId) => {
+    try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${API_BASE_URL}/${endpoint}/request/${requestId}`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data.responseData || data;
+    } catch (error) {
+        return null;
+    }
+};
+
+export const getCement7DayStrengthByReqId = (reqId) => getCementDataByRequestId('cement-7-day-strength', reqId);
+export const getCementNormalConsistencyByReqId = (reqId) => getCementDataByRequestId('cement-normal-consistency', reqId);
+export const getCementSpecificSurfaceByReqId = (reqId) => getCementDataByRequestId('cement-specific-surface', reqId);
+export const getCementSettingTimeByReqId = (reqId) => getCementDataByRequestId('cement-setting-time', reqId);
+export const getCementFinenessByReqId = (reqId) => getCementDataByRequestId('cement-fineness', reqId);
+
 /**
  * Save Aggregate 10mm Quality test result
  * @param {Object} data - Test data record
  * @returns {Promise<Object>} Saved record
  */
-export const saveAggregate10mmQuality = async (data) => {
+export const saveAggregate10mmQuality = async (data, id = null) => {
   try {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/aggregate-10mm-quality`, {
-      method: 'POST',
+    const url = id ? `${API_BASE_URL}/aggregate-10mm-quality/${id}` : `${API_BASE_URL}/aggregate-10mm-quality`;
+    const response = await fetch(url, {
+      method: id ? 'PUT' : 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -465,11 +522,12 @@ export const saveAggregate10mmQuality = async (data) => {
  * @param {Object} data - Test data record
  * @returns {Promise<Object>} Saved record
  */
-export const saveAggregate20mmQuality = async (data) => {
+export const saveAggregate20mmQuality = async (data, id = null) => {
   try {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/aggregate-20mm-quality`, {
-      method: 'POST',
+    const url = id ? `${API_BASE_URL}/aggregate-20mm-quality/${id}` : `${API_BASE_URL}/aggregate-20mm-quality`;
+    const response = await fetch(url, {
+      method: id ? 'PUT' : 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -494,11 +552,12 @@ export const saveAggregate20mmQuality = async (data) => {
  * @param {Object} data - Test data record
  * @returns {Promise<Object>} Saved record
  */
-export const saveAggregateFlakiness = async (data) => {
+export const saveAggregateFlakiness = async (data, id = null) => {
   try {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/aggregate-flakiness`, {
-      method: 'POST',
+    const url = id ? `${API_BASE_URL}/aggregate-flakiness/${id}` : `${API_BASE_URL}/aggregate-flakiness`;
+    const response = await fetch(url, {
+      method: id ? 'PUT' : 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -523,11 +582,12 @@ export const saveAggregateFlakiness = async (data) => {
  * @param {Object} data - Test data record
  * @returns {Promise<Object>} Saved record
  */
-export const saveAggregateGranulometric = async (data) => {
+export const saveAggregateGranulometric = async (data, id = null) => {
   try {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/aggregate-granulometric`, {
-      method: 'POST',
+    const url = id ? `${API_BASE_URL}/aggregate-granulometric/${id}` : `${API_BASE_URL}/aggregate-granulometric`;
+    const response = await fetch(url, {
+      method: id ? 'PUT' : 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -552,11 +612,12 @@ export const saveAggregateGranulometric = async (data) => {
  * @param {Object} data - Test data record
  * @returns {Promise<Object>} Saved record
  */
-export const saveAggregateSoundness = async (data) => {
+export const saveAggregateSoundness = async (data, id = null) => {
   try {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/aggregate-soundness`, {
-      method: 'POST',
+    const url = id ? `${API_BASE_URL}/aggregate-soundness/${id}` : `${API_BASE_URL}/aggregate-soundness`;
+    const response = await fetch(url, {
+      method: id ? 'PUT' : 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -574,6 +635,87 @@ export const saveAggregateSoundness = async (data) => {
     console.error('Error saving Soundness:', error);
     throw error;
   }
+};
+
+// Aggregate Status & Fetch Methods
+export const getAggregateBulkStatus = async (requestIds) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${API_BASE_URL}/aggregate-status/bulk`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(requestIds)
+    });
+    if (!response.ok) throw new Error('Failed to fetch aggregate statuses');
+    const result = await response.json();
+    return result.responseData || {};
+  } catch (error) {
+    console.error('Error fetching aggregate bulk status:', error);
+    return {};
+  }
+};
+
+export const getAggregate10mmQualityByReqId = async (requestId) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${API_BASE_URL}/aggregate-10mm-quality/request/${requestId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) { if (response.status === 404) return null; throw new Error('Failed to fetch 10mm Quality'); }
+    const result = await response.json();
+    return result.responseData || null;
+  } catch (error) { console.error('Error:', error); return null; }
+};
+
+export const getAggregate20mmQualityByReqId = async (requestId) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${API_BASE_URL}/aggregate-20mm-quality/request/${requestId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) { if (response.status === 404) return null; throw new Error('Failed to fetch 20mm Quality'); }
+    const result = await response.json();
+    return result.responseData || null;
+  } catch (error) { console.error('Error:', error); return null; }
+};
+
+export const getAggregateFlakinessByReqId = async (requestId) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${API_BASE_URL}/aggregate-flakiness/request/${requestId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) { if (response.status === 404) return null; throw new Error('Failed to fetch Flakiness'); }
+    const result = await response.json();
+    return result.responseData || null;
+  } catch (error) { console.error('Error:', error); return null; }
+};
+
+export const getAggregateGranulometricByReqId = async (requestId) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${API_BASE_URL}/aggregate-granulometric/request/${requestId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) { if (response.status === 404) return null; throw new Error('Failed to fetch Granulometric'); }
+    const result = await response.json();
+    return result.responseData || null;
+  } catch (error) { console.error('Error:', error); return null; }
+};
+
+export const getAggregateSoundnessByReqId = async (requestId) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${API_BASE_URL}/aggregate-soundness/request/${requestId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) { if (response.status === 404) return null; throw new Error('Failed to fetch Soundness'); }
+    const result = await response.json();
+    return result.responseData || null;
+  } catch (error) { console.error('Error:', error); return null; }
 };
 
 /**
@@ -610,11 +752,16 @@ export const saveAdmixtureTest = async (data) => {
  * @param {Object} data - Test data record
  * @returns {Promise<Object>} Saved record
  */
-export const saveHtsWireDailyTest = async (data) => {
+export const saveHtsWireDailyTest = async (data, id = null) => {
   try {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/hts-wire-daily-test`, {
-      method: 'POST',
+    const method = id ? 'PUT' : 'POST';
+    const url = id
+        ? `${API_BASE_URL}/hts-wire-daily-test/${id}`
+        : `${API_BASE_URL}/hts-wire-daily-test`;
+
+    const response = await fetch(url, {
+      method,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -634,16 +781,40 @@ export const saveHtsWireDailyTest = async (data) => {
   }
 };
 
+export const getHtsWireDailyTestByReqId = async (requestId) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${API_BASE_URL}/hts-wire-daily-test/request/${requestId}`, {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) {
+      if (response.status === 404) return null;
+      throw new Error('Failed to fetch HTS Wire Daily test by request ID');
+    }
+    const result = await response.json();
+    return result.responseData || result;
+  } catch (error) {
+    console.error('Error fetching HTS wire test:', error);
+    return null;
+  }
+};
+
 /**
  * Save SGCI Insert Audit result
  * @param {Object} data - Test data record
  * @returns {Promise<Object>} Saved record
  */
-export const saveSgciInsertAudit = async (data) => {
+export const saveSgciInsertAudit = async (data, id = null) => {
   try {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/sgci-insert-audit`, {
-      method: 'POST',
+    const method = id ? 'PUT' : 'POST';
+    const url = id
+        ? `${API_BASE_URL}/sgci-insert-audit/${id}`
+        : `${API_BASE_URL}/sgci-insert-audit`;
+
+    const response = await fetch(url, {
+      method,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -660,6 +831,25 @@ export const saveSgciInsertAudit = async (data) => {
   } catch (error) {
     console.error('Error saving SGCI Audit:', error);
     throw error;
+  }
+};
+
+export const getSgciInsertAuditByRequestId = async (requestId) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${API_BASE_URL}/sgci-insert-audit/request/${requestId}`, {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) {
+      if (response.status === 404) return null;
+      throw new Error('Failed to fetch SGCI Insert Audit record by request ID');
+    }
+    const result = await response.json();
+    return result.responseData || result;
+  } catch (error) {
+    console.error('Error fetching SGCI Audit Details:', error);
+    return null;
   }
 };
 

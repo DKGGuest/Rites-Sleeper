@@ -4,7 +4,7 @@ import EnhancedDataTable from '../../../../components/common/EnhancedDataTable';
 import { MOCK_HTS_HISTORY, MOCK_INVENTORY, MOCK_VERIFIED_CONSIGNMENTS } from '../../../../utils/rawMaterialMockData';
 import { useShift } from '../../../../context/ShiftContext';
 import { useToast } from '../../../../context/ToastContext';
-import { saveHtsWireDailyTest } from '../../../../services/workflowService';
+import { saveHtsWireDailyTest, getHtsWireDailyTestByReqId } from '../../../../services/workflowService';
 import TrendChart from '../../../../components/common/TrendChart';
 import '../cement/CementForms.css';
 
@@ -45,6 +45,37 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
     })));
 
     const pendingStocks = inventoryData;
+    const toast = useToast();
+    const [statusMap, setStatusMap] = useState({});
+    const [activeRequestId, setActiveRequestId] = useState(null);
+    const [editId, setEditId] = useState(null);
+    const [isPeriodic, setIsPeriodic] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    useEffect(() => {
+        const fetchStatus = async () => {
+            if (!pendingStocks?.length) return;
+            const newStatusMap = { ...statusMap };
+            let updated = false;
+            try {
+                for (const stock of pendingStocks) {
+                    if (stock.requestId) {
+                        const record = await getHtsWireDailyTestByReqId(stock.requestId);
+                        if (record && record.id) {
+                            newStatusMap[stock.requestId] = "Completed";
+                        } else {
+                            newStatusMap[stock.requestId] = "Pending";
+                        }
+                        updated = true;
+                    }
+                }
+                if (updated) setStatusMap(newStatusMap);
+            } catch (error) {
+                console.error("Error fetching HTS wire status", error);
+            }
+        };
+        fetchStatus();
+    }, [pendingStocks, refreshTrigger]);
 
     const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm({
         defaultValues: {
@@ -56,6 +87,20 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
             strandDiameter: ''
         }
     });
+
+    useEffect(() => {
+        if (activeRequestId) {
+            getHtsWireDailyTestByReqId(activeRequestId).then(record => {
+                if (record && record.id) {
+                    setEditId(record.id);
+                    reset({
+                        ...record,
+                        testDate: record.testDate ? record.testDate.substring(0, 10) : new Date().toISOString().split('T')[0]
+                    });
+                }
+            });
+        }
+    }, [activeRequestId, reset]);
 
     // Removed coilNo watch and useEffect
 
@@ -73,18 +118,23 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
+                requestId: activeRequestId || null,
                 createdBy: 1 // Default
             };
 
-            await saveHtsWireDailyTest(payload);
-            showToast("HTS Wire daily test result saved!", "success");
+            await saveHtsWireDailyTest(payload, editId);
+            toast.success(`HTS Wire daily test result ${editId ? 'updated' : 'saved'} successfully!`);
             // In real app re-fetch history
         } catch (error) {
             console.error("Error saving HTS wire test:", error);
-            showToast("Failed to save HTS wire test result.", "error");
+            toast.error("Failed to save HTS wire test result.");
         } finally {
             setShowForm(false);
             reset();
+            setActiveRequestId(null);
+            setEditId(null);
+            setIsPeriodic(false);
+            setRefreshTrigger(prev => prev + 1);
         }
     };
 
@@ -113,23 +163,48 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
         },
         { key: 'receivedDate', label: 'Arrival Date' },
         {
+            key: 'testingStatus',
+            label: 'Status',
+            render: (_, row) => {
+                const status = statusMap[row.requestId] || 'Pending';
+                return (
+                    <span style={{
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        backgroundColor: status === 'Completed' ? '#dcfce7' : '#fef3c7',
+                        color: status === 'Completed' ? '#166534' : '#92400e'
+                    }}>
+                        {status}
+                    </span>
+                );
+            }
+        },
+        {
             key: 'actions',
             label: 'Actions',
-            render: (_, row) => (
-                <button
-                    className="btn-action mini"
-                    onClick={() => {
-                        reset({
-                            testDate: new Date().toISOString().split('T')[0],
-                            consignmentNo: row.consignmentNo,
-                            lotNo: ''
-                        });
-                        setShowForm(true);
-                    }}
-                >
-                    Add Test Detail
-                </button>
-            )
+            render: (_, row) => {
+                const isCompleted = statusMap[row.requestId] === 'Completed';
+                return (
+                    <button
+                        className="btn-action mini"
+                        onClick={() => {
+                            reset({
+                                testDate: new Date().toISOString().split('T')[0],
+                                consignmentNo: row.consignmentNo,
+                                lotNo: ''
+                            });
+                            setActiveRequestId(row.requestId);
+                            setEditId(null);
+                            setIsPeriodic(false);
+                            setShowForm(true);
+                        }}
+                    >
+                        {isCompleted ? 'Modify test details' : 'Add Test Detail'}
+                    </button>
+                )
+            }
         }
     ];
 
@@ -175,7 +250,13 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
             <div className="content-title-row" style={{ marginBottom: '24px' }}>
                 <h2 style={{ margin: 0 }}>HTS Wire Testing (Daily)</h2>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                    <button className="toggle-btn mini" onClick={() => { reset(); setShowForm(true); }}>+ Add New (Periodic)</button>
+                    <button className="toggle-btn mini" onClick={() => { 
+                        reset(); 
+                        setActiveRequestId(null);
+                        setEditId(null);
+                        setIsPeriodic(true);
+                        setShowForm(true); 
+                    }}>+ Add New (Periodic)</button>
                     <button className="toggle-btn secondary mini" onClick={onBack}>Back to Dashboard</button>
                 </div>
             </div>
@@ -224,7 +305,13 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
                     <div className="table-outer-wrapper fade-in">
                         <div className="content-title-row" style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', marginBottom: 0 }}>
                             <h4 style={{ margin: 0 }}>HTS Quality Logs</h4>
-                            <button className="toggle-btn mini" onClick={() => { reset(); setShowForm(true); }}>+ Add New (Periodic)</button>
+                            <button className="toggle-btn mini" onClick={() => { 
+                                reset(); 
+                                setActiveRequestId(null);
+                                setEditId(null);
+                                setIsPeriodic(true);
+                                setShowForm(true); 
+                            }}>+ Add New (Periodic)</button>
                         </div>
                         <EnhancedDataTable columns={historyColumns} data={history} emptyMessage="No HTS test records found." />
                     </div>
@@ -247,11 +334,28 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
                                     </div>
                                     <div className="input-group">
                                         <label>Consignment No. <span className="required">*</span></label>
-                                        <select {...register('consignmentNo', { required: 'Required' })}>
-                                            <option value="">-- Select --</option>
-                                            {MOCK_VERIFIED_CONSIGNMENTS.map(c => <option key={c} value={c}>{c}</option>)}
-                                            <option value="PERIODIC">-- Periodic Testing --</option>
-                                        </select>
+                                        {activeRequestId ? (
+                                            <input
+                                                type="text"
+                                                readOnly
+                                                className="readOnly"
+                                                style={{ background: '#f8fafc' }}
+                                                {...register("consignmentNo")}
+                                            />
+                                        ) : isPeriodic ? (
+                                            <input
+                                                type="text"
+                                                placeholder="Enter Consignment No"
+                                                {...register("consignmentNo", { required: "Required" })}
+                                            />
+                                        ) : (
+                                            <select {...register('consignmentNo', { required: 'Required' })}>
+                                                <option value="">-- Select --</option>
+                                                {inventoryData.map((c, i) => (
+                                                    <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
+                                                ))}
+                                            </select>
+                                        )}
                                     </div>
                                     <div className="input-group">
                                         <label>Lot No. <span className="required">*</span></label>
@@ -271,7 +375,7 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
                                     </div>
                                 </div>
                                 <div className="form-modal-footer" style={{ borderTop: 'none', padding: '24px 0 0' }}>
-                                    <button type="submit" className="btn-save">Save Test</button>
+                                    <button type="submit" className="btn-save">{editId ? 'Update Test' : 'Save Test'}</button>
                                     <button type="button" className="btn-save" style={{ background: '#64748b' }} onClick={() => setShowForm(false)}>Cancel</button>
                                 </div>
                             </form>

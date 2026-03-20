@@ -4,7 +4,7 @@ import EnhancedDataTable from '../../../../components/common/EnhancedDataTable';
 import { MOCK_SGCI_HISTORY, MOCK_INVENTORY, MOCK_VERIFIED_CONSIGNMENTS } from '../../../../utils/rawMaterialMockData';
 import { useShift } from '../../../../context/ShiftContext';
 import { useToast } from '../../../../context/ToastContext';
-import { saveSgciInsertAudit } from '../../../../services/workflowService';
+import { saveSgciInsertAudit, getSgciInsertAuditByRequestId } from '../../../../services/workflowService';
 import TrendChart from '../../../../components/common/TrendChart';
 import '../cement/CementForms.css';
 
@@ -42,6 +42,36 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
     })));
     const [availableLots] = useState(MOCK_INVENTORY.SGCI || []);
     const pendingStocks = inventoryData;
+    const [statusMap, setStatusMap] = useState({});
+    const [activeRequestId, setActiveRequestId] = useState(null);
+    const [editId, setEditId] = useState(null);
+    const [isPeriodic, setIsPeriodic] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    useEffect(() => {
+        const fetchStatus = async () => {
+            if (!pendingStocks?.length) return;
+            const newStatusMap = { ...statusMap };
+            let updated = false;
+            try {
+                for (const stock of pendingStocks) {
+                    if (stock.requestId) {
+                        const record = await getSgciInsertAuditByRequestId(stock.requestId);
+                        if (record && record.id) {
+                            newStatusMap[stock.requestId] = "Completed";
+                        } else {
+                            newStatusMap[stock.requestId] = "Pending";
+                        }
+                        updated = true;
+                    }
+                }
+                if (updated) setStatusMap(newStatusMap);
+            } catch (error) {
+                console.error("Error fetching SGCI status", error);
+            }
+        };
+        fetchStatus();
+    }, [pendingStocks, refreshTrigger]);
 
     const { register, control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm({
         defaultValues: {
@@ -61,6 +91,20 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
         control,
         name: "readings"
     });
+
+    useEffect(() => {
+        if (activeRequestId) {
+            getSgciInsertAuditByRequestId(activeRequestId).then(record => {
+                if (record && record.id) {
+                    setEditId(record.id);
+                    reset({
+                        ...record,
+                        date: record.testDate ? record.testDate.substring(0, 10) : new Date().toISOString().split('T')[0]
+                    });
+                }
+            });
+        }
+    }, [activeRequestId, reset]);
 
     const readings = watch('readings');
     const selectedType = watch('type');
@@ -133,19 +177,24 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
+                requestId: activeRequestId || null,
                 createdBy: 1, // Default
                 readings: data.readings
             };
 
-            await saveSgciInsertAudit(payload);
-            showToast("SGCI Insert Audit record saved!", "success");
+            await saveSgciInsertAudit(payload, editId);
+            toast.success(`SGCI Insert Audit record ${editId ? 'updated' : 'saved'}!`);
             // Re-fetch historical logs in real app
         } catch (error) {
             console.error("Error saving SGCI audit:", error);
-            showToast("Failed to save SGCI Insert Audit report.", "error");
+            toast.error("Failed to save SGCI Insert Audit report.");
         } finally {
             setShowForm(false);
             reset();
+            setActiveRequestId(null);
+            setEditId(null);
+            setIsPeriodic(false);
+            setRefreshTrigger(prev => prev + 1);
         }
     };
 
@@ -179,27 +228,52 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
             render: (_, row) => row.details?.ritesIcNumber || 'N/A'
         },
         {
+            key: 'testingStatus',
+            label: 'Status',
+            render: (_, row) => {
+                const status = statusMap[row.requestId] || 'Pending';
+                return (
+                    <span style={{
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        backgroundColor: status === 'Completed' ? '#dcfce7' : '#fef3c7',
+                        color: status === 'Completed' ? '#166534' : '#92400e'
+                    }}>
+                        {status}
+                    </span>
+                );
+            }
+        },
+        {
             key: 'actions',
             label: 'Actions',
-            render: (_, row) => (
-                <button
-                    className="btn-action mini"
-                    onClick={() => {
-                        reset({
-                            date: new Date().toISOString().split('T')[0],
-                            consignmentNo: row.consignmentNo,
-                            supplier: row.vendor,
-                            ritesIc: row.details?.ritesIcNumber || 'N/A',
-                            type: row.details?.gradeType || 'N/A',
-                            inventoryId: row.requestId,
-                            readings: [{ heatNo: '', patternNo: '', weight: '', dimensionalNotOk: false, hammerNotOk: false, result: 'PASS' }]
-                        });
-                        setShowForm(true);
-                    }}
-                >
-                    Add Test Detail
-                </button>
-            )
+            render: (_, row) => {
+                const isCompleted = statusMap[row.requestId] === 'Completed';
+                return (
+                    <button
+                        className="btn-action mini"
+                        onClick={() => {
+                            reset({
+                                date: new Date().toISOString().split('T')[0],
+                                consignmentNo: row.consignmentNo,
+                                supplier: row.vendor,
+                                ritesIc: row.details?.ritesIcNumber || 'N/A',
+                                type: row.details?.gradeType || 'N/A',
+                                inventoryId: row.requestId,
+                                readings: [{ heatNo: '', patternNo: '', weight: '', dimensionalNotOk: false, hammerNotOk: false, result: 'PASS' }]
+                            });
+                            setActiveRequestId(row.requestId);
+                            setEditId(null);
+                            setIsPeriodic(false);
+                            setShowForm(true);
+                        }}
+                    >
+                        {isCompleted ? 'Modify test details' : 'Add Test Detail'}
+                    </button>
+                );
+            }
         }
     ];
 
@@ -250,7 +324,13 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
             <div className="content-title-row" style={{ marginBottom: '24px' }}>
                 <h2 style={{ margin: 0 }}>SGCI Insert Audit Report</h2>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                    <button className="toggle-btn mini" onClick={() => { reset(); setShowForm(true); }}>+ Add New (Periodic)</button>
+                    <button className="toggle-btn mini" onClick={() => { 
+                        reset(); 
+                        setActiveRequestId(null);
+                        setEditId(null);
+                        setIsPeriodic(true);
+                        setShowForm(true); 
+                    }}>+ Add New (Periodic)</button>
                     <button className="toggle-btn secondary mini" onClick={onBack}>Back to Dashboard</button>
                 </div>
             </div>
@@ -299,7 +379,13 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                     <div className="table-outer-wrapper fade-in">
                         <div className="content-title-row" style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', marginBottom: 0 }}>
                             <h4 style={{ margin: 0 }}>Weekly Audit Logs</h4>
-                            <button className="toggle-btn mini" onClick={() => { reset(); setShowForm(true); }}>+ Add New (Periodic)</button>
+                            <button className="toggle-btn mini" onClick={() => { 
+                                reset(); 
+                                setActiveRequestId(null);
+                                setEditId(null);
+                                setIsPeriodic(true);
+                                setShowForm(true); 
+                            }}>+ Add New (Periodic)</button>
                         </div>
                         <EnhancedDataTable columns={historyColumns} data={history} />
                     </div>
@@ -319,11 +405,28 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                                     <div className="input-group"><label>Date</label><input type="text" value={new Date().toLocaleDateString('en-GB')} readOnly style={{ background: '#f1f5f9' }} /></div>
                                     <div className="input-group">
                                         <label>Consignment</label>
-                                        <select {...register('consignmentNo')}>
-                                            <option value="">-- Select --</option>
-                                            {MOCK_VERIFIED_CONSIGNMENTS.map(c => <option key={c} value={c}>{c}</option>)}
-                                            <option value="PERIODIC">-- Periodic Testing --</option>
-                                        </select>
+                                        {activeRequestId ? (
+                                            <input
+                                                type="text"
+                                                readOnly
+                                                className="readOnly"
+                                                style={{ background: '#f8fafc' }}
+                                                {...register("consignmentNo")}
+                                            />
+                                        ) : isPeriodic ? (
+                                            <input
+                                                type="text"
+                                                placeholder="Enter Consignment No"
+                                                {...register("consignmentNo", { required: "Required" })}
+                                            />
+                                        ) : (
+                                            <select {...register('consignmentNo', { required: 'Required' })}>
+                                                <option value="">-- Select --</option>
+                                                {inventoryData.map((c, i) => (
+                                                    <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
+                                                ))}
+                                            </select>
+                                        )}
                                     </div>
                                     <div className="input-group">
                                         <label>Insert Type</label>
@@ -376,7 +479,7 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                                 </div>
 
                                 <div className="form-modal-footer" style={{ borderTop: 'none', padding: '24px 0 0' }}>
-                                    <button type="submit" className="btn-save">Save Audit</button>
+                                    <button type="submit" className="btn-save">{editId ? 'Update Audit' : 'Save Audit'}</button>
                                     <button type="button" className="btn-save" style={{ background: '#64748b' }} onClick={() => setShowForm(false)}>Cancel</button>
                                 </div>
                             </form>
