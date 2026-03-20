@@ -551,7 +551,7 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
             mouldVisualResult: formState.mould.visualResult,
             mouldDimensionalResult: formState.mould.dimensionResult,
             combinedRemarks: autoRemarks.trim(),
-            createdBy: 118
+            createdBy: parseInt(localStorage.getItem('userId') || '118', 10)
         };
 
         try {

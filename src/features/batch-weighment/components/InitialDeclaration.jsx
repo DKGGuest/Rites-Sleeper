@@ -81,8 +81,8 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate, onSensorU
                 verifiedBy: "Operator",
                 remarks: "Initial declaration",
                 entryMode: "MANUAL",
-                createdBy: 118,
-                updatedBy: 118,
+                createdBy: parseInt(localStorage.getItem('userId') || '118', 10),
+                updatedBy: parseInt(localStorage.getItem('userId') || '118', 10),
                 batchDetails: batches.map(b => ({
                     batchNo: String(b.batchNo || "0"),
                     proportionStatus: b.proportionMatch || "OK",

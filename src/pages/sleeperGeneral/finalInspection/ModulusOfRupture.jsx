@@ -90,12 +90,12 @@ const ModulusOfRupture = () => {
             if (isModifying) {
                 await apiService.updateMORSample(selectedSample.id, {
                     ...formData,
-                    updatedBy: 118
+                    updatedBy: parseInt(localStorage.getItem('userId') || '118', 10)
                 });
             } else {
                 await apiService.createMORSample({
                     ...formData,
-                    createdBy: 118
+                    createdBy: parseInt(localStorage.getItem('userId') || '118', 10)
                 });
             }
             setShowDeclareModal(false);
@@ -113,7 +113,7 @@ const ModulusOfRupture = () => {
             await apiService.createMORTest({
                 ...testData,
                 morSampleId: selectedSample.id,
-                createdBy: 118
+                createdBy: parseInt(localStorage.getItem('userId') || '118', 10)
             });
             setShowTestModal(false);
             fetchData();

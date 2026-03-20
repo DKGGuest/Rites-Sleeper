@@ -174,8 +174,8 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
             arrangementOk: formData.arrangement === 'OK',
             overallStatus: formData.status,
             remarks: formData.remarks || '',
-            createdBy: 0,
-            updatedBy: 0
+            createdBy: parseInt(localStorage.getItem('userId') || '0', 10),
+            updatedBy: parseInt(localStorage.getItem('userId') || '0', 10)
         };
 
         onSave(payload);

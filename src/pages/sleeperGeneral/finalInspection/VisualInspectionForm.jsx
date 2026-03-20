@@ -175,7 +175,7 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
                 batchId: batch.batchId,
                 moduleId: 1,
                 shift: shift || 'General',
-                createdBy: 118,
+                createdBy: parseInt(localStorage.getItem('userId') || '118', 10),
                 sleepers: sleepers.filter(s => selectedSleepers.includes(s.id)).map(s => {
                     const isPassed = s.status === 'passed';
                     const isRejected = s.status === 'rejected';

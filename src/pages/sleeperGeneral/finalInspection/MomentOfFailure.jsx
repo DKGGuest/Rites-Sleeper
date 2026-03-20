@@ -90,12 +90,12 @@ const MomentOfFailure = () => {
             if (isModifying) {
                 await apiService.updateMFSample(selectedSample.id, {
                     ...formData,
-                    updatedBy: 118
+                    updatedBy: parseInt(localStorage.getItem('userId') || '118', 10)
                 });
             } else {
                 await apiService.createMFSample({
                     ...formData,
-                    createdBy: 118
+                    createdBy: parseInt(localStorage.getItem('userId') || '118', 10)
                 });
             }
             setShowDeclareModal(false);
@@ -113,7 +113,7 @@ const MomentOfFailure = () => {
             await apiService.createMFTest({
                 ...testData,
                 modulusOfFailureId: selectedSample.id,
-                createdBy: 118
+                createdBy: parseInt(localStorage.getItem('userId') || '118', 10)
             });
             setShowTestModal(false);
             fetchData();

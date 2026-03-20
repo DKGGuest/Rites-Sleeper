@@ -58,7 +58,8 @@ const KEY_LABELS = {
     acRatio:             'A/C Ratio',
     // Module 5 — HTS Wire
     manufacturer:        'Manufacturer',
-    invoiceNumber:       'Invoice / Batch No.',
+    lotNo:               'Lot No. / Batch',
+    invoiceNumber:       'Invoice No.',
     gradeSpec:           'Grade / Spec.',
     quantity:            'Quantity',
     unitOfMeasure:       'Unit',
@@ -356,17 +357,68 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
                                 gap: '14px',
                             }}>
                                 {Object.entries(detail).map(([key, val]) => {
-                                    // Skip nested objects/arrays
-                                    if (val !== null && typeof val === 'object' && !Array.isArray(val)) return null;
-                                    if (Array.isArray(val)) return null;
-
                                     // Skip audit fields already shown prominently
                                     const auditKeys = [
                                         'updatedBy', 'modifiedBy', 'lastModifiedBy', 'createdBy',
                                         'updatedDate', 'updatedAt', 'modifiedDate', 'modifiedAt', 'lastModifiedDate',
-                                        'status', 'recordStatus'
+                                        'status', 'recordStatus', 'id'
                                     ];
                                     if (auditKeys.includes(key)) return null;
+
+                                    // 🚫 EXCLUDE ANY COIL NO DETAILS (Per User Request)
+                                    const forbiddenWords = ['coilno', 'coilnumber', 'id'];
+                                    if (forbiddenWords.some(word => key.toLowerCase().includes(word))) return null;
+
+                                    // --- 🗃️ Handle Arrays (Like Coil Details) ---
+                                    if (Array.isArray(val)) {
+                                        if (val.length === 0) return null;
+                                        return (
+                                            <div key={key} style={{ gridColumn: 'span 2', marginTop: '10px' }}>
+                                                <p style={{
+                                                    margin: '0 0 10px', fontSize: '10px',
+                                                    color: '#94a3b8', fontWeight: '700',
+                                                    textTransform: 'uppercase', letterSpacing: '0.6px'
+                                                }}>
+                                                    📋 {formatKey(key)}
+                                                </p>
+                                                <div style={{
+                                                    display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                                                    gap: '10px'
+                                                }}>
+                                                    {val.map((item, idx) => (
+                                                        <div key={idx} style={{
+                                                            background: '#fff', border: '1px solid #e2e8f0',
+                                                            borderRadius: '10px', padding: '12px',
+                                                            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                                                        }}>
+                                                            {typeof item === 'object' ? (
+                                                                Object.entries(item).map(([subK, subV]) => {
+                                                                    if (forbiddenWords.some(word => subK.toLowerCase().includes(word))) return null;
+                                                                    return (
+                                                                        <div key={subK} style={{ marginBottom: '6px' }}>
+                                                                            <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '600' }}>
+                                                                                {formatKey(subK)}
+                                                                            </div>
+                                                                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>
+                                                                                {formatValue(subV)}
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })
+                                                            ) : (
+                                                                <div style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>
+                                                                    {formatValue(item)}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+
+                                    // Skip nested objects (non-arrays)
+                                    if (val !== null && typeof val === 'object') return null;
 
                                     return (
                                         <div key={key} style={{

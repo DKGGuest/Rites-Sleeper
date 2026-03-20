@@ -222,8 +222,8 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                     getSectionPayload('CA2', uiData.ca2Result),
                     getSectionPayload('FA', uiData.faResult)
                 ],
-                createdBy: 1, // Default, can be refined based on user auth
-                updatedBy: 0
+                createdBy: parseInt(localStorage.getItem('userId') || '1', 10), // Default, can be refined based on user auth
+                updatedBy: parseInt(localStorage.getItem('userId') || '0', 10)
             };
 
             if (editRecord && editRecord.id) {

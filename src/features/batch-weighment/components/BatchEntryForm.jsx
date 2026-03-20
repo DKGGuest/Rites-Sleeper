@@ -33,8 +33,8 @@ const BatchEntryForm = ({
                 verifiedBy: witnessInfo.verifiedBy || "Operator",
                 remarks: witnessInfo.remarks || "Batch session sync",
                 entryMode: "MIXED",
-                createdBy: 118,
-                updatedBy: 118,
+                createdBy: parseInt(localStorage.getItem('userId') || '118', 10),
+                updatedBy: parseInt(localStorage.getItem('userId') || '118', 10),
                 batchDetails: batchDeclarations.map(d => ({
                     id: (typeof d.id === 'number' && d.id < 1000000) ? d.id : 0,
                     batchNo: String(d.batchNo || "0"),

@@ -113,7 +113,7 @@ const CriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
                 batchId: batch.batchId,
                 moduleId: 2,
                 shift: shift || 'General',
-                createdBy: 118,
+                createdBy: parseInt(localStorage.getItem('userId') || '118', 10),
                 sleepers: selectedSleepers.map(sid => {
                     const sleeper = allSleepersPool.find(s => s.id === sid);
                     const isRejected = !!rejectionDetails[sid];
@@ -273,7 +273,7 @@ const CriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
                                     <tbody>
                                         {Object.keys(rejectionDetails).map(sid => (
                                             <tr key={sid}>
-                                                <td data-label="Sleeper No" className="fw-700">{allSleepersPool.find(s => s.id === sid)?.displayNo}</td>
+                                                <td data-label="Sleeper No" className="fw-700">{allSleepersPool.find(s => String(s.id) === String(sid))?.displayNo}</td>
                                                 <td data-label="Main Reason">
                                                     <select
                                                         value={rejectionDetails[sid].mainReason}

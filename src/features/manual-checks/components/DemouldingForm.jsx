@@ -180,8 +180,8 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
             visualCheck: formData.visualCheck || 'All OK',
             dimCheck: formData.dimCheck || 'All OK',
             overallRemarks: formData.remarks || '',
-            createdBy: "0",
-            updatedBy: "0",
+            createdBy: localStorage.getItem('userId') || "0",
+            updatedBy: localStorage.getItem('userId') || "0",
             defectiveSleepers: mappedDefectiveSleepers
         };
 

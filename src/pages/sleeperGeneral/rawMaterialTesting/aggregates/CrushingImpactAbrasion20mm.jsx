@@ -103,7 +103,7 @@ export default function CrushingImpactAbrasion20mm({ onSave, onCancel, inventory
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate,
                 requestId: activeRequestId || null,
-                createdBy: JSON.parse(localStorage.getItem('user'))?.id || 1
+                createdBy: parseInt(localStorage.getItem('userId') || '1', 10)
             };
 
             await saveAggregate20mmQuality(payload, editId);

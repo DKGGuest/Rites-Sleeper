@@ -107,7 +107,7 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
             mouldCleaned: formData.mouldCleaned === 'Yes',
             oilApplied: formData.oilApplied === 'Yes',
             remarks: formData.remarks || '',
-            createdBy: 0,
+            createdBy: parseInt(localStorage.getItem('userId') || '1', 10),
             updateBy: 0
         };
 

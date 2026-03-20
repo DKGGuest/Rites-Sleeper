@@ -119,7 +119,7 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
                 requestId: activeRequestId || null,
-                createdBy: 1 // Default
+                createdBy: parseInt(localStorage.getItem('userId') || '1', 10)
             };
 
             await saveHtsWireDailyTest(payload, editId);

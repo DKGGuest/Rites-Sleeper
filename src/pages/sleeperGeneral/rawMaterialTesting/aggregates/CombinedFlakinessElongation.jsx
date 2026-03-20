@@ -148,7 +148,7 @@ export default function CombinedFlakinessElongation({ onSave, onCancel, inventor
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
                 requestId: activeRequestId || null,
-                createdBy: JSON.parse(localStorage.getItem('user'))?.id || 1
+                createdBy: parseInt(localStorage.getItem('userId') || '1', 10)
             };
 
             await saveAggregateFlakiness(payload, editId);
