@@ -33,7 +33,7 @@ export const ToastProvider = ({ children }) => {
             {children}
             <div className="toast-container" style={{
                 position: 'fixed',
-                bottom: '20px',
+                top: '20px',
                 right: '20px',
                 zIndex: 9999,
                 display: 'flex',

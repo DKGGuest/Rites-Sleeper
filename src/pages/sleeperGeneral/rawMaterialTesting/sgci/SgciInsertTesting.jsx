@@ -4,7 +4,7 @@ import EnhancedDataTable from '../../../../components/common/EnhancedDataTable';
 import { MOCK_SGCI_HISTORY, MOCK_INVENTORY, MOCK_VERIFIED_CONSIGNMENTS } from '../../../../utils/rawMaterialMockData';
 import { useShift } from '../../../../context/ShiftContext';
 import { useToast } from '../../../../context/ToastContext';
-import { saveSgciInsertAudit } from '../../../../services/workflowService';
+import { saveSgciInsertAudit, updateSgciInsertAudit, getSgciInsertAuditByRequestId } from '../../../../services/workflowService';
 import TrendChart from '../../../../components/common/TrendChart';
 import '../cement/CementForms.css';
 
@@ -34,6 +34,8 @@ const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
 const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
     const [viewMode, setViewMode] = useState('new-stocks'); // Default to new stocks
     const [showForm, setShowForm] = useState(false);
+    const [activeRequestId, setActiveRequestId] = useState(null);
+    const [existingId, setExistingId] = useState(null);
     const { selectedShift, dutyDate, dutyLocation } = useShift();
     const { showToast } = useToast();
     const [history, setHistory] = useState(MOCK_SGCI_HISTORY.map(h => ({
@@ -79,6 +81,34 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
     }, [selectedLotNo, availableLots, setValue]);
 
     useEffect(() => {
+        const loadExistingData = async () => {
+            if (activeRequestId && showForm) {
+                try {
+                    const data = await getSgciInsertAuditByRequestId(activeRequestId);
+                    if (data && data.id) {
+                        setExistingId(data.id);
+                        reset({
+                            date: data.testDate,
+                            consignmentNo: data.consignmentNo,
+                            lotNo: data.lotNo,
+                            supplier: data.supplier,
+                            type: data.type,
+                            ritesIc: data.ritesIc,
+                            inventoryId: data.inventoryId || '',
+                            readings: data.readings || []
+                        });
+                    } else {
+                        setExistingId(null);
+                    }
+                } catch (error) {
+                    console.error("Failed to load existing SGCI audit data:", error);
+                }
+            }
+        };
+        loadExistingData();
+    }, [activeRequestId, showForm, reset]);
+
+    useEffect(() => {
         readings.forEach((r, idx) => {
             const w = parseFloat(r.weight);
             const isWeightOk = w >= 1.4395 && w <= 1.5285;
@@ -119,13 +149,21 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
                 createdBy: 1, // Default
-                readings: data.readings
+                readings: data.readings,
+                requestId: activeRequestId
             };
 
-            await saveSgciInsertAudit(payload);
-            showToast("SGCI Insert Audit record saved!", "success");
+            if (existingId) {
+                await updateSgciInsertAudit(existingId, payload);
+                showToast("SGCI Insert Audit updated successfully!", "success");
+            } else {
+                await saveSgciInsertAudit(payload);
+                showToast("SGCI Insert Audit record saved!", "success");
+            }
 
             setShowForm(false);
+            setExistingId(null);
+            setActiveRequestId(null);
             reset();
             // Re-fetch historical logs in real app
         } catch (error) {
@@ -170,6 +208,8 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                 <button
                     className="btn-action mini"
                     onClick={() => {
+                        setActiveRequestId(row.requestId);
+                        setExistingId(null);
                         reset({
                             date: new Date().toISOString().split('T')[0],
                             consignmentNo: row.consignmentNo,
@@ -183,7 +223,7 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                         setShowForm(true);
                     }}
                 >
-                    Add Test Detail
+                    {history.find(h => h.requestId === row.requestId) ? 'Modify Test Details' : 'Add Test Detail'}
                 </button>
             )
         }
@@ -206,6 +246,8 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                             className={`btn-action mini ${!editable ? 'disabled-btn' : ''}`}
                             disabled={!editable}
                             onClick={() => {
+                                setExistingId(row.id);
+                                setActiveRequestId(row.requestId);
                                 reset({
                                     date: row.testDate,
                                     lotNo: row.lotNo,
@@ -236,7 +278,7 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
             <div className="content-title-row" style={{ marginBottom: '24px' }}>
                 <h2 style={{ margin: 0 }}>SGCI Insert Audit Report</h2>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                    <button className="toggle-btn mini" onClick={() => { reset(); setShowForm(true); }}>+ Add New (Periodic)</button>
+                    <button className="toggle-btn mini" onClick={() => { setExistingId(null); setActiveRequestId(null); reset(); setShowForm(true); }}>+ Add New (Periodic)</button>
                     <button className="toggle-btn secondary mini" onClick={onBack}>Back to Dashboard</button>
                 </div>
             </div>
@@ -285,7 +327,7 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                     <div className="table-outer-wrapper fade-in">
                         <div className="content-title-row" style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', marginBottom: 0 }}>
                             <h4 style={{ margin: 0 }}>Weekly Audit Logs</h4>
-                            <button className="toggle-btn mini" onClick={() => { reset(); setShowForm(true); }}>+ Add New (Periodic)</button>
+                            <button className="toggle-btn mini" onClick={() => { setExistingId(null); setActiveRequestId(null); reset(); setShowForm(true); }}>+ Add New (Periodic)</button>
                         </div>
                         <EnhancedDataTable columns={historyColumns} data={history} />
                     </div>

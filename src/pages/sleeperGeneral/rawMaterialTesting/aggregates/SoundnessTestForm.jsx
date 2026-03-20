@@ -2,11 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
-import { saveAggregateSoundness } from "../../../../services/workflowService";
+import { saveAggregateSoundness, updateAggregateSoundness, getAggregateSoundnessByRequestId } from "../../../../services/workflowService";
 
-export default function SoundnessTestForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+export default function SoundnessTestForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", selectedRow }) {
     const { selectedShift, dutyLocation, dutyDate } = useShift();
-    const { showToast } = useToast();
+    const toast = useToast();
     const [submitting, setSubmitting] = useState(false);
 
     const { register, watch, setValue, handleSubmit, formState: { errors } } = useForm({
@@ -15,6 +15,25 @@ export default function SoundnessTestForm({ onSave, onCancel, inventoryData = []
             cycles: 5
         }
     });
+
+    const [existingId, setExistingId] = useState(null);
+
+    useEffect(() => {
+        if (selectedRow?.requestId) {
+            getAggregateSoundnessByRequestId(selectedRow.requestId).then((data) => {
+                if (data) {
+                    setExistingId(data.id);
+                    Object.keys(data).forEach(key => {
+                        if (key === 'testDate' && data[key]) {
+                            setValue('testDate', data[key].split('T')[0]);
+                        } else {
+                            setValue(key, data[key]);
+                        }
+                    });
+                }
+            });
+        }
+    }, [selectedRow, setValue]);
 
     const initialWt = watch("initialWt");
     const finalWt = watch("finalWt");
@@ -41,16 +60,23 @@ export default function SoundnessTestForm({ onSave, onCancel, inventoryData = []
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
+                requestId: selectedRow?.requestId || null,
                 createdBy: JSON.parse(localStorage.getItem('user'))?.id || 1
             };
 
-            await saveAggregateSoundness(payload);
-            showToast("Soundness Test report saved successfully!", "success");
-            reset();
-            onSave && onSave(payload);
+            if (existingId) {
+                await updateAggregateSoundness(existingId, payload);
+                toast.success("Soundness Test report updated successfully!");
+            } else {
+                await saveAggregateSoundness(payload);
+                toast.success("Soundness Test report saved successfully!");
+            }
+            
+            // onSave && onSave(5); // This is the last form
+            onSave && onSave(5);
         } catch (error) {
             console.error("Error saving soundness data:", error);
-            showToast("Failed to save Soundness report.", "error");
+            toast.error("Failed to save Soundness report.");
         } finally {
             setSubmitting(false);
         }
@@ -72,16 +98,33 @@ export default function SoundnessTestForm({ onSave, onCancel, inventoryData = []
 
                         <div className="input-group">
                             <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '600', color: '#475569' }}>Consignment No. <span className="required" style={{ color: 'red' }}>*</span></label>
-                            <select
-                                {...register("consignmentNo", { required: "Required" })}
-                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                            >
-                                <option value="">-- Select --</option>
-                                {inventoryData.map((c, i) => (
-                                    <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
-                                ))}
-                                <option value="PERIODIC">-- Periodic Testing --</option>
-                            </select>
+                            {selectedRow ? (
+                                <input 
+                                    type="text" 
+                                    value={`${selectedRow.consignmentNo} ${selectedRow.vendor ? `(${selectedRow.vendor})` : ''}`} 
+                                    readOnly 
+                                    className="readonly-input"
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }} 
+                                />
+                            ) : initialType === 'Periodic' ? (
+                                <input 
+                                    type="text" 
+                                    {...register("consignmentNo", { required: "Required" })}
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                    placeholder="Enter Consignment No"
+                                />
+                            ) : (
+                                <select
+                                    {...register("consignmentNo", { required: "Required" })}
+                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                                >
+                                    <option value="">-- Select --</option>
+                                    {inventoryData.map((c, i) => (
+                                        <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
+                                    ))}
+                                </select>
+                            )}
+                            {errors.consignmentNo && <span className="hint-text" style={{ color: 'red' }}>{errors.consignmentNo.message}</span>}
                         </div>
                     </div>
 

@@ -2,11 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
-import { saveAggregate10mmQuality } from "../../../../services/workflowService";
+import { saveAggregate10mmQuality, updateAggregate10mmQuality, getAggregate10mmQualityByRequestId } from "../../../../services/workflowService";
 
-export default function CrushingImpactAbrasion10mm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+export default function CrushingImpactAbrasion10mm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", selectedRow }) {
     const { selectedShift, dutyDate, dutyLocation } = useShift();
-    const { showToast } = useToast();
+    const toast = useToast();
     const [submitting, setSubmitting] = useState(false);
 
     const { register, watch, setValue, handleSubmit, formState: { errors } } = useForm({
@@ -15,6 +15,25 @@ export default function CrushingImpactAbrasion10mm({ onSave, onCancel, inventory
             typeOfTesting: initialType
         }
     });
+
+    const [existingId, setExistingId] = useState(null);
+
+    useEffect(() => {
+        if (selectedRow?.requestId) {
+            getAggregate10mmQualityByRequestId(selectedRow.requestId).then((data) => {
+                if (data) {
+                    setExistingId(data.id);
+                    Object.keys(data).forEach(key => {
+                        if (key === 'testDate' && data[key]) {
+                            setValue('testDate', data[key].split('T')[0]);
+                        } else {
+                            setValue(key, data[key]);
+                        }
+                    });
+                }
+            });
+        }
+    }, [selectedRow, setValue]);
 
     // Sections toggle state
     const [expanded, setExpanded] = useState({
@@ -83,16 +102,22 @@ export default function CrushingImpactAbrasion10mm({ onSave, onCancel, inventory
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate,
+                requestId: selectedRow?.requestId || null,
                 createdBy: JSON.parse(localStorage.getItem('user'))?.id || 1
             };
 
-            await saveAggregate10mmQuality(payload);
-            showToast("Test Report for 10mm Quality saved successfully!", "success");
-            reset();
-            onSave && onSave(payload);
+            if (existingId) {
+                await updateAggregate10mmQuality(existingId, payload);
+                toast.success("Test Report for 10mm Quality updated successfully!");
+            } else {
+                await saveAggregate10mmQuality(payload);
+                toast.success("Test Report for 10mm Quality saved successfully!");
+            }
+            
+            onSave && onSave(1);
         } catch (error) {
             console.error("Error saving 10mm quality data:", error);
-            showToast("Failed to save 10mm Quality report. Please try again.", "error");
+            toast.error("Failed to save 10mm Quality report. Please try again.");
         } finally {
             setSubmitting(false);
         }
@@ -114,13 +139,28 @@ export default function CrushingImpactAbrasion10mm({ onSave, onCancel, inventory
 
                         <div className="input-group">
                             <label>Consignment No. <span className="required">*</span></label>
-                            <select {...register("consignmentNo", { required: "Required" })}>
-                                <option value="">-- Select --</option>
-                                {inventoryData.map((c, i) => (
-                                    <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
-                                ))}
-                                <option value="PERIODIC">-- Periodic Testing --</option>
-                            </select>
+                            {selectedRow ? (
+                                <input 
+                                    type="text" 
+                                    value={`${selectedRow.consignmentNo} ${selectedRow.vendor ? `(${selectedRow.vendor})` : ''}`} 
+                                    readOnly 
+                                    className="readonly-input"
+                                    style={{ background: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }} 
+                                />
+                            ) : watch("typeOfTesting") === 'Periodic' ? (
+                                <input 
+                                    type="text" 
+                                    {...register("consignmentNo", { required: "Required" })}
+                                    placeholder="Enter Consignment No"
+                                />
+                            ) : (
+                                <select {...register("consignmentNo", { required: "Required" })}>
+                                    <option value="">-- Select --</option>
+                                    {inventoryData.map((c, i) => (
+                                        <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
+                                    ))}
+                                </select>
+                            )}
                             {errors.consignmentNo && <span className="hint-text" style={{ color: 'red' }}>{errors.consignmentNo.message}</span>}
                         </div>
 

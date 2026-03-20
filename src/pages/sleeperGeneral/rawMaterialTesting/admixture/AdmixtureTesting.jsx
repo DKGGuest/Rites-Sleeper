@@ -4,7 +4,7 @@ import EnhancedDataTable from '../../../../components/common/EnhancedDataTable';
 import { MOCK_INVENTORY, MOCK_VERIFIED_CONSIGNMENTS } from '../../../../utils/rawMaterialMockData';
 import { useShift } from '../../../../context/ShiftContext';
 import { useToast } from '../../../../context/ToastContext';
-import { saveAdmixtureTest } from '../../../../services/workflowService';
+import { saveAdmixtureTest, updateAdmixtureTest, getAdmixtureTestByRequestId } from '../../../../services/workflowService';
 import '../cement/CementForms.css';
 
 const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
@@ -34,10 +34,12 @@ const AdmixtureTesting = ({ onBack, inventoryData = [] }) => {
     const [viewMode, setViewMode] = useState('new-stocks');
     const [showForm, setShowForm] = useState(false);
     const { selectedShift, dutyDate, dutyLocation } = useShift();
-    const { showToast } = useToast();
+    const toast = useToast();
     const [history, setHistory] = useState([
         { id: 1, testDate: '2026-01-10', consignmentNo: 'AD-490', vendor: 'Fosroc', dosage: '0.8%', result: 'PASS', createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() }
     ]);
+    const [existingId, setExistingId] = useState(null);
+    const [activeRequestId, setActiveRequestId] = useState(null);
 
     const pendingStocks = inventoryData;
 
@@ -59,6 +61,20 @@ const AdmixtureTesting = ({ onBack, inventoryData = [] }) => {
         if (item) setValue('vendor', item.vendor);
     }, [selectedConsignment, pendingStocks, setValue]);
 
+    useEffect(() => {
+        if (activeRequestId) {
+            getAdmixtureTestByRequestId(activeRequestId).then((data) => {
+                if (data) {
+                    setExistingId(data.id);
+                    reset({
+                        ...data,
+                        testDate: data.testDate ? data.testDate.split('T')[0] : new Date().toISOString().split('T')[0]
+                    });
+                }
+            });
+        }
+    }, [activeRequestId, reset]);
+
     const canModify = (createdAt) => {
         if (!createdAt) return false;
         const entryTime = new Date(createdAt).getTime();
@@ -73,19 +89,27 @@ const AdmixtureTesting = ({ onBack, inventoryData = [] }) => {
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
-                createdBy: 1, // Default for now
+                requestId: activeRequestId,
+                createdBy: JSON.parse(localStorage.getItem('user'))?.id || 1,
                 result: 'PASS' // Business logic could be added here
             };
 
-            await saveAdmixtureTest(payload);
-            showToast("Admixture quality test saved successfully!", "success");
+            if (existingId) {
+                await updateAdmixtureTest(existingId, payload);
+                toast.success("Admixture quality test updated successfully!");
+            } else {
+                await saveAdmixtureTest(payload);
+                toast.success("Admixture quality test saved successfully!");
+            }
             
             setShowForm(false);
             reset();
+            setActiveRequestId(null);
+            setExistingId(null);
             // In a real app, we'd re-fetch history here
         } catch (error) {
             console.error("Error saving admixture test:", error);
-            showToast("Failed to save admixture test result.", "error");
+            toast.error("Failed to save admixture test result.");
         }
     };
 
@@ -107,11 +131,12 @@ const AdmixtureTesting = ({ onBack, inventoryData = [] }) => {
                 <button
                     className="btn-action mini"
                     onClick={() => {
+                        setActiveRequestId(row.requestId);
+                        setExistingId(null);
                         reset({
                             testDate: new Date().toISOString().split('T')[0],
                             consignmentNo: row.consignmentNo,
-                            vendor: row.vendor,
-                            inventoryId: row.requestId
+                            vendor: row.vendor
                         });
                         setShowForm(true);
                     }}
@@ -138,6 +163,8 @@ const AdmixtureTesting = ({ onBack, inventoryData = [] }) => {
                             className={`btn-action mini ${!editable ? 'disabled-btn' : ''}`}
                             disabled={!editable}
                             onClick={() => {
+                                setActiveRequestId(row.requestId);
+                                setExistingId(row.id);
                                 reset(row);
                                 setShowForm(true);
                             }}

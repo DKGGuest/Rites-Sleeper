@@ -22,30 +22,6 @@ const RawMaterialDashboard = () => {
                 const calls = await getAllCompletedCalls();
                 const callsList = Array.isArray(calls) ? calls : [];
                 setCompletedCalls(callsList);
-
-                // Fetch details for each call
-                const detailsMap = {};
-                const fetchPromises = callsList.map(async (call) => {
-                    if (call.requestId) {
-                        const typeMap = {
-                            6: 'cement',
-                            8: 'aggregates',
-                            7: 'admixture',
-                            5: 'hts-wire',
-                            9: 'sgci-insert'
-                        };
-                        const type = typeMap[call.moduleId];
-                        if (type) {
-                            const details = await import('../../../services/workflowService').then(m => m.getMaterialDetail(type, call.requestId));
-                            if (details) {
-                                detailsMap[call.requestId] = details;
-                            }
-                        }
-                    }
-                });
-
-                await Promise.all(fetchPromises);
-                setEnrichedData(detailsMap);
             } catch (err) {
                 console.error("Failed to fetch calls:", err);
             } finally {
@@ -54,6 +30,50 @@ const RawMaterialDashboard = () => {
         };
         fetchData();
     }, []);
+
+    useEffect(() => {
+        const fetchDetails = async () => {
+            if (!selectedMaterial || completedCalls.length === 0) return;
+            if (!user || !user.userId) return;
+
+            const matInfo = materials.find(m => m.id === selectedMaterial);
+            if (!matInfo) return;
+
+            const relevantCalls = completedCalls.filter(call => 
+                call.moduleId === matInfo.moduleId && 
+                call.accessibleUserIds?.includes(parseInt(user.userId)) &&
+                call.requestId
+            );
+
+            const missingCalls = relevantCalls.filter(call => !enrichedData[call.requestId]);
+            if (missingCalls.length === 0) return;
+
+            setLoading(true);
+            const mapping = {
+                'cement': 'cement',
+                'aggregates': 'aggregates',
+                'admixture': 'admixture',
+                'hts-wire': 'hts-wire',
+                'sgci': 'sgci-insert'
+            };
+            const typeVar = mapping[selectedMaterial];
+
+            const detailsMap = { ...enrichedData };
+            const fetchPromises = missingCalls.map(async (call) => {
+                if (typeVar) {
+                    const details = await import('../../../services/workflowService').then(m => m.getMaterialDetail(typeVar, call.requestId));
+                    if (details) {
+                        detailsMap[call.requestId] = details;
+                    }
+                }
+            });
+
+            await Promise.all(fetchPromises);
+            setEnrichedData(detailsMap);
+            setLoading(false);
+        };
+        fetchDetails();
+    }, [selectedMaterial, completedCalls, user?.userId]);
 
     // Filter logic based on user requirements:
     // 1. Module ID must match (Cement: 6, Aggregates: 8, HTS: 5, SGCI: 9, Water: 10)

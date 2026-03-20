@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import EnhancedDataTable from '../../../../components/common/EnhancedDataTable';
 import SpecificSurfaceForm from './SpecificSurfaceForm';
 import SettingTimeForm from './SettingTimeForm';
@@ -9,6 +9,7 @@ import FinenessTestForm from './FinenessTestForm';
 import { MOCK_INVENTORY, MOCK_CEMENT_HISTORY } from '../../../../utils/rawMaterialMockData';
 import CollectionAwaitingInspection from '../../../../components/CollectionAwaitingInspection';
 import TrendChart from '../../../../components/common/TrendChart';
+import { getBulkCementTestStatus } from '../../../../services/workflowService';
 import './CementForms.css';
 
 const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
@@ -39,14 +40,28 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
     const [showForm, setShowForm] = useState(false);
     const [activeFormSection, setActiveFormSection] = useState(1);
     const [initialType, setInitialType] = useState("New Inventory");
+    const [selectedRow, setSelectedRow] = useState(null);
     const [cementHistory, setCementHistory] = useState(MOCK_CEMENT_HISTORY.map(item => ({
         ...item,
         // Adding mock timestamp for testing the 1-hour rule (yesterday so they are not editable)
         createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
     })));
+    const [statusMap, setStatusMap] = useState({});
 
     // inventoryData is now passed from parent, already filtered by moduleId and accessibility
     const pendingStocks = inventoryData;
+
+    // Fetch realtime statuses dynamically
+    useEffect(() => {
+        if (pendingStocks && pendingStocks.length > 0) {
+            const requestIds = pendingStocks.map(row => row.requestId).filter(Boolean);
+            if (requestIds.length > 0) {
+                getBulkCementTestStatus(requestIds).then(res => {
+                    setStatusMap(res);
+                });
+            }
+        }
+    }, [pendingStocks, showForm]);
 
     // Rule: Modify/Delete allowed only for 1 hour from entering
     const canModify = (createdAt) => {
@@ -56,23 +71,15 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
         return (now - entryTime) < (60 * 60 * 1000); // 1 hour
     };
 
-    const handleSaveTest = () => {
-        const newEntry = {
-            id: Date.now(),
-            testDate: new Date().toISOString().split('T')[0],
-            createdAt: new Date().toISOString(),
-            testType: 'Manual',
-            consignmentNo: 'NEW-CON-001',
-            lotNo: 'NEW-LOT-01',
-            surface: '320',
-            initialSetting: '150',
-            finalSetting: '290',
-            consistency: '28%',
-            soundness: '0.6'
-        };
-        setCementHistory(prev => [newEntry, ...prev]);
-        setShowForm(false);
-        alert('Test record saved successfully!');
+    const handleSaveTest = (sectionId) => {
+        // We do not manage fake mock history here anymore because the forms talk to backend themselves, 
+        // but we still want to give a success toast and advance.
+        if (sectionId < 5) {
+            setActiveFormSection(sectionId + 1);
+        } else {
+            setShowForm(false);
+            alert('All test records saved successfully!');
+        }
     };
 
     const handleDelete = (id) => {
@@ -97,20 +104,35 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
         },
         { key: 'receivedDate', label: 'Arrival Date' },
         {
+            key: 'status',
+            label: 'Status',
+            render: (_, row) => {
+                const st = statusMap[row.requestId];
+                if (st === 'Completed') {
+                    return <span style={{ color: '#059669', fontWeight: 'bold' }}>Completed</span>;
+                }
+                return <span style={{ color: '#eab308', fontWeight: 'bold' }}>Pending</span>;
+            }
+        },
+        {
             key: 'actions',
             label: 'Actions',
-            render: (_, row) => (
-                <button
-                    className="btn-action mini"
-                    onClick={() => {
-                        setInitialType("New Inventory");
-                        setActiveFormSection(1);
-                        setShowForm(true);
-                    }}
-                >
-                    Add Test Detail
-                </button>
-            )
+            render: (_, row) => {
+                const isCompleted = statusMap[row.requestId] === 'Completed';
+                return (
+                    <button
+                        className="btn-action mini"
+                        onClick={() => {
+                            setSelectedRow(row);
+                            setInitialType("New Inventory");
+                            setActiveFormSection(1);
+                            setShowForm(true);
+                        }}
+                    >
+                        {isCompleted ? "Edit Test Details" : "Add Test Detail"}
+                    </button>
+                );
+            }
         }
     ];
 
@@ -133,6 +155,7 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
                             className={`btn-action mini ${!editable ? 'disabled-btn' : ''}`}
                             disabled={!editable}
                             onClick={() => {
+                                setSelectedRow(row);
                                 setActiveFormSection(1);
                                 setShowForm(true);
                             }}
@@ -154,12 +177,17 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
         }
     ];
 
+    const handleCloseForm = () => {
+        setShowForm(false);
+        setSelectedRow(null);
+    };
+
     const sections = [
-        { id: 1, label: '7 Day Strength', component: <SevenDayStrengthForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} /> },
-        { id: 2, label: 'Normal Consistency', component: <NormalConsistencyForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} /> },
-        { id: 3, label: 'Specific Surface', component: <SpecificSurfaceForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} /> },
-        { id: 4, label: 'Setting Time', component: <SettingTimeForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} /> },
-        { id: 5, label: 'Fineness Test', component: <FinenessTestForm onSave={handleSaveTest} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} /> }
+        { id: 1, label: '7 Day Strength', component: <SevenDayStrengthForm onSave={() => handleSaveTest(1)} onCancel={handleCloseForm} inventoryData={pendingStocks} initialType={initialType} selectedRow={selectedRow} /> },
+        { id: 2, label: 'Normal Consistency', component: <NormalConsistencyForm onSave={() => handleSaveTest(2)} onCancel={handleCloseForm} inventoryData={pendingStocks} initialType={initialType} selectedRow={selectedRow} /> },
+        { id: 3, label: 'Specific Surface', component: <SpecificSurfaceForm onSave={() => handleSaveTest(3)} onCancel={handleCloseForm} inventoryData={pendingStocks} initialType={initialType} selectedRow={selectedRow} /> },
+        { id: 4, label: 'Setting Time', component: <SettingTimeForm onSave={() => handleSaveTest(4)} onCancel={handleCloseForm} inventoryData={pendingStocks} initialType={initialType} selectedRow={selectedRow} /> },
+        { id: 5, label: 'Fineness Test', component: <FinenessTestForm onSave={() => handleSaveTest(5)} onCancel={handleCloseForm} inventoryData={pendingStocks} initialType={initialType} selectedRow={selectedRow} /> }
     ];
 
     return (
@@ -168,6 +196,7 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
                 <h2 style={{ margin: 0 }}>Cement Quality Control</h2>
                 <div style={{ display: 'flex', gap: '12px' }}>
                     <button className="toggle-btn mini" onClick={() => { 
+                        setSelectedRow(null);
                         setInitialType("Periodic");
                         setActiveFormSection(1); 
                         setShowForm(true); 
@@ -246,11 +275,11 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
 
             {/* Form Modal */}
             {showForm && (
-                <div className="form-modal-overlay" onClick={() => setShowForm(false)}>
+                <div className="form-modal-overlay" onClick={handleCloseForm}>
                     <div className="form-modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '80%', width: '80%' }}>
                         <div className="form-modal-header">
                             <span className="form-modal-header-title">Cement Quality Test Record</span>
-                            <button className="form-modal-close" onClick={() => setShowForm(false)}>✕</button>
+                            <button className="form-modal-close" onClick={handleCloseForm}>✕</button>
                         </div>
 
                         <div style={{ background: '#ffffff', padding: '12px 24px', borderBottom: '1px solid #e5e7eb' }}>

@@ -6,7 +6,7 @@ import { saveCementSettingTime } from "../../../../services/workflowService";
 
 const emptyRow = { time: "", needle: "", spot: "" };
 
-export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", selectedRow = null }) {
     const { selectedShift, dutyDate, dutyLocation } = useShift();
     const { showToast } = useToast();
     const user = getStoredUser();
@@ -144,17 +144,35 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
 
                     <div className="input-group">
                         <label>Consignment No <span className="required">*</span></label>
-                        <select 
-                            value={header.consignment}
-                            onChange={(e) => setHeader({ ...header, consignment: e.target.value })}
-                            required
-                        >
-                            <option value="">-- Select --</option>
-                            {inventoryData.map(c => (
-                                <option key={c.consignmentNo} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
-                            ))}
-                            <option value="PERIODIC">-- Periodic Testing --</option>
-                        </select>
+                        {selectedRow ? (
+                            <input 
+                                type="text" 
+                                value={`${selectedRow.consignmentNo} ${selectedRow.vendor ? `(${selectedRow.vendor})` : ''}`} 
+                                readOnly 
+                                className="readonly-input"
+                                style={{ background: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }} 
+                            />
+                        ) : header.type === 'Periodic' ? (
+                            <input 
+                                type="text" 
+                                value={header.consignment}
+                                onChange={e => setHeader({ ...header, consignment: e.target.value })}
+                                placeholder="Enter Consignment No"
+                                required 
+                            />
+                        ) : (
+                            <select 
+                                value={header.consignment}
+                                onChange={(e) => setHeader({ ...header, consignment: e.target.value })}
+                                required
+                            >
+                                <option value="">-- Select --</option>
+                                {inventoryData.map(c => (
+                                    <option key={c.consignmentNo} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
+                                ))}
+                            </select>
+                        )}
+                        <div className="hint-text">Select verified consignment or enter for Periodic</div>
                     </div>
 
                     <div className="input-group">

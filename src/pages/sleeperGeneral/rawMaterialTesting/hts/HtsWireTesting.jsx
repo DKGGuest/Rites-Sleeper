@@ -4,7 +4,7 @@ import EnhancedDataTable from '../../../../components/common/EnhancedDataTable';
 import { MOCK_HTS_HISTORY, MOCK_INVENTORY, MOCK_VERIFIED_CONSIGNMENTS } from '../../../../utils/rawMaterialMockData';
 import { useShift } from '../../../../context/ShiftContext';
 import { useToast } from '../../../../context/ToastContext';
-import { saveHtsWireDailyTest } from '../../../../services/workflowService';
+import { saveHtsWireDailyTest, updateHtsWireDailyTest, getHtsWireDailyTestByRequestId } from '../../../../services/workflowService';
 import TrendChart from '../../../../components/common/TrendChart';
 import '../cement/CementForms.css';
 
@@ -34,6 +34,8 @@ const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
 const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
     const [viewMode, setViewMode] = useState('new-stocks'); // Default to new stocks
     const [showForm, setShowForm] = useState(false);
+    const [activeRequestId, setActiveRequestId] = useState(null);
+    const [existingId, setExistingId] = useState(null);
     const { selectedShift, dutyDate, dutyLocation } = useShift();
     const { showToast } = useToast();
     const [availableCoils] = useState(MOCK_INVENTORY.HTS || []);
@@ -67,6 +69,33 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
         else setValue('inventoryId', '');
     }, [selectedCoilNo, availableCoils, setValue]);
 
+    useEffect(() => {
+        const loadExistingData = async () => {
+            if (activeRequestId && showForm) {
+                try {
+                    const data = await getHtsWireDailyTestByRequestId(activeRequestId);
+                    if (data && data.id) {
+                        setExistingId(data.id);
+                        reset({
+                            testDate: data.testDate,
+                            consignmentNo: data.consignmentNo,
+                            coilNo: data.coilNo,
+                            inventoryId: data.inventoryId,
+                            nominalWeight: data.nominalWeight,
+                            layLength: data.layLength,
+                            strandDiameter: data.strandDiameter
+                        });
+                    } else {
+                        setExistingId(null);
+                    }
+                } catch (error) {
+                    console.error("Failed to load existing HTS wire test data:", error);
+                }
+            }
+        };
+        loadExistingData();
+    }, [activeRequestId, showForm, reset]);
+
     const canModify = (createdAt) => {
         if (!createdAt) return false;
         const entryTime = new Date(createdAt).getTime();
@@ -78,16 +107,24 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
         try {
             const payload = {
                 ...data,
+                requestId: activeRequestId,
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
                 createdBy: 1 // Default
             };
 
-            await saveHtsWireDailyTest(payload);
-            showToast("HTS Wire daily test result saved!", "success");
+            if (existingId) {
+                await updateHtsWireDailyTest(existingId, payload);
+                showToast("HTS Wire daily test updated successfully!", "success");
+            } else {
+                await saveHtsWireDailyTest(payload);
+                showToast("HTS Wire daily test result saved!", "success");
+            }
 
             setShowForm(false);
+            setExistingId(null);
+            setActiveRequestId(null);
             reset();
             // In real app re-fetch history
         } catch (error) {
@@ -128,6 +165,8 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
                     className="btn-action mini"
                     onClick={() => {
                         const firstCoil = row.details?.coilDetails?.[0]?.coilNo || row.coilNo;
+                        setActiveRequestId(row.requestId);
+                        setExistingId(null);
                         reset({
                             testDate: new Date().toISOString().split('T')[0],
                             consignmentNo: row.consignmentNo,
@@ -137,7 +176,7 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
                         setShowForm(true);
                     }}
                 >
-                    Add Test Detail
+                    {history.find(h => h.requestId === row.requestId) ? 'Modify Test Details' : 'Add Test Detail'}
                 </button>
             )
         }
@@ -160,6 +199,8 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
                             className={`btn-action mini ${!editable ? 'disabled-btn' : ''}`}
                             disabled={!editable}
                             onClick={() => {
+                                setExistingId(row.id);
+                                setActiveRequestId(row.requestId);
                                 reset(row);
                                 setShowForm(true);
                             }}
@@ -185,7 +226,7 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
             <div className="content-title-row" style={{ marginBottom: '24px' }}>
                 <h2 style={{ margin: 0 }}>HTS Wire Testing (Daily)</h2>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                    <button className="toggle-btn mini" onClick={() => { reset(); setShowForm(true); }}>+ Add New (Periodic)</button>
+                    <button className="toggle-btn mini" onClick={() => { setExistingId(null); setActiveRequestId(null); reset(); setShowForm(true); }}>+ Add New (Periodic)</button>
                     <button className="toggle-btn secondary mini" onClick={onBack}>Back to Dashboard</button>
                 </div>
             </div>
@@ -234,7 +275,7 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
                     <div className="table-outer-wrapper fade-in">
                         <div className="content-title-row" style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', marginBottom: 0 }}>
                             <h4 style={{ margin: 0 }}>HTS Quality Logs</h4>
-                            <button className="toggle-btn mini" onClick={() => { reset(); setShowForm(true); }}>+ Add New (Periodic)</button>
+                            <button className="toggle-btn mini" onClick={() => { setExistingId(null); setActiveRequestId(null); reset(); setShowForm(true); }}>+ Add New (Periodic)</button>
                         </div>
                         <EnhancedDataTable columns={historyColumns} data={history} emptyMessage="No HTS test records found." />
                     </div>
@@ -257,11 +298,21 @@ const HtsWireTesting = ({ onBack, inventoryData = [] }) => {
                                     </div>
                                     <div className="input-group">
                                         <label>Consignment No. <span className="required">*</span></label>
-                                        <select {...register('consignmentNo', { required: 'Required' })}>
-                                            <option value="">-- Select --</option>
-                                            {MOCK_VERIFIED_CONSIGNMENTS.map(c => <option key={c} value={c}>{c}</option>)}
-                                            <option value="PERIODIC">-- Periodic Testing --</option>
-                                        </select>
+                                        {(activeRequestId || existingId) ? (
+                                            <input 
+                                                type="text" 
+                                                readOnly 
+                                                className="readonly-input"
+                                                style={{ background: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }} 
+                                                {...register('consignmentNo')}
+                                            />
+                                        ) : (
+                                            <input 
+                                                type="text" 
+                                                placeholder="Enter Consignment No"
+                                                {...register('consignmentNo', { required: 'Required' })}
+                                            />
+                                        )}
                                     </div>
                                     <div className="input-group">
                                         <label>Coil No. <span className="required">*</span></label>

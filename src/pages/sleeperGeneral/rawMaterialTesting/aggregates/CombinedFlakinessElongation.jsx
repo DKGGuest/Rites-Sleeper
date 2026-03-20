@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
-import { saveAggregateFlakiness } from "../../../../services/workflowService";
+import { saveAggregateFlakiness, updateAggregateFlakiness, getAggregateFlakinessByRequestId } from "../../../../services/workflowService";
 
-const FlakinessTable = ({ title, category, sieveData, onDataChange }) => {
+const FlakinessTable = ({ title, category, sieveData, onDataChange, initialRows }) => {
     const [rows, setRows] = useState(sieveData.map(s => ({
         category: category,
         passingSize: s.passing,
@@ -13,6 +13,12 @@ const FlakinessTable = ({ title, category, sieveData, onDataChange }) => {
         weightRetainedC: 0,
         weightRetainedLengthD: 0
     })));
+
+    useEffect(() => {
+        if (initialRows && initialRows.length > 0) {
+            setRows(initialRows);
+        }
+    }, [initialRows]);
 
     const handleInputChange = (idx, field, val) => {
         const newRows = [...rows];
@@ -91,19 +97,38 @@ const FlakinessTable = ({ title, category, sieveData, onDataChange }) => {
     );
 };
 
-export default function CombinedFlakinessElongation({ onSave, onCancel, inventoryData = [], initialType = "New Inventory" }) {
+export default function CombinedFlakinessElongation({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", selectedRow }) {
     const { selectedShift, dutyLocation, dutyDate } = useShift();
-    const { showToast } = useToast();
+    const toast = useToast();
     const [testDate, setTestDate] = useState(new Date().toISOString().split('T')[0]);
     const [consignmentNo, setConsignmentNo] = useState("");
     const [data20, setData20] = useState({ rows: [] });
     const [data10, setData10] = useState({ rows: [] });
+    const [initialRows20, setInitialRows20] = useState(null);
+    const [initialRows10, setInitialRows10] = useState(null);
+    const [existingId, setExistingId] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (selectedRow?.requestId) {
+            getAggregateFlakinessByRequestId(selectedRow.requestId).then((data) => {
+                if (data) {
+                    setExistingId(data.id);
+                    if (data.testDate) setTestDate(data.testDate.split('T')[0]);
+                    if (data.consignmentNo) setConsignmentNo(data.consignmentNo);
+                    if (data.observations) {
+                        setInitialRows20(data.observations.filter(o => o.category === '20mm'));
+                        setInitialRows10(data.observations.filter(o => o.category === '10mm'));
+                    }
+                }
+            });
+        }
+    }, [selectedRow]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!consignmentNo) {
-            showToast("Please select a consignment", "warning");
+            toast.warning("Please select a consignment");
             return;
         }
 
@@ -120,16 +145,23 @@ export default function CombinedFlakinessElongation({ onSave, onCancel, inventor
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
                 dateOfInspection: dutyDate || new Date().toISOString().split('T')[0],
+                requestId: selectedRow?.requestId || null,
                 createdBy: JSON.parse(localStorage.getItem('user'))?.id || 1
             };
 
-            await saveAggregateFlakiness(payload);
-            showToast("Flakiness & Elongation report saved successfully!", "success");
+            if (existingId) {
+                await updateAggregateFlakiness(existingId, payload);
+                toast.success("Flakiness & Elongation report updated successfully!");
+            } else {
+                await saveAggregateFlakiness(payload);
+                toast.success("Flakiness & Elongation report saved successfully!");
+            }
+            
             setConsignmentNo("");
-            onSave && onSave(payload);
+            onSave && onSave(3);
         } catch (error) {
             console.error("Error saving flakiness data:", error);
-            showToast("Failed to save Flakiness report.", "error");
+            toast.error("Failed to save Flakiness report.");
         } finally {
             setSubmitting(false);
         }
@@ -150,17 +182,35 @@ export default function CombinedFlakinessElongation({ onSave, onCancel, inventor
 
                         <div className="input-group">
                             <label>Consignment No. <span className="required">*</span></label>
-                            <select
-                                value={consignmentNo}
-                                onChange={(e) => setConsignmentNo(e.target.value)}
-                                required
-                            >
-                                <option value="">-- Select --</option>
-                                {inventoryData.map((c, i) => (
-                                    <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
-                                ))}
-                                <option value="PERIODIC">-- Periodic Testing --</option>
-                            </select>
+                            {selectedRow ? (
+                                <input 
+                                    type="text" 
+                                    value={`${selectedRow.consignmentNo} ${selectedRow.vendor ? `(${selectedRow.vendor})` : ''}`} 
+                                    readOnly 
+                                    className="readonly-input"
+                                    style={{ background: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }} 
+                                />
+                            ) : initialType === 'Periodic' ? (
+                                <input 
+                                    type="text" 
+                                    value={consignmentNo}
+                                    onChange={(e) => setConsignmentNo(e.target.value)}
+                                    placeholder="Enter Consignment No"
+                                    required 
+                                />
+                            ) : (
+                                <select
+                                    value={consignmentNo}
+                                    onChange={(e) => setConsignmentNo(e.target.value)}
+                                    required
+                                >
+                                    <option value="">-- Select --</option>
+                                    {inventoryData.map((c, i) => (
+                                        <option key={i} value={c.consignmentNo}>{c.consignmentNo} ({c.vendor})</option>
+                                    ))}
+                                </select>
+                            )}
+                            <div className="hint-text">Select verified consignment or enter for Periodic</div>
                         </div>
                     </div>
 
@@ -173,6 +223,7 @@ export default function CombinedFlakinessElongation({ onSave, onCancel, inventor
                             { passing: 12.5, retained: 10 }
                         ]}
                         onDataChange={setData20}
+                        initialRows={initialRows20}
                     />
 
                     <FlakinessTable
@@ -183,6 +234,7 @@ export default function CombinedFlakinessElongation({ onSave, onCancel, inventor
                             { passing: 10, retained: 6.3 }
                         ]}
                         onDataChange={setData10}
+                        initialRows={initialRows10}
                     />
 
                     <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
