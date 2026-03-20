@@ -7,7 +7,7 @@ import './PlantDeclarationVerification.css';
 // ─────────────────────────────────────────────────────
 //  Constants – must match sleeper_module table
 // ─────────────────────────────────────────────────────
-const LOGGED_IN_USER_ID = 119; // Hardcoded IE user
+const LOGGED_IN_USER_ID = parseInt(localStorage.getItem('userId') || '119', 10);
 
 /**
  * sleeper_module table mapping (Plant Declaration group):
