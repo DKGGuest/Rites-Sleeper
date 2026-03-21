@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { apiService } from '../../../services/api';
 import '../../../components/common/Checkbox.css';
 
 const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initialData, activeContainer, sharedBatchNo, sharedBenchNo, onShiftFieldChange }) => {
@@ -46,6 +47,37 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
         remarks: '',
         defectiveSleeperDetails: []
     });
+
+    const [verifiedDeclarations, setVerifiedDeclarations] = useState([]);
+    const [declSearchTerm, setDeclSearchTerm] = useState('');
+    const [isDeclDropdownOpen, setIsDeclDropdownOpen] = useState(false);
+    const declDropdownRef = useRef(null);
+
+    useEffect(() => {
+        const fetchDecls = async () => {
+            try {
+                const response = await apiService.getVerifiedProductionDeclarations();
+                if (response?.responseData) {
+                    setVerifiedDeclarations(response.responseData);
+                }
+            } catch (error) {
+                console.error("Error fetching declarations:", error);
+            }
+        };
+        fetchDecls();
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (declDropdownRef.current && !declDropdownRef.current.contains(event.target)) {
+                setIsDeclDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     // Helper for DateTime/Date input compatibility
     const formatFromBackendDatePart = (dateStr) => {
@@ -245,6 +277,61 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
 
     const fieldLabel = isLongLine ? 'Gang' : 'Bench';
 
+    const renderDeclarationDropdown = (label, fieldId, stateValue, onChangeHandler, placeholder) => {
+        const isOpen = isDeclDropdownOpen === fieldId;
+        return (
+            <div className="form-field" ref={isOpen ? declDropdownRef : null}>
+                <label htmlFor={fieldId} style={{ fontSize: '11px', fontWeight: '700' }}>{label} <span className="required">*</span></label>
+                <div style={{ position: 'relative' }}>
+                    <input
+                        id={fieldId}
+                        type="text"
+                        placeholder={placeholder}
+                        value={isOpen ? declSearchTerm : stateValue}
+                        onClick={() => {
+                            setIsDeclDropdownOpen(fieldId);
+                            setDeclSearchTerm('');
+                        }}
+                        onChange={(e) => {
+                            setDeclSearchTerm(e.target.value);
+                            if(e.target.value === '') onChangeHandler('');
+                            setIsDeclDropdownOpen(fieldId);
+                        }}
+                        className="form-input-standard"
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                        autoComplete="off"
+                    />
+                    {isOpen && (
+                        <ul style={{
+                            position: 'absolute', zIndex: 10, background: 'white',
+                            border: '1px solid #cbd5e1', width: '100%', maxHeight: '200px',
+                            overflowY: 'auto', listStyle: 'none', padding: 0, margin: '4px 0 0 0',
+                            borderRadius: '6px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                        }}>
+                            {verifiedDeclarations
+                                .filter(m => m.toLowerCase().includes(declSearchTerm.toLowerCase()))
+                                .map((m, idx) => (
+                                    <li key={idx} 
+                                        style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', color: '#334155' }}
+                                        onClick={() => {
+                                            onChangeHandler(m);
+                                            setDeclSearchTerm('');
+                                            setIsDeclDropdownOpen(false);
+                                        }}
+                                        onMouseEnter={(e) => e.target.style.background = '#f8fafc'}
+                                        onMouseLeave={(e) => e.target.style.background = 'white'}
+                                    >{m}</li>
+                                ))}
+                            {verifiedDeclarations.filter(m => m.toLowerCase().includes(declSearchTerm.toLowerCase())).length === 0 && (
+                                <li style={{ padding: '8px 12px', color: '#94a3b8' }}>No results found</li>
+                            )}
+                        </ul>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="form-container" style={{ padding: '20px' }}>
             <div className="form-grid-standard" style={{ marginBottom: '20px' }}>
@@ -279,30 +366,8 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                     />
                 </div>
 
-                <div className="form-field">
-                    <label htmlFor="dim-batch" style={{ fontSize: '11px', fontWeight: '700' }}>Batch No. <span className="required">*</span></label>
-                    <input
-                        id="dim-batch"
-                        type="number"
-                        placeholder="Batch No"
-                        className="form-input-standard"
-                        value={formData.batch}
-                        onChange={e => handleChange('batch', e.target.value)}
-                    />
-                </div>
-
-                <div className="form-field">
-                    <label htmlFor="dim-gang" style={{ fontSize: '11px', fontWeight: '700' }}>Bench No. <span className="required">*</span></label>
-                    <input
-                        id="dim-gang"
-                        type="number"
-                        min="0"
-                        placeholder="Bench No"
-                        className="form-input-standard"
-                        value={formData.gangNo}
-                        onChange={e => handleChange('gangNo', e.target.value)}
-                    />
-                </div>
+                {renderDeclarationDropdown("Batch No.", "dim-batch", formData.batch, (val) => handleChange('batch', val), "Search Batch...")}
+                {renderDeclarationDropdown("Bench No.", "dim-gang", formData.gangNo, (val) => handleChange('gangNo', val), "Search Bench...")}
 
                 <div className="form-field">
                     <label htmlFor="dim-type" style={{ fontSize: '11px', fontWeight: '700' }}>Sleeper Type <span className="required">*</span></label>

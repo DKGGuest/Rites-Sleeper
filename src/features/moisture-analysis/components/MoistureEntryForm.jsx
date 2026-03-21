@@ -1,10 +1,18 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { apiService } from '../../../services/api';
 import './MoistureEntryForm.css';
 
-const MIX_DESIGNS = [
-    { id: 'MIX-01', name: 'M60 - Standard Sleeper (Approved)', cement: '175.5', ca1: '436.2', ca2: '178.6', fa: '207.1', water: '37.0', admix: '1.44', ac: '4.69', wc: '0.211' },
-    { id: 'MIX-02', name: 'M55 - Special Project (Approved)', cement: '170.0', ca1: '440.0', ca2: '180.0', fa: '210.0', water: '38.0', admix: '1.40', ac: '4.88', wc: '0.223' },
-];
+const APPROVED_MIX_VALUES = {
+    name: 'Approved Design',
+    ac: '4.69',
+    wc: '0.211',
+    cement: '175.5',
+    ca1: '436.2',
+    ca2: '178.6',
+    fa: '207.1',
+    water: '37.0',
+    admix: '1.44'
+};
 
 /**
  * MoistureEntryForm Component
@@ -14,6 +22,36 @@ const MIX_DESIGNS = [
  */
 const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
     const [activeSection, setActiveSection] = useState('ca1');
+    const [verifiedMixDesigns, setVerifiedMixDesigns] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        const fetchMixDesigns = async () => {
+            try {
+                const response = await apiService.getVerifiedMixDesignIdentifications();
+                if (response?.responseData) {
+                    setVerifiedMixDesigns(response.responseData);
+                }
+            } catch (error) {
+                console.error("Error fetching mix designs:", error);
+            }
+        };
+        fetchMixDesigns();
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     const getLocalTimeData = () => {
         const now = new Date();
@@ -67,15 +105,15 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                 timing: initialData.timing || localInit.time,
                 batchNo: initialData.batchNo || '',
                 mixDesignId: initialData.mixDesignId || '',
-                designValues: initialData.designValues || MIX_DESIGNS.find(m => m.id === initialData.mixDesignId) || null,
+                designValues: initialData.designValues || (initialData.mixDesignId ? APPROVED_MIX_VALUES : null),
                 userDryCA1: initialData.userDryCA1 || '',
                 userDryCA2: initialData.userDryCA2 || '',
                 userDryFA: initialData.userDryFA || '',
                 userDryWater: initialData.userDryWater || '',
                 userDryAdmix: initialData.userDryAdmix || '1.44',
                 userDryCement: initialData.userDryCement || '',
-                designAC: initialData.designAC || (MIX_DESIGNS.find(m => m.id === initialData.mixDesignId)?.ac || ''),
-                designWC: initialData.designWC || (MIX_DESIGNS.find(m => m.id === initialData.mixDesignId)?.wc || '')
+                designAC: initialData.designAC || (initialData.mixDesignId ? APPROVED_MIX_VALUES.ac : ''),
+                designWC: initialData.designWC || (initialData.mixDesignId ? APPROVED_MIX_VALUES.wc : '')
             });
             setAggData({
                 ca1: initialData.ca1Details || { wetSample: '', driedSample: '', absorption: '' },
@@ -87,24 +125,69 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
 
     const handleCommonChange = (field, val) => {
         if (field === 'mixDesignId') {
-            const mix = MIX_DESIGNS.find(m => m.id === val);
-            if (mix) {
+            if (val) {
                 setCommonData(prev => ({
                     ...prev,
                     mixDesignId: val,
-                    designValues: mix,
-                    designAC: mix.ac,
-                    designWC: mix.wc,
+                    designValues: APPROVED_MIX_VALUES,
+                    designAC: APPROVED_MIX_VALUES.ac,
+                    designWC: APPROVED_MIX_VALUES.wc,
                     userDryCA1: '',
                     userDryCA2: '',
                     userDryFA: '',
                     userDryWater: '',
                     userDryCement: '',
-                    userDryAdmix: mix.admix // Default to design admix but editable
+                    userDryAdmix: APPROVED_MIX_VALUES.admix // Default to design admix but editable
                 }));
-                return;
+            } else {
+                setCommonData(prev => ({
+                    ...prev,
+                    mixDesignId: val,
+                    designValues: null,
+                    designAC: '',
+                    designWC: '',
+                    userDryCA1: '',
+                    userDryCA2: '',
+                    userDryFA: '',
+                    userDryWater: '',
+                    userDryCement: '',
+                    userDryAdmix: ''
+                }));
             }
+            return;
         }
+        if (field === 'userDryCement') {
+            const valNum = parseFloat(val);
+            if (!isNaN(valNum) && valNum > 0) {
+                const water = (valNum * 0.28).toFixed(2);
+                const admix = (valNum * 0.009).toFixed(2);
+                const ca1 = (valNum * (436.2 / 175.5)).toFixed(2);
+                const ca2 = (valNum * (178.6 / 175.5)).toFixed(2);
+                const fa = (valNum * (207.1 / 175.5)).toFixed(2);
+
+                setCommonData(prev => ({
+                    ...prev,
+                    userDryCement: val,
+                    userDryWater: water,
+                    userDryAdmix: admix,
+                    userDryCA1: ca1,
+                    userDryCA2: ca2,
+                    userDryFA: fa
+                }));
+            } else {
+                setCommonData(prev => ({
+                    ...prev,
+                    userDryCement: val,
+                    userDryWater: '',
+                    userDryAdmix: '',
+                    userDryCA1: '',
+                    userDryCA2: '',
+                    userDryFA: ''
+                }));
+            }
+            return;
+        }
+
         setCommonData(prev => ({ ...prev, [field]: val }));
     };
 
@@ -255,20 +338,54 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                         <label htmlFor="moisture-batch">Batch No. <span className="required">*</span></label>
                         <input id="moisture-batch" name="batchNo" type="number" min="0" value={commonData.batchNo} onChange={e => handleCommonChange('batchNo', e.target.value)} placeholder="000" />
                     </div>
-                    <div className="form-field" style={{ gridColumn: 'span 2' }}>
+                    <div className="form-field" style={{ gridColumn: 'span 2' }} ref={dropdownRef}>
                         <label htmlFor="moisture-mix-design">Approved Mix Design <span className="required">*</span></label>
-                        <select
-                            id="moisture-mix-design"
-                            name="mixDesignId"
-                            value={commonData.mixDesignId}
-                            onChange={e => handleCommonChange('mixDesignId', e.target.value)}
-                            className="highlight-select"
-                        >
-                            <option value="">-- Select --</option>
-                            {MIX_DESIGNS.map(m => (
-                                <option key={m.id} value={m.id}>{m.name}</option>
-                            ))}
-                        </select>
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                id="moisture-mix-design"
+                                type="text"
+                                placeholder="Search by Identification or Created By..."
+                                value={isDropdownOpen ? searchTerm : commonData.mixDesignId}
+                                onClick={() => {
+                                    setIsDropdownOpen(true);
+                                    setSearchTerm('');
+                                }}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    if(e.target.value === '') handleCommonChange('mixDesignId', '');
+                                    setIsDropdownOpen(true);
+                                }}
+                                className="highlight-select"
+                                style={{ width: '100%', boxSizing: 'border-box' }}
+                                autoComplete="off"
+                            />
+                            {isDropdownOpen && (
+                                <ul style={{
+                                    position: 'absolute', zIndex: 10, background: 'white',
+                                    border: '1px solid #cbd5e1', width: '100%', maxHeight: '200px',
+                                    overflowY: 'auto', listStyle: 'none', padding: 0, margin: '4px 0 0 0',
+                                    borderRadius: '6px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                                }}>
+                                    {verifiedMixDesigns
+                                        .filter(m => m.toLowerCase().includes(searchTerm.toLowerCase()))
+                                        .map((m, idx) => (
+                                            <li key={idx} 
+                                                style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', color: '#334155' }}
+                                                onClick={() => {
+                                                    handleCommonChange('mixDesignId', m);
+                                                    setSearchTerm('');
+                                                    setIsDropdownOpen(false);
+                                                }}
+                                                onMouseEnter={(e) => e.target.style.background = '#f8fafc'}
+                                                onMouseLeave={(e) => e.target.style.background = 'white'}
+                                            >{m}</li>
+                                        ))}
+                                    {verifiedMixDesigns.filter(m => m.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+                                        <li style={{ padding: '8px 12px', color: '#94a3b8' }}>No results found</li>
+                                    )}
+                                </ul>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -316,19 +433,19 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                                     <input id="moisture-actual-cement" name="actualCement" type="number" step="0.01" value={commonData.userDryCement} onChange={e => handleCommonChange('userDryCement', e.target.value)} placeholder="0.00" aria-label="Actual Cement Weight" />
                                 </div>
                                 <div className="cell data-cell">
-                                    <input id="moisture-actual-ca1" name="actualCA1" type="number" step="0.01" value={commonData.userDryCA1} onChange={e => handleCommonChange('userDryCA1', e.target.value)} placeholder="0.00" aria-label="Actual CA1 Weight" />
+                                    <input id="moisture-actual-ca1" name="actualCA1" type="number" step="0.01" value={commonData.userDryCA1} readOnly tabIndex={-1} placeholder="0.00" aria-label="Actual CA1 Weight" style={{ background: '#f8fafc', color: '#64748b' }} />
                                 </div>
                                 <div className="cell data-cell">
-                                    <input id="moisture-actual-ca2" name="actualCA2" type="number" step="0.01" value={commonData.userDryCA2} onChange={e => handleCommonChange('userDryCA2', e.target.value)} placeholder="0.00" aria-label="Actual CA2 Weight" />
+                                    <input id="moisture-actual-ca2" name="actualCA2" type="number" step="0.01" value={commonData.userDryCA2} readOnly tabIndex={-1} placeholder="0.00" aria-label="Actual CA2 Weight" style={{ background: '#f8fafc', color: '#64748b' }} />
                                 </div>
                                 <div className="cell data-cell">
-                                    <input id="moisture-actual-fa" name="actualFA" type="number" step="0.01" value={commonData.userDryFA} onChange={e => handleCommonChange('userDryFA', e.target.value)} placeholder="0.00" aria-label="Actual FA Weight" />
+                                    <input id="moisture-actual-fa" name="actualFA" type="number" step="0.01" value={commonData.userDryFA} readOnly tabIndex={-1} placeholder="0.00" aria-label="Actual FA Weight" style={{ background: '#f8fafc', color: '#64748b' }} />
                                 </div>
                                 <div className="cell data-cell">
-                                    <input id="moisture-actual-water" name="actualWater" type="number" step="0.01" value={commonData.userDryWater} onChange={e => handleCommonChange('userDryWater', e.target.value)} placeholder="0.00" aria-label="Actual Water Weight" />
+                                    <input id="moisture-actual-water" name="actualWater" type="number" step="0.01" value={commonData.userDryWater} readOnly tabIndex={-1} placeholder="0.00" aria-label="Actual Water Weight" style={{ background: '#f8fafc', color: '#64748b' }} />
                                 </div>
                                 <div className="cell data-cell">
-                                    <input id="moisture-actual-admix" name="actualAdmix" type="number" step="0.01" value={commonData.userDryAdmix} onChange={e => handleCommonChange('userDryAdmix', e.target.value)} placeholder="0.00" aria-label="Actual Admix Weight" />
+                                    <input id="moisture-actual-admix" name="actualAdmix" type="number" step="0.01" value={commonData.userDryAdmix} readOnly tabIndex={-1} placeholder="0.00" aria-label="Actual Admix Weight" style={{ background: '#f8fafc', color: '#64748b' }} />
                                 </div>
                             </div>
                         </div>

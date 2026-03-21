@@ -189,6 +189,7 @@ export const apiService = {
 
     // moduleId=4  MIX_DESIGN
     getMixDesignById: (id) => api.get(`/mix-design/${id}`),
+    getVerifiedMixDesignIdentifications: () => api.get('/mix-design/verified-identifications'),
 
     // moduleId=5  HTS Wire
     getHtsWireRecordById: (id) => api.get(`/hts-wire/${id}`),
@@ -210,6 +211,7 @@ export const apiService = {
 
     // moduleId=11 Production Declaration
     getProductionDeclarationRecordById: (id) => api.get(`/production-declaration/${id}`),
+    getVerifiedProductionDeclarations: () => api.get('/production-declaration/verified-declarations'),
 
     getAllWorkflowTransitions: (roleName = 'IE') =>
         api.get(`/sleeper-workflow/allWorkflowTransition?roleName=${roleName}`),
