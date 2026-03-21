@@ -121,39 +121,29 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
         });
     };
 
-    useEffect(() => {
-        readings.forEach((r, idx) => {
-            const w = parseFloat(r.weight);
-            let isWeightOk = false;
-            
-            // Weight thresholds:
-            // T-6901: 1.484 kg min
-            // T-3705: 1.95 kg min
-            // T-3815: 1.55 kg min
-            const typeLower = (selectedType || '').toLowerCase();
-            if (typeLower.includes('6901')) {
-                isWeightOk = w >= 1.484;
-            } else if (typeLower.includes('3705')) {
-                isWeightOk = w >= 1.95;
-            } else if (typeLower.includes('3815')) {
-                isWeightOk = w >= 1.55;
-            } else {
-                // Default fallback if type is unknown/not selected yet
-                isWeightOk = w >= 1.4395 && w <= 1.5285;
-            }
-
-            const res = (isWeightOk && !r.dimensionalNotOk && !r.hammerNotOk) ? 'PASS' : 'FAIL';
-            if (r.result !== res) setValue(`readings.${idx}.result`, res);
-        });
-    }, [readings, selectedType, setValue]);
+    // Compute result inline (real-time) from current field values — no useEffect needed
+    const computeResult = (reading, type) => {
+        const w = parseFloat(reading.weight);
+        if (isNaN(w) || reading.weight === '' || reading.weight === undefined) return null; // blank = no result yet
+        const typeLower = (type || '').toLowerCase();
+        let isWeightOk = false;
+        if (typeLower.includes('6901'))      { isWeightOk = w >= 1.484; }
+        else if (typeLower.includes('3705')) { isWeightOk = w >= 1.95;  }
+        else if (typeLower.includes('3815')) { isWeightOk = w >= 1.55;  }
+        else                                 { isWeightOk = !isNaN(w);  } // unknown type: weight must at least be a number
+        return (isWeightOk && !reading.dimensionalNotOk && !reading.hammerNotOk) ? 'PASS' : 'FAIL';
+    };
 
     const summary = useMemo(() => {
-        const total = readings.length;
-        const passed = readings.filter(r => r.result === 'PASS').length;
+        const results = readings.map(r => computeResult(r, selectedType));
+        const withResult = results.filter(r => r !== null);
+        const total = withResult.length;
+        const passed = withResult.filter(r => r === 'PASS').length;
         const rejected = total - passed;
         const rejectionPct = total > 0 ? ((rejected / total) * 100).toFixed(2) : 0;
         return { total, passed, rejected, rejectionPct };
-    }, [readings]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [readings, selectedType]);
 
     const canModify = (createdAt) => {
         if (!createdAt) return false;
@@ -455,19 +445,64 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
 
                                 <div className="table-wrapper" style={{ maxHeight: '300px', overflowY: 'auto' }}>
                                     <table>
-                                        <thead><tr><th>Heat No.</th><th>Pattern</th><th>Weight</th><th>Dim Not ok</th><th>Hammer not ok</th><th>Result</th><th></th></tr></thead>
+                                        <thead>
+                                            <tr>
+                                                <th>Heat No.</th>
+                                                <th>Pattern</th>
+                                                <th>
+                                                    Weight (kg)
+                                                    {selectedType && (
+                                                        <span style={{ display: 'block', fontSize: '9px', color: '#94a3b8', fontWeight: '400', marginTop: '2px' }}>
+                                                            Min: {selectedType.includes('6901') ? '1.484' : selectedType.includes('3705') ? '1.95' : selectedType.includes('3815') ? '1.55' : '—'} kg
+                                                        </span>
+                                                    )}
+                                                </th>
+                                                <th>Dim Not OK</th>
+                                                <th>Hammer Not OK</th>
+                                                <th>Result</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
                                         <tbody>
-                                            {fields.map((field, index) => (
-                                                <tr key={field.id}>
-                                                    <td><input type="text" {...register(`readings.${index}.heatNo`)} /></td>
-                                                    <td><input type="text" {...register(`readings.${index}.patternNo`)} /></td>
-                                                    <td><input type="number" step="0.0001" {...register(`readings.${index}.weight`)} /></td>
-                                                    <td style={{ textAlign: 'center' }}><input type="checkbox" {...register(`readings.${index}.dimensionalNotOk`)} /></td>
-                                                    <td style={{ textAlign: 'center' }}><input type="checkbox" {...register(`readings.${index}.hammerNotOk`)} /></td>
-                                                    <td style={{ textAlign: 'center' }}>{readings[index]?.result}</td>
-                                                    <td><button type="button" onClick={() => remove(index)} style={{ color: 'red', border: 'none', background: 'none' }}>✕</button></td>
-                                                </tr>
-                                            ))}
+                                            {fields.map((field, index) => {
+                                                const rowResult = computeResult(readings[index], selectedType);
+                                                return (
+                                                    <tr key={field.id}>
+                                                        <td><input type="text" {...register(`readings.${index}.heatNo`)} /></td>
+                                                        <td><input type="text" {...register(`readings.${index}.patternNo`)} /></td>
+                                                        <td>
+                                                            <input
+                                                                type="number"
+                                                                step="0.0001"
+                                                                style={{
+                                                                    borderColor: readings[index]?.weight && rowResult === 'FAIL' ? '#ef4444' : readings[index]?.weight && rowResult === 'PASS' ? '#10b981' : undefined,
+                                                                    borderWidth: readings[index]?.weight ? '2px' : undefined
+                                                                }}
+                                                                {...register(`readings.${index}.weight`)}
+                                                            />
+                                                        </td>
+                                                        <td style={{ textAlign: 'center' }}><input type="checkbox" {...register(`readings.${index}.dimensionalNotOk`)} /></td>
+                                                        <td style={{ textAlign: 'center' }}><input type="checkbox" {...register(`readings.${index}.hammerNotOk`)} /></td>
+                                                        <td style={{ textAlign: 'center' }}>
+                                                            {rowResult === null ? (
+                                                                <span style={{ color: '#94a3b8', fontSize: '11px' }}>—</span>
+                                                            ) : (
+                                                                <span style={{
+                                                                    padding: '3px 10px',
+                                                                    borderRadius: '6px',
+                                                                    fontSize: '11px',
+                                                                    fontWeight: '700',
+                                                                    background: rowResult === 'PASS' ? '#dcfce7' : '#fee2e2',
+                                                                    color: rowResult === 'PASS' ? '#166534' : '#991b1b'
+                                                                }}>
+                                                                    {rowResult}
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td><button type="button" onClick={() => remove(index)} style={{ color: 'red', border: 'none', background: 'none' }}>✕</button></td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>
