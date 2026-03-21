@@ -85,16 +85,16 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
         }
     }, [formData.gangNo, initialData]);
 
-    // Auto Overall Status and Arrangement calculation
+    // Auto Overall Status calculation
     useEffect(() => {
         const rules = SLEEPER_RULES[formData.sleeperType] || { wires: 18, diaMin: 2.97, diaMax: 3.03 };
         
-        const { noOfWires, wireDia, layLength } = formData;
+        const { noOfWires, wireDia, layLength, arrangement } = formData;
 
-        // If mandatory measurement fields are empty, keep status as '--' and reset arrangement
-        if (!noOfWires && !wireDia && !layLength) {
-            if (formData.status !== '--' || formData.arrangement !== '') {
-                setFormData(prev => ({ ...prev, status: '--', arrangement: '' }));
+        // If mandatory measurement fields and arrangement are empty, keep status as '--'
+        if (!noOfWires && !wireDia && !layLength && !arrangement) {
+            if (formData.status !== '--') {
+                setFormData(prev => ({ ...prev, status: '--' }));
             }
             return;
         }
@@ -107,30 +107,27 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
         const isWiresOk = !noOfWires || wiresNum === rules.wires;
         const isDiaOk = !wireDia || (!isNaN(diaNum) && diaNum >= rules.diaMin && diaNum <= rules.diaMax);
         const isLayLenOk = !layLength || (!isNaN(layLenNum) && layLenNum >= 72 && layLenNum <= 108);
-
-        // Auto-select Arrangement: 'OK' if all filled dimensions are correct, else 'Not OK'
-        const autoArrangement = (isWiresOk && isDiaOk && isLayLenOk) ? 'OK' : 'Not OK';
+        const isArrangementChecked = arrangement === 'OK';
+        const isArrangementFailed = arrangement === 'Not OK';
 
         // Overall Status Logic:
         // 1. 'Not OK' if any filled field is incorrect OR arrangement is 'Not OK'
-        // 2. 'OK' if all fields are filled AND correct
-        // 3. '--' if all filled are correct but some fields are still empty
-        const allFilled = noOfWires && wireDia && layLength;
+        // 2. 'OK' if arrangement is 'OK' (assuming dimensions are either correct or not yet filled)
+        // 3. '--' otherwise (blank initial state)
         
         let calculatedStatus = '--';
-        if (!isWiresOk || !isDiaOk || !isLayLenOk || autoArrangement === 'Not OK') {
+        if (!isWiresOk || !isDiaOk || !isLayLenOk || isArrangementFailed) {
             calculatedStatus = 'Not OK';
-        } else if (allFilled && isWiresOk && isDiaOk && isLayLenOk && autoArrangement === 'OK') {
+        } else if (isArrangementChecked) {
             calculatedStatus = 'OK';
         } else {
             calculatedStatus = '--';
         }
 
-        if (formData.status !== calculatedStatus || formData.arrangement !== autoArrangement) {
+        if (formData.status !== calculatedStatus) {
             setFormData(prev => ({ 
                 ...prev, 
-                status: calculatedStatus,
-                arrangement: autoArrangement
+                status: calculatedStatus
             }));
         }
     }, [formData.wireDia, formData.sleeperType, formData.noOfWires, formData.layLength, formData.arrangement]);

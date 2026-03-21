@@ -120,6 +120,16 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
     const handleChange = (field, value) => {
         setFormData(prev => {
             const newState = { ...prev, [field]: value };
+            
+            // Auto-update defective sleepers bench number if bench (gangNo) changes
+            if (field === 'gangNo') {
+                newState.defectiveSleeperDetails = (newState.defectiveSleeperDetails || []).map(d => ({
+                    ...d,
+                    benchNo: value,
+                    sleeperNo: (value && d.sequence) ? `${value}-${d.sequence}` : d.sleeperNo
+                }));
+            }
+
             if (newState.visualCheck === 'All OK' && newState.dimCheck === 'All OK') {
                 newState.defectiveSleeperDetails = [];
             }
@@ -203,7 +213,13 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
     const addDefectiveSleeper = () => {
         setFormData(prev => ({
             ...prev,
-            defectiveSleeperDetails: [...prev.defectiveSleeperDetails, { benchNo: '', sequence: '', sleeperNo: '', visualReason: '', dimReason: '' }]
+            defectiveSleeperDetails: [...prev.defectiveSleeperDetails, { 
+                benchNo: prev.gangNo || '', 
+                sequence: '', 
+                sleeperNo: '', 
+                visualReason: '', 
+                dimReason: '' 
+            }]
         }));
     };
 

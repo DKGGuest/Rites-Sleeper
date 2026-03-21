@@ -23,7 +23,40 @@ const DimensionalTesting = ({ type }) => {
         try {
             setLoading(true);
             const data = await apiService.getFinalInspectionBatches();
-            setBatches(data || []);
+            
+            // Recalculate tested percentage properly: (Accepted + Rejected) / Total * 100
+            // The percentage should reflect everything that is NOT 'PENDING'
+            const processedData = (data || []).map(batch => {
+                const total = Number(batch.noOfSleepers) || Number(batch.totalBatchQty) || (batch.sleepers?.length) || 1;
+                
+                let testedCount = 0;
+                if (batch.sleepers && Array.isArray(batch.sleepers)) {
+                    // Count everything that has been checked (not in PENDING state)
+                    testedCount = batch.sleepers.filter(s => 
+                        s.status && s.status.toUpperCase() !== 'PENDING'
+                    ).length;
+                } else {
+                    // Fallback to pre-aggregated counts if sleepers array is missing
+                    // We check common field naming patterns used in the DTOs
+                    const accepted = Number(batch.acceptedCount || batch.acceptedQty || batch.numAccepted || batch.accepted || 0);
+                    const rejected = Number(batch.rejectedCount || batch.rejectedQty || batch.numRejected || batch.rejected || 0);
+                    testedCount = accepted + rejected;
+                }
+
+                // If we still have 0 tested items but the API gave us a percentage, 
+                // we might want to respect it if our logic failed to find the counts
+                let percentage = (testedCount / total) * 100;
+                if (testedCount === 0 && (batch.testedPercentage !== undefined && batch.testedPercentage !== null)) {
+                    percentage = Number(batch.testedPercentage);
+                }
+                
+                return {
+                    ...batch,
+                    testedPercentage: Math.min(percentage, 100).toFixed(2)
+                };
+            });
+            
+            setBatches(processedData);
         } catch (error) {
             console.error('Error fetching batches:', error);
         } finally {
