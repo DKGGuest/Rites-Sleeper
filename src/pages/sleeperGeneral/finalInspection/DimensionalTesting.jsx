@@ -67,7 +67,7 @@ const DimensionalTesting = ({ type }) => {
                     <div style={{ flex: 1, height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
                         <div style={{ height: '100%', width: `${val}%`, background: val === 100 ? '#059669' : '#42818c' }}></div>
                     </div>
-                    <span style={{ fontSize: '11px', fontWeight: '700' }}>{val}%</span>
+                    <span style={{ fontSize: '11px', fontWeight: '700' }}>{Number(val).toFixed(2)}%</span>
                 </div>
             )
         },

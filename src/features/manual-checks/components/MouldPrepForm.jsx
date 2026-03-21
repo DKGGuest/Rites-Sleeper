@@ -11,8 +11,8 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
     const [formData, setFormData] = useState({
         location: activeContainer?.name || 'N/A',
         dateTime: getLocalISOString(),
-        batchNo: sharedBatchNo || '',
-        benchNo: sharedBenchNo || '',
+        batchNo: '',
+        benchNo: '',
         sleeperType: '',
         mouldCleaned: '',
         oilApplied: '',
@@ -55,15 +55,8 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
                 oilApplied: convertToYesNo(initialData.oilApplied)
             });
             console.log('📋 MouldPrepForm - Prefilled from:', initialData);
-        } else {
-            // If not editing, sync with shared shift data
-            setFormData(prev => ({
-                ...prev,
-                batchNo: sharedBatchNo || prev.batchNo,
-                benchNo: sharedBenchNo || prev.benchNo
-            }));
         }
-    }, [initialData, activeContainer, sharedBatchNo, sharedBenchNo]);
+    }, [initialData, activeContainer]);
 
     // Auto-fetch Sleeper Type derivation
     useEffect(() => {
@@ -95,6 +88,19 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
         if (!formData.benchNo || !formData.batchNo || !formData.mouldCleaned || !formData.oilApplied) {
             alert('Please fill in all required fields (Batch, Bench, Cleaning & Oiling).');
             return;
+        }
+
+        // 3. Completed Batch + Gang combination check (Requirement: Must not appear/be re-entered)
+        if (!initialData) {
+            const isDuplicate = (existingEntries || []).some(entry => 
+                String(entry.batchNo || entry.batch) === String(formData.batchNo) && 
+                String(entry.benchNo || entry.benchGangNo) === String(formData.benchNo)
+            );
+            
+            if (isDuplicate) {
+                alert(`Record already exists: Batch ${formData.batchNo} with ${fieldLabel} ${formData.benchNo} has already been recorded in Mould Preparation. Duplicate entries are not permitted.`);
+                return;
+            }
         }
 
         // Payload matching mould-preparation-controller schema exactly

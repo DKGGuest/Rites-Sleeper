@@ -19,7 +19,7 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
         wireDia: '',
         layLength: '',
         arrangement: '',
-        status: 'Not OK',
+        status: '--',
         remarks: ''
     });
 
@@ -55,7 +55,7 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
                 wireDia: initialData.wireDia || initialData.htsWireDiaMm || '',
                 layLength: initialData.layLength || initialData.layLengthMm || '',
                 arrangement: initialData.arrangement || (initialData.arrangementOk !== undefined ? (initialData.arrangementOk ? 'OK' : 'Not OK') : (initialData.htsArrangementCheck || '')),
-                status: initialData.status || initialData.overallStatus || 'Not OK',
+                status: initialData.status || initialData.overallStatus || '--',
                 remarks: initialData.remarks || ''
             });
             console.log('📋 HTSWireForm - Prefilled from:', initialData);
@@ -85,34 +85,55 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
         }
     }, [formData.gangNo, initialData]);
 
-    // Auto Overall Status calculation
+    // Auto Overall Status and Arrangement calculation
     useEffect(() => {
         const rules = SLEEPER_RULES[formData.sleeperType] || { wires: 18, diaMin: 2.97, diaMax: 3.03 };
-        const wires = parseInt(formData.noOfWires);
-        const dia = parseFloat(formData.wireDia);
-        const layLen = parseFloat(formData.layLength);
+        
+        const { noOfWires, wireDia, layLength } = formData;
 
-        const isWiresOk = wires === rules.wires;
-        const isDiaOk = !isNaN(dia) && dia >= rules.diaMin && dia <= rules.diaMax;
-        const isLayLenOk = !isNaN(layLen) && layLen >= 72 && layLen <= 108;
-
-        // 🔥 Arrangement OK is independently controlled by the user.
-        // EXCEPTION: If Lay Length OR HTS Wire Diameter is out of range,
-        // automatically force Arrangement OK to "Not OK".
-        const layLengthOutOfRange = formData.layLength !== '' && !isNaN(layLen) && !isLayLenOk;
-        const wireDiaOutOfRange = formData.wireDia !== '' && !isNaN(dia) && !isDiaOk;
-
-        if ((layLengthOutOfRange || wireDiaOutOfRange) && formData.arrangement !== 'Not OK') {
-            setFormData(prev => ({ ...prev, arrangement: 'Not OK' }));
-            return; // Let next render cycle recalculate overall status
+        // If mandatory measurement fields are empty, keep status as '--' and reset arrangement
+        if (!noOfWires && !wireDia && !layLength) {
+            if (formData.status !== '--' || formData.arrangement !== '') {
+                setFormData(prev => ({ ...prev, status: '--', arrangement: '' }));
+            }
+            return;
         }
 
-        const isArrangementOk = formData.arrangement === 'OK';
+        const wiresNum = parseInt(noOfWires);
+        const diaNum = parseFloat(wireDia);
+        const layLenNum = parseFloat(layLength);
 
-        // Overall status is OK only if everything is within tolerance
-        const status = (isWiresOk && isDiaOk && isLayLenOk && isArrangementOk) ? 'OK' : 'Not OK';
-        setFormData(prev => ({ ...prev, status }));
-    }, [formData.wireDia, formData.arrangement, formData.sleeperType, formData.noOfWires, formData.layLength]);
+        // Validation checks (only if value is present)
+        const isWiresOk = !noOfWires || wiresNum === rules.wires;
+        const isDiaOk = !wireDia || (!isNaN(diaNum) && diaNum >= rules.diaMin && diaNum <= rules.diaMax);
+        const isLayLenOk = !layLength || (!isNaN(layLenNum) && layLenNum >= 72 && layLenNum <= 108);
+
+        // Auto-select Arrangement: 'OK' if all filled dimensions are correct, else 'Not OK'
+        const autoArrangement = (isWiresOk && isDiaOk && isLayLenOk) ? 'OK' : 'Not OK';
+
+        // Overall Status Logic:
+        // 1. 'Not OK' if any filled field is incorrect OR arrangement is 'Not OK'
+        // 2. 'OK' if all fields are filled AND correct
+        // 3. '--' if all filled are correct but some fields are still empty
+        const allFilled = noOfWires && wireDia && layLength;
+        
+        let calculatedStatus = '--';
+        if (!isWiresOk || !isDiaOk || !isLayLenOk || autoArrangement === 'Not OK') {
+            calculatedStatus = 'Not OK';
+        } else if (allFilled && isWiresOk && isDiaOk && isLayLenOk && autoArrangement === 'OK') {
+            calculatedStatus = 'OK';
+        } else {
+            calculatedStatus = '--';
+        }
+
+        if (formData.status !== calculatedStatus || formData.arrangement !== autoArrangement) {
+            setFormData(prev => ({ 
+                ...prev, 
+                status: calculatedStatus,
+                arrangement: autoArrangement
+            }));
+        }
+    }, [formData.wireDia, formData.sleeperType, formData.noOfWires, formData.layLength, formData.arrangement]);
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -187,7 +208,7 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
             wireDia: '',
             layLength: '',
             arrangement: '',
-            status: 'Not OK',
+            status: '--',
             remarks: ''
         }));
     };
@@ -312,13 +333,13 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
                     <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Status</label>
                     <div style={{
                         padding: '10px',
-                        background: formData.status === 'OK' ? '#ecfdf5' : '#fef2f2',
+                        background: formData.status === 'OK' ? '#ecfdf5' : formData.status === 'Not OK' ? '#fef2f2' : '#f8fafc',
                         borderRadius: '6px',
                         fontWeight: '800',
-                        color: formData.status === 'OK' ? '#059669' : '#dc2626',
+                        color: formData.status === 'OK' ? '#059669' : formData.status === 'Not OK' ? '#dc2626' : '#64748b',
                         fontSize: '13px',
                         border: '1px solid',
-                        borderColor: formData.status === 'OK' ? '#10b981' : '#ef4444',
+                        borderColor: formData.status === 'OK' ? '#10b981' : formData.status === 'Not OK' ? '#ef4444' : '#e2e8f0',
                         textAlign: 'center'
                     }}>
                         {formData.status}

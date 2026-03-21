@@ -95,7 +95,7 @@ const formatDate = (dateStr) => {
 
 const HTS_TABLE_MAPPING = [
     {
-        Header: "Location",
+        Header: "Line No / Shed No",
         accessor: (row) => row.lineShedNo || row.location || 'N/A'
     },
     {
@@ -256,7 +256,30 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
             setViewMode('form');
         }
     };    const renderLogs = (mod) => {
-        const records = entries[mod] || [];
+        const records = [...(entries[mod] || [])].sort((a, b) => {
+            const dateA = a.preparationDate || a.placementDate || a.inspectionDate || a.checkingDate || a.date || a.createdDate || "";
+            const timeA = a.preparationTime || a.placementTime || a.inspectionTime || a.checkingTime || (a.createdDate ? a.createdDate.substring(11, 16) : "") || "00:00";
+            const dateB = b.preparationDate || b.placementDate || b.inspectionDate || b.checkingDate || b.date || b.createdDate || "";
+            const timeB = b.preparationTime || b.placementTime || b.inspectionTime || b.checkingTime || (b.createdDate ? b.createdDate.substring(11, 16) : "") || "00:00";
+
+            const parseDate = (d, t) => {
+                if (!d || typeof d !== 'string') return 0;
+                let isoDate = d;
+                if (d.includes('/')) {
+                    const parts = d.split('/');
+                    if (parts.length === 3) {
+                        const [day, month, year] = parts;
+                        isoDate = `${year.padStart(4, '20')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                    }
+                }
+                const timePart = (t && typeof t === 'string') ? t.substring(0, 5) : "00:00";
+                const timestamp = new Date(`${isoDate}T${timePart}`).getTime();
+                return isNaN(timestamp) ? 0 : timestamp;
+            };
+
+            return parseDate(dateB, timeB) - parseDate(dateA, timeA);
+        });
+
         const lineRecords = records.filter(r => !(r.lineShedNo || r.location || '').toLowerCase().includes('shed'));
         const shedRecords = records.filter(r => (r.lineShedNo || r.location || '').toLowerCase().includes('shed'));
 
@@ -271,7 +294,7 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                             <tr>
                                 {mod === 'mouldPrep' ? (
                                     <>
-                                        <th style={{ background: '#fffbeb' }}>Line/Shed</th>
+                                        <th style={{ background: '#fffbeb' }}>Line No / Shed No</th>
                                         <th style={{ background: '#fffbeb' }}>Date & Time</th>
                                         <th style={{ background: '#fffbeb' }}>Batch</th>
                                         <th style={{ background: '#fffbeb' }}>{fieldLabel} No.</th>
@@ -286,7 +309,7 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                                             ))
                                         ) : (
                                             <>
-                                                <th style={{ width: '80px', background: '#fffbeb' }}>Location</th>
+                                                <th style={{ width: '120px', background: '#fffbeb' }}>Line No / Shed No</th>
                                                 <th style={{ background: '#fffbeb' }}>Date & Time</th>
                                                 {mod === 'demoulding' ? (
                                                     <>
