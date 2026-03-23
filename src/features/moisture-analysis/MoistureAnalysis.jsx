@@ -119,6 +119,7 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                     ca2Free: ca2 ? ca2.freeMoisturePercent : '-',
                     faFree: fa ? fa.freeMoisturePercent : '-',
                     totalFree: r.totalFreeMoisture,
+                    adjWater: r.adjustedWaterWt,
                     timestamp: r.createdDate || r.timestamp || new Date().toISOString(),
                     ca1Val: ca1 ? parseFloat(ca1.freeMoisturePercent) || 0 : 0,
                     ca2Val: ca2 ? parseFloat(ca2.freeMoisturePercent) || 0 : 0,
@@ -143,6 +144,7 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                     ca2Free: r.sectionType === 'CA2' ? r.freeMoisturePercent : '-',
                     faFree: r.sectionType === 'FA' ? r.freeMoisturePercent : '-',
                     totalFree: r.totalFreeMoisture,
+                    adjWater: r.adjustedWaterWt || '-',
                     timestamp: r.createdDate || r.timestamp || new Date().toISOString(),
                     ca1Val: r.sectionType === 'CA1' ? parseFloat(r.freeMoisturePercent) || 0 : 0,
                     ca2Val: r.sectionType === 'CA2' ? parseFloat(r.freeMoisturePercent) || 0 : 0,
@@ -163,6 +165,7 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                 }
                 current.records.push(r);
                 if (r.totalFreeMoisture) current.totalFree = r.totalFreeMoisture;
+                if (r.adjustedWaterWt) current.adjWater = r.adjustedWaterWt;
             }
         });
         return Object.values(groups).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -244,9 +247,67 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
 
 
     const handleEdit = async (record) => {
-        setEditRecord(record);
-        if (setShowForm) setShowForm(true);
-        setView('entry');
+        setLoading(true);
+        try {
+            const data = await apiService.getMoistureAnalysisById(record.id);
+            const r = data?.responseData || data;
+
+            if (r) {
+                const ca1 = r.sections?.find(s => s.sectionType === 'CA1');
+                const ca2 = r.sections?.find(s => s.sectionType === 'CA2');
+                const fa = r.sections?.find(s => s.sectionType === 'FA');
+
+                setEditRecord({
+                    id: r.id,
+                    date: formatFromBackendDate(r.entryDate),
+                    shift: r.shift,
+                    timing: r.entryTime,
+                    batchNo: r.batchNo,
+                    mixDesignId: r.approvedMixDesign,
+                    designValues: {
+                        name: r.approvedMixDesign,
+                        ac: r.designAC,
+                        wc: r.designWC,
+                        cement: r.designCement,
+                        ca1: r.designCA1,
+                        ca2: r.designCA2,
+                        fa: r.designFA,
+                        water: r.designWater,
+                        admix: r.designAdmix
+                    },
+                    ca1Details: {
+                        wetSample: ca1?.wtWetSample ?? '',
+                        driedSample: ca1?.wtDriedSample ?? '',
+                        absorption: ca1?.absorptionPercent ?? ''
+                    },
+                    ca2Details: {
+                        wetSample: ca2?.wtWetSample ?? '',
+                        driedSample: ca2?.wtDriedSample ?? '',
+                        absorption: ca2?.absorptionPercent ?? ''
+                    },
+                    faDetails: {
+                        wetSample: fa?.wtWetSample ?? '',
+                        driedSample: fa?.wtDriedSample ?? '',
+                        absorption: fa?.absorptionPercent ?? ''
+                    },
+                    userDryCA1: r.actualCA1 || '',
+                    userDryCA2: r.actualCA2 || '',
+                    userDryFA: r.actualFA || '',
+                    userDryWater: r.actualWater || '',
+                    userDryCement: r.actualCement || '',
+                    userDryAdmix: r.actualAdmix || '1.44'
+                });
+
+                if (setShowForm) setShowForm(true);
+                setView('entry');
+            }
+        } catch (err) {
+            console.error("Failed to fetch record details:", err);
+            alert("Failed to load record details. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+
         // Scroll the form container to top
         setTimeout(() => {
             if (formRef.current) {
@@ -357,7 +418,7 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                     <table className="ui-table">
                         <thead>
                             <tr style={{ fontSize: '0.7rem' }}>
-                                <th>Date & Shift</th><th>Time</th><th>Batch No.</th><th>CA1 %</th><th>CA2 %</th><th>FA %</th><th>Total</th><th>Status</th>
+                                <th>Date & Shift</th><th>Time</th><th>Batch No.</th><th>CA1 %</th><th>CA2 %</th><th>FA %</th><th>Total Free</th><th>Adj. Water</th><th>Status</th>
                             </tr>
                         </thead>
                         <tbody style={{ fontSize: '0.8rem' }}>
@@ -370,45 +431,10 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                                     <td style={{ color: '#8b5cf6', fontWeight: '700' }}>{group.ca2Free !== '-' ? `${group.ca2Free}%` : '-'}</td>
                                     <td style={{ color: '#f59e0b', fontWeight: '700' }}>{group.faFree !== '-' ? `${group.faFree}%` : '-'}</td>
                                     <td style={{ fontWeight: '700' }}>{group.totalFree} Kg</td>
+                                    <td style={{ fontWeight: '700', color: '#0ea5e9' }}>{group.adjWater} Kg</td>
                                     <td>
                                         {isRecordEditable(group.timestamp) ? (
-                                            <button className="btn-action" style={{ fontSize: '10px' }} onClick={() => {
-                                                const r = group.fullRecord || group.records[0];
-                                                const ca1 = r.sections?.find(s => s.sectionType === 'CA1');
-                                                const ca2 = r.sections?.find(s => s.sectionType === 'CA2');
-                                                const fa = r.sections?.find(s => s.sectionType === 'FA');
-
-                                                handleEdit({
-                                                    ...group,
-                                                    id: r.id,
-                                                    date: formatFromBackendDate(r.entryDate),
-                                                    shift: r.shift,
-                                                    timing: r.entryTime,
-                                                    batchNo: r.batchNo,
-                                                    mixDesignId: 'MIX-01', // Should ideally be matched by name
-                                                    ca1Details: {
-                                                        wetSample: ca1?.wtWetSample ?? '',
-                                                        driedSample: ca1?.wtDriedSample ?? '',
-                                                        absorption: ca1?.absorptionPercent ?? ''
-                                                    },
-                                                    ca2Details: {
-                                                        wetSample: ca2?.wtWetSample ?? '',
-                                                        driedSample: ca2?.wtDriedSample ?? '',
-                                                        absorption: ca2?.absorptionPercent ?? ''
-                                                    },
-                                                    faDetails: {
-                                                        wetSample: fa?.wtWetSample ?? '',
-                                                        driedSample: fa?.wtDriedSample ?? '',
-                                                        absorption: fa?.absorptionPercent ?? ''
-                                                    },
-                                                    userDryCA1: r.actualCA1 || '',
-                                                    userDryCA2: r.actualCA2 || '',
-                                                    userDryFA: r.actualFA || '',
-                                                    userDryWater: r.actualWater || '',
-                                                    userDryCement: r.actualCement || '',
-                                                    userDryAdmix: r.actualAdmix || '1.44'
-                                                });
-                                            }}>Modify</button>
+                                            <button className="btn-action" style={{ fontSize: '10px' }} onClick={() => handleEdit(group)}>Modify</button>
                                         ) : (
                                             <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: '700' }}>LOCKED</span>
                                         )}

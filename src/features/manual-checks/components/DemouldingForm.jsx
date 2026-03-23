@@ -37,8 +37,8 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
         location: activeContainer?.name || 'N/A',
         inspectionDate: getSafeToday(),
         inspectionTime: getSafeNowTime(),
-        batch: sharedBatchNo || '',
-        gangNo: sharedBenchNo || '',
+        batch: '',
+        gangNo: '',
         type: '',
         casting: getSafeToday(),
         process: '',
@@ -131,14 +131,8 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                 }))
             });
         } else {
-            // sync with shared shift data
-            setFormData(prev => ({
-                ...prev,
-                batch: sharedBatchNo || prev.batch,
-                gangNo: sharedBenchNo || prev.gangNo
-            }));
         }
-    }, [initialData, activeContainer, sharedBatchNo, sharedBenchNo]);
+    }, [initialData, activeContainer]);
 
     // Auto-Type logic
     useEffect(() => {

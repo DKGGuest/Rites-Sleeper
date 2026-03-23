@@ -83,7 +83,7 @@ const KEY_LABELS = {
     castingDate:         'Casting Date',
     batchNumber:         'Batch No.',
     sleeperCount:        'Sleeper Count',
-    benchNo:             'Bench No.',
+    // benchNo:             'Bench No.',
     shiftType:           'Shift',
     // Generic / Audit
     id:                  'Record ID',

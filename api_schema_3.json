@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "properties": {
+    "parameterId": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "result": {
+      "type": "string"
+    }
+  }
+}

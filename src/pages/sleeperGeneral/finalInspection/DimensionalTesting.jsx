@@ -91,7 +91,7 @@ const DimensionalTesting = ({ type }) => {
         { key: 'batchNumber', label: 'Batch No.' },
         { key: 'totalBatchQty', label: 'Total Batch Qty' },
         { key: 'sleeperType', label: 'Type of Sleeper' },
-        { key: 'noOfSleepers', label: 'No. of Sleepers (Type)' },
+        { key: 'noOfSleepers', label: 'No. of Sleepers' },
         {
             key: 'testedPercentage',
             label: 'Tested (%)',

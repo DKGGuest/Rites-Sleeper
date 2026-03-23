@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "properties": {
+    "batchId": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "moduleId": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "shift": {
+      "type": "string"
+    },
+    "createdBy": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "sleepers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/components/schemas/SleeperInspectionDto"
+      }
+    }
+  }
+}

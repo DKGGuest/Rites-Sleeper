@@ -232,6 +232,9 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
         const wtAdopted = Math.ceil(adjustedWt);
 
         return {
+            wetSample,
+            driedSample,
+            absorption,
             moistureInSample: moistureInSample.toFixed(2),
             moisturePct: moisturePct.toFixed(2),
             freeMoisturePct: freeMoisturePct.toFixed(2),

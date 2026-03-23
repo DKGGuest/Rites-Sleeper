@@ -234,8 +234,42 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
             alert('Batch and Bench required');
             return;
         }
+
+        // Validation for RPM (9000 +/- 4%: 8640 to 9360)
+        const minRpmVal = parseInt(manualForm.minRpm);
+        const maxRpmVal = parseInt(manualForm.maxRpm);
+        if (isNaN(minRpmVal) || isNaN(maxRpmVal)) {
+            alert('Please enter valid RPM values');
+            return;
+        }
+        if (minRpmVal < 8640 || maxRpmVal > 9360) {
+            alert('RPM must be between 8640 and 9360 (9000 +/- 4%)');
+            return;
+        }
+        if (minRpmVal > maxRpmVal) {
+            alert('Min RPM cannot be greater than Max RPM');
+            return;
+        }
+
+        // Validation for Duration (120 to 240 seconds)
+        const minDurVal = parseInt(manualForm.minDuration);
+        const maxDurVal = parseInt(manualForm.maxDuration);
+        if (isNaN(minDurVal) || isNaN(maxDurVal)) {
+            alert('Please enter valid Duration values');
+            return;
+        }
+        if (minDurVal < 120 || maxDurVal > 240) {
+            alert('Duration must be between 120 and 240 seconds');
+            return;
+        }
+        if (minDurVal > maxDurVal) {
+            alert('Min Duration cannot be greater than Max Duration');
+            return;
+        }
+        const avgDuration = Math.round((minDurVal + maxDurVal) / 2);
         const newEntry = {
             ...manualForm,
+            duration: avgDuration,
             id: editingId || Date.now(),
             timestamp: new Date().toISOString(),
             location: manualForm.location || 'N/A',
@@ -257,7 +291,7 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                                     maxRpm: parseInt(manualForm.maxRpm) || 0,
                                     minDuration: parseInt(manualForm.minDuration) || 0,
                                     maxDuration: parseInt(manualForm.maxDuration) || 0,
-                                    duration: parseInt(manualForm.duration) || 0
+                                    duration: avgDuration
                                 };
                             }
                             return m;
@@ -404,10 +438,42 @@ const CompactionConcrete = ({ onBack, batches = [], sharedState, displayMode = '
                             </div>
                             <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))' }}>
                                 <div className="form-field"><label>Bench No.</label><input type="number" min="0" value={manualForm.benchNo} onChange={e => setManualForm({ ...manualForm, benchNo: e.target.value })} /></div>
-                                <div className="form-field"><label>Min RPM</label><input type="number" min="0" value={manualForm.minRpm} onChange={e => setManualForm({ ...manualForm, minRpm: e.target.value })} /></div>
-                                <div className="form-field"><label>Max RPM</label><input type="number" min="0" value={manualForm.maxRpm} onChange={e => setManualForm({ ...manualForm, maxRpm: e.target.value })} /></div>
-                                <div className="form-field"><label>Min Duration (s)</label><input type="number" min="0" value={manualForm.minDuration} onChange={e => setManualForm({ ...manualForm, minDuration: e.target.value })} /></div>
-                                <div className="form-field"><label>Max Duration (s)</label><input type="number" min="0" value={manualForm.maxDuration} onChange={e => setManualForm({ ...manualForm, maxDuration: e.target.value })} /></div>
+                                <div className="form-field">
+                                    <label>Min RPM <small style={{ opacity: 0.6 }}>(8640+)</small></label>
+                                    <input 
+                                        type="number" 
+                                        value={manualForm.minRpm} 
+                                        onChange={e => setManualForm({ ...manualForm, minRpm: e.target.value })} 
+                                        style={(manualForm.minRpm && (parseInt(manualForm.minRpm) < 8640 || parseInt(manualForm.minRpm) > 9360)) ? { borderColor: '#ef4444', color: '#ef4444', background: '#fef2f2' } : {}}
+                                    />
+                                </div>
+                                <div className="form-field">
+                                    <label>Max RPM <small style={{ opacity: 0.6 }}>(up to 9360)</small></label>
+                                    <input 
+                                        type="number" 
+                                        value={manualForm.maxRpm} 
+                                        onChange={e => setManualForm({ ...manualForm, maxRpm: e.target.value })} 
+                                        style={(manualForm.maxRpm && (parseInt(manualForm.maxRpm) < 8640 || parseInt(manualForm.maxRpm) > 9360)) ? { borderColor: '#ef4444', color: '#ef4444', background: '#fef2f2' } : {}}
+                                    />
+                                </div>
+                                <div className="form-field">
+                                    <label>Min Dur. <small style={{ opacity: 0.6 }}>(120s+)</small></label>
+                                    <input 
+                                        type="number" 
+                                        value={manualForm.minDuration} 
+                                        onChange={e => setManualForm({ ...manualForm, minDuration: e.target.value })} 
+                                        style={(manualForm.minDuration && (parseInt(manualForm.minDuration) < 120 || parseInt(manualForm.minDuration) > 240)) ? { borderColor: '#ef4444', color: '#ef4444', background: '#fef2f2' } : {}}
+                                    />
+                                </div>
+                                <div className="form-field">
+                                    <label>Max Dur. <small style={{ opacity: 0.6 }}>(up to 240s)</small></label>
+                                    <input 
+                                        type="number" 
+                                        value={manualForm.maxDuration} 
+                                        onChange={e => setManualForm({ ...manualForm, maxDuration: e.target.value })} 
+                                        style={(manualForm.maxDuration && (parseInt(manualForm.maxDuration) < 120 || parseInt(manualForm.maxDuration) > 240)) ? { borderColor: '#ef4444', color: '#ef4444', background: '#fef2f2' } : {}}
+                                    />
+                                </div>
                             </div>
                             <div className="action-row-center" style={{ marginTop: '1rem' }}><button className="toggle-btn" onClick={handleSaveManual}>{editingId ? 'Update Record' : 'Save Manual Record'}</button></div>
                         </section>

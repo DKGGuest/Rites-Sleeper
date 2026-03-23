@@ -111,8 +111,7 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
                 });
 
                 if (isRejected) return { ...sleeper, status: 'rejected' };
-                if (isAllChecked) return { ...sleeper, status: 'passed' };
-                return { ...sleeper, status: 'pending' };
+                return { ...sleeper, status: 'passed' };
             });
         });
     };
@@ -177,7 +176,6 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
                 shift: shift || 'General',
                 createdBy: parseInt(localStorage.getItem('userId') || '118', 10),
                 sleepers: sleepers.filter(s => selectedSleepers.includes(s.id)).map(s => {
-                    const isPassed = s.status === 'passed';
                     const isRejected = s.status === 'rejected';
 
                     const sleeperParams = sections.map((sect, idx) => {
@@ -211,7 +209,7 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
                     return {
                         sleeperId: s.id,
                         sleeperNo: s.displayNo,
-                        result: isPassed ? 'OK' : (isRejected ? 'REJECTED' : 'PENDING'),
+                        result: isRejected ? 'REJECTED' : 'OK',
                         rejectionReason: rejectionReason.trim(),
                         parameters: sleeperParams
                     };
