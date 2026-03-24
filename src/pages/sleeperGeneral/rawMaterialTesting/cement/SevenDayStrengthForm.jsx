@@ -16,12 +16,15 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
         roomTemp: "",
         normalConsistency: "",
         waterRequired: 0,
+        area: 4984, // Cross-sectional area in mm2
         cubes: [
             { castDate: new Date().toLocaleDateString('en-GB').split('/').join('-'), castTime: "08:00", testDate: new Date().toLocaleDateString('en-GB').split('/').join('-'), testTime: "08:00", load: "", strength: "" },
             { castDate: new Date().toLocaleDateString('en-GB').split('/').join('-'), castTime: "08:00", testDate: new Date().toLocaleDateString('en-GB').split('/').join('-'), testTime: "08:00", load: "", strength: "" },
             { castDate: new Date().toLocaleDateString('en-GB').split('/').join('-'), castTime: "08:00", testDate: new Date().toLocaleDateString('en-GB').split('/').join('-'), testTime: "08:00", load: "", strength: "" }
         ],
-        minStrength: "",
+        avgStrength: "",
+        validationStatus: "",
+        isValidTest: true,
         cubeResult: "",
         soundness: "",
         soundnessResult: ""
@@ -54,7 +57,9 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
                         roomTemp: record.roomTemp || prev.roomTemp,
                         normalConsistency: record.normalConsistency || prev.normalConsistency,
                         waterRequired: record.waterRequired || prev.waterRequired,
-                        minStrength: record.minStrength || prev.minStrength,
+                        area: record.area || prev.area || 4984,
+                        avgStrength: record.avgStrength || prev.avgStrength,
+                        isValidTest: record.isValidTest !== undefined ? record.isValidTest : prev.isValidTest,
                         cubeResult: record.cubeResult || prev.cubeResult,
                         soundness: record.soundness || prev.soundness,
                         soundnessResult: record.soundnessResult || prev.soundnessResult,
@@ -63,7 +68,7 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
                             castTime: c.castTime ? c.castTime.substring(0, 5) : "",
                             testDate: formatFromISO(c.testDate),
                             testTime: c.testTime ? c.testTime.substring(0, 5) : "",
-                            load: c.loadKn || "",
+                            load: c.loadNewton || (c.loadKn ? c.loadKn * 1000 : ""),
                             strength: c.strengthNmm2 || ""
                         })) : prev.cubes
                     }));
@@ -80,21 +85,46 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
         }
     }, [form.normalConsistency]);
 
-    // Auto calculate minimum strength & result
+    // Auto calculate strength & validations
     useEffect(() => {
-        const strengths = form.cubes
+        const updatedCubes = form.cubes.map(c => {
+            const load = parseFloat(c.load);
+            const area = parseFloat(form.area) || 4984;
+            if (!isNaN(load) && area > 0) {
+                return { ...c, strength: (load / area).toFixed(2) };
+            }
+            return c;
+        });
+
+        const strengths = updatedCubes
             .map(c => parseFloat(c.strength))
             .filter(v => !isNaN(v));
 
-        if (strengths.length >= 3) {
-            const min = Math.min(...strengths);
+        if (strengths.length === 3) {
+            const avg = strengths.reduce((a, b) => a + b, 0) / 3;
+            const limit = 0.1 * avg; // 10% limit
+            
+            // Check if any value differs by > 10%
+            const allWithinRange = strengths.every(s => Math.abs(s - avg) <= limit);
+            
             setForm(prev => ({
                 ...prev,
-                minStrength: min,
-                cubeResult: min >= 37.5 ? "Satisfactory" : "Not Satisfactory"
+                cubes: updatedCubes,
+                avgStrength: avg.toFixed(2),
+                isValidTest: allWithinRange,
+                validationStatus: allWithinRange ? "Valid Test (Within 10% range)" : "Invalid Test (Exceeds 10% range)",
+                cubeResult: (avg >= 37 && allWithinRange) ? "Satisfactory" : 
+                            (!allWithinRange) ? "Unreliable (Invalid)" : "Not Satisfactory"
             }));
+        } else {
+            // Only update strengths if not all 3 loads are present
+            const currentStr = JSON.stringify(form.cubes.map(c => c.strength));
+            const newStr = JSON.stringify(updatedCubes.map(c => c.strength));
+            if (currentStr !== newStr) {
+                setForm(prev => ({ ...prev, cubes: updatedCubes }));
+            }
         }
-    }, [form.cubes]);
+    }, [form.cubes.map(c => c.load).join(','), form.area]);
 
     const updateCube = (index, field, value) => {
         const updated = [...form.cubes];
@@ -121,7 +151,9 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
                 roomTemp: parseFloat(form.roomTemp),
                 normalConsistency: parseFloat(form.normalConsistency),
                 waterRequired: parseFloat(form.waterRequired),
-                minStrength: parseFloat(form.minStrength),
+                area: parseFloat(form.area),
+                avgStrength: parseFloat(form.avgStrength),
+                isValidTest: form.isValidTest,
                 cubeResult: form.cubeResult,
                 soundness: parseFloat(form.soundness),
                 soundnessResult: form.soundnessResult,
@@ -135,7 +167,7 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
                     castTime: c.castTime ? `${c.castTime}:00` : null,
                     testDate: formatToISO(c.testDate),
                     testTime: c.testTime ? `${c.testTime}:00` : null,
-                    loadKn: parseFloat(c.load),
+                    loadNewton: parseFloat(c.load),
                     strengthNmm2: parseFloat(c.strength)
                 }))
             };
@@ -232,6 +264,14 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
                             onChange={e => setForm({ ...form, normalConsistency: e.target.value })}
                         />
                     </div>
+                    <div className="input-group">
+                        <label>Cross-sectional Area (A) (mm²)</label>
+                        <input
+                            type="number"
+                            value={form.area}
+                            onChange={e => setForm({ ...form, area: e.target.value })}
+                        />
+                    </div>
                 </div>
 
                 <div className="info-section">
@@ -258,14 +298,14 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
                 <div className="table-container">
                     <table>
                         <thead>
-                            <tr>
-                                <th>Cast Date</th>
-                                <th>Cast Time</th>
-                                <th>Test Date</th>
-                                <th>Test Time</th>
-                                <th>Load (kN)</th>
-                                <th>Strength (N/mm²)</th>
-                            </tr>
+                                <tr>
+                                    <th>Cast Date</th>
+                                    <th>Cast Time</th>
+                                    <th>Test Date</th>
+                                    <th>Test Time</th>
+                                    <th>Load (Newton)</th>
+                                    <th>Strength (N/mm²)</th>
+                                </tr>
                         </thead>
                         <tbody>
                             {form.cubes.map((cube, i) => (
@@ -274,8 +314,8 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
                                     <td data-label="Cast Time"><input type="time" value={cube.castTime} onChange={e => updateCube(i, "castTime", e.target.value)} /></td>
                                     <td data-label="Test Date"><input type="text" placeholder="DD-MM-YYYY" value={cube.testDate} onChange={e => updateCube(i, "testDate", e.target.value)} /></td>
                                     <td data-label="Test Time"><input type="time" value={cube.testTime} onChange={e => updateCube(i, "testTime", e.target.value)} /></td>
-                                    <td data-label="Load (kN)"><input type="number" step="0.1" value={cube.load} onChange={e => updateCube(i, "load", e.target.value)} /></td>
-                                    <td data-label="Strength (N/mm²)"><input type="number" step="0.01" value={cube.strength} onChange={e => updateCube(i, "strength", e.target.value)} /></td>
+                                    <td data-label="Load (Newton)"><input type="number" step="1" value={cube.load} onChange={e => updateCube(i, "load", e.target.value)} /></td>
+                                    <td data-label="Strength (N/mm²)"><input type="number" value={cube.strength} readOnly style={{ background: '#f8fafc' }} /></td>
                                 </tr>
                             ))}
                         </tbody>
@@ -284,14 +324,22 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
 
                 {/* Results Section */}
                 <div className="info-section">
-                    <div className="info-title">Test Summary</div>
+                    <div className="info-title">Test Results (Average Strength f_avg = (E+F+G)/3)</div>
                     <div className="info-grid">
                         <div className="info-card">
-                            <div className="info-card-label">Minimum Strength</div>
-                            <div className="info-card-value">{form.minStrength || '-'}</div>
+                            <div className="info-card-label">Average Strength (H)</div>
+                            <div className="info-card-value" style={{ color: parseFloat(form.avgStrength) >= 37 ? "#10b981" : "#ef4444" }}>
+                                {form.avgStrength || '-'} N/mm²
+                            </div>
                         </div>
                         <div className="info-card">
-                            <div className="info-card-label">Test Result</div>
+                            <div className="info-card-label">10% Range Validation</div>
+                            <div className="info-card-value" style={{ fontSize: '0.9rem', color: form.isValidTest ? "#10b981" : "#ef4444" }}>
+                                {form.validationStatus || 'Pending inputs'}
+                            </div>
+                        </div>
+                        <div className="info-card">
+                            <div className="info-card-label">OPC 53 Overall Result</div>
                             <div className="info-card-value" style={{ color: form.cubeResult === "Satisfactory" ? "#10b981" : "#ef4444" }}>
                                 {form.cubeResult || '-'}
                             </div>
