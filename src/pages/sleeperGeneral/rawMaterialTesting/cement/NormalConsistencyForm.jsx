@@ -26,6 +26,19 @@ export default function NormalConsistencyForm({ onSave, onCancel, inventoryData 
         sampleWeight: 400
     });
 
+    // Handle sampleWeight changes to recalculate all volumes
+    useEffect(() => {
+        const weight = parseFloat(header.sampleWeight) || 0;
+        if (weight > 0) {
+            setRows(prev => prev.map(row => {
+                if (row.percent) {
+                    return { ...row, volume: ((parseFloat(row.percent) / 100) * weight).toFixed(1) };
+                }
+                return row;
+            }));
+        }
+    }, [header.sampleWeight]);
+
     const [rows, setRows] = useState([
         { ...emptyRow },
         { ...emptyRow },
@@ -34,6 +47,7 @@ export default function NormalConsistencyForm({ onSave, onCancel, inventoryData 
     ]);
 
     const [normalConsistency, setNormalConsistency] = useState("");
+    const [qtyOfWater, setQtyOfWater] = useState("");
     const [water85, setWater85] = useState("");
     const [editId, setEditId] = useState(null);
 
@@ -75,17 +89,41 @@ export default function NormalConsistencyForm({ onSave, onCancel, inventoryData 
     const updateRow = (index, field, value) => {
         const updated = [...rows];
         updated[index][field] = value;
+        
+        const weight = parseFloat(header.sampleWeight) || 0;
+        
+        // Auto-calculate volume if percent changes: Volume = (%/100) * weight
+        if (field === "percent" && weight > 0) {
+            const percentValue = parseFloat(value) || 0;
+            updated[index].volume = ((percentValue / 100) * weight).toFixed(1);
+        }
+        
+        // Auto-calculate percent if volume changes: % = (Volume/weight) * 100
+        if (field === "volume" && weight > 0) {
+            const volumeValue = parseFloat(value) || 0;
+            updated[index].percent = ((volumeValue / weight) * 100).toFixed(1);
+        }
+
         setRows(updated);
     };
 
     // auto calculations
     useEffect(() => {
-        // Find last row with percent and volume
-        const validRows = rows.filter(r => r.percent && r.volume);
-        if (validRows.length > 0) {
-            const last = validRows[validRows.length - 1];
-            setNormalConsistency(last.percent);
-            setWater85((Number(last.volume) * 0.85).toFixed(1));
+        // Find row where needle reading is between 5 to 7mm
+        const consistentRow = rows.find(r => {
+            const v = parseFloat(r.needle);
+            return !isNaN(v) && v >= 5 && v <= 7;
+        });
+
+        if (consistentRow) {
+            setNormalConsistency(consistentRow.percent);
+            setQtyOfWater(consistentRow.volume);
+            setWater85((Number(consistentRow.volume) * 0.85).toFixed(1));
+        } else {
+            // Keep empty if none reach 5-7
+            setNormalConsistency("");
+            setQtyOfWater("");
+            setWater85("");
         }
     }, [rows]);
 
@@ -225,7 +263,7 @@ export default function NormalConsistencyForm({ onSave, onCancel, inventoryData 
 
                         <tbody>
                             {rows.map((row, i) => (
-                                <tr key={i}>
+                                <tr key={i} className={(parseFloat(row.needle) >= 5 && parseFloat(row.needle) <= 7) ? "success-row" : ""}>
                                     <td data-label="#" style={{ textAlign: 'center', fontWeight: 'bold' }}>{i + 1}</td>
                                     <td data-label="% Water Added">
                                         <input
@@ -281,7 +319,7 @@ export default function NormalConsistencyForm({ onSave, onCancel, inventoryData 
                         </div>
                         <div className="info-card">
                             <div className="info-card-label">Qty of Water</div>
-                            <div className="info-card-value">{rows.find(r => r.percent === normalConsistency)?.volume || "-"} ml</div>
+                            <div className="info-card-value">{qtyOfWater || "-"} ml</div>
                         </div>
                         <div className="info-card">
                             <div className="info-card-label">85% of Water</div>

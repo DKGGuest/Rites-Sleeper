@@ -598,3 +598,12 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+.cement-forms-scope .success-row td {
+    background-color: #ecfdf5 !important; /* light green background */
+}
+
+.cement-forms-scope .success-row td input {
+    background-color: #d1fae5 !important; /* darker green for inputs */
+    border: 1px solid #10b981 !important; /* green border */
+}
