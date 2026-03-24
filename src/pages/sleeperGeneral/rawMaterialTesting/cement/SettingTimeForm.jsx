@@ -150,7 +150,7 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
 
             await saveCementSettingTime(payload, editId);
             toast.success(`Setting Time Test record ${editId ? 'updated' : 'saved'} successfully!`);
-            if (onSave) onSave();
+            if (onSave) onSave(header.consignment);
         } catch (error) {
             console.error("Save failed:", error);
             toast.error("Error saving record. Please check console.");
