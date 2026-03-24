@@ -719,16 +719,45 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying, activeContaine
     const [testData, setTestData] = useState({
         testDate: sample.testDate || new Date().toISOString().split('T')[0],
         testTime: sample.testTime || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-        cubeResults: sample.cubeResults || (sample.cubes || []).map(cube => ({
+        cubeResults: sample.cubeResults?.length ? sample.cubeResults.map(cr => ({
+            ...cr,
+            testDate: cr.testDate || new Date().toISOString().split('T')[0],
+            testTime: cr.testTime || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+        })) : (sample.cubes || []).map(cube => ({
             cubeNo: cube.benchNo,
             weight: '',
             load: '',
             strength: '',
             ageHrs: '0.0',
-            testDate: sample.testDate || new Date().toISOString().split('T')[0],
-            testTime: sample.testTime || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+            testDate: new Date().toISOString().split('T')[0],
+            testTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
         }))
     });
+
+    const addCubeRow = () => {
+        setTestData(prev => ({
+            ...prev,
+            cubeResults: [
+                ...prev.cubeResults,
+                {
+                    cubeNo: '',
+                    weight: '',
+                    load: '',
+                    strength: '',
+                    ageHrs: '0.0',
+                    testDate: new Date().toISOString().split('T')[0],
+                    testTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+                }
+            ]
+        }));
+    };
+
+    const removeCubeRow = (idx) => {
+        setTestData(prev => ({
+            ...prev,
+            cubeResults: prev.cubeResults.filter((_, i) => i !== idx)
+        }));
+    };
 
     const calculateAge = (castDate, castTime, testDate, testTime) => {
         if (!castDate || !castTime || !testDate || !testTime) return '0.0';
@@ -783,9 +812,9 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying, activeContaine
     }, [testData.cubeResults]);
 
     // Determine result
-    const threshold = sample.concreteGrade === 'M-55' ? 40 : 50;
+    const threshold = (sample.concreteGrade || sample.grade) === 'M-55' ? 40 : 50;
     const allStrengths = testData.cubeResults.map(c => parseFloat(c.strength)).filter(s => !isNaN(s));
-    const result = allStrengths.length > 0 && allStrengths.every(s => s > threshold) ? 'OK' : 'Not OK';
+    const result = (allStrengths.length > 0 && allStrengths.every(s => s >= threshold)) ? 'OK' : 'Not OK';
 
     return (
         <div className="form-modal-overlay" onClick={onClose}>
@@ -815,27 +844,36 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying, activeContaine
                                 <thead>
                                     <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                                         <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '700', color: '#64748b', fontSize: '11px' }}>Cube No.</th>
-                                        <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '700', color: '#64748b', fontSize: '11px', minWidth: '110px' }}>Date of Testing</th>
+                                        <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '700', color: '#64748b', fontSize: '11px', minWidth: '130px' }}>Date of Testing</th>
                                         <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '700', color: '#64748b', fontSize: '11px', minWidth: '90px' }}>Time</th>
                                         <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '700', color: '#64748b', fontSize: '11px' }}>Age (Hrs)</th>
                                         <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '700', color: '#64748b', fontSize: '11px' }}>Weight (Kgs)</th>
                                         <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '700', color: '#64748b', fontSize: '11px' }}>Load (KN)</th>
                                         <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '700', color: '#64748b', fontSize: '11px' }}>Strength (N/mm²)</th>
+                                        <th style={{ padding: '12px 8px' }}></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {testData.cubeResults.map((cube, idx) => (
                                         <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                            <td style={{ padding: '12px 8px', fontWeight: '700', color: '#42818c' }}>{cube.cubeNo}</td>
-                                            <td style={{ padding: '12px 8px' }}>
+                                            <td style={{ padding: '6px 8px' }}>
                                                 <input
                                                     type="text"
-                                                    readOnly
-                                                    value={cube.testDate ? cube.testDate.split('-').reverse().join('/') : ''}
-                                                    style={{ width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px', background: '#f8fafc' }}
+                                                    value={cube.cubeNo}
+                                                    onChange={e => updateCubeData(idx, 'cubeNo', e.target.value)}
+                                                    placeholder="e.g. 401"
+                                                    style={{ width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px', fontWeight: '700', color: '#42818c' }}
                                                 />
                                             </td>
-                                            <td style={{ padding: '12px 8px' }}>
+                                            <td style={{ padding: '6px 8px' }}>
+                                                <input
+                                                    type="date"
+                                                    value={cube.testDate}
+                                                    onChange={e => updateCubeData(idx, 'testDate', e.target.value)}
+                                                    style={{ width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px' }}
+                                                />
+                                            </td>
+                                            <td style={{ padding: '6px 8px' }}>
                                                 <input
                                                     type="time"
                                                     value={cube.testTime}
@@ -843,76 +881,51 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying, activeContaine
                                                     style={{ width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px' }}
                                                 />
                                             </td>
-                                            <td style={{ padding: '12px 8px' }}>
+                                            <td style={{ padding: '6px 8px' }}>
                                                 <input
                                                     type="text"
                                                     readOnly
                                                     value={cube.ageHrs}
-                                                    style={{
-                                                        width: '60px',
-                                                        padding: '6px',
-                                                        border: '1px solid #e2e8f0',
-                                                        borderRadius: '6px',
-                                                        background: '#f8fafc',
-                                                        fontWeight: '700',
-                                                        fontSize: '12px'
-                                                    }}
+                                                    style={{ width: '60px', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#f8fafc', fontWeight: '700', fontSize: '11px' }}
                                                 />
                                             </td>
-                                            <td style={{ padding: '12px 8px' }}>
+                                            <td style={{ padding: '6px 8px' }}>
                                                 <input
                                                     type="number"
                                                     step="0.01"
                                                     value={cube.weight}
                                                     onChange={e => updateCubeData(idx, 'weight', e.target.value)}
-                                                    placeholder="8.25"
-                                                    style={{
-                                                        width: '80px',
-                                                        padding: '6px',
-                                                        border: '1px solid #e2e8f0',
-                                                        borderRadius: '6px',
-                                                        fontSize: '12px'
-                                                    }}
+                                                    placeholder="8.2"
+                                                    style={{ width: '80px', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px' }}
                                                 />
                                             </td>
-                                            <td style={{ padding: '12px 8px' }}>
+                                            <td style={{ padding: '6px 8px' }}>
                                                 <input
                                                     type="number"
                                                     step="0.1"
                                                     value={cube.load}
                                                     onChange={e => updateCubeData(idx, 'load', e.target.value)}
                                                     placeholder="950"
-                                                    style={{
-                                                        width: '80px',
-                                                        padding: '6px',
-                                                        border: '1px solid #e2e8f0',
-                                                        borderRadius: '6px',
-                                                        fontSize: '12px'
-                                                    }}
+                                                    style={{ width: '80px', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px' }}
                                                 />
                                             </td>
-                                            <td style={{ padding: '12px 8px' }}>
+                                            <td style={{ padding: '6px 8px' }}>
                                                 <input
                                                     type="text"
                                                     readOnly
                                                     value={cube.strength}
-                                                    style={{
-                                                        width: '80px',
-                                                        padding: '6px',
-                                                        border: '1px solid #e2e8f0',
-                                                        borderRadius: '6px',
-                                                        background: '#f0fdf4',
-                                                        fontWeight: '800',
-                                                        color: '#166534',
-                                                        fontSize: '12px'
-                                                    }}
+                                                    style={{ width: '80px', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#f0fdf4', fontWeight: '800', color: '#166534', fontSize: '11px' }}
                                                 />
+                                            </td>
+                                            <td style={{ padding: '6px 8px' }}>
+                                                <button onClick={() => removeCubeRow(idx)} style={{ border: 'none', background: '#fee2e2', color: '#ef4444', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontWeight: '700' }}>×</button>
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
+                        <button onClick={addCubeRow} style={{ marginTop: '12px', background: '#f5f3ff', color: '#7c3aed', border: '1px dashed #7c3aed', borderRadius: '6px', padding: '6px 16px', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}>+ Add Cube</button>
                     </div>
 
                     {/* Summary Section */}
@@ -945,7 +958,7 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying, activeContaine
                             </div>
                         </div>
                         <p style={{ fontSize: '10px', color: '#64748b', marginTop: '12px', marginBottom: 0, textAlign: 'center' }}>
-                            Threshold: {sample.grade === 'M-55' ? '> 40 N/mm²' : '> 50 N/mm²'} for all cubes
+                            Threshold: {(sample.concreteGrade || sample.grade) === 'M-55' ? '≥ 40 N/mm²' : '≥ 50 N/mm²'} for all cubes
                         </p>
                     </div>
 
@@ -957,12 +970,13 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying, activeContaine
                                 ...testData,
                                 avgStrength,
                                 result,
-                                castDate: sample.castDate,
-                                castTime: sample.castTime,
-                                lineNumber: sample.lineNumber,
+                                castingDate: sample.castingDate,
+                                lbcTime: sample.lbcTime,
+                                lineNo: sample.lineNo,
+                                shedNo: sample.shedNo,
                                 batchNo: sample.batchNo,
                                 chamberNo: sample.chamberNo,
-                                grade: sample.grade
+                                concreteGrade: sample.concreteGrade
                             })}
                         >
                             Complete Test & Archive

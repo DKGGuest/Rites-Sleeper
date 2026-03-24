@@ -23,9 +23,7 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
         mouldTime: ""
     });
 
-    const [rows, setRows] = useState(
-        Array.from({ length: 20 }, () => ({ ...emptyRow }))
-    );
+    const [rows, setRows] = useState([{ ...emptyRow }]);
 
     const [initialTime, setInitialTime] = useState(null);
     const [finalTime, setFinalTime] = useState(null);
@@ -58,12 +56,12 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
                             needle: o.needlePenetration || "",
                             spot: o.finalSpot || ""
                         }));
-                        setRows(mapped.length < 20 ? [...mapped, ...Array(20 - mapped.length).fill({ ...emptyRow })] : mapped);
+                        setRows(mapped.length > 0 ? mapped : [{ ...emptyRow }]);
                     }
                 }
             });
         }
-    }, [activeRequestId]);
+    }, [activeRequestId, inventoryData]); // Added inventoryData to dependency array
 
     const updateRow = (i, field, val) => {
         const copy = [...rows];
@@ -76,7 +74,9 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
         if (!t1 || !t2) return null;
         const [h1, m1] = t1.split(":").map(Number);
         const [h2, m2] = t2.split(":").map(Number);
-        return h2 * 60 + m2 - (h1 * 60 + m1);
+        let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+        if (diff < 0) diff += 1440; // Add 24 hours in minutes
+        return diff;
     };
 
     useEffect(() => {
@@ -84,23 +84,32 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
 
         let init = null;
         let fin = null;
+        let istIdx = -1;
 
-        rows.forEach((r) => {
+        rows.forEach((r, idx) => {
             const mins = diffMinutes(header.waterAddTime, r.time);
+            const needleVal = parseFloat(r.needle);
 
-            if (init === null && r.needle && Number(r.needle) > 5 && mins >= 0) {
+            // IST: Needle reading 5 +/- 0.5 mm
+            if (init === null && !isNaN(needleVal) && needleVal >= 4.5 && needleVal <= 5.5 && mins >= 0) {
                 init = mins;
-            }
-
-            if (fin === null && r.spot === "yes" && mins >= 0) {
-                fin = mins;
+                istIdx = idx;
             }
         });
+
+        // FST: Time at which only spot at top surface (Last row in recorded time)
+        // We take the last row that has a time entered
+        const rowsWithTime = rows.filter(r => r.time);
+        if (rowsWithTime.length > 0) {
+            const lastRow = rowsWithTime[rowsWithTime.length - 1];
+            fin = diffMinutes(header.waterAddTime, lastRow.time);
+        }
 
         setInitialTime(init);
         setFinalTime(fin);
 
         if (init !== null && fin !== null) {
+            // Standard: IST >= 60, FST <= 600 (as per previous code)
             if (init >= 60 && fin <= 600) setResult("OK");
             else setResult("NOT OK");
         } else {
@@ -131,11 +140,11 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
                 requestId: activeRequestId || null,
                 createdBy: user?.userId || 0,
                 observations: rows
-                    .filter(r => r.time && r.needle)
+                    .filter(r => r.time) // Filter only rows with a time entered
                     .map(r => ({
                         readingTime: `${r.time}:00`,
-                        needlePenetration: parseFloat(r.needle),
-                        finalSpot: r.spot
+                        needlePenetration: r.needle ? parseFloat(r.needle) : 0, // Handle empty needle
+                        finalSpot: r.spot || "" // Handle empty spot
                     }))
             };
 
@@ -293,36 +302,86 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
                         </thead>
 
                         <tbody>
-                            {rows.map((r, i) => (
-                                <tr key={i}>
-                                    <td data-label="#" style={{ textAlign: 'center', fontWeight: 'bold' }}>{i + 1}</td>
-                                    <td data-label="Reading Time">
-                                        <input
-                                            type="time"
-                                            value={r.time}
-                                            onChange={(e) => updateRow(i, "time", e.target.value)}
-                                        />
-                                    </td>
-                                    <td data-label="Needle (mm)">
-                                        <input
-                                            type="number"
-                                            step="0.1"
-                                            value={r.needle}
-                                            onChange={(e) => updateRow(i, "needle", e.target.value)}
-                                        />
-                                    </td>
-                                    <td data-label="Final Spot?">
-                                        <select
-                                            value={r.spot}
-                                            onChange={(e) => updateRow(i, "spot", e.target.value)}
-                                        >
-                                            <option value="">-- Select --</option>
-                                            <option value="yes">Yes</option>
-                                            <option value="no">No</option>
-                                        </select>
-                                    </td>
-                                </tr>
-                            ))}
+                            {(() => {
+                                let istFound = false;
+                                return rows.map((r, i) => {
+                                    const needleVal = parseFloat(r.needle);
+                                    const isRowAfterIST = istFound;
+                                    
+                                    // Check if this row is the IST row to hide subsequent ones
+                                    if (!istFound && !isNaN(needleVal) && needleVal >= 4.5 && needleVal <= 5.5) {
+                                        istFound = true;
+                                    }
+
+                                    return (
+                                        <tr key={i}>
+                                            <td data-label="#" style={{ textAlign: 'center', fontWeight: 'bold' }}>{i + 1}</td>
+                                            <td data-label="Reading Time">
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <input
+                                                        type="time"
+                                                        value={r.time}
+                                                        onChange={(e) => updateRow(i, "time", e.target.value)}
+                                                    />
+                                                    <button 
+                                                        type="button"
+                                                        className="btn-action mini"
+                                                        style={{ padding: '2px 8px', borderRadius: '4px', background: '#10b981', borderColor: '#10b981' }}
+                                                        onClick={() => {
+                                                            const newRows = [...rows];
+                                                            newRows.splice(i + 1, 0, { ...emptyRow });
+                                                            setRows(newRows);
+                                                        }}
+                                                        title="Add row below"
+                                                    >
+                                                        +
+                                                    </button>
+                                                    {rows.length > 1 && (
+                                                        <button 
+                                                            type="button"
+                                                            className="btn-action mini danger"
+                                                            style={{ padding: '2px 7px', borderRadius: '4px' }}
+                                                            onClick={() => {
+                                                                const newRows = rows.filter((_, idx) => idx !== i);
+                                                                setRows(newRows);
+                                                            }}
+                                                            title="Delete row"
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td data-label="Needle (mm)">
+                                                {!isRowAfterIST ? (
+                                                    <input
+                                                        type="number"
+                                                        step="0.1"
+                                                        value={r.needle}
+                                                        onChange={(e) => updateRow(i, "needle", e.target.value)}
+                                                    />
+                                                ) : (
+                                                    <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>-</span>
+                                                )}
+                                            </td>
+                                            <td data-label="Final Spot?">
+                                                {!isRowAfterIST ? (
+                                                    <select
+                                                        value={r.spot}
+                                                        onChange={(e) => updateRow(i, "spot", e.target.value)}
+                                                    >
+                                                        <option value="">-- Select --</option>
+                                                        <option value="yes">Yes</option>
+                                                        <option value="no">No</option>
+                                                    </select>
+                                                ) : (
+                                                    <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>-</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                });
+                            })()}
                         </tbody>
                     </table>
                 </div>

@@ -120,9 +120,31 @@ const formatKey = (key) =>
         .trim();
 
 const formatValue = (val) => {
-    if (val === null || val === undefined) return '—';
+    if (val === null || val === undefined || val === '') return '—';
     if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-    if (typeof val === 'object') return JSON.stringify(val);
+    
+    // Handle Dates
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(val)) {
+        try {
+            const d = new Date(val);
+            if (!isNaN(d.getTime())) {
+                return d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            }
+        } catch (e) {}
+    }
+
+    if (Array.isArray(val)) {
+        if (val.length === 0) return '—';
+        if (typeof val[0] !== 'object') return val.join(', ');
+        return `${val.length} entries`;
+    }
+
+    if (typeof val === 'object') {
+        const label = val.name || val.label || val.username || val.title || val.id;
+        if (label !== undefined) return String(label);
+        return '—';
+    }
+
     return String(val);
 };
 
@@ -223,52 +245,47 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
                     transform: 'translate(-50%, -50%)',
                     zIndex: 1201,
                     background: '#fff',
-                    borderRadius: '20px',
-                    width: '90%',
-                    maxWidth: '700px',
-                    maxHeight: '88vh',
+                    borderRadius: '16px',
+                    width: '95%',
+                    maxWidth: '560px',
+                    maxHeight: '90vh',
                     overflowY: 'auto',
-                    boxShadow: '0 24px 64px rgba(0,0,0,0.22)',
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
                     display: 'flex',
                     flexDirection: 'column',
                 }}
             >
                 {/* ── Modal Header ── */}
                 <div style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-                    padding: '22px 28px 16px',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '16px 20px',
                     borderBottom: '1px solid #f1f5f9',
                     position: 'sticky', top: 0, background: '#fff', zIndex: 1,
-                    borderRadius: '20px 20px 0 0',
+                    borderRadius: '16px 16px 0 0',
                 }}>
                     <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
                             <span style={{
-                                background: '#ede9fe', color: '#6d28d9',
-                                fontSize: '10px', fontWeight: '700',
-                                padding: '3px 9px', borderRadius: '20px',
-                                textTransform: 'uppercase', letterSpacing: '0.5px'
+                                background: '#f5f3ff', color: '#7c3aed',
+                                fontSize: '10px', fontWeight: '800',
+                                padding: '2px 8px', borderRadius: '4px',
+                                textTransform: 'uppercase'
                             }}>
                                 {moduleLabel}
                             </span>
-                            <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                                Module {row.moduleId}
-                            </span>
+                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>#{row.requestId}</span>
                         </div>
-                        <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '800', color: '#0f172a' }}>
-                            Record Detail — Request #{row.requestId}
+                        <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '800', color: '#1e293b' }}>
+                            Verification Details
                         </h3>
-                        <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px' }}>
-                            Workflow Transition ID: <span style={{ fontFamily: 'monospace' }}>{row.workflowTransitionId}</span>
-                        </div>
                     </div>
                     <button
                         onClick={onClose}
                         style={{
-                            border: 'none', background: '#f1f5f9',
-                            borderRadius: '10px', padding: '8px 14px',
-                            cursor: 'pointer', fontSize: '13px', color: '#475569',
-                            fontWeight: '600', flexShrink: 0,
+                            border: 'none', background: '#f8fafc',
+                            borderRadius: '8px', padding: '6px 10px',
+                            cursor: 'pointer', fontSize: '12px', color: '#64748b',
+                            fontWeight: '600',
                         }}
                     >✕ Close</button>
                 </div>
@@ -295,120 +312,95 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
                         </div>
                     )}
 
-                    {/* Detail Grid */}
                     {!detailLoading && !detailError && detail && (
                         <div style={{
                             background: '#f8fafc',
                             border: '1px solid #e2e8f0',
-                            borderRadius: '14px',
-                            padding: '20px',
-                            marginBottom: '20px',
+                            borderRadius: '12px',
+                            overflow: 'hidden',
+                            marginBottom: '16px',
                         }}>
-                            <p style={{
-                                margin: '0 0 14px', fontSize: '11px',
-                                color: '#64748b', fontWeight: '700',
-                                textTransform: 'uppercase', letterSpacing: '0.6px'
-                            }}>
-                                📋 Record Information
-                            </p>
-
-                            {/* Prominent Audit Info Bar */}
+                            {/* Prominent Audit Row */}
                             <div style={{
                                 display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                                gap: '16px',
+                                gridTemplateColumns: 'repeat(3, 1fr)',
+                                gap: '8px',
                                 background: '#fff',
-                                border: '1px solid #e2e8f0',
-                                borderRadius: '12px',
-                                padding: '16px',
-                                marginBottom: '16px'
+                                borderBottom: '1px solid #e2e8f0',
+                                padding: '12px 16px',
                             }}>
                                 <div>
-                                    <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '600' }}>Updated By</div>
-                                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>
+                                    <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>Updated By</div>
+                                    <div style={{ fontSize: '12px', fontWeight: '700', color: '#334155' }}>
                                         {formatValue(detail.updatedBy || detail.modifiedBy || detail.lastModifiedBy || detail.createdBy)}
                                     </div>
                                 </div>
                                 <div>
-                                    <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '600' }}>Updated Date</div>
-                                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>
+                                    <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>Updated Date</div>
+                                    <div style={{ fontSize: '12px', fontWeight: '700', color: '#334155' }}>
                                         {formatValue(detail.updatedDate || detail.updatedAt || detail.modifiedDate || detail.modifiedAt || detail.lastModifiedDate)}
                                     </div>
                                 </div>
                                 <div>
-                                    <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '600' }}>Status</div>
-                                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>
-                                        {formatValue(detail.status || detail.recordStatus || '-')}
+                                    <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>Status</div>
+                                    <div style={{ fontSize: '12px', fontWeight: '700', color: '#334155' }}>
+                                        {formatValue(detail.status || detail.recordStatus || row.status)}
                                     </div>
                                 </div>
                             </div>
 
-                            <p style={{
-                                margin: '20px 0 12px', fontSize: '10px',
-                                color: '#94a3b8', fontWeight: '700',
-                                textTransform: 'uppercase', letterSpacing: '0.6px'
-                            }}>
-                                Details
-                            </p>
-
                             <div style={{
                                 display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                                gap: '14px',
+                                gridTemplateColumns: 'repeat(2, 1fr)',
+                                gap: '1px',
+                                background: '#e2e8f0',
                             }}>
                                 {Object.entries(detail).map(([key, val]) => {
-                                    // Skip audit fields already shown prominently
                                     const auditKeys = [
                                         'updatedBy', 'modifiedBy', 'lastModifiedBy', 'createdBy',
                                         'updatedDate', 'updatedAt', 'modifiedDate', 'modifiedAt', 'lastModifiedDate',
-                                        'status', 'recordStatus', 'id'
+                                        'status', 'recordStatus', 'id', 'requestId', 'workflowTransitionId'
                                     ];
                                     if (auditKeys.includes(key)) return null;
 
-                                    // 🚫 EXCLUDE ANY COIL NO DETAILS (Per User Request)
-                                    const forbiddenWords = ['coilno', 'coilnumber', 'id'];
-                                    if (forbiddenWords.some(word => key.toLowerCase().includes(word))) return null;
+                                    const forbiddenWords = ['id']; // Allow coil number words
+                                    if (forbiddenWords.some(word => key.toLowerCase() === word)) return null;
 
                                     // --- 🗃️ Handle Arrays (Like Coil Details) ---
                                     if (Array.isArray(val)) {
                                         if (val.length === 0) return null;
                                         return (
-                                            <div key={key} style={{ gridColumn: 'span 2', marginTop: '10px' }}>
-                                                <p style={{
-                                                    margin: '0 0 10px', fontSize: '10px',
-                                                    color: '#94a3b8', fontWeight: '700',
-                                                    textTransform: 'uppercase', letterSpacing: '0.6px'
-                                                }}>
-                                                    📋 {formatKey(key)}
-                                                </p>
-                                                <div style={{
-                                                    display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                                                    gap: '10px'
-                                                }}>
+                                            <div key={key} style={{ gridColumn: 'span 2', background: '#fff', borderTop: '1px solid #f1f5f9', padding: '10px 16px' }}>
+                                                <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700', marginBottom: '6px' }}>
+                                                    {formatKey(key)} ({val.length})
+                                                </div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
                                                     {val.map((item, idx) => (
-                                                        <div key={idx} style={{
-                                                            background: '#fff', border: '1px solid #e2e8f0',
-                                                            borderRadius: '10px', padding: '12px',
-                                                            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                                                        <div key={idx} style={{ 
+                                                            padding: '10px 16px', 
+                                                            background: '#f8fafc', 
+                                                            borderRadius: '8px', 
+                                                            border: '1px solid #e2e8f0',
+                                                            display: 'grid',
+                                                            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                                                            gap: '12px'
                                                         }}>
                                                             {typeof item === 'object' ? (
-                                                                Object.entries(item).map(([subK, subV]) => {
-                                                                    if (forbiddenWords.some(word => subK.toLowerCase().includes(word))) return null;
+                                                                Object.entries(item).map(([sk, sv]) => {
+                                                                    if (['id', 'updatedby', 'updateddate'].some(w => sk.toLowerCase().includes(w))) return null;
+                                                                    
+                                                                    const formattedVal = formatValue(sv);
+                                                                    if (formattedVal === '—') return null; // Hide empty/null fields like Coil No in Range mode
+
                                                                     return (
-                                                                        <div key={subK} style={{ marginBottom: '6px' }}>
-                                                                            <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '600' }}>
-                                                                                {formatKey(subK)}
-                                                                            </div>
-                                                                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>
-                                                                                {formatValue(subV)}
-                                                                            </div>
+                                                                        <div key={sk}>
+                                                                            <div style={{ fontSize: '8px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>{formatKey(sk)}</div>
+                                                                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#334155' }}>{formattedVal}</div>
                                                                         </div>
                                                                     );
                                                                 })
                                                             ) : (
-                                                                <div style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>
-                                                                    {formatValue(item)}
-                                                                </div>
+                                                                <span style={{ fontSize: '12px', fontWeight: '700' }}>{formatValue(item)}</span>
                                                             )}
                                                         </div>
                                                     ))}
@@ -417,27 +409,18 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
                                         );
                                     }
 
-                                    // Skip nested objects (non-arrays)
                                     if (val !== null && typeof val === 'object') return null;
+                                    if (val === null || val === undefined || val === '') return null;
 
                                     return (
                                         <div key={key} style={{
                                             background: '#fff',
-                                            border: '1px solid #e2e8f0',
-                                            borderRadius: '10px',
-                                            padding: '10px 14px',
+                                            padding: '10px 16px',
                                         }}>
-                                            <div style={{
-                                                fontSize: '10px', color: '#94a3b8',
-                                                textTransform: 'uppercase', letterSpacing: '0.5px',
-                                                marginBottom: '4px', fontWeight: '600',
-                                            }}>
+                                            <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '600', marginBottom: '1px' }}>
                                                 {formatKey(key)}
                                             </div>
-                                            <div style={{
-                                                fontSize: '13px', fontWeight: '700',
-                                                color: '#1e293b', wordBreak: 'break-word',
-                                            }}>
+                                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#334155' }}>
                                                 {formatValue(val)}
                                             </div>
                                         </div>
@@ -447,34 +430,19 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
                         </div>
                     )}
 
-                    {/* Transition meta */}
+                    {/* Transition meta - Slim */}
                     <div style={{
                         background: '#f8fafc', border: '1px solid #e2e8f0',
-                        borderRadius: '14px', padding: '14px 18px',
-                        marginBottom: '20px', display: 'flex', gap: '24px', flexWrap: 'wrap',
+                        borderRadius: '10px', padding: '10px 16px',
+                        marginBottom: '16px', display: 'flex', gap: '20px',
                     }}>
                         <div>
-                            <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Assigned To</div>
-                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#334155' }}>User {row.assignedTo}</div>
+                            <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>Assigned To</div>
+                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>User {row.assignedTo}</div>
                         </div>
                         <div>
-                            <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Current Status</div>
-                            {(() => {
-                                const { label, bg, color } = getStatusDisplay(row.status);
-                                return (
-                                    <span style={{
-                                        background: bg,
-                                        color: color,
-                                        padding: '3px 10px',
-                                        borderRadius: '6px',
-                                        fontSize: '11px',
-                                        fontWeight: '700',
-                                        border: `1px solid ${color}20`
-                                    }}>
-                                        {label}
-                                    </span>
-                                );
-                            })()}
+                            <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>Transition ID</div>
+                            <div style={{ fontSize: '10px', fontFamily: 'monospace', color: '#94a3b8' }}>{row.workflowTransitionId}</div>
                         </div>
                     </div>
 
@@ -493,20 +461,17 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
                         </div>
                     ) : !pendingAction ? (
                         /* Choose action */
-                        <div style={{ display: 'flex', gap: '10px' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
                             <button
                                 onClick={() => setPendingAction('VERIFY')}
                                 style={{
-                                    flex: 1, padding: '14px', border: 'none', borderRadius: '12px',
+                                    flex: 1, padding: '10px', border: 'none', borderRadius: '8px',
                                     background: accentColors.VERIFY, color: '#fff',
-                                    fontWeight: '700', fontSize: '14px', cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                    transition: 'background 0.15s',
+                                    fontWeight: '700', fontSize: '13px', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                                 }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#047857'}
-                                onMouseLeave={e => e.currentTarget.style.background = accentColors.VERIFY}
                             >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                     <polyline points="20 6 9 17 4 12" />
                                 </svg>
                                 Verify
@@ -514,16 +479,13 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
                             <button
                                 onClick={() => setPendingAction('REQUEST_BACK')}
                                 style={{
-                                    flex: 1, padding: '14px', border: 'none', borderRadius: '12px',
+                                    flex: 1, padding: '10px', border: 'none', borderRadius: '8px',
                                     background: accentColors.REQUEST_BACK, color: '#fff',
-                                    fontWeight: '700', fontSize: '14px', cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                    transition: 'background 0.15s',
+                                    fontWeight: '700', fontSize: '13px', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                                 }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#b45309'}
-                                onMouseLeave={e => e.currentTarget.style.background = accentColors.REQUEST_BACK}
                             >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                     <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-3.36" />
                                 </svg>
                                 Return
@@ -531,16 +493,13 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
                             <button
                                 onClick={() => setPendingAction('REJECT')}
                                 style={{
-                                    flex: 1, padding: '14px', border: 'none', borderRadius: '12px',
+                                    flex: 1, padding: '10px', border: 'none', borderRadius: '8px',
                                     background: accentColors.REJECT, color: '#fff',
-                                    fontWeight: '700', fontSize: '14px', cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                    transition: 'background 0.15s',
+                                    fontWeight: '700', fontSize: '13px', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                                 }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#b91c1c'}
-                                onMouseLeave={e => e.currentTarget.style.background = accentColors.REJECT}
                             >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                                 </svg>
                                 Reject
