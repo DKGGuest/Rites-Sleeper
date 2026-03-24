@@ -14,10 +14,20 @@ export default function FinenessTestForm({ onSave, onCancel, inventoryData = [],
         typeOfTesting: initialType,
         consignmentNo: "",
         sampleWt: 100,
-        residueWt: ""
+        residue1: "",
+        residue2: "",
+        residue3: ""
     });
 
-    const [fineness, setFineness] = useState("");
+    const [calcData, setCalcData] = useState({
+        r1: 0,
+        r2: 0,
+        r3: 0,
+        diff: 0,
+        showTrial3: false,
+        mean: 0
+    });
+
     const [result, setResult] = useState("");
     const [editId, setEditId] = useState(null);
 
@@ -35,7 +45,9 @@ export default function FinenessTestForm({ onSave, onCancel, inventoryData = [],
                         typeOfTesting: record.typeOfTesting || prev.typeOfTesting,
                         consignmentNo: record.consignmentNo || prev.consignmentNo,
                         sampleWt: record.sampleWeightW1 || prev.sampleWt,
-                        residueWt: record.residueWeightW2 || prev.residueWt
+                        residue1: record.residue1 || record.residueWeightW2 || "",
+                        residue2: record.residue2 || "",
+                        residue3: record.residue3 || ""
                     }));
                 }
             });
@@ -43,21 +55,50 @@ export default function FinenessTestForm({ onSave, onCancel, inventoryData = [],
     }, [activeRequestId]);
 
     useEffect(() => {
-        const { sampleWt, residueWt } = header;
-        if (sampleWt && residueWt) {
-            const s = parseFloat(sampleWt);
-            const r = parseFloat(residueWt);
-            if (s > 0) {
-                const f = (r / s) * 100;
-                setFineness(f.toFixed(2));
-                // OPC usually < 10%
-                setResult(f <= 10 ? "Satisfactory" : "Unsatisfactory");
+        const { sampleWt, residue1, residue2, residue3 } = header;
+        const s = parseFloat(sampleWt) || 0;
+        const b = parseFloat(residue1) || 0;
+        const c = parseFloat(residue2) || 0;
+        const h = parseFloat(residue3) || 0;
+
+        if (s > 0 && (residue1 !== "" && residue2 !== "")) {
+            const r1 = (b / s) * 100;
+            const r2 = (c / s) * 100;
+            const diff = Math.abs(r1 - r2);
+            const showTrial3 = diff > 1;
+            
+            let mean = 0;
+            let r3 = 0;
+
+            if (showTrial3) {
+                r3 = (h / s) * 100;
+                mean = (r1 + r2 + r3) / 3;
+            } else {
+                mean = (r1 + r2) / 2;
             }
+
+            setCalcData({
+                r1: r1.toFixed(2),
+                r2: r2.toFixed(2),
+                r3: r3.toFixed(2),
+                diff: diff.toFixed(2),
+                showTrial3,
+                mean: mean.toFixed(2)
+            });
+
+            setResult(mean < 10 ? "Satisfactory" : "Unsatisfactory");
         } else {
-            setFineness("");
+            setCalcData({
+                r1: 0,
+                r2: 0,
+                r3: 0,
+                diff: 0,
+                showTrial3: false,
+                mean: 0
+            });
             setResult("");
         }
-    }, [header.sampleWt, header.residueWt]);
+    }, [header.sampleWt, header.residue1, header.residue2, header.residue3]);
 
     const handleFormSubmit = async (e) => {
         e.preventDefault();
@@ -68,8 +109,11 @@ export default function FinenessTestForm({ onSave, onCancel, inventoryData = [],
                 typeOfTesting: header.typeOfTesting,
                 consignmentNo: header.consignmentNo,
                 sampleWeightW1: parseFloat(header.sampleWt),
-                residueWeightW2: parseFloat(header.residueWt),
-                percentageFineness: parseFloat(fineness),
+                residueWeightW2: parseFloat(calcData.mean * header.sampleWt / 100), // Calculated back for existing field
+                residue1: parseFloat(header.residue1),
+                residue2: parseFloat(header.residue2),
+                residue3: header.residue3 ? parseFloat(header.residue3) : null,
+                percentageFineness: parseFloat(calcData.mean),
                 result: result,
                 shift: selectedShift || 'General',
                 lineNo: dutyLocation || 'N/A',
@@ -146,15 +190,64 @@ export default function FinenessTestForm({ onSave, onCancel, inventoryData = [],
                     </div>
 
                     <div className="input-group">
-                        <label>Weight of Residue (W2) (gms) <span className="required">*</span></label>
+                        <label>Trial 1: Residue on Sieve (B) (gms) <span className="required">*</span></label>
                         <input
                             type="number"
                             step="0.01"
                             placeholder="gms"
-                            value={header.residueWt}
-                            onChange={(e) => setHeader({ ...header, residueWt: e.target.value })}
+                            value={header.residue1}
+                            onChange={(e) => setHeader({ ...header, residue1: e.target.value })}
                             required
                         />
+                    </div>
+
+                    <div className="input-group">
+                        <label>Trial 2: Residue on Sieve (C) (gms) <span className="required">*</span></label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            placeholder="gms"
+                            value={header.residue2}
+                            onChange={(e) => setHeader({ ...header, residue2: e.target.value })}
+                            required
+                        />
+                    </div>
+
+                    {calcData.showTrial3 && (
+                        <div className="input-group">
+                            <label>Trial 3: Residue on Sieve (H) (gms) <span className="required">*</span></label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                placeholder="gms"
+                                value={header.residue3}
+                                onChange={(e) => setHeader({ ...header, residue3: e.target.value })}
+                                required
+                            />
+                        </div>
+                    )}
+                </div>
+
+                <div className="section-title">Calculations</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1.5rem', background: '#fff', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <div className="calc-item">
+                        <span style={{ fontSize: '12px', color: '#64748b' }}>R1 = (B/A) × 100 = </span>
+                        <span style={{ fontWeight: '600' }}>{calcData.r1}%</span>
+                    </div>
+                    <div className="calc-item">
+                        <span style={{ fontSize: '12px', color: '#64748b' }}>R2 = (C/A) × 100 = </span>
+                        <span style={{ fontWeight: '600' }}>{calcData.r2}%</span>
+                    </div>
+                    {calcData.showTrial3 && (
+                        <div className="calc-item">
+                            <span style={{ fontSize: '12px', color: '#64748b' }}>R3 = (H/A) × 100 = </span>
+                            <span style={{ fontWeight: '600' }}>{calcData.r3}%</span>
+                        </div>
+                    )}
+                    <div className="calc-item" style={{ gridColumn: 'span 2', borderTop: '1px dashed #e2e8f0', paddingTop: '8px' }}>
+                        <span style={{ fontSize: '12px', color: '#64748b' }}>Difference (D - E) = </span>
+                        <span style={{ fontWeight: '600', color: parseFloat(calcData.diff) > 1 ? '#ef4444' : '#059669' }}>{calcData.diff}%</span>
+                        {parseFloat(calcData.diff) > 1 && <span style={{ fontSize: '10px', marginLeft: '8px', color: '#ef4444' }}>( &gt; 1%, Trial 3 Required)</span>}
                     </div>
                 </div>
 
@@ -162,8 +255,8 @@ export default function FinenessTestForm({ onSave, onCancel, inventoryData = [],
                     <div className="info-title">Test Calculations</div>
                     <div className="info-grid">
                         <div className="info-card">
-                            <div className="info-card-label">Percentage Fineness</div>
-                            <div className="info-card-value">{fineness || "-"} %</div>
+                            <div className="info-card-label">Mean Fineness</div>
+                            <div className="info-card-value">{calcData.mean || "-"} %</div>
                         </div>
                         <div className="info-card">
                             <div className="info-card-label">Requirement (IS 4031)</div>
