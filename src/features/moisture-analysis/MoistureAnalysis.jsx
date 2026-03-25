@@ -73,29 +73,31 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
     const [saving, setSaving] = useState(false);
     const [localRecords, setLocalRecords] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const activeRecords = records.length > 0 ? records : localRecords;
 
+    const fetchRecords = async () => {
+        setLoading(true);
+        try {
+            const data = await apiService.getAllMoistureAnalysis();
+            if (data && data.responseData && Array.isArray(data.responseData)) {
+                setLocalRecords(data.responseData);
+            } else if (Array.isArray(data)) {
+                setLocalRecords(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch moisture records:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     React.useEffect(() => {
-        if (records.length === 0) {
-            const fetchRecords = async () => {
-                setLoading(true);
-                try {
-                    const data = await apiService.getAllMoistureAnalysis();
-                    if (data && data.responseData && Array.isArray(data.responseData)) {
-                        setLocalRecords(data.responseData);
-                    } else if (Array.isArray(data)) {
-                        setLocalRecords(data);
-                    }
-                } catch (err) {
-                    console.error("Failed to fetch moisture records:", err);
-                } finally {
-                    setLoading(false);
-                }
-            };
+        if (records.length === 0 || refreshTrigger > 0) {
             fetchRecords();
         }
-    }, [records.length]);
+    }, [records.length, refreshTrigger]);
 
     // Group records by batch number and date to show unified rows in UI
     // Note: New API returns unified objects, but we keep grouping logic for compatibility 
@@ -317,6 +319,22 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
             }
         }, 50);
     };
+    const handleDelete = async (record) => {
+        if (!record.id) return;
+        if (!window.confirm(`Are you sure you want to delete moisture record for Batch ${record.batchNo}?`)) return;
+
+        setLoading(true);
+        try {
+            await apiService.deleteMoistureAnalysis(record.id);
+            setRefreshTrigger(prev => prev + 1); // trigger list refresh
+            if (onSave) onSave(); // notify parent
+        } catch (err) {
+            console.error("Error deleting moisture record:", err);
+            alert("Failed to delete: " + (err.message || "Unknown error"));
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Calculate statistics based on section types
     const ca1Records = activeRecords.filter(r => r.sectionType === 'CA1');
@@ -434,7 +452,10 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
                                     <td style={{ fontWeight: '700', color: '#0ea5e9' }}>{group.adjWater} Kg</td>
                                     <td>
                                         {isRecordEditable(group.timestamp) ? (
-                                            <button className="btn-action" style={{ fontSize: '10px' }} onClick={() => handleEdit(group)}>Modify</button>
+                                            <div style={{ display: 'flex', gap: '4px' }}>
+                                                <button className="btn-action" style={{ fontSize: '10px' }} onClick={() => handleEdit(group)}>Modify</button>
+                                                <button className="btn-action danger" style={{ fontSize: '10px', background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' }} onClick={() => handleDelete(group)}>Delete</button>
+                                            </div>
                                         ) : (
                                             <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: '700' }}>LOCKED</span>
                                         )}
