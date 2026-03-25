@@ -83,7 +83,7 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
             ritesBook: '',
             type: '',
             inventoryId: '',
-            readings: [{ heatNo: '', patternNo: '', weight: '', dimensionalNotOk: false, hammerNotOk: false, result: 'PASS' }]
+            readings: [{ heatNo: '', patternNo: '', weight: '', dimensionalNotOk: false, hammerNotOk: false, rejectionReason: '', result: 'PASS' }]
         }
     });
 
@@ -117,6 +117,7 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
             weight: '',
             dimensionalNotOk: false,
             hammerNotOk: false,
+            rejectionReason: '',
             result: 'PASS'
         });
     };
@@ -125,12 +126,20 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
     const computeResult = (reading, type) => {
         const w = parseFloat(reading.weight);
         if (isNaN(w) || reading.weight === '' || reading.weight === undefined) return null; // blank = no result yet
-        const typeLower = (type || '').toLowerCase();
+        
+        const typeKey = (type || '');
         let isWeightOk = false;
-        if (typeLower.includes('6901'))      { isWeightOk = w >= 1.484; }
-        else if (typeLower.includes('3705')) { isWeightOk = w >= 1.95;  }
-        else if (typeLower.includes('3815')) { isWeightOk = w >= 1.55;  }
-        else                                 { isWeightOk = !isNaN(w);  } // unknown type: weight must at least be a number
+        
+        if (typeKey === 'T-6901') {
+            isWeightOk = w >= 1.440 && w <= 1.484;
+        } else if (typeKey === 'T-381') {
+            isWeightOk = w >= 1.504 && w <= 1.560;
+        } else if (typeKey === 'T-3705') {
+            isWeightOk = w >= 1.880 && w <= 1.940;
+        } else {
+            isWeightOk = !isNaN(w); // fallback
+        }
+        
         return (isWeightOk && !reading.dimensionalNotOk && !reading.hammerNotOk) ? 'PASS' : 'FAIL';
     };
 
@@ -252,7 +261,7 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                                 ritesIc: row.details?.ritesIcNumber || 'N/A',
                                 type: row.details?.gradeType || 'N/A',
                                 inventoryId: row.requestId,
-                                readings: [{ heatNo: '', patternNo: '', weight: '', dimensionalNotOk: false, hammerNotOk: false, result: 'PASS' }]
+                                readings: [{ heatNo: '', patternNo: '', weight: '', dimensionalNotOk: false, hammerNotOk: false, rejectionReason: '', result: 'PASS' }]
                             });
                             setActiveRequestId(row.requestId);
                             setEditId(null);
@@ -419,12 +428,12 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                                         )}
                                     </div>
                                     <div className="input-group">
-                                        <label>Insert Type</label>
+                                        <label>Insert Type (Drawing No)</label>
                                         <select {...register('type')}>
                                             <option value="">-- Select --</option>
                                             <option value="T-6901">T-6901</option>
+                                            <option value="T-381">T-381</option>
                                             <option value="T-3705">T-3705</option>
-                                            <option value="T-3815">T-3815</option>
                                         </select>
                                     </div>
                                     <div className="input-group">
@@ -453,11 +462,12 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                                                     Weight (kg)
                                                     {selectedType && (
                                                         <span style={{ display: 'block', fontSize: '9px', color: '#94a3b8', fontWeight: '400', marginTop: '2px' }}>
-                                                            Min: {selectedType.includes('6901') ? '1.484' : selectedType.includes('3705') ? '1.95' : selectedType.includes('3815') ? '1.55' : '—'} kg
+                                                            Range: {selectedType === 'T-6901' ? '1.440-1.484' : selectedType === 'T-381' ? '1.504-1.560' : selectedType === 'T-3705' ? '1.880-1.940' : '—'} kg
                                                         </span>
                                                     )}
                                                 </th>
                                                 <th>Dim Not OK</th>
+                                                <th>Reason of Rejection</th>
                                                 <th>Hammer Not OK</th>
                                                 <th>Result</th>
                                                 <th></th>
@@ -482,6 +492,24 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                                                             />
                                                         </td>
                                                         <td style={{ textAlign: 'center' }}><input type="checkbox" {...register(`readings.${index}.dimensionalNotOk`)} /></td>
+                                                        <td>
+                                                            {readings[index]?.dimensionalNotOk && (
+                                                                <select 
+                                                                    style={{ fontSize: '11px', padding: '4px' }}
+                                                                    {...register(`readings.${index}.rejectionReason`, { required: readings[index]?.dimensionalNotOk })}
+                                                                >
+                                                                    <option value="">-- Reason --</option>
+                                                                    <option value="Jig">Jig</option>
+                                                                    <option value="Length of Head">Length of Head</option>
+                                                                    <option value="Thickness of stem">Thickness of stem</option>
+                                                                    <option value="Hole Dia">Hole Dia</option>
+                                                                    <option value="Width of Head">Width of Head</option>
+                                                                    <option value="Top Radius">Top Radius</option>
+                                                                    <option value="Gating Position">Gating Position</option>
+                                                                    <option value="Square gauge">Square gauge</option>
+                                                                </select>
+                                                            )}
+                                                        </td>
                                                         <td style={{ textAlign: 'center' }}><input type="checkbox" {...register(`readings.${index}.hammerNotOk`)} /></td>
                                                         <td style={{ textAlign: 'center' }}>
                                                             {rowResult === null ? (

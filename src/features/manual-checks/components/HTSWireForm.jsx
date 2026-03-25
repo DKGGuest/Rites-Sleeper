@@ -18,6 +18,7 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
         noOfWires: '',
         wireDia: '',
         layLength: '',
+        observedWeight: '',
         arrangement: '',
         status: '--',
         remarks: ''
@@ -54,6 +55,7 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
                 noOfWires: initialData.noOfWires || initialData.noOfWiresUsed || initialData.wiresUsed || '',
                 wireDia: initialData.wireDia || initialData.htsWireDiaMm || '',
                 layLength: initialData.layLength || initialData.layLengthMm || '',
+                observedWeight: initialData.observedWeight || initialData.observedWeightKgM || '',
                 arrangement: initialData.arrangement || (initialData.arrangementOk !== undefined ? (initialData.arrangementOk ? 'OK' : 'Not OK') : (initialData.htsArrangementCheck || '')),
                 status: initialData.status || initialData.overallStatus || '--',
                 remarks: initialData.remarks || ''
@@ -71,9 +73,9 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
 
     // Validation Mapping
     const SLEEPER_RULES = {
-        'RT-1234': { wires: 18, diaMin: 2.97, diaMax: 3.03 },
-        'RT-5678': { wires: 20, diaMin: 2.97, diaMax: 3.03 },
-        'RT-9012': { wires: 24, diaMin: 2.97, diaMax: 3.03 }
+        'RT-1234': { wires: 18, diaMin: 2.97, diaMax: 3.03, nominalWeight: 0.166 },
+        'RT-5678': { wires: 20, diaMin: 2.97, diaMax: 3.03, nominalWeight: 0.166 },
+        'RT-9012': { wires: 24, diaMin: 2.97, diaMax: 3.03, nominalWeight: 0.166 }
     };
 
     // Auto-fetch Sleeper Type derivation
@@ -89,10 +91,10 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
     useEffect(() => {
         const rules = SLEEPER_RULES[formData.sleeperType] || { wires: 18, diaMin: 2.97, diaMax: 3.03 };
         
-        const { noOfWires, wireDia, layLength, arrangement } = formData;
+        const { noOfWires, wireDia, layLength, observedWeight, arrangement } = formData;
 
         // If mandatory measurement fields and arrangement are empty, keep status as '--'
-        if (!noOfWires && !wireDia && !layLength && !arrangement) {
+        if (!noOfWires && !wireDia && !layLength && !observedWeight && !arrangement) {
             if (formData.status !== '--') {
                 setFormData(prev => ({ ...prev, status: '--' }));
             }
@@ -130,7 +132,7 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
                 status: calculatedStatus
             }));
         }
-    }, [formData.wireDia, formData.sleeperType, formData.noOfWires, formData.layLength, formData.arrangement]);
+    }, [formData.wireDia, formData.sleeperType, formData.noOfWires, formData.layLength, formData.observedWeight, formData.arrangement]);
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -149,12 +151,12 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
     };
 
     const handleSave = () => {
-        if (!formData.gangNo || !formData.batch || !formData.noOfWires || !formData.wireDia || !formData.layLength || !formData.arrangement) {
+        if (!formData.gangNo || !formData.batch || !formData.noOfWires || !formData.wireDia || !formData.layLength || !formData.observedWeight || !formData.arrangement) {
             alert('Please fill in all required fields.');
             return;
         }
 
-        const rules = SLEEPER_RULES[formData.sleeperType] || { wires: 18, diaMin: 2.97, diaMax: 3.03 };
+        const rules = SLEEPER_RULES[formData.sleeperType] || { wires: 18, diaMin: 2.97, diaMax: 3.03, nominalWeight: 0.166 };
         const layLenNum = parseFloat(formData.layLength);
         const diaNum = parseFloat(formData.wireDia);
         const wiresNum = parseInt(formData.noOfWires);
@@ -189,6 +191,7 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
             noOfWiresUsed: wiresNum || 0,
             htsWireDiaMm: diaNum || 0,
             layLengthMm: layLenNum,
+            observedWeightKgM: parseFloat(formData.observedWeight) || 0,
             arrangementOk: formData.arrangement === 'OK',
             overallStatus: formData.status,
             remarks: formData.remarks || '',
@@ -211,7 +214,7 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
     };
 
     const fieldLabel = isLongLine ? 'Gang' : 'Bench';
-    const currentRules = SLEEPER_RULES[formData.sleeperType] || { wires: '18/20/24', diaMin: 2.97, diaMax: 3.03 };
+    const currentRules = SLEEPER_RULES[formData.sleeperType] || { wires: '18/20/24', diaMin: 2.97, diaMax: 3.03, nominalWeight: 0.166 };
 
     return (
         <div className="form-container" style={{ padding: '20px' }}>
@@ -282,7 +285,7 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
                 </div>
 
                 <div className="form-field">
-                    <label htmlFor="wireDia" style={{ fontSize: '11px', fontWeight: '700' }}>HTS Wire Dia (mm) <span className="required">*</span></label>
+                    <label htmlFor="wireDia" style={{ fontSize: '11px', fontWeight: '700' }}>HTS Wire Dia (Nominal: 3.00mm) <span className="required">*</span></label>
                     <input
                         id="wireDia"
                         type="number"
@@ -310,6 +313,22 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
                     />
                     <div style={{ fontSize: '11px', marginTop: '4px', color: formData.layLength && (parseFloat(formData.layLength) < 72 || parseFloat(formData.layLength) > 108) ? '#ef4444' : '#64748b' }}>
                         Required: 72-108 mm
+                    </div>
+                </div>
+
+                <div className="form-field">
+                    <label htmlFor="observedWeight" style={{ fontSize: '11px', fontWeight: '700' }}>Observed Weight (kg/m) <span className="required">*</span></label>
+                    <input
+                        id="observedWeight"
+                        type="number"
+                        step="0.001"
+                        placeholder="0.166"
+                        className="form-input-standard"
+                        value={formData.observedWeight}
+                        onChange={e => handleChange('observedWeight', e.target.value)}
+                    />
+                    <div style={{ fontSize: '11px', marginTop: '4px', color: '#64748b' }}>
+                        Nominal: {currentRules.nominalWeight.toFixed(3)} kg/m
                     </div>
                 </div>
 

@@ -119,6 +119,18 @@ const HTS_TABLE_MAPPING = [
         accessor: (row) => (row.noOfWiresUsed !== null && row.noOfWiresUsed !== undefined) ? row.noOfWiresUsed : (row.wiresUsed || '-')
     },
     {
+        Header: "Wire Dia",
+        accessor: (row) => row.htsWireDiaMm ? `${row.htsWireDiaMm} mm` : (row.wireDia ? `${row.wireDia} mm` : '-')
+    },
+    {
+        Header: "Lay Length",
+        accessor: (row) => row.layLengthMm ? `${row.layLengthMm} mm` : (row.layLength ? `${row.layLength} mm` : '-')
+    },
+    {
+        Header: "Weight",
+        accessor: (row) => (row.observedWeightKgM || row.observedWeight) ? `${row.observedWeightKgM || row.observedWeight} kg/m` : '-'
+    },
+    {
         Header: "Arrangement",
         accessor: (row) => (row.arrangementOk !== null && row.arrangementOk !== undefined) ? (row.arrangementOk ? "OK" : "Not OK") : (row.htsArrangementCheck || '-')
     },

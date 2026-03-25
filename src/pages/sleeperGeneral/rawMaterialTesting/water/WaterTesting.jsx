@@ -61,12 +61,17 @@ const WaterTesting = ({ onBack }) => {
     };
 
     const onSubmit = (data) => {
+        const ph = parseFloat(data.phValue);
+        const tds = parseFloat(data.tdsResult);
+        const isPass = ph >= 6 && ph <= 8 && tds <= 2000;
+
         const newRecord = {
             id: Date.now(),
             testDate: data.testDate,
             createdAt: new Date().toISOString(),
-            ph: data.phValue,
-            tds: `${data.tdsResult} ppm`
+            ph: ph.toFixed(2),
+            tds: `${tds} ppm`,
+            status: isPass ? 'PASS' : 'FAIL'
         };
         setHistory([newRecord, ...history]);
         setShowForm(false);
@@ -104,6 +109,27 @@ const WaterTesting = ({ onBack }) => {
         { key: 'testDate', label: 'Date', render: (val) => val ? val.split('-').reverse().join('/') : '' },
         { key: 'ph', label: 'PH Value' },
         { key: 'tds', label: 'TDS Result' },
+        { 
+            key: 'status', 
+            label: 'Result',
+            render: (val, row) => {
+                const ph = parseFloat(row.ph);
+                const tds = parseFloat(row.tds);
+                const status = val || ( (!isNaN(ph) && ph >= 6 && ph <= 8 && !isNaN(tds) && tds <= 2000) ? 'PASS' : 'FAIL' );
+                return (
+                    <span style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        background: status === 'PASS' ? '#dcfce7' : '#fee2e2',
+                        color: status === 'PASS' ? '#166534' : '#991b1b'
+                    }}>
+                        {status}
+                    </span>
+                );
+            }
+        },
         {
             key: 'actions',
             label: 'Actions',
@@ -218,11 +244,13 @@ const WaterTesting = ({ onBack }) => {
                                     </div>
                                     <div className="input-group">
                                         <label>pH Value <span className="required">*</span></label>
-                                        <input type="number" step="0.01" {...register('phValue', { required: true, min: 0, max: 14 })} placeholder="0–14" />
+                                        <input type="number" step="0.01" {...register('phValue', { required: true })} placeholder="6.0–8.0" />
+                                        <span style={{ fontSize: '10px', color: '#64748b' }}>Required: 6 to 8</span>
                                     </div>
                                     <div className="input-group">
                                         <label>TDS (ppm) <span className="required">*</span></label>
-                                        <input type="number" {...register('tdsResult', { required: true })} placeholder="Enter TDS" />
+                                        <input type="number" {...register('tdsResult', { required: true })} placeholder="Max 2000" />
+                                        <span style={{ fontSize: '10px', color: '#64748b' }}>Required: Max 2000 PPM</span>
                                     </div>
                                 </div>
                                 <div className="form-modal-footer" style={{ borderTop: 'none', padding: '24px 0 0' }}>
