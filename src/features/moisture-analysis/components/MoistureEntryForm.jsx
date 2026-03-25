@@ -2,15 +2,15 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { apiService } from '../../../services/api';
 import './MoistureEntryForm.css';
 
-const APPROVED_MIX_VALUES = {
-    name: 'Approved Design',
-    ac: '4.69',
-    wc: '0.211',
-    cement: '175.5',
-    ca1: '436.2',
-    ca2: '178.6',
-    fa: '207.1',
-    water: '37.0',
+const DEFAULT_MIX_VALUES = {
+    name: 'Select Design',
+    ac: '0',
+    wc: '0',
+    cement: '0',
+    ca1: '0',
+    ca2: '0',
+    fa: '0',
+    water: '0',
     admix: '1.44'
 };
 
@@ -22,7 +22,7 @@ const APPROVED_MIX_VALUES = {
  */
 const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
     const [activeSection, setActiveSection] = useState('ca1');
-    const [verifiedMixDesigns, setVerifiedMixDesigns] = useState([]);
+    const [mixDesignPlans, setMixDesignPlans] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
@@ -30,9 +30,10 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
     useEffect(() => {
         const fetchMixDesigns = async () => {
             try {
-                const response = await apiService.getVerifiedMixDesignIdentifications();
+                // Fetch full mix design records for selection
+                const response = await apiService.getApprovedMixDesigns(1);
                 if (response?.responseData) {
-                    setVerifiedMixDesigns(response.responseData);
+                    setMixDesignPlans(response.responseData);
                 }
             } catch (error) {
                 console.error("Error fetching mix designs:", error);
@@ -105,15 +106,15 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                 timing: initialData.timing || localInit.time,
                 batchNo: initialData.batchNo || '',
                 mixDesignId: initialData.mixDesignId || '',
-                designValues: initialData.designValues || (initialData.mixDesignId ? APPROVED_MIX_VALUES : null),
+                designValues: initialData.designValues || null,
                 userDryCA1: initialData.userDryCA1 || '',
                 userDryCA2: initialData.userDryCA2 || '',
                 userDryFA: initialData.userDryFA || '',
                 userDryWater: initialData.userDryWater || '',
                 userDryAdmix: initialData.userDryAdmix || '1.44',
                 userDryCement: initialData.userDryCement || '',
-                designAC: initialData.designAC || (initialData.mixDesignId ? APPROVED_MIX_VALUES.ac : ''),
-                designWC: initialData.designWC || (initialData.mixDesignId ? APPROVED_MIX_VALUES.wc : '')
+                designAC: initialData.designAC || '',
+                designWC: initialData.designWC || ''
             });
             setAggData({
                 ca1: initialData.ca1Details || { wetSample: '', driedSample: '', absorption: '' },
@@ -125,19 +126,32 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
 
     const handleCommonChange = (field, val) => {
         if (field === 'mixDesignId') {
-            if (val) {
+            const selectedPlan = mixDesignPlans.find(plan => plan.identification === val);
+            if (selectedPlan) {
+                const planValues = {
+                    name: selectedPlan.identification,
+                    ac: selectedPlan.acRatio || '0',
+                    wc: selectedPlan.wcRatio || '0',
+                    cement: selectedPlan.cement || '0',
+                    ca1: selectedPlan.ca1 || '0',
+                    ca2: selectedPlan.ca2 || '0',
+                    fa: selectedPlan.fa || '0',
+                    water: selectedPlan.water || '0',
+                    admix: selectedPlan.admix || selectedPlan.admixtureLabel || '1.44'
+                };
+                
                 setCommonData(prev => ({
                     ...prev,
                     mixDesignId: val,
-                    designValues: APPROVED_MIX_VALUES,
-                    designAC: APPROVED_MIX_VALUES.ac,
-                    designWC: APPROVED_MIX_VALUES.wc,
+                    designValues: planValues,
+                    designAC: planValues.ac,
+                    designWC: planValues.wc,
                     userDryCA1: '',
                     userDryCA2: '',
                     userDryFA: '',
                     userDryWater: '',
                     userDryCement: '',
-                    userDryAdmix: APPROVED_MIX_VALUES.admix // Default to design admix but editable
+                    userDryAdmix: planValues.admix
                 }));
             } else {
                 setCommonData(prev => ({
@@ -369,21 +383,21 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                                     overflowY: 'auto', listStyle: 'none', padding: 0, margin: '4px 0 0 0',
                                     borderRadius: '6px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                                 }}>
-                                    {verifiedMixDesigns
-                                        .filter(m => m.toLowerCase().includes(searchTerm.toLowerCase()))
+                                    {mixDesignPlans
+                                        .filter(m => m.identification.toLowerCase().includes(searchTerm.toLowerCase()))
                                         .map((m, idx) => (
                                             <li key={idx} 
                                                 style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', color: '#334155' }}
                                                 onClick={() => {
-                                                    handleCommonChange('mixDesignId', m);
+                                                    handleCommonChange('mixDesignId', m.identification);
                                                     setSearchTerm('');
                                                     setIsDropdownOpen(false);
                                                 }}
                                                 onMouseEnter={(e) => e.target.style.background = '#f8fafc'}
                                                 onMouseLeave={(e) => e.target.style.background = 'white'}
-                                            >{m}</li>
+                                            >{m.identification}</li>
                                         ))}
-                                    {verifiedMixDesigns.filter(m => m.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+                                    {mixDesignPlans.filter(m => m.identification.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
                                         <li style={{ padding: '8px 12px', color: '#94a3b8' }}>No results found</li>
                                     )}
                                 </ul>
