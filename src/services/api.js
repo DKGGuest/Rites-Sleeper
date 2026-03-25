@@ -222,7 +222,7 @@ export const apiService = {
     getCompanyUnitsByUser: (userId) => api.get(`/sleeper-mapping/company-units/${userId}`),
 
     // ================= Final Inspection Controller ================= //
-    getFinalInspectionBatches: () => api.get('/FinalInspectionController/inspection/batches'),
+    getFinalInspectionBatches: (moduleId = 1) => api.get(`/FinalInspectionController/inspection/batches/${moduleId}`),
     getFinalInspectionBatchDetail: (batchId) => api.get(`/FinalInspectionController/inspection/batch/${batchId}`),
     saveFinalInspection: (payload) => api.post('/FinalInspectionController/save', payload),
 

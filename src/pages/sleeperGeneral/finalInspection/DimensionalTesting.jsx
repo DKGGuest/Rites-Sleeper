@@ -17,12 +17,14 @@ const DimensionalTesting = ({ type }) => {
 
     useEffect(() => {
         fetchBatches();
-    }, []);
+    }, [type]);
 
     const fetchBatches = async () => {
         try {
             setLoading(true);
-            const data = await apiService.getFinalInspectionBatches();
+            const typeToModuleId = { visual: 1, critical: 2, noncritical: 3 };
+            const moduleId = typeToModuleId[type] || 1;
+            const data = await apiService.getFinalInspectionBatches(moduleId);
             
             // Recalculate tested percentage properly: (Accepted + Rejected) / Total * 100
             // The percentage should reflect everything that is NOT 'PENDING'
