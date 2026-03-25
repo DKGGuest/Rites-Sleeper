@@ -29,7 +29,7 @@ export const apiService = {
     getMoistureAnalysisById: (id) => api.get(`/MoistureAnalysis/${id}`),
     createMoistureAnalysis: (payload) => api.post('/MoistureAnalysis/create', payload),
     updateMoistureAnalysis: (id, payload) => api.put(`/MoistureAnalysis/update/${id}`, payload),
-    deleteMoistureAnalysis: (id) => api.delete(`/MoistureAnalysis/delete/${id}`),
+    deleteMoistureAnalysis: (id) => api.delete(`/MoistureAnalysis/${id}`),
 
     // ================= HTS Wire Placement =================
     getAllHtsWirePlacement: () => api.get('/HtsWirePlacement/all'),
