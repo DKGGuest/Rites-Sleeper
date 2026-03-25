@@ -190,6 +190,7 @@ export const apiService = {
     // moduleId=4  MIX_DESIGN
     getMixDesignById: (id) => api.get(`/mix-design/${id}`),
     getVerifiedMixDesignIdentifications: () => api.get('/mix-design/verified-identifications'),
+    getApprovedMixDesigns: (moduleId = 1) => api.get(`/mix-design/approvedMixDesign?moduleId=${moduleId}`),
 
     // moduleId=5  HTS Wire
     getHtsWireRecordById: (id) => api.get(`/hts-wire/${id}`),
