@@ -37,9 +37,11 @@ export default function SoundnessTestForm({ onSave, onCancel, inventoryData = []
 
     const initialWt = watch("initialWt");
     const finalWt = watch("finalWt");
+    const method = watch("method");
+    const materialType = watch("materialType");
 
     useEffect(() => {
-        if (initialWt && finalWt) {
+        if (initialWt && finalWt && method && materialType) {
             const i = parseFloat(initialWt);
             const f = parseFloat(finalWt);
             if (i > 0) {
@@ -47,10 +49,24 @@ export default function SoundnessTestForm({ onSave, onCancel, inventoryData = []
                 const lossPercent = (loss / i) * 100;
                 setValue("lossWt", loss.toFixed(2));
                 setValue("lossPercent", lossPercent.toFixed(2));
-                setValue("result", lossPercent < 12 ? "Satisfactory" : "Unsatisfactory");
+
+                // Validation Thresholds:
+                // Fine: Sodium <= 10, Magnesium <= 15
+                // Coarse: Sodium <= 12, Magnesium <= 18
+                let threshold = 12; // Default
+                const isFine = materialType === 'Fine Aggregate';
+                
+                if (method === 'Sodium Sulphate') {
+                    threshold = isFine ? 10 : 12;
+                } else if (method === 'Magnesium Sulphate') {
+                    threshold = isFine ? 15 : 18;
+                }
+
+                const isOk = lossPercent <= threshold;
+                setValue("result", isOk ? "Satisfactory" : "Unsatisfactory");
             }
         }
-    }, [initialWt, finalWt, setValue]);
+    }, [initialWt, finalWt, method, materialType, setValue]);
 
     const onSubmit = async (formData) => {
         setSubmitting(true);
@@ -121,11 +137,24 @@ export default function SoundnessTestForm({ onSave, onCancel, inventoryData = []
                             )}
                         </div>
                     </div>
+                    <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '1.5rem' }}>
+                        <div className="input-group">
+                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '600', color: '#475569' }}>Material Type <span className="required" style={{ color: 'red' }}>*</span></label>
+                            <select {...register("materialType", { required: "Required" })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                                <option value="">-- Select --</option>
+                                <option value="Fine Aggregate">Fine Aggregate</option>
+                                <option value="Coarse Aggregate">Coarse Aggregate</option>
+                            </select>
+                            <div style={{ fontSize: '10px', color: '#64748b', marginTop: '4px' }}>
+                                Limits (Na2SO4/MgSO4): Fine (10%/15%) | Coarse (12%/18%)
+                            </div>
+                        </div>
+                    </div>
 
                     <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
                         <div className="input-group">
-                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '600', color: '#475569' }}>Test Method</label>
-                            <select {...register("method")} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '600', color: '#475569' }}>Test Method <span className="required" style={{ color: 'red' }}>*</span></label>
+                            <select {...register("method", { required: "Required" })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
                                 <option value="">-- Select --</option>
                                 <option value="Sodium Sulphate">Sodium Sulphate</option>
                                 <option value="Magnesium Sulphate">Magnesium Sulphate</option>
