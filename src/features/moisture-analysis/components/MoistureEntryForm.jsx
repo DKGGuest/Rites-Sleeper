@@ -172,33 +172,61 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
         }
         if (field === 'userDryCement') {
             const valNum = parseFloat(val);
-            if (!isNaN(valNum) && valNum > 0) {
-                const water = (valNum * 0.28).toFixed(2);
-                const admix = (valNum * 0.009).toFixed(2);
-                const ca1 = (valNum * (436.2 / 175.5)).toFixed(2);
-                const ca2 = (valNum * (178.6 / 175.5)).toFixed(2);
-                const fa = (valNum * (207.1 / 175.5)).toFixed(2);
+            setCommonData(prev => {
+                const design = prev.designValues;
+                if (!design || !design.cement) {
+                    // No design selected or missing cement data
+                    return {
+                        ...prev,
+                        userDryCement: val,
+                        userDryWater: '',
+                        userDryAdmix: '',
+                        userDryCA1: '',
+                        userDryCA2: '',
+                        userDryFA: ''
+                    };
+                }
 
-                setCommonData(prev => ({
-                    ...prev,
-                    userDryCement: val,
-                    userDryWater: water,
-                    userDryAdmix: admix,
-                    userDryCA1: ca1,
-                    userDryCA2: ca2,
-                    userDryFA: fa
-                }));
-            } else {
-                setCommonData(prev => ({
-                    ...prev,
-                    userDryCement: val,
-                    userDryWater: '',
-                    userDryAdmix: '',
-                    userDryCA1: '',
-                    userDryCA2: '',
-                    userDryFA: ''
-                }));
-            }
+                if (!isNaN(valNum) && valNum > 0) {
+                    const L = parseFloat(design.cement) || 1; // Prevent div/0
+                    const M = valNum;
+                    const K = M / L; // Factor K = M/L
+
+                    // Extract Mix Design WTs (A, B, C, D, E)
+                    const A = parseFloat(design.ca1) || 0;
+                    const B = parseFloat(design.ca2) || 0;
+                    const C = parseFloat(design.fa) || 0;
+                    const D = parseFloat(design.water) || 0;
+                    const E = parseFloat(design.admix) || 0;
+
+                    // Calculate Actual Batch WTs (F, G, H, I, J)
+                    const ca1 = (K * A).toFixed(2);
+                    const ca2 = (K * B).toFixed(2);
+                    const fa = (K * C).toFixed(2);
+                    const water = (K * D).toFixed(2);
+                    const admix = (K * E).toFixed(2);
+
+                    return {
+                        ...prev,
+                        userDryCement: val,
+                        userDryCA1: ca1,
+                        userDryCA2: ca2,
+                        userDryFA: fa,
+                        userDryWater: water,
+                        userDryAdmix: admix
+                    };
+                } else {
+                    return {
+                        ...prev,
+                        userDryCement: val,
+                        userDryWater: '',
+                        userDryAdmix: '',
+                        userDryCA1: '',
+                        userDryCA2: '',
+                        userDryFA: ''
+                    };
+                }
+            });
             return;
         }
 
