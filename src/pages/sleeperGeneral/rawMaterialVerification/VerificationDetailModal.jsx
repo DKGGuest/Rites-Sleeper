@@ -82,7 +82,7 @@ const KEY_LABELS = {
     productionUnit:      'Production Unit',
     castingDate:         'Casting Date',
     batchNumber:         'Batch No.',
-    sleeperCount:        'Sleeper Count',
+    totalCastedSleepers: 'No. of Sleepers',
     // benchNo:             'Bench No.',
     shiftType:           'Shift',
     // Generic / Audit

@@ -281,7 +281,7 @@ const MODULE_TABLE_FIELDS = {
         { label: "Location", key: "productionUnit" },
         { label: "Date", key: "castingDate" },
         { label: "Batch No.", key: "batchNumber" },
-        { label: "Benches", key: "benchIdentifier" }
+        { label: "No. of Sleepers", key: "totalCastedSleepers" }
     ],
     // 12 Stress Bench / Mould Master
     12: [
@@ -565,9 +565,6 @@ const IncomingVerificationDashboard = ({ initialGroup = null }) => {
                                     <thead>
                                         <tr style={{ background: '#f8fafc' }}>
                                             <th style={thStyle}>#</th>
-                                            <th style={thStyle}>Request ID</th>
-                                            <th style={thStyle}>Workflow Transition ID</th>
-                                            <th style={thStyle}>Assigned To</th>
                                             {MODULE_TABLE_FIELDS[selectedModuleId]?.map(col => (
                                                 <th key={col.key} style={thStyle}>{col.label}</th>
                                             ))}
@@ -596,56 +593,11 @@ const IncomingVerificationDashboard = ({ initialGroup = null }) => {
                                                     onMouseLeave={e => e.currentTarget.style.background = '#fff'}
                                                 >
                                                     <td style={tdStyle}>{idx + 1}</td>
-                                                    <td style={{ ...tdStyle, fontWeight: '700', color: '#0369a1' }}>
-                                                        #{row.requestId}
-                                                    </td>
-                                                    <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: '12px', color: '#64748b' }}>
-                                                        {row.workflowTransitionId}
-                                                    </td>
-                                                    <td style={tdStyle}>
-                                                        <span style={{
-                                                            background: '#eff6ff', color: '#1d4ed8',
-                                                            padding: '2px 8px', borderRadius: '6px',
-                                                            fontSize: '11px', fontWeight: '600'
-                                                        }}>
-                                                            User {row.assignedTo}
-                                                        </span>
-                                                    </td>
-                                                    {MODULE_TABLE_FIELDS[selectedModuleId]?.map(col => {
-                                                        if (col.key === 'benchIdentifier') {
-                                                            const bNo = row.detail?.benchNo;
-                                                            const bFrom = row.detail?.benchFrom;
-                                                            const bTo = row.detail?.benchTo;
-
-                                                            let displayValue = '-';
-                                                            
-                                                            // Logic for Production Declaration (moduleId 11)
-                                                            if (selectedModuleId === 11) {
-                                                                const benches = [];
-                                                                if (Array.isArray(row.detail?.chambers)) {
-                                                                    row.detail.chambers.forEach(c => {
-                                                                        if (Array.isArray(c.benchGroups)) {
-                                                                            c.benchGroups.forEach(g => {
-                                                                                if (g.benchNo) benches.push(String(g.benchNo));
-                                                                            });
-                                                                        }
-                                                                    });
-                                                                }
-                                                                if (benches.length === 0 && row.detail?.benchNo) benches.push(row.detail.benchNo);
-                                                                displayValue = benches.length > 0 ? [...new Set(benches)].sort((a,b)=>a-b).join(', ') : '-';
-                                                            } else {
-                                                                // Generic logic for other modules (like Bench/Mould)
-                                                                displayValue = bNo ? bNo : (bFrom && bTo ? `${bFrom}-${bTo}` : '-');
-                                                            }
-                                                            
-                                                            return <td key={col.key} style={tdStyle}>{displayValue}</td>;
-                                                        }
-                                                        return (
-                                                            <td key={col.key} style={tdStyle}>
-                                                                {row.detail?.[col.key] ?? '-'}
-                                                            </td>
-                                                        );
-                                                    })}
+                                                    {MODULE_TABLE_FIELDS[selectedModuleId]?.map(col => (
+                                                        <td key={col.key} style={tdStyle}>
+                                                            {row.detail?.[col.key] ?? '-'}
+                                                        </td>
+                                                    ))}
 
                                                     <td style={tdStyle}>
                                                         {(() => {
