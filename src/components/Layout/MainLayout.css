@@ -112,6 +112,33 @@
     border-color: #ffeaea;
 }
 
+.end-duty-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #fff;
+    border: 1px solid var(--color-danger);
+    border-radius: 8px;
+    color: var(--color-danger);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.05);
+}
+
+.end-duty-btn:hover {
+    background: var(--color-danger);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+    transform: translateY(-1px);
+}
+
+.end-duty-btn active:active {
+    transform: translateY(0);
+}
+
 .header-center {
     flex-grow: 1;
     display: flex;

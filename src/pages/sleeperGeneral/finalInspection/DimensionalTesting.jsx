@@ -158,18 +158,50 @@ const DimensionalTesting = ({ type }) => {
                 </div>
             </header>
 
-            <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h4 style={{ margin: 0, color: '#1e293b', fontSize: '15px' }}>Batches Pending Dimensional Testing</h4>
-                    <div style={{ fontSize: '11px', color: '#94a3b8', background: '#f8fafc', padding: '4px 10px', borderRadius: '4px' }}>
-                        * Automated population via SCADA / Production Logs
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
+                {/* 1. Pending / Under Inspection Table */}
+                <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                    <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#42818c' }}></div>
+                            <h4 style={{ margin: 0, color: '#1e293b', fontSize: '15px' }}>In-Progress / Pending Batches</h4>
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#94a3b8', background: '#f8fafc', padding: '4px 10px', borderRadius: '4px' }}>
+                            * Needs Attention
+                        </div>
                     </div>
+                    {loading ? (
+                        <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading pending batches...</div>
+                    ) : (
+                        <EnhancedDataTable 
+                            columns={columns} 
+                            data={batches.filter(b => Number(b.testedPercentage) < 100)} 
+                            selectable={false} 
+                        />
+                    )}
                 </div>
-                {loading ? (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading batches...</div>
-                ) : (
-                    <EnhancedDataTable columns={columns} data={batches} selectable={false} />
-                )}
+
+                {/* 2. Completed Table */}
+                <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', opacity: 0.9 }}>
+                    <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#059669' }}></div>
+                            <h4 style={{ margin: 0, color: '#1e293b', fontSize: '15px' }}>Completed Inspection Logs (100%)</h4>
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#059669', background: '#ecfdf5', padding: '4px 10px', borderRadius: '4px', fontWeight: '700' }}>
+                            ✓ Fully Verified
+                        </div>
+                    </div>
+                    {loading ? (
+                        <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading logs...</div>
+                    ) : (
+                        <EnhancedDataTable 
+                            columns={columns} 
+                            data={batches.filter(b => Number(b.testedPercentage) >= 100)} 
+                            selectable={false} 
+                        />
+                    )}
+                </div>
             </div>
 
             {showForm && (

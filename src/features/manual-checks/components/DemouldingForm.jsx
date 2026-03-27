@@ -156,7 +156,27 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                 }));
             }
 
-            if (newState.visualCheck === 'All OK' && newState.dimCheck === 'All OK') {
+            // Handle "All Rejected" transition automatically
+            const isAllRejectedVisual = newState.visualCheck === 'All Rejected';
+            const isAllRejectedDim = newState.dimCheck === 'All Rejected';
+
+            if (isAllRejectedVisual || isAllRejectedDim) {
+                const ALL_SEQS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+                const currentDecls = [...newState.defectiveSleeperDetails];
+                
+                ALL_SEQS.forEach(seq => {
+                    if (!currentDecls.find(d => d.sequence === seq)) {
+                        currentDecls.push({
+                            benchNo: newState.gangNo || '',
+                            sequence: seq,
+                            sleeperNo: newState.gangNo ? `${newState.gangNo}-${seq}` : seq,
+                            visualReason: '',
+                            dimReason: ''
+                        });
+                    }
+                });
+                newState.defectiveSleeperDetails = currentDecls;
+            } else if (newState.visualCheck === 'All OK' && newState.dimCheck === 'All OK') {
                 newState.defectiveSleeperDetails = [];
             }
             return newState;
@@ -419,85 +439,166 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                 </div>
             </div>
 
-            {/* Defective Section */}
+            {/* Defective Section: Visual Grid of Sleepers A-H */}
             {(formData.visualCheck !== 'All OK' || formData.dimCheck !== 'All OK') && (
-                <div style={{ background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                        <h4 style={{ margin: 0, fontSize: '13px', color: '#1e293b' }}>Defective Sleepers</h4>
-                        <button className="toggle-btn mini" onClick={addDefectiveSleeper}>+ Add</button>
-                    </div>
-                    {formData.defectiveSleeperDetails.map((sleeper, idx) => (
-                        <div key={idx} style={{
-                            display: 'grid',
-                            gridTemplateColumns: `140px 80px 100px ${formData.visualCheck !== 'All OK' ? '1fr ' : ''}${formData.dimCheck !== 'All OK' ? '1fr ' : ''}auto`,
-                            gap: '8px',
-                            padding: '12px',
-                            background: '#f8fafc',
-                            borderRadius: '8px',
-                            marginBottom: '8px',
-                            alignItems: 'center',
-                            border: '1px solid #e2e8f0'
-                        }}>
-                            <input
-                                type="number"
-                                className="form-input-standard"
-                                value={sleeper.benchNo}
-                                placeholder="Bench No"
-                                onChange={e => updateDefectiveSleeper(idx, 'benchNo', e.target.value)}
-                            />
-                            <select className="form-input-standard" value={sleeper.sequence} onChange={e => updateDefectiveSleeper(idx, 'sequence', e.target.value)}>
-                                <option value="">Seq</option>
-                                {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                            <div style={{ padding: '8px', fontSize: '12px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'center', fontWeight: '700' }}>
-                                {sleeper.sleeperNo || '--'}
-                            </div>
-
-                            {formData.visualCheck !== 'All OK' && (
-                                <select
-                                    className="form-input-standard"
-                                    value={sleeper.visualReason}
-                                    onChange={e => updateDefectiveSleeper(idx, 'visualReason', e.target.value)}
-                                >
-                                    <option value="">-- Visual Reason --</option>
-                                    <option value="Surface Cracks">Surface Cracks</option>
-                                    <option value="Corner Breakage">Corner Breakage</option>
-                                    <option value="Rail Seat Damage">Rail Seat Damage</option>
-                                    <option value="Insert Missing">Insert Missing</option>
-                                    <option value="Improper Finish">Improper Finish</option>
-                                    <option value="Blowholes">Blowholes</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            )}
-
-                            {formData.dimCheck !== 'All OK' && (
-                                <select
-                                    className="form-input-standard"
-                                    value={sleeper.dimReason}
-                                    onChange={e => updateDefectiveSleeper(idx, 'dimReason', e.target.value)}
-                                >
-                                    <option value="">-- Dim. Reason --</option>
-                                    <option value="Length Out of Tolerance">Length Out of Tolerance</option>
-                                    <option value="Gauge Out of Tolerance">Gauge Out of Tolerance</option>
-                                    <option value="Rail Seat Slanted">Rail Seat Slanted</option>
-                                    <option value="Height Variation">Height Variation</option>
-                                    <option value="Insert Alignment Error">Insert Alignment Error</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            )}
-
-                            <button
-                                onClick={() => removeDefectiveSleeper(idx)}
-                                style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', fontSize: '18px', padding: '0 8px' }}
-                                title="Remove row"
-                            >×</button>
+                <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                    <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }}></div>
+                            <h4 style={{ margin: 0, color: '#1e293b', fontSize: '15px', fontWeight: '800' }}>RECORDING DEFECTIVE SLEEPERS (BENCH {formData.gangNo || '—'})</h4>
                         </div>
-                    ))}
+                        <div style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}>
+                            {formData.visualCheck === 'All Rejected' || formData.dimCheck === 'All Rejected' ? '* All sleepers are marked rejected' : '* Click to mark sleeper as defective'}
+                        </div>
+                    </div>
+
+                    {/* The Grid Tooltips/Chips */}
+                    <div style={{ 
+                        display: 'flex', 
+                        flexWrap: 'wrap', 
+                        gap: '10px', 
+                        padding: '16px', 
+                        background: '#f8fafc', 
+                        borderRadius: '12px', 
+                        border: '1px dashed #cbd5e1',
+                        marginBottom: '20px'
+                    }}>
+                        {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(seq => {
+                            // Check if this sleeper is currently marked as defective
+                            const isDefective = formData.defectiveSleeperDetails.some(d => d.sequence === seq);
+                            
+                            // Check if rejection is forced by "All Rejected" status
+                            const isAllRejectedVisual = formData.visualCheck === 'All Rejected';
+                            const isAllRejectedDim = formData.dimCheck === 'All Rejected';
+                            const isForced = isAllRejectedVisual || isAllRejectedDim;
+
+                            const handleClick = () => {
+                                if (isForced) return; // Cannot toggle if forced by "All Rejected"
+                                
+                                setFormData(prev => {
+                                    const exists = prev.defectiveSleeperDetails.some(d => d.sequence === seq);
+                                    let updated;
+                                    if (exists) {
+                                        updated = prev.defectiveSleeperDetails.filter(d => d.sequence !== seq);
+                                    } else {
+                                        updated = [...prev.defectiveSleeperDetails, {
+                                            benchNo: prev.gangNo || '',
+                                            sequence: seq,
+                                            sleeperNo: prev.gangNo ? `${prev.gangNo}-${seq}` : seq,
+                                            visualReason: '',
+                                            dimReason: ''
+                                        }];
+                                    }
+                                    return { ...prev, defectiveSleeperDetails: updated };
+                                });
+                            };
+
+                            return (
+                                <div
+                                    key={seq}
+                                    onClick={handleClick}
+                                    style={{
+                                        width: '44px',
+                                        height: '44px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                        fontWeight: '800',
+                                        cursor: isForced ? 'not-allowed' : 'pointer',
+                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        background: (isDefective || isForced) ? '#fee2e2' : '#fff',
+                                        color: (isDefective || isForced) ? '#b91c1c' : '#64748b',
+                                        border: '2px solid',
+                                        borderColor: (isDefective || isForced) ? '#ef4444' : '#e2e8f0',
+                                        boxShadow: (isDefective || isForced) ? '0 4px 12px rgba(239, 68, 68, 0.2)' : 'none',
+                                        transform: (isDefective || isForced) ? 'scale(1.05)' : 'scale(1)'
+                                    }}
+                                >
+                                    {seq}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Defect Reasons Table */}
+                    {formData.defectiveSleeperDetails.length > 0 && (
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                                <thead>
+                                    <tr style={{ textAlign: 'left', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
+                                        <th style={{ padding: '10px 12px', width: '90px' }}>Sleeper</th>
+                                        {formData.visualCheck !== 'All OK' && <th style={{ padding: '10px 12px' }}>Visual Defect Reason</th>}
+                                        {formData.dimCheck !== 'All OK' && <th style={{ padding: '10px 12px' }}>Dimensional Defect Reason</th>}
+                                        <th style={{ padding: '10px 12px', width: '40px' }}></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {formData.defectiveSleeperDetails.map((item, idx) => (
+                                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                            <td style={{ padding: '12px', fontWeight: '800', color: '#1e293b' }}>
+                                                {item.sleeperNo || `${item.benchNo}-${item.sequence}`}
+                                            </td>
+                                            
+                                            {formData.visualCheck !== 'All OK' && (
+                                                <td style={{ padding: '8px 12px' }}>
+                                                    <select
+                                                        className="form-input-standard"
+                                                        style={{ width: '100%', fontSize: '11px', height: '32px' }}
+                                                        value={item.visualReason}
+                                                        onChange={e => updateDefectiveSleeper(idx, 'visualReason', e.target.value)}
+                                                    >
+                                                        <option value="">-- Select Visual Reason --</option>
+                                                        <option value="Surface Cracks">Surface Cracks</option>
+                                                        <option value="Corner Breakage">Corner Breakage</option>
+                                                        <option value="Rail Seat Damage">Rail Seat Damage</option>
+                                                        <option value="Insert Missing">Insert Missing</option>
+                                                        <option value="Improper Finish">Improper Finish</option>
+                                                        <option value="Blowholes">Blowholes</option>
+                                                        <option value="Other">Other</option>
+                                                    </select>
+                                                </td>
+                                            )}
+
+                                            {formData.dimCheck !== 'All OK' && (
+                                                <td style={{ padding: '8px 12px' }}>
+                                                    <select
+                                                        className="form-input-standard"
+                                                        style={{ width: '100%', fontSize: '11px', height: '32px' }}
+                                                        value={item.dimReason}
+                                                        onChange={e => updateDefectiveSleeper(idx, 'dimReason', e.target.value)}
+                                                    >
+                                                        <option value="">-- Select Dim. Reason --</option>
+                                                        <option value="Length Out of Tolerance">Length Out of Tolerance</option>
+                                                        <option value="Gauge Out of Tolerance">Gauge Out of Tolerance</option>
+                                                        <option value="Rail Seat Slanted">Rail Seat Slanted</option>
+                                                        <option value="Height Variation">Height Variation</option>
+                                                        <option value="Insert Alignment Error">Insert Alignment Error</option>
+                                                        <option value="Other">Other</option>
+                                                    </select>
+                                                </td>
+                                            )}
+
+                                            <td style={{ padding: '8px', textAlign: 'center' }}>
+                                                {(formData.visualCheck === 'Partially OK' || formData.dimCheck === 'Partially OK') && (
+                                                    <button
+                                                        onClick={() => removeDefectiveSleeper(idx)}
+                                                        style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px', padding: '4px' }}
+                                                    >×</button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             )}
 
             <div className="form-actions-row">
-                <button className="toggle-btn" type="button" onClick={handleSave}>
+                <button className="toggle-btn" type="button" onClick={handleSave} style={{ minWidth: '160px', height: '42px' }}>
                     {initialData ? 'Update Record' : 'Save Record'}
                 </button>
                 {initialData && <button className="toggle-btn secondary" type="button" onClick={onCancel}>Cancel</button>}

@@ -22,6 +22,22 @@ export const ShiftProvider = ({ children }) => {
     const [containers, setContainers] = useState([{ id: 1, type: 'Line', name: 'Line I' }]);
     const [activeContainerId, setActiveContainerId] = useState(() => parseInt(localStorage.getItem('activeContainerId')) || 1);
 
+    const endDuty = () => {
+        setDutyStarted(false);
+        setSelectedShift('');
+        setDutyDate(new Date().toISOString().split('T')[0]);
+        setDutyUnit('');
+        setDutyLocation('');
+        setActiveContainerId(1);
+        
+        localStorage.removeItem('dutyStarted');
+        localStorage.removeItem('selectedShift');
+        localStorage.removeItem('dutyDate');
+        localStorage.removeItem('dutyUnit');
+        localStorage.removeItem('dutyLocation');
+        localStorage.removeItem('activeContainerId');
+    };
+
     // Persist basic shift state
     useEffect(() => {
         localStorage.setItem('dutyStarted', dutyStarted);
@@ -403,7 +419,8 @@ export const ShiftProvider = ({ children }) => {
         setSharedBenchNo,
         plantVerificationData,
         setPlantVerificationData,
-        loadShiftData
+        loadShiftData,
+        endDuty
     };
 
 

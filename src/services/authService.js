@@ -51,6 +51,8 @@ export const storeAuthData = (authData) => {
   localStorage.setItem('userId', authData.userId);
   localStorage.setItem('userName', authData.userName);
   localStorage.setItem('roleName', authData.roleName);
+  // Important: Reset navigation state so user lands on "Portal Home" after login
+  localStorage.setItem('activeMainView', 'Main Dashboard');
 };
 
 /**

@@ -75,7 +75,8 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
     const SLEEPER_RULES = {
         'RT-1234': { wires: 18, diaMin: 2.97, diaMax: 3.03, nominalWeight: 0.166 },
         'RT-5678': { wires: 20, diaMin: 2.97, diaMax: 3.03, nominalWeight: 0.166 },
-        'RT-9012': { wires: 24, diaMin: 2.97, diaMax: 3.03, nominalWeight: 0.166 }
+        'RT-9012': { wires: 24, diaMin: 2.97, diaMax: 3.03, nominalWeight: 0.166 },
+        'G-101': { wires: 18, diaMin: 2.97, diaMax: 3.03, nominalWeight: 0.166 }
     };
 
     // Auto-fetch Sleeper Type derivation
@@ -262,10 +263,19 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
                 </div>
 
                 <div className="form-field">
-                    <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Sleeper Type</label>
-                    <div className="form-info-card" style={{ background: '#f8fafc', color: '#64748b', fontWeight: '600' }}>
-                        {formData.sleeperType || 'N/A'}
-                    </div>
+                    <label htmlFor="sleeperType" style={{ fontSize: '11px', fontWeight: '700' }}>Sleeper Type <span className="required">*</span></label>
+                    <select
+                        id="sleeperType"
+                        className="form-input-standard"
+                        value={formData.sleeperType}
+                        onChange={e => handleChange('sleeperType', e.target.value)}
+                    >
+                        <option value="">-- Select --</option>
+                        <option value="RT-1234">RT-1234</option>
+                        <option value="RT-5678">RT-5678</option>
+                        <option value="RT-9012">RT-9012</option>
+                        <option value="G-101">G-101</option>
+                    </select>
                 </div>
 
                 <div className="form-field">

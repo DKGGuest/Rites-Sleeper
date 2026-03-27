@@ -348,6 +348,61 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
                                     </div>
                                 </div>
                             </div>
+                            
+                            {/* Special Highlight: Module 11 (Production Declaration) – Display all Bench Nos. */}
+                            {row.moduleId === 11 && (
+                                <div style={{
+                                    background: '#fefce8', // Subtle yellow highlight
+                                    padding: '12px 16px',
+                                    borderBottom: '1px solid #fef08a',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '6px'
+                                }}>
+                                    <div style={{ fontSize: '9px', color: '#854d0e', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.3px' }}>
+                                        All Included Benches
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                        {(() => {
+                                            const benches = [];
+                                            // Handle both possible structures (standard and nested)
+                                            if (Array.isArray(detail.chambers)) {
+                                                detail.chambers.forEach(chamber => {
+                                                    if (Array.isArray(chamber.benchGroups)) {
+                                                        chamber.benchGroups.forEach(group => {
+                                                            if (group.benchNo) benches.push(String(group.benchNo));
+                                                        });
+                                                    }
+                                                });
+                                            }
+                                            // Fallback for flat structure if it exists
+                                            if (benches.length === 0 && Array.isArray(detail.benchDetails)) {
+                                                detail.benchDetails.forEach(bd => {
+                                                    if (bd.benchNo) benches.push(String(bd.benchNo));
+                                                });
+                                            }
+                                            if (benches.length === 0 && detail.benchNo) {
+                                                benches.push(String(detail.benchNo));
+                                            }
+
+                                            const uniqueBenches = [...new Set(benches)].sort((a,b) => a - b);
+
+                                            if (uniqueBenches.length === 0) return <span style={{ fontSize: '11px', color: '#a16207', fontWeight: '600' }}>—</span>;
+                                            
+                                            return uniqueBenches.map((b, i) => (
+                                                <span key={i} style={{
+                                                    background: '#fef9c3', color: '#854d0e',
+                                                    padding: '2px 10px', borderRadius: '6px',
+                                                    fontSize: '11px', fontWeight: '800',
+                                                    border: '1px solid #fde047'
+                                                }}>
+                                                    Bench {b}
+                                                </span>
+                                            ));
+                                        })()}
+                                    </div>
+                                </div>
+                            )}
 
                             <div style={{
                                 display: 'grid',

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { logoutUser, getStoredUser } from '../../services/authService';
+import { useShift } from '../../context/ShiftContext';
 import { ROUTES } from '../../routes';
 import './MainLayout.css';
 
@@ -10,6 +11,7 @@ import './MainLayout.css';
  */
 const MainLayout = ({ children, activeItem, onItemClick }) => {
     const navigate = useNavigate();
+    const { dutyStarted, endDuty } = useShift();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSidebarPinned, setIsSidebarPinned] = useState(false);
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
@@ -19,6 +21,16 @@ const MainLayout = ({ children, activeItem, onItemClick }) => {
     const handleLogout = () => {
         logoutUser();
         navigate(ROUTES.LOGIN, { replace: true });
+    };
+
+    const handleEndDuty = () => {
+        const confirmed = window.confirm("Are you sure you want to end your current duty session? Any unsaved changes may be lost.");
+        if (confirmed) {
+            endDuty();
+            onItemClick('Main Dashboard'); // Navigate back to Portal Home
+            // We also need to make sure App.jsx handles the view change.
+            // App.jsx listens for onItemClick which is setMainView.
+        }
     };
 
     return (
@@ -67,8 +79,26 @@ const MainLayout = ({ children, activeItem, onItemClick }) => {
                         </button>
                     </div>
 
-                    {/* Right: user avatar + name/ID + logout */}
+                    {/* Right: End Duty + user avatar + name/ID + logout */}
                     <div className="header-right">
+                        {dutyStarted && (
+                            <button 
+                                className="end-duty-btn"
+                                onClick={handleEndDuty}
+                                title="End Shift Duty"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" 
+                                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                                >
+                                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+                                    <line x1="12" y1="2" x2="12" y2="12" />
+                                </svg>
+                                <span>End Duty</span>
+                            </button>
+                        )}
+
+                        <div className="header-divider"></div>
+                        
                         <div className="user-profile-section">
                             <div className="header-user-avatar">
                                 {user?.userName?.charAt(0).toUpperCase() || 'U'}

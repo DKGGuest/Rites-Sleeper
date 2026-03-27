@@ -7,10 +7,16 @@ import './Sidebar.css';
  */
 const menuSections = [
     {
+        label: 'Navigation',
+        items: [
+            { id: 'Main Dashboard', label: 'Portal Home', icon: 'PH' },
+        ],
+    },
+    {
         label: 'Inspection Dashboard',
         items: [
-            { id: 'Sleeper process IE-General', label: 'Sleeper process IE-General', icon: 'IE' },
-            { id: 'Sleeper process Duty', label: 'Sleeper process Duty', icon: 'SD' },
+            { id: 'Sleeper process IE-General', label: 'IE General', icon: 'IE' },
+            { id: 'Sleeper process Duty', label: 'IE Active Duty', icon: 'SD' },
         ],
     },
 ];

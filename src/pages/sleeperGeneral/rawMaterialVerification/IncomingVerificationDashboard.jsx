@@ -280,7 +280,8 @@ const MODULE_TABLE_FIELDS = {
     11: [
         { label: "Location", key: "productionUnit" },
         { label: "Date", key: "castingDate" },
-        { label: "Batch No.", key: "batchNumber" }
+        { label: "Batch No.", key: "batchNumber" },
+        { label: "Benches", key: "benchIdentifier" }
     ],
     // 12 Stress Bench / Mould Master
     12: [
@@ -615,7 +616,28 @@ const IncomingVerificationDashboard = ({ initialGroup = null }) => {
                                                             const bNo = row.detail?.benchNo;
                                                             const bFrom = row.detail?.benchFrom;
                                                             const bTo = row.detail?.benchTo;
-                                                            const displayValue = bNo ? bNo : (bFrom && bTo ? `${bFrom}-${bTo}` : '-');
+
+                                                            let displayValue = '-';
+                                                            
+                                                            // Logic for Production Declaration (moduleId 11)
+                                                            if (selectedModuleId === 11) {
+                                                                const benches = [];
+                                                                if (Array.isArray(row.detail?.chambers)) {
+                                                                    row.detail.chambers.forEach(c => {
+                                                                        if (Array.isArray(c.benchGroups)) {
+                                                                            c.benchGroups.forEach(g => {
+                                                                                if (g.benchNo) benches.push(String(g.benchNo));
+                                                                            });
+                                                                        }
+                                                                    });
+                                                                }
+                                                                if (benches.length === 0 && row.detail?.benchNo) benches.push(row.detail.benchNo);
+                                                                displayValue = benches.length > 0 ? [...new Set(benches)].sort((a,b)=>a-b).join(', ') : '-';
+                                                            } else {
+                                                                // Generic logic for other modules (like Bench/Mould)
+                                                                displayValue = bNo ? bNo : (bFrom && bTo ? `${bFrom}-${bTo}` : '-');
+                                                            }
+                                                            
                                                             return <td key={col.key} style={tdStyle}>{displayValue}</td>;
                                                         }
                                                         return (
