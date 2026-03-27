@@ -529,8 +529,14 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                                 <thead>
                                     <tr style={{ textAlign: 'left', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
                                         <th style={{ padding: '10px 12px', width: '90px' }}>Sleeper</th>
-                                        {formData.visualCheck !== 'All OK' && <th style={{ padding: '10px 12px' }}>Visual Defect Reason</th>}
-                                        {formData.dimCheck !== 'All OK' && <th style={{ padding: '10px 12px' }}>Dimensional Defect Reason</th>}
+                                        {/* Logic: Show Visual reason if not OK, UNLESS it's Partial + the other is All Rejected */}
+                                        {(formData.visualCheck !== 'All OK' && !(formData.visualCheck === 'Partially OK' && formData.dimCheck === 'All Rejected')) && (
+                                            <th style={{ padding: '10px 12px' }}>Visual Defect Reason</th>
+                                        )}
+                                        {/* Logic: Show Dim reason if not OK, UNLESS it's Partial + the other is All Rejected */}
+                                        {(formData.dimCheck !== 'All OK' && !(formData.dimCheck === 'Partially OK' && formData.visualCheck === 'All Rejected')) && (
+                                            <th style={{ padding: '10px 12px' }}>Dimensional Defect Reason</th>
+                                        )}
                                         <th style={{ padding: '10px 12px', width: '40px' }}></th>
                                     </tr>
                                 </thead>
@@ -541,7 +547,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                                                 {item.sleeperNo || `${item.benchNo}-${item.sequence}`}
                                             </td>
                                             
-                                            {formData.visualCheck !== 'All OK' && (
+                                            {(formData.visualCheck !== 'All OK' && !(formData.visualCheck === 'Partially OK' && formData.dimCheck === 'All Rejected')) && (
                                                 <td style={{ padding: '8px 12px' }}>
                                                     <select
                                                         className="form-input-standard"
@@ -561,7 +567,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                                                 </td>
                                             )}
 
-                                            {formData.dimCheck !== 'All OK' && (
+                                            {(formData.dimCheck !== 'All OK' && !(formData.dimCheck === 'Partially OK' && formData.visualCheck === 'All Rejected')) && (
                                                 <td style={{ padding: '8px 12px' }}>
                                                     <select
                                                         className="form-input-standard"
