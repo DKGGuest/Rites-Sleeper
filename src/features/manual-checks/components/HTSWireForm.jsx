@@ -71,20 +71,25 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
         }
     }, [initialData, activeContainer, sharedBatchNo, sharedBenchNo]);
 
-    // Validation Mapping
     const SLEEPER_RULES = {
+        'RT-2496': { wires: 18, diaMin: 2.97, diaMax: 3.03, nominalWeight: 0.166 },
+        'RT-8746': { wires: 16, diaMin: 2.97, diaMax: 3.03, nominalWeight: 0.166 },
         'RT-1234': { wires: 18, diaMin: 2.97, diaMax: 3.03, nominalWeight: 0.166 },
         'RT-5678': { wires: 20, diaMin: 2.97, diaMax: 3.03, nominalWeight: 0.166 },
         'RT-9012': { wires: 24, diaMin: 2.97, diaMax: 3.03, nominalWeight: 0.166 },
         'G-101': { wires: 18, diaMin: 2.97, diaMax: 3.03, nominalWeight: 0.166 }
     };
 
-    // Auto-fetch Sleeper Type derivation
+    // Auto-fetch Sleeper Type derivation (only when no initialData and sleeperType empty)
     useEffect(() => {
-        if (formData.gangNo && !initialData) {
-            const types = ['RT-1234', 'RT-5678', 'RT-9012'];
-            const type = types[parseInt(formData.gangNo) % 3] || 'RT-1234';
-            setFormData(prev => ({ ...prev, sleeperType: type }));
+        if (formData.gangNo && !initialData && !formData.sleeperType) {
+            const types = ['RT-2496', 'RT-8746', 'RT-1234'];
+            const type = types[parseInt(formData.gangNo) % 3] || 'RT-2496';
+            setFormData(prev => ({ 
+                ...prev, 
+                sleeperType: type,
+                noOfWires: SLEEPER_RULES[type] ? SLEEPER_RULES[type].wires.toString() : ''
+            }));
         }
     }, [formData.gangNo, initialData]);
 
@@ -136,7 +141,17 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
     }, [formData.wireDia, formData.sleeperType, formData.noOfWires, formData.layLength, formData.observedWeight, formData.arrangement]);
 
     const handleChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        setFormData(prev => {
+            const newState = { ...prev, [field]: value };
+            
+            // Auto fill number of wires when sleeper type changes
+            if (field === 'sleeperType' && SLEEPER_RULES[value]) {
+                newState.noOfWires = SLEEPER_RULES[value].wires.toString();
+            }
+            
+            return newState;
+        });
+
         // 🔥 Shared Shift logic: Update parent state when batch or bench changes
         if (field === 'batch') onShiftFieldChange('batchNo', value);
         if (field === 'gangNo') onShiftFieldChange('benchNo', value);
@@ -222,7 +237,19 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
             <div className="form-grid-standard">
                 <div className="form-field">
                     <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Location</label>
-                    <div className="form-info-card">{formData.location}</div>
+                    <select
+                        className="form-input-standard"
+                        value={formData.location}
+                        onChange={e => handleChange('location', e.target.value)}
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                    >
+                        <option value="N/A">-- Select --</option>
+                        <option value="Long Line">Long Line</option>
+                        <option value="Line 1">Line 1</option>
+                        <option value="Line 2">Line 2</option>
+                        <option value="Shed 1">Shed 1</option>
+                        <option value="Shed 2">Shed 2</option>
+                    </select>
                 </div>
 
                 <div className="form-field">
@@ -271,6 +298,8 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
                         onChange={e => handleChange('sleeperType', e.target.value)}
                     >
                         <option value="">-- Select --</option>
+                        <option value="RT-2496">RT-2496</option>
+                        <option value="RT-8746">RT-8746</option>
                         <option value="RT-1234">RT-1234</option>
                         <option value="RT-5678">RT-5678</option>
                         <option value="RT-9012">RT-9012</option>

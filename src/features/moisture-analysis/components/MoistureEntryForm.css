@@ -1,5 +1,7 @@
 .moisture-form-container {
-    padding: 1rem;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .moisture-section {
@@ -273,7 +275,7 @@
 .comparison-grid-row {
     display: grid;
     grid-template-columns: 160px repeat(8, 1fr);
-    min-width: 950px;
+    min-width: 1050px;
     /* Ensure columns don't squash too much */
 }
 
@@ -365,4 +367,16 @@
     border-color: #42818c;
     background: #fff;
     box-shadow: 0 0 0 3px rgba(66, 129, 140, 0.1);
+}
+
+/* Hide spin buttons to save space for numbers */
+.input-row .cell input::-webkit-outer-spin-button,
+.input-row .cell input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.input-row .cell input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
 }

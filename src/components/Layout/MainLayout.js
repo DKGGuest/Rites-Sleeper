@@ -15,6 +15,10 @@ const MainLayout = ({ children, activeItem, onItemClick }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSidebarPinned, setIsSidebarPinned] = useState(false);
     const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+    
+    // Custom End Duty Modal state
+    const [showEndDutyModal, setShowEndDutyModal] = useState(false);
+    const [confirmCheckbox, setConfirmCheckbox] = useState(false);
 
     const user = getStoredUser();
 
@@ -23,18 +27,78 @@ const MainLayout = ({ children, activeItem, onItemClick }) => {
         navigate(ROUTES.LOGIN, { replace: true });
     };
 
-    const handleEndDuty = () => {
-        const confirmed = window.confirm("Are you sure you want to end your current duty session? Any unsaved changes may be lost.");
-        if (confirmed) {
-            endDuty();
-            onItemClick('Main Dashboard'); // Navigate back to Portal Home
-            // We also need to make sure App.jsx handles the view change.
-            // App.jsx listens for onItemClick which is setMainView.
-        }
+    const handleEndDutyConfirm = () => {
+        endDuty();
+        onItemClick('Main Dashboard');
+        setShowEndDutyModal(false);
+        setConfirmCheckbox(false);
     };
 
     return (
         <div className="main-layout-root">
+            
+            {/* End Duty Confirmation Modal */}
+            {showEndDutyModal && (
+                <div className="modal-overlay" style={{ zIndex: 9999 }}>
+                    <div className="modal-content" style={{ maxWidth: '400px', textAlign: 'center', padding: '30px' }}>
+                        <div className="modal-header" style={{ marginBottom: '20px' }}>
+                            <h2 style={{ color: 'var(--color-danger)', fontSize: '20px' }}>End Duty Session?</h2>
+                        </div>
+                        <div className="modal-body" style={{ marginBottom: '25px' }}>
+                            <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.6', marginBottom: '20px' }}>
+                                You are about to terminate your active duty session. <br/>
+                                <strong style={{ color: '#1e293b' }}>Any unsaved data in current forms will be lost.</strong>
+                            </p>
+                            
+                            <label style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                gap: '10px', 
+                                cursor: 'pointer',
+                                padding: '12px',
+                                background: '#f8fafc',
+                                borderRadius: '8px',
+                                border: '1px solid #e2e8f0'
+                            }}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={confirmCheckbox}
+                                    onChange={(e) => setConfirmCheckbox(e.target.checked)}
+                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                />
+                                <span style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b' }}>Are you sure??</span>
+                            </label>
+                        </div>
+                        
+                        <div className="modal-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                            <button 
+                                className="btn-cancel" 
+                                onClick={() => {
+                                    setShowEndDutyModal(false);
+                                    setConfirmCheckbox(false);
+                                }}
+                                style={{ flex: 1 }}
+                            >
+                                Back to Work
+                            </button>
+                            <button 
+                                className="btn-submit" 
+                                onClick={handleEndDutyConfirm}
+                                disabled={!confirmCheckbox}
+                                style={{ 
+                                    flex: 1, 
+                                    background: confirmCheckbox ? 'var(--color-danger)' : '#cbd5e1',
+                                    borderColor: confirmCheckbox ? 'var(--color-danger)' : '#cbd5e1',
+                                    cursor: confirmCheckbox ? 'pointer' : 'not-allowed'
+                                }}
+                            >
+                                End Duty Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Mobile sidebar backdrop */}
             {isMobileMenuOpen && (
@@ -84,7 +148,7 @@ const MainLayout = ({ children, activeItem, onItemClick }) => {
                         {dutyStarted && (
                             <button 
                                 className="end-duty-btn"
-                                onClick={handleEndDuty}
+                                onClick={() => setShowEndDutyModal(true)}
                                 title="End Shift Duty"
                             >
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" 

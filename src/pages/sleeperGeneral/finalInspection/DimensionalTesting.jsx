@@ -8,6 +8,7 @@ import NonCriticalDimensionForm from './NonCriticalDimensionForm';
 
 const DimensionalTesting = ({ type }) => {
     const { selectedShift } = useShift();
+    const [activeTab, setActiveTab] = useState('pending'); // 'pending' or 'completed'
     const [showForm, setShowForm] = useState(false);
     const [selectedBatch, setSelectedBatch] = useState(null);
     const [batchDetails, setBatchDetails] = useState(null);
@@ -151,57 +152,85 @@ const DimensionalTesting = ({ type }) => {
 
     return (
         <div className="dimensional-testing-root cement-forms-scope">
-            <header style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+            <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#42818c', margin: 0 }}>{currentConfig.title}</h2>
                     <span style={{ fontSize: '11px', color: '#64748b' }}>Completion Criteria: {currentConfig.criteria}</span>
+                </div>
+                
+                {/* Tab Toggle for Pending vs Completed */}
+                <div style={{ display: 'flex', background: '#f8fafc', padding: '4px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <button 
+                        onClick={() => setActiveTab('pending')}
+                        style={{
+                            padding: '8px 16px', fontSize: '13px', fontWeight: '700', border: 'none', borderRadius: '6px',
+                            background: activeTab === 'pending' ? '#fff' : 'transparent',
+                            color: activeTab === 'pending' ? '#42818c' : '#64748b',
+                            boxShadow: activeTab === 'pending' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', 
+                            cursor: 'pointer', transition: 'all 0.2s'
+                        }}
+                    >Pending / In-Progress</button>
+                    <button 
+                        onClick={() => setActiveTab('completed')}
+                        style={{
+                            padding: '8px 16px', fontSize: '13px', fontWeight: '700', border: 'none', borderRadius: '6px',
+                            background: activeTab === 'completed' ? '#fff' : 'transparent',
+                            color: activeTab === 'completed' ? '#059669' : '#64748b',
+                            boxShadow: activeTab === 'completed' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', 
+                            cursor: 'pointer', transition: 'all 0.2s'
+                        }}
+                    >Completed</button>
                 </div>
             </header>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
                 {/* 1. Pending / Under Inspection Table */}
-                <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                    <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#42818c' }}></div>
-                            <h4 style={{ margin: 0, color: '#1e293b', fontSize: '15px' }}>In-Progress / Pending Batches</h4>
+                {activeTab === 'pending' && (
+                    <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                        <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#42818c' }}></div>
+                                <h4 style={{ margin: 0, color: '#1e293b', fontSize: '15px' }}>In-Progress / Pending Batches</h4>
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#94a3b8', background: '#f8fafc', padding: '4px 10px', borderRadius: '4px' }}>
+                                * Needs Attention
+                            </div>
                         </div>
-                        <div style={{ fontSize: '11px', color: '#94a3b8', background: '#f8fafc', padding: '4px 10px', borderRadius: '4px' }}>
-                            * Needs Attention
-                        </div>
+                        {loading ? (
+                            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading pending batches...</div>
+                        ) : (
+                            <EnhancedDataTable 
+                                columns={columns} 
+                                data={batches.filter(b => Number(b.testedPercentage) < 100)} 
+                                selectable={false} 
+                            />
+                        )}
                     </div>
-                    {loading ? (
-                        <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading pending batches...</div>
-                    ) : (
-                        <EnhancedDataTable 
-                            columns={columns} 
-                            data={batches.filter(b => Number(b.testedPercentage) < 100)} 
-                            selectable={false} 
-                        />
-                    )}
-                </div>
+                )}
 
                 {/* 2. Completed Table */}
-                <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', opacity: 0.9 }}>
-                    <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#059669' }}></div>
-                            <h4 style={{ margin: 0, color: '#1e293b', fontSize: '15px' }}>Completed Inspection Logs (100%)</h4>
+                {activeTab === 'completed' && (
+                    <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', opacity: 0.9 }}>
+                        <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#059669' }}></div>
+                                <h4 style={{ margin: 0, color: '#1e293b', fontSize: '15px' }}>Completed Inspection Logs (100%)</h4>
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#059669', background: '#ecfdf5', padding: '4px 10px', borderRadius: '4px', fontWeight: '700' }}>
+                                ✓ Fully Verified
+                            </div>
                         </div>
-                        <div style={{ fontSize: '11px', color: '#059669', background: '#ecfdf5', padding: '4px 10px', borderRadius: '4px', fontWeight: '700' }}>
-                            ✓ Fully Verified
-                        </div>
+                        {loading ? (
+                            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading logs...</div>
+                        ) : (
+                            <EnhancedDataTable 
+                                columns={columns} 
+                                data={batches.filter(b => Number(b.testedPercentage) >= 100)} 
+                                selectable={false} 
+                            />
+                        )}
                     </div>
-                    {loading ? (
-                        <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading logs...</div>
-                    ) : (
-                        <EnhancedDataTable 
-                            columns={columns} 
-                            data={batches.filter(b => Number(b.testedPercentage) >= 100)} 
-                            selectable={false} 
-                        />
-                    )}
-                </div>
+                )}
             </div>
 
             {showForm && (

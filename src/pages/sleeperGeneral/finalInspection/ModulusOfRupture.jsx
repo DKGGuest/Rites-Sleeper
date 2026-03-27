@@ -389,12 +389,23 @@ const MORTestDetailsModal = ({ sample, onClose, onSave, saving }) => {
     const [testData, setTestData] = useState({
         testingDate: new Date().toISOString().split('T')[0],
         weight: '',
-        loadKn: '',
-        strength: '',
+        loadKn: '', // Representing "Load A (Newton)"
+        strength: '', // Representing "Strength C (N/mm²)"
         remarks: ''
     });
 
-    const result = parseFloat(testData.strength) >= 6.0 ? 'Pass' : 'Fail'; // Example limit 6.0
+    let result = 'Pending';
+    if (testData.strength) {
+        const cVal = parseFloat(testData.strength);
+        if (sample.concreteGrade === 'M60') {
+            result = cVal > 5.5 ? 'Pass' : 'Fail';
+        } else if (sample.concreteGrade === 'M55') {
+            result = cVal > 5.2 ? 'Pass' : 'Fail';
+        } else {
+            // Default fallback if grade is unknown
+            result = cVal > 5.2 ? 'Pass' : 'Fail';
+        }
+    }
 
     return (
         <div className="form-modal-overlay" onClick={onClose}>
@@ -422,11 +433,11 @@ const MORTestDetailsModal = ({ sample, onClose, onSave, saving }) => {
                             <input type="number" step="0.01" value={testData.weight} onChange={e => setTestData({ ...testData, weight: e.target.value })} />
                         </div>
                         <div className="input-group">
-                            <label>Load in KN</label>
+                            <label>Load A (Newton)</label>
                             <input type="number" step="0.01" value={testData.loadKn} onChange={e => setTestData({ ...testData, loadKn: e.target.value })} />
                         </div>
                         <div className="input-group">
-                            <label>Strength (N/mm²)</label>
+                            <label>Strength C (N/mm²)</label>
                             <input type="number" step="0.01" value={testData.strength} onChange={e => setTestData({ ...testData, strength: e.target.value })} />
                         </div>
                         <div className="input-group">

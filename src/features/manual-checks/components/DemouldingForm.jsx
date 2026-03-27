@@ -152,7 +152,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                 newState.defectiveSleeperDetails = (newState.defectiveSleeperDetails || []).map(d => ({
                     ...d,
                     benchNo: value,
-                    sleeperNo: (value && d.sequence) ? `${value}-${d.sequence}` : d.sleeperNo
+                    sleeperNo: (value && d.sequence) ? `${value}${d.sequence}` : d.sleeperNo
                 }));
             }
 
@@ -169,7 +169,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                         currentDecls.push({
                             benchNo: newState.gangNo || '',
                             sequence: seq,
-                            sleeperNo: newState.gangNo ? `${newState.gangNo}-${seq}` : seq,
+                            sleeperNo: newState.gangNo ? `${newState.gangNo}${seq}` : seq,
                             visualReason: '',
                             dimReason: ''
                         });
@@ -276,7 +276,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
             if (field === 'benchNo' || field === 'sequence') {
                 const b = field === 'benchNo' ? value : updated[index].benchNo;
                 const s = field === 'sequence' ? value : updated[index].sequence;
-                updated[index].sleeperNo = (b && s) ? `${b}-${s}` : '';
+                updated[index].sleeperNo = (b && s) ? `${b}${s}` : '';
             }
             return { ...prev, defectiveSleeperDetails: updated };
         });
@@ -484,7 +484,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                                         updated = [...prev.defectiveSleeperDetails, {
                                             benchNo: prev.gangNo || '',
                                             sequence: seq,
-                                            sleeperNo: prev.gangNo ? `${prev.gangNo}-${seq}` : seq,
+                                            sleeperNo: prev.gangNo ? `${prev.gangNo}${seq}` : seq,
                                             visualReason: '',
                                             dimReason: ''
                                         }];
@@ -498,8 +498,9 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                                     key={seq}
                                     onClick={handleClick}
                                     style={{
-                                        width: '44px',
+                                        minWidth: '56px',
                                         height: '44px',
+                                        padding: '0 10px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -516,7 +517,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                                         transform: (isDefective || isForced) ? 'scale(1.05)' : 'scale(1)'
                                     }}
                                 >
-                                    {seq}
+                                    {formData.gangNo ? `${formData.gangNo}${seq}` : seq}
                                 </div>
                             );
                         })}
@@ -544,7 +545,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                                     {formData.defectiveSleeperDetails.map((item, idx) => (
                                         <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                             <td style={{ padding: '12px', fontWeight: '800', color: '#1e293b' }}>
-                                                {item.sleeperNo || `${item.benchNo}-${item.sequence}`}
+                                                {item.sleeperNo || `${item.benchNo}${item.sequence}`}
                                             </td>
                                             
                                             {(formData.visualCheck !== 'All OK' && !(formData.visualCheck === 'Partially OK' && formData.dimCheck === 'All Rejected')) && (
