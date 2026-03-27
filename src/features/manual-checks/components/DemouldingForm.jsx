@@ -144,9 +144,12 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                         const newBenches = response.responseData;
                         setBenches(newBenches);
                         
-                        // Autofetch: If there's a bench, select the first one
-                        if (newBenches.length > 0 && !formData.gangNo) {
-                            setFormData(prev => ({ ...prev, gangNo: String(newBenches[0]) }));
+                        // Autofetch: If there's a bench, select the first one (ALWAYS on batch change)
+                        if (newBenches.length > 0) {
+                            setFormData(prev => ({ 
+                                ...prev, 
+                                gangNo: String(newBenches[0]) 
+                            }));
                         }
                     }
 
@@ -179,9 +182,12 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                         const newTypes = response.responseData;
                         setSleeperTypes(newTypes);
                         
-                        // Autofetch: If there's a type, select the first one
-                        if (newTypes.length > 0 && !formData.type) {
-                            setFormData(prev => ({ ...prev, type: newTypes[0] }));
+                        // Autofetch: If there's a type, select the first one (ALWAYS on bench change)
+                        if (newTypes.length > 0) {
+                            setFormData(prev => ({ 
+                                ...prev, 
+                                type: newTypes[0] 
+                            }));
                         }
                     }
                 } catch (error) {
@@ -207,6 +213,15 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
         setFormData(prev => {
             const newState = { ...prev, [field]: value };
             
+            // If selecting a new batch, reset sub-selections to allow fresh autofetch
+            if (field === 'batch') {
+                newState.gangNo = '';
+                newState.type = '';
+            }
+            if (field === 'gangNo') {
+                newState.type = '';
+            }
+
             // Auto-update defective sleepers bench number if bench (gangNo) changes
             if (field === 'gangNo') {
                 newState.defectiveSleeperDetails = (newState.defectiveSleeperDetails || []).map(d => ({
