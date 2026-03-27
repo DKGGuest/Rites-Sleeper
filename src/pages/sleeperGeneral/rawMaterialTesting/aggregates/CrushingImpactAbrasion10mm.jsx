@@ -54,7 +54,7 @@ export default function CrushingImpactAbrasion10mm({ onSave, onCancel, inventory
     const iPassingWt = watch("impactPassingWt");
 
     const aSampleWt = watch("abrasionSampleWt");
-    const aPassingWt = watch("abrasionPassingWt");
+    const aCoarserWt = watch("abrasionCoarserWt");
 
     // Crushing Calculations
     useEffect(() => {
@@ -64,7 +64,7 @@ export default function CrushingImpactAbrasion10mm({ onSave, onCancel, inventory
             if (cPassingWt && sampleWt > 0) {
                 const val = (Number(cPassingWt) / sampleWt) * 100;
                 setValue("crushingValue", val.toFixed(2));
-                setValue("crushingResult", val < 30 ? "Satisfactory" : "Unsatisfactory");
+                setValue("crushingResult", val <= 30 ? "Satisfactory" : "Unsatisfactory");
             }
         }
     }, [cMouldWt, cMouldSampleWt, cPassingWt, setValue]);
@@ -77,22 +77,23 @@ export default function CrushingImpactAbrasion10mm({ onSave, onCancel, inventory
             if (iPassingWt && sampleWt > 0) {
                 const val = (Number(iPassingWt) / sampleWt) * 100;
                 setValue("impactValue", val.toFixed(2));
-                setValue("impactResult", val < 30 ? "Satisfactory" : "Unsatisfactory");
+                setValue("impactResult", val <= 30 ? "Satisfactory" : "Unsatisfactory");
             }
         }
     }, [iMouldWt, iMouldSampleWt, iPassingWt, setValue]);
 
-    // Abrasion Calculations
+    // Abrasion Calculations (A = (B - C) * 100 / C)
     useEffect(() => {
-        if (aSampleWt && aPassingWt) {
-            const sampleWt = Number(aSampleWt);
-            if (sampleWt > 0) {
-                const val = (Number(aPassingWt) / sampleWt) * 100;
+        if (aSampleWt && aCoarserWt) {
+            const B = Number(aSampleWt);
+            const C = Number(aCoarserWt);
+            if (C > 0) {
+                const val = ((B - C) * 100) / C;
                 setValue("abrasionValue", val.toFixed(2));
-                setValue("abrasionResult", val < 30 ? "Satisfactory" : "Unsatisfactory");
+                setValue("abrasionResult", val <= 30 ? "Satisfactory" : "Unsatisfactory");
             }
         }
-    }, [aSampleWt, aPassingWt, setValue]);
+    }, [aSampleWt, aCoarserWt, setValue]);
 
     const onSubmit = async (formData) => {
         setSubmitting(true);
@@ -171,7 +172,7 @@ export default function CrushingImpactAbrasion10mm({ onSave, onCancel, inventory
                     {/* Section 1: Crushing */}
                     <div className="section-divider"></div>
                     <div className="section-title" onClick={() => toggle('crushing')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {expanded.crushing ? '▼' : '▶'} Section 1: Crushing Test
+                        {expanded.crushing ? '▼' : '▶'} Section 1: Crushing Test (Max 30%)
                     </div>
                     {expanded.crushing && (
                         <div className="form-grid" style={{ marginTop: '1rem' }}>
@@ -205,7 +206,7 @@ export default function CrushingImpactAbrasion10mm({ onSave, onCancel, inventory
                     {/* Section 2: Impact */}
                     <div className="section-divider"></div>
                     <div className="section-title" onClick={() => toggle('impact')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {expanded.impact ? '▼' : '▶'} Section 2: Impact Test
+                        {expanded.impact ? '▼' : '▶'} Section 2: Impact Test (Max 30%)
                     </div>
                     {expanded.impact && (
                         <div className="form-grid" style={{ marginTop: '1rem' }}>
@@ -239,20 +240,20 @@ export default function CrushingImpactAbrasion10mm({ onSave, onCancel, inventory
                     {/* Section 3: Abrasion */}
                     <div className="section-divider"></div>
                     <div className="section-title" onClick={() => toggle('abrasion')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {expanded.abrasion ? '▼' : '▶'} Section 3: Abrasion Test
+                        {expanded.abrasion ? '▼' : '▶'} Section 3: Abrasion Test (Max 30%)
                     </div>
                     {expanded.abrasion && (
                         <div className="form-grid" style={{ marginTop: '1rem' }}>
                             <div className="input-group">
-                                <label>Weight of Sample (gms) <span className="required">*</span></label>
+                                <label>Weight of Sample (gms) [B] <span className="required">*</span></label>
                                 <input type="number" step="0.01" {...register("abrasionSampleWt", { required: "Required" })} />
                             </div>
                             <div className="input-group">
-                                <label>Passing through 1.7mm sieve (gms) <span className="required">*</span></label>
-                                <input type="number" step="0.01" {...register("abrasionPassingWt", { required: "Required" })} />
+                                <label>Weight Coarser than 1.7mm (gms) [C] <span className="required">*</span></label>
+                                <input type="number" step="0.01" {...register("abrasionCoarserWt", { required: "Required" })} />
                             </div>
                             <div className="input-group">
-                                <label>Aggregate Abrasion Value (%)</label>
+                                <label>Aggregate Abrasion Value (%) [A]</label>
                                 <input type="number" readOnly className="readOnly" {...register("abrasionValue")} />
                             </div>
                             <div className="input-group">

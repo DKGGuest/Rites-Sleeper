@@ -270,19 +270,19 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
         // Adjusted Wt. (Kgs) = freeMoistureKg + batchWtDry
         const adjustedWt = freeMoistureKg + batchWtDry;
 
-        // Wt. Adopted (Kgs) = ROUND UP adjustedWt
-        const wtAdopted = Math.ceil(adjustedWt);
+        // Wt. Adopted (Kgs) = Rounded of Adjusted Wt
+        const wtAdopted = Math.round(adjustedWt);
 
         return {
             wetSample,
             driedSample,
             absorption,
-            moistureInSample: moistureInSample.toFixed(2),
-            moisturePct: moisturePct.toFixed(2),
-            freeMoisturePct: freeMoisturePct.toFixed(2),
+            moistureInSample: moistureInSample.toFixed(3),
+            moisturePct: moisturePct.toFixed(3),
+            freeMoisturePct: freeMoisturePct.toFixed(3),
             batchWtDry: batchWtDry.toFixed(2),
-            freeMoistureKg: freeMoistureKg.toFixed(2),
-            adjustedWt: adjustedWt.toFixed(2),
+            freeMoistureKg: freeMoistureKg.toFixed(3),
+            adjustedWt: adjustedWt.toFixed(3),
             wtAdopted: wtAdopted
         };
     };
@@ -291,25 +291,33 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
     const ca2Calc = useMemo(() => calculateAggregate('ca2'), [aggData.ca2, commonData.userDryCA2]);
     const faCalc = useMemo(() => calculateAggregate('fa'), [aggData.fa, commonData.userDryFA]);
 
-    // Total Free Moisture (Wt.) = user inputs
-    const totalFreeMoisture = (
+    // 31 = Water Content (D * M / L) -> Already stored as userDryWater
+    const step31_WaterContent = parseFloat(commonData.userDryWater) || 0;
+
+    // 32 = Actual Batch Free Moisture (8 + 18 + 28)
+    const step32_TotalFreeMoisture = (
         parseFloat(ca1Calc.freeMoistureKg) +
         parseFloat(ca2Calc.freeMoistureKg) +
         parseFloat(faCalc.freeMoistureKg)
-    ).toFixed(2);
+    );
 
-    // Adjusted / Adopted wt. of Water = User Water - Total Free Moisture
-    const adjustedWater = (parseFloat(commonData.userDryWater) - parseFloat(totalFreeMoisture)).toFixed(2);
+    // 33 = Adjusted Water in Actual Batch (31 - 32)
+    const step33_AdjustedWater = (step31_WaterContent - step32_TotalFreeMoisture);
 
-    // W/C Ratio = Adjusted Water / User Cement
-    const wcRatio = parseFloat(commonData.userDryCement) > 0
-        ? (parseFloat(adjustedWater) / parseFloat(commonData.userDryCement)).toFixed(3)
-        : '0.000';
+    // 34 = (Aggregate / Cement) Ratio = (7 + 17 + 27) / M
+    const M = parseFloat(commonData.userDryCement) || 0;
+    const step34_ACRatio = M > 0 
+        ? ((parseFloat(ca1Calc.batchWtDry) + parseFloat(ca2Calc.batchWtDry) + parseFloat(faCalc.batchWtDry)) / M)
+        : 0;
 
-    // A/C Ratio = (Sum of Adopted Wts) / User Cement
-    const acRatio = parseFloat(commonData.userDryCement) > 0
-        ? ((parseFloat(ca1Calc.wtAdopted) + parseFloat(ca2Calc.wtAdopted) + parseFloat(faCalc.wtAdopted)) / parseFloat(commonData.userDryCement)).toFixed(2)
-        : '0.00';
+    // 35 = (Water / Cement) Ratio = D / M (Using D from mix design)
+    const D = parseFloat(commonData.designValues?.water) || 0;
+    const step35_WCRatio = M > 0 ? (D / M) : 0;
+
+    const totalFreeMoisture = step32_TotalFreeMoisture.toFixed(3);
+    const adjustedWater = step33_AdjustedWater.toFixed(3);
+    const acRatio = step34_ACRatio.toFixed(2);
+    const wcRatio = step35_WCRatio.toFixed(3);
 
     const handleSubmit = () => {
         if (!commonData.batchNo) {
@@ -498,36 +506,26 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                         {/* Summary Metrics */}
                         <div className="moisture-calc-grid">
                             <div className="calc-card">
-                                <span className="mini-label">Wt. Adopt. (CA1)</span>
-                                <div className="calc-value">{ca1Calc.wtAdopted}</div>
-                            </div>
-                            <div className="calc-card">
-                                <span className="mini-label">Wt. Adopt. (CA2)</span>
-                                <div className="calc-value">{ca2Calc.wtAdopted}</div>
-                            </div>
-                            <div className="calc-card">
-                                <span className="mini-label">Wt. Adopt. (FA)</span>
-                                <div className="calc-value">{faCalc.wtAdopted}</div>
+                                <span className="mini-label">Water Content (31)</span>
+                                <div className="calc-value">{step31_WaterContent.toFixed(2)}</div>
                             </div>
                             <div className="calc-card highlight-border">
-                                <span className="mini-label">Free Moist. (Wt.)</span>
+                                <span className="mini-label">Total Free Moist. (32)</span>
                                 <div className="calc-value success-text">{totalFreeMoisture}</div>
                             </div>
                             <div className="calc-card">
-                                <span className="mini-label">Adj. Water</span>
+                                <span className="mini-label">Adj. Water (33)</span>
                                 <div className="calc-value">{adjustedWater}</div>
                             </div>
                             <div className="calc-card">
-                                <span className="mini-label">W/C Ratio</span>
-                                <div className={`calc-value ${parseFloat(wcRatio) > 0.4 ? 'error-text' : 'success-text'}`}>
-                                    {wcRatio}
-                                </div>
-                                <span className="hint-text">Design: {commonData.designWC}</span>
+                                <span className="mini-label">A/C Ratio (34)</span>
+                                <div className="calc-value">{acRatio}</div>
+                                <span className="hint-text">Target: {commonData.designAC}</span>
                             </div>
                             <div className="calc-card">
-                                <span className="mini-label">A/C Ratio</span>
-                                <div className="calc-value">{acRatio}</div>
-                                <span className="hint-text">Design: {commonData.designAC}</span>
+                                <span className="mini-label">D / M Ratio (35)</span>
+                                <div className="calc-value">{wcRatio}</div>
+                                <span className="hint-text">Mix Design D: {D}</span>
                             </div>
                         </div>
                     </div>
