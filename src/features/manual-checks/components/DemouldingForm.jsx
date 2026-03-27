@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { apiService } from '../../../services/api';
 import '../../../components/common/Checkbox.css';
+import { useShift } from '../../../context/ShiftContext';
 
 const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initialData, activeContainer, sharedBatchNo, sharedBenchNo, onShiftFieldChange }) => {
+    const { allWitnessedRecords } = useShift();
     // 1. Exact State Mapping as requested by User
     // Helper for safe date/time (Forcing Asia/Kolkata to stop 12:54/UTC issues)
     const getSafeToday = () => {
@@ -48,36 +50,11 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
         defectiveSleeperDetails: []
     });
 
-    const [verifiedDeclarations, setVerifiedDeclarations] = useState([]);
-    const [declSearchTerm, setDeclSearchTerm] = useState('');
-    const [isDeclDropdownOpen, setIsDeclDropdownOpen] = useState(false);
-    const declDropdownRef = useRef(null);
+    const [batches, setBatches] = useState([]);
+    const [benches, setBenches] = useState([]);
+    const [sleeperTypes, setSleeperTypes] = useState([]);
 
-    useEffect(() => {
-        const fetchDecls = async () => {
-            try {
-                const response = await apiService.getVerifiedProductionDeclarations();
-                if (response?.responseData) {
-                    setVerifiedDeclarations(response.responseData);
-                }
-            } catch (error) {
-                console.error("Error fetching declarations:", error);
-            }
-        };
-        fetchDecls();
-    }, []);
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (declDropdownRef.current && !declDropdownRef.current.contains(event.target)) {
-                setIsDeclDropdownOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
+    const vendorId = localStorage.getItem('vendorId') || "118"; // Use numeric ID for Long parameters
 
     // Helper for DateTime/Date input compatibility
     const formatFromBackendDatePart = (dateStr) => {
@@ -121,27 +98,110 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                 visualCheck: initialData.visualCheck || 'All OK',
                 dimCheck: initialData.dimCheck || 'All OK',
                 remarks: initialData.overallRemarks || initialData.remarks || '',
-                defectiveSleeperDetails: (initialData.defectiveSleepers || initialData.defectiveSleeperDetails || []).map(d => ({
-                    benchNo: d.benchGangNo || d.benchNo || "",
-                    sequence: d.sequenceNo || d.sequence || "",
-                    sleeperNo: d.sleeperNo || "",
-                    visualReason: d.visualReason || "",
-                    dimReason: d.dimReason || "",
-                    defectType: d.visualReason ? "Visual" : (d.dimReason ? "Dimensional" : "")
-                }))
+                defectiveSleeperDetails: (initialData.defectiveSleepers || initialData.defectiveSleeperDetails || [])
+                    .filter(d => Boolean(d.sequenceNo || d.sequence || d.sleeperNo)) // Filter out empty defaults
+                    .map(d => ({
+                        benchNo: d.benchGangNo || d.benchNo || "",
+                        sequence: d.sequenceNo || d.sequence || "",
+                        sleeperNo: d.sleeperNo || "",
+                        visualReason: d.visualReason || "",
+                        dimReason: d.dimReason || "",
+                        defectType: d.visualReason ? "Visual" : (d.dimReason ? "Dimensional" : "")
+                    }))
             });
-        } else {
         }
     }, [initialData, activeContainer]);
 
-    // Auto-Type logic
+    // Fetch batches when casting date changes
     useEffect(() => {
-        if (formData.gangNo && !initialData) {
-            const types = ['RT-1234', 'RT-5678', 'RT-9012'];
-            const derivedType = types[parseInt(formData.gangNo) % 3] || 'RT-1234';
-            setFormData(prev => ({ ...prev, type: derivedType }));
+        if (formData.casting && !initialData) {
+            const fetchBatches = async () => {
+                try {
+                    const formattedDate = formatToBackendDate(formData.casting);
+                    const response = await apiService.getAllProductionBatches(vendorId, formattedDate);
+                    if (response?.responseData) {
+                        setBatches(response.responseData);
+                        // If current batch is not in new list, clear it
+                        if (!response.responseData.includes(formData.batch)) {
+                            setFormData(prev => ({ ...prev, batch: '', gangNo: '', type: '' }));
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error fetching batches:", error);
+                }
+            };
+            fetchBatches();
         }
-    }, [formData.gangNo, initialData]);
+    }, [formData.casting, vendorId, initialData]);
+
+    // Fetch benches when batch changes
+    useEffect(() => {
+        if (formData.batch && !initialData) {
+            const fetchBenches = async () => {
+                try {
+                    const response = await apiService.getAllProductionBenches(formData.batch);
+                    if (response?.responseData) {
+                        const newBenches = response.responseData;
+                        setBenches(newBenches);
+                        
+                        // Autofetch: If there's a bench, select the first one
+                        if (newBenches.length > 0 && !formData.gangNo) {
+                            setFormData(prev => ({ ...prev, gangNo: String(newBenches[0]) }));
+                        }
+                    }
+
+                    // Autofetch Location on Batch selection
+                    let foundLoc = '';
+                    Object.values(allWitnessedRecords || {}).forEach(records => {
+                        const match = records.find(r => String(r.batchNo) === String(formData.batch));
+                        if (match && match.location) foundLoc = match.location;
+                    });
+                    if (foundLoc) {
+                        setFormData(prev => ({ ...prev, location: foundLoc }));
+                    }
+                } catch (error) {
+                    console.error("Error fetching benches:", error);
+                }
+            };
+            fetchBenches();
+        } else if (!formData.batch) {
+            setBenches([]);
+        }
+    }, [formData.batch, initialData, allWitnessedRecords]);
+
+    // Fetch sleeper types when bench changes
+    useEffect(() => {
+        if (formData.batch && formData.gangNo && !initialData) {
+            const fetchSleeperTypes = async () => {
+                try {
+                    const response = await apiService.getAllProductionSleeperTypes(formData.batch, formData.gangNo);
+                    if (response?.responseData) {
+                        const newTypes = response.responseData;
+                        setSleeperTypes(newTypes);
+                        
+                        // Autofetch: If there's a type, select the first one
+                        if (newTypes.length > 0 && !formData.type) {
+                            setFormData(prev => ({ ...prev, type: newTypes[0] }));
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error fetching sleeper types:", error);
+                }
+            };
+            fetchSleeperTypes();
+        } else if (!formData.gangNo) {
+            setSleeperTypes([]);
+        }
+    }, [formData.batch, formData.gangNo, initialData]);
+
+    const formatToBackendDate = (dateStr) => {
+        if (!dateStr) return null;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            const [year, month, day] = dateStr.split("-");
+            return `${day}/${month}/${year}`;
+        }
+        return dateStr;
+    };
 
     const handleChange = (field, value) => {
         setFormData(prev => {
@@ -187,15 +247,6 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
         if (field === 'gangNo') onShiftFieldChange('benchNo', value);
     };
 
-    const formatToBackendDate = (dateStr) => {
-        if (!dateStr) return null;
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-            const [year, month, day] = dateStr.split("-");
-            return `${day}/${month}/${year}`;
-        }
-        return dateStr;
-    };
-
     const handleSave = () => {
         if (!formData.gangNo || !formData.batch || !formData.remarks) {
             alert('Please fill in required fields (Batch, Bench/Gang No. & Remarks).');
@@ -212,13 +263,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                 visualReason: formData.visualCheck !== 'All OK' ? String(item.visualReason || "") : "",
                 dimReason: formData.dimCheck !== 'All OK' ? String(item.dimReason || "") : ""
             }))
-            : [{
-                benchGangNo: "",
-                sequenceNo: "",
-                sleeperNo: "",
-                visualReason: "",
-                dimReason: ""
-            }];
+            : []; // Send empty array rather than empty object instance
 
         console.log("Saving Date:", formData.inspectionDate);
         console.log("Saving Time:", formData.inspectionTime);
@@ -236,8 +281,8 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
             visualCheck: formData.visualCheck || 'All OK',
             dimCheck: formData.dimCheck || 'All OK',
             overallRemarks: formData.remarks || '',
-            createdBy: localStorage.getItem('userId') || "0",
-            updatedBy: localStorage.getItem('userId') || "0",
+            createdBy: String(localStorage.getItem('userId') || "0"),
+            updatedBy: String(localStorage.getItem('userId') || "0"),
             defectiveSleepers: mappedDefectiveSleepers
         };
 
@@ -291,67 +336,26 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
 
     const fieldLabel = isLongLine ? 'Gang' : 'Bench';
 
-    const renderDeclarationDropdown = (label, fieldId, stateValue, onChangeHandler, placeholder) => {
-        const isOpen = isDeclDropdownOpen === fieldId;
-        return (
-            <div className="form-field" ref={isOpen ? declDropdownRef : null}>
-                <label htmlFor={fieldId} style={{ fontSize: '11px', fontWeight: '700' }}>{label} <span className="required">*</span></label>
-                <div style={{ position: 'relative' }}>
-                    <input
-                        id={fieldId}
-                        type="text"
-                        placeholder={placeholder}
-                        value={isOpen ? declSearchTerm : stateValue}
-                        onClick={() => {
-                            setIsDeclDropdownOpen(fieldId);
-                            setDeclSearchTerm('');
-                        }}
-                        onChange={(e) => {
-                            setDeclSearchTerm(e.target.value);
-                            if(e.target.value === '') onChangeHandler('');
-                            setIsDeclDropdownOpen(fieldId);
-                        }}
-                        className="form-input-standard"
-                        style={{ width: '100%', boxSizing: 'border-box' }}
-                        autoComplete="off"
-                    />
-                    {isOpen && (
-                        <ul style={{
-                            position: 'absolute', zIndex: 10, background: 'white',
-                            border: '1px solid #cbd5e1', width: '100%', maxHeight: '200px',
-                            overflowY: 'auto', listStyle: 'none', padding: 0, margin: '4px 0 0 0',
-                            borderRadius: '6px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                        }}>
-                            {verifiedDeclarations
-                                .filter(m => m.toLowerCase().includes(declSearchTerm.toLowerCase()))
-                                .map((m, idx) => (
-                                    <li key={idx} 
-                                        style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', color: '#334155' }}
-                                        onClick={() => {
-                                            onChangeHandler(m);
-                                            setDeclSearchTerm('');
-                                            setIsDeclDropdownOpen(false);
-                                        }}
-                                        onMouseEnter={(e) => e.target.style.background = '#f8fafc'}
-                                        onMouseLeave={(e) => e.target.style.background = 'white'}
-                                    >{m}</li>
-                                ))}
-                            {verifiedDeclarations.filter(m => m.toLowerCase().includes(declSearchTerm.toLowerCase())).length === 0 && (
-                                <li style={{ padding: '8px 12px', color: '#94a3b8' }}>No results found</li>
-                            )}
-                        </ul>
-                    )}
-                </div>
-            </div>
-        );
-    };
-
     return (
         <div className="form-container" style={{ padding: '20px' }}>
             <div className="form-grid-standard" style={{ marginBottom: '20px' }}>
                 <div className="form-field">
                     <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Location</label>
-                    <div className="form-info-card">{formData.location}</div>
+                    <select
+                        className="form-input-standard"
+                        value={formData.location}
+                        onChange={e => handleChange('location', e.target.value)}
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                    >
+                        <option value="N/A">-- Select --</option>
+                        <option value="Long Line">Long Line</option>
+                        <option value="Line 1">Line 1</option>
+                        <option value="Line 2">Line 2</option>
+                        <option value="Line 3">Line 3</option>
+                        <option value="Shed 1">Shed 1</option>
+                        <option value="Shed 2">Shed 2</option>
+                        <option value="Shed 3">Shed 3</option>
+                    </select>
                 </div>
 
                 {/* 2. Properly Bound using VALUE and ONCHANGE */}
@@ -380,8 +384,35 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                     />
                 </div>
 
-                {renderDeclarationDropdown("Batch No.", "dim-batch", formData.batch, (val) => handleChange('batch', val), "Search Batch...")}
-                {renderDeclarationDropdown("Bench No.", "dim-gang", formData.gangNo, (val) => handleChange('gangNo', val), "Search Bench...")}
+                <div className="form-field">
+                    <label htmlFor="dim-batch" style={{ fontSize: '11px', fontWeight: '700' }}>Batch No. <span className="required">*</span></label>
+                    <select
+                        id="dim-batch"
+                        className="form-input-standard"
+                        value={formData.batch}
+                        onChange={e => handleChange('batch', e.target.value)}
+                    >
+                        <option value="">-- Select Batch --</option>
+                        {batches.map((b, idx) => (
+                            <option key={idx} value={b}>{b}</option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="form-field">
+                    <label htmlFor="dim-gang" style={{ fontSize: '11px', fontWeight: '700' }}>Bench No. <span className="required">*</span></label>
+                    <select
+                        id="dim-gang"
+                        className="form-input-standard"
+                        value={formData.gangNo}
+                        onChange={e => handleChange('gangNo', e.target.value)}
+                    >
+                        <option value="">-- Select Bench --</option>
+                        {benches.map((b, idx) => (
+                            <option key={idx} value={b}>{b}</option>
+                        ))}
+                    </select>
+                </div>
 
                 <div className="form-field">
                     <label htmlFor="dim-type" style={{ fontSize: '11px', fontWeight: '700' }}>Sleeper Type <span className="required">*</span></label>
@@ -392,10 +423,9 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                         onChange={e => handleChange('type', e.target.value)}
                     >
                         <option value="">-- Select Type --</option>
-                        <option value="RT-1234">RT-1234 (Line I)</option>
-                        <option value="RT-5678">RT-5678 (Standard)</option>
-                        <option value="RT-9012">RT-9012 (Special)</option>
-                        <option value="G-101">G-101 (Broad Gauge)</option>
+                        {sleeperTypes.map((t, idx) => (
+                            <option key={idx} value={t}>{t}</option>
+                        ))}
                     </select>
                 </div>
 

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import '../../../components/common/Checkbox.css';
+import { useShift } from '../../../context/ShiftContext';
 
 const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initialData, activeContainer, sharedBatchNo, sharedBenchNo, onShiftFieldChange }) => {
+    const { allWitnessedRecords } = useShift();
     const getLocalISOString = () => {
         const now = new Date();
         const offset = now.getTimezoneOffset() * 60000;
@@ -54,7 +56,6 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
                 mouldCleaned: convertToYesNo(initialData.mouldCleaned !== undefined ? initialData.mouldCleaned : initialData.lumpsFree),
                 oilApplied: convertToYesNo(initialData.oilApplied)
             });
-            console.log('📋 MouldPrepForm - Prefilled from:', initialData);
         }
     }, [initialData, activeContainer]);
 
@@ -67,9 +68,22 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
         }
     }, [formData.benchNo, initialData]);
 
+    // Auto-fetch Location based on Batch Number
+    useEffect(() => {
+        if (formData.batchNo && !initialData) {
+            let foundLocation = '';
+            Object.values(allWitnessedRecords || {}).forEach(records => {
+                const match = records.find(r => String(r.batchNo) === String(formData.batchNo));
+                if (match && match.location) foundLocation = match.location;
+            });
+            if (foundLocation && formData.location !== foundLocation) {
+                setFormData(prev => ({ ...prev, location: foundLocation }));
+            }
+        }
+    }, [formData.batchNo, initialData, allWitnessedRecords]);
+
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
-        // 🔥 Shared Shift logic: Update parent state when batch or bench changes
         if (field === 'batchNo' || field === 'benchNo') {
             onShiftFieldChange(field, value);
         }
@@ -90,7 +104,6 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
             return;
         }
 
-        // 3. Completed Batch + Gang combination check (Requirement: Must not appear/be re-entered)
         if (!initialData) {
             const isDuplicate = (existingEntries || []).some(entry => 
                 String(entry.batchNo || entry.batch) === String(formData.batchNo) && 
@@ -98,12 +111,11 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
             );
             
             if (isDuplicate) {
-                alert(`Record already exists: Batch ${formData.batchNo} with ${fieldLabel} ${formData.benchNo} has already been recorded in Mould Preparation. Duplicate entries are not permitted.`);
+                alert(`Record already exists: Batch ${formData.batchNo} with ${fieldLabel} ${formData.benchNo} has already been recorded.`);
                 return;
             }
         }
 
-        // Payload matching mould-preparation-controller schema exactly
         const payload = {
             lineShedNo: formData.location || activeContainer?.name || 'N/A',
             preparationDate: formatToBackendDate(formData.dateTime.split('T')[0]),
@@ -119,7 +131,6 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
 
         onSave(payload);
 
-        // Reset non-shared fields after save
         setFormData(prev => ({
             ...prev,
             mouldCleaned: '',
@@ -135,7 +146,21 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
             <div className="form-grid-standard">
                 <div className="form-field">
                     <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Location</label>
-                    <div className="form-info-card">{formData.location}</div>
+                    <select
+                        className="form-input-standard"
+                        value={formData.location}
+                        onChange={e => handleChange('location', e.target.value)}
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                    >
+                        <option value="N/A">-- Select --</option>
+                        <option value="Long Line">Long Line</option>
+                        <option value="Line 1">Line 1</option>
+                        <option value="Line 2">Line 2</option>
+                        <option value="Line 3">Line 3</option>
+                        <option value="Shed 1">Shed 1</option>
+                        <option value="Shed 2">Shed 2</option>
+                        <option value="Shed 3">Shed 3</option>
+                    </select>
                 </div>
 
                 <div className="form-field">

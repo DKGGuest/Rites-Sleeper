@@ -169,7 +169,9 @@ const MainLayout = ({ children, activeItem, onItemClick }) => {
                             </div>
                             <div className="user-details">
                                 <span className="user-name">{user?.userName || 'User'}</span>
-                                <span className="user-code">Emp Code: {user?.userId || 'N/A'}</span>
+                                <span className="user-code">
+                                    Code: {user?.userId || 'N/A'} {user?.vendorCode ? `| Vendor: ${user.vendorCode}` : ''}
+                                </span>
                             </div>
                         </div>
                         <div className="header-divider"></div>

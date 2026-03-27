@@ -88,6 +88,9 @@ const MainDashboard = () => {
             if (userId) {
                 const response = await getCompanyMappingByUser(userId);
                 if (response) {
+                    if (response.vendorCode) {
+                        localStorage.setItem('vendorCode', response.vendorCode);
+                    }
                     if (response.unitVendorMap) {
                         setUnitVendorMap(response.unitVendorMap);
                     }
@@ -144,6 +147,12 @@ const MainDashboard = () => {
         setDutyDate(formData.date);
         setDutyUnit(formData.unit);
         setDutyLocation(formData.location);
+
+        // Save numeric vendorId for API calls
+        const vendorId = unitVendorMap[formData.unit];
+        if (vendorId) {
+            localStorage.setItem('vendorId', vendorId);
+        }
 
         // Find or create container ID based on location
         const matchedContainer = containers.find(c => c.name === formData.location);

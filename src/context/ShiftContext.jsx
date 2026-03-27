@@ -36,6 +36,7 @@ export const ShiftProvider = ({ children }) => {
         localStorage.removeItem('dutyUnit');
         localStorage.removeItem('dutyLocation');
         localStorage.removeItem('activeContainerId');
+        localStorage.removeItem('vendorCode');
     };
 
     // Persist basic shift state

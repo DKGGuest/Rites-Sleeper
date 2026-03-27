@@ -210,9 +210,12 @@ export const apiService = {
     // moduleId=10 Dowel
     getDowelRecordById: (id) => api.get(`/dowel/${id}`),
 
-    // moduleId=11 Production Declaration
     getProductionDeclarationRecordById: (id) => api.get(`/production-declaration/${id}`),
     getVerifiedProductionDeclarations: () => api.get('/production-declaration/verified-declarations'),
+    getAllProductionBatches: (vendorId, castingDate) => api.get(`/production-declaration/getAll/batches?vendorId=${vendorId}&castingDate=${castingDate}`),
+    getAllProductionBenches: (batchNo) => api.get(`/production-declaration/getAll/benches?batchNo=${batchNo}`),
+    getAllProductionSleeperTypes: (batchNo, benchNo) => api.get(`/production-declaration/getAll/sleeper-types?batchNo=${batchNo}&benchNo=${benchNo}`),
+    getAllProductionSleepers: (batchNo, benchNo, sleeperType) => api.get(`/production-declaration/getAll/sleepers?batchNo=${batchNo}&benchNo=${benchNo}&sleeperType=${sleeperType}`),
 
     getAllWorkflowTransitions: (roleName = 'IE') =>
         api.get(`/sleeper-workflow/allWorkflowTransition?roleName=${roleName}`),

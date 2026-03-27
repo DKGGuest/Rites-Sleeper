@@ -75,6 +75,7 @@ export const getStoredUser = () => {
     userId: localStorage.getItem('userId'),
     userName: localStorage.getItem('userName'),
     roleName: localStorage.getItem('roleName'),
+    vendorCode: localStorage.getItem('vendorCode'), // Allow components to easily read
     token: token,
   };
 };
@@ -104,4 +105,5 @@ export const logoutUser = () => {
   localStorage.removeItem('dutyUnit');
   localStorage.removeItem('dutyLocation');
   localStorage.removeItem('activeContainerId');
+  localStorage.removeItem('vendorCode');
 };

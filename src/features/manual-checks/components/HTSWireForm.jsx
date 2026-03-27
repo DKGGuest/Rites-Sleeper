@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import '../../../components/common/Checkbox.css';
+import { useShift } from '../../../context/ShiftContext';
 
 const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initialData, activeContainer, sharedBatchNo, sharedBenchNo, onShiftFieldChange }) => {
+    const { allWitnessedRecords } = useShift();
     // 1. dateTime, noOfWires, and arrangement Stored in form state
     const getLocalISOString = () => {
         const now = new Date();
@@ -92,6 +94,20 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
             }));
         }
     }, [formData.gangNo, initialData]);
+
+    // Auto-fetch Location based on Batch Number
+    useEffect(() => {
+        if (formData.batch && !initialData) {
+            let foundLocation = '';
+            Object.values(allWitnessedRecords || {}).forEach(records => {
+                const match = records.find(r => String(r.batchNo) === String(formData.batch));
+                if (match && match.location) foundLocation = match.location;
+            });
+            if (foundLocation && formData.location !== foundLocation) {
+                setFormData(prev => ({ ...prev, location: foundLocation }));
+            }
+        }
+    }, [formData.batch, initialData, allWitnessedRecords]);
 
     // Auto Overall Status calculation
     useEffect(() => {
