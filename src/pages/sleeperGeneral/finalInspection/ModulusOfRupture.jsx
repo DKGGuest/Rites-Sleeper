@@ -429,15 +429,15 @@ const MORTestDetailsModal = ({ sample, onClose, onSave, saving }) => {
                             <input type="date" value={testData.testingDate} onChange={e => setTestData({ ...testData, testingDate: e.target.value })} />
                         </div>
                         <div className="input-group">
-                            <label>Weight (in Kgs)</label>
+                            <label>Weight (in Kgs) <span className="required">*</span></label>
                             <input type="number" step="0.01" value={testData.weight} onChange={e => setTestData({ ...testData, weight: e.target.value })} />
                         </div>
                         <div className="input-group">
-                            <label>Load A (Newton)</label>
+                            <label>Load A (Newton) <span className="required">*</span></label>
                             <input type="number" step="0.01" value={testData.loadKn} onChange={e => setTestData({ ...testData, loadKn: e.target.value })} />
                         </div>
                         <div className="input-group">
-                            <label>Strength C (N/mm²)</label>
+                            <label>Strength C (N/mm²) <span className="required">*</span></label>
                             <input type="number" step="0.01" value={testData.strength} onChange={e => setTestData({ ...testData, strength: e.target.value })} />
                         </div>
                         <div className="input-group">
@@ -451,7 +451,13 @@ const MORTestDetailsModal = ({ sample, onClose, onSave, saving }) => {
                     </div>
 
                     <div style={{ display: 'flex', gap: '12px', marginTop: '24px', flexWrap: 'wrap' }}>
-                        <button className="btn-verify" disabled={saving} style={{ flex: '1 1 200px' }} onClick={() => onSave({ ...testData, result })}>{saving ? 'Saving...' : 'Save Test Results'}</button>
+                        <button className="btn-verify" disabled={saving} style={{ flex: '1 1 200px' }} onClick={() => {
+                            if (!testData.weight || !testData.loadKn || !testData.strength) {
+                                alert("Mandatory Data Missing: Please enter Weight, Load, and Strength before saving.");
+                                return;
+                            }
+                            onSave({ ...testData, result });
+                        }}>{saving ? 'Saving...' : 'Save Test Results'}</button>
                         <button className="btn-save" style={{ flex: '1 1 200px', background: '#f1f5f9', color: '#64748b', border: 'none' }} onClick={onClose}>Cancel</button>
                     </div>
                 </div>

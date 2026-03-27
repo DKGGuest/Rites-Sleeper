@@ -15,7 +15,7 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
         dateTime: getLocalISOString(),
         batchNo: '',
         benchNo: '',
-        sleeperType: '',
+        sleeperType: 'RT-8746',
         mouldCleaned: '',
         oilApplied: '',
         remarks: ''
@@ -59,14 +59,6 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
         }
     }, [initialData, activeContainer]);
 
-    // Auto-fetch Sleeper Type derivation
-    useEffect(() => {
-        if (formData.benchNo && !initialData) {
-            const types = ['RT-1234', 'RT-5678', 'RT-9012'];
-            const type = types[parseInt(formData.benchNo) % 3] || 'RT-1234';
-            setFormData(prev => ({ ...prev, sleeperType: type }));
-        }
-    }, [formData.benchNo, initialData]);
 
     // Auto-fetch Location based on Batch Number
     useEffect(() => {
@@ -206,11 +198,7 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
                         value={formData.sleeperType}
                         onChange={e => handleChange('sleeperType', e.target.value)}
                     >
-                        <option value="">-- Select --</option>
-                        <option value="RT-1234">RT-1234</option>
-                        <option value="RT-5678">RT-5678</option>
-                        <option value="RT-9012">RT-9012</option>
-                        <option value="G-101">G-101</option>
+                        <option value="RT-8746">RT-8746</option>
                     </select>
                 </div>
 

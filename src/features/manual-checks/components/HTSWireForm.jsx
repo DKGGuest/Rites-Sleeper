@@ -16,8 +16,8 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
         dateTime: getLocalISOString(),
         batch: sharedBatchNo || '',
         gangNo: sharedBenchNo || '',
-        sleeperType: '',
-        noOfWires: '',
+        sleeperType: 'RT-8746',
+        noOfWires: '16',
         wireDia: '',
         layLength: '',
         observedWeight: '',
@@ -82,18 +82,6 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
         'G-101': { wires: 18, diaMin: 2.97, diaMax: 3.03, nominalWeight: 0.166 }
     };
 
-    // Auto-fetch Sleeper Type derivation (only when no initialData and sleeperType empty)
-    useEffect(() => {
-        if (formData.gangNo && !initialData && !formData.sleeperType) {
-            const types = ['RT-2496', 'RT-8746', 'RT-1234'];
-            const type = types[parseInt(formData.gangNo) % 3] || 'RT-2496';
-            setFormData(prev => ({ 
-                ...prev, 
-                sleeperType: type,
-                noOfWires: SLEEPER_RULES[type] ? SLEEPER_RULES[type].wires.toString() : ''
-            }));
-        }
-    }, [formData.gangNo, initialData]);
 
     // Auto-fetch Location based on Batch Number
     useEffect(() => {
@@ -313,13 +301,7 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
                         value={formData.sleeperType}
                         onChange={e => handleChange('sleeperType', e.target.value)}
                     >
-                        <option value="">-- Select --</option>
-                        <option value="RT-2496">RT-2496</option>
                         <option value="RT-8746">RT-8746</option>
-                        <option value="RT-1234">RT-1234</option>
-                        <option value="RT-5678">RT-5678</option>
-                        <option value="RT-9012">RT-9012</option>
-                        <option value="G-101">G-101</option>
                     </select>
                 </div>
 
