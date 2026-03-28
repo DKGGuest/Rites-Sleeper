@@ -320,89 +320,9 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
                             overflow: 'hidden',
                             marginBottom: '16px',
                         }}>
-                            {/* Prominent Audit Row */}
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(3, 1fr)',
-                                gap: '8px',
-                                background: '#fff',
-                                borderBottom: '1px solid #e2e8f0',
-                                padding: '12px 16px',
-                            }}>
-                                <div>
-                                    <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>Updated By</div>
-                                    <div style={{ fontSize: '12px', fontWeight: '700', color: '#334155' }}>
-                                        {formatValue(detail.updatedBy || detail.modifiedBy || detail.lastModifiedBy || detail.createdBy)}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>Updated Date</div>
-                                    <div style={{ fontSize: '12px', fontWeight: '700', color: '#334155' }}>
-                                        {formatValue(detail.updatedDate || detail.updatedAt || detail.modifiedDate || detail.modifiedAt || detail.lastModifiedDate)}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>Status</div>
-                                    <div style={{ fontSize: '12px', fontWeight: '700', color: '#334155' }}>
-                                        {formatValue(detail.status || detail.recordStatus || row.status)}
-                                    </div>
-                                </div>
-                            </div>
+
                             
-                            {/* Special Highlight: Module 11 (Production Declaration) – Display all Bench Nos. */}
-                            {row.moduleId === 11 && (
-                                <div style={{
-                                    background: '#fefce8', // Subtle yellow highlight
-                                    padding: '12px 16px',
-                                    borderBottom: '1px solid #fef08a',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '6px'
-                                }}>
-                                    <div style={{ fontSize: '9px', color: '#854d0e', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.3px' }}>
-                                        All Included Benches
-                                    </div>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                        {(() => {
-                                            const benches = [];
-                                            // Handle both possible structures (standard and nested)
-                                            if (Array.isArray(detail.chambers)) {
-                                                detail.chambers.forEach(chamber => {
-                                                    if (Array.isArray(chamber.benchGroups)) {
-                                                        chamber.benchGroups.forEach(group => {
-                                                            if (group.benchNo) benches.push(String(group.benchNo));
-                                                        });
-                                                    }
-                                                });
-                                            }
-                                            // Fallback for flat structure if it exists
-                                            if (benches.length === 0 && Array.isArray(detail.benchDetails)) {
-                                                detail.benchDetails.forEach(bd => {
-                                                    if (bd.benchNo) benches.push(String(bd.benchNo));
-                                                });
-                                            }
-                                            if (benches.length === 0 && detail.benchNo) {
-                                                benches.push(String(detail.benchNo));
-                                            }
 
-                                            const uniqueBenches = [...new Set(benches)].sort((a,b) => a - b);
-
-                                            if (uniqueBenches.length === 0) return <span style={{ fontSize: '11px', color: '#a16207', fontWeight: '600' }}>—</span>;
-                                            
-                                            return uniqueBenches.map((b, i) => (
-                                                <span key={i} style={{
-                                                    background: '#fef9c3', color: '#854d0e',
-                                                    padding: '2px 10px', borderRadius: '6px',
-                                                    fontSize: '11px', fontWeight: '800',
-                                                    border: '1px solid #fde047'
-                                                }}>
-                                                    Bench {b}
-                                                </span>
-                                            ));
-                                        })()}
-                                    </div>
-                                </div>
-                            )}
 
                             <div style={{
                                 display: 'grid',
@@ -430,35 +350,69 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
                                                     {formatKey(key)} ({val.length})
                                                 </div>
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-                                                    {val.map((item, idx) => (
-                                                        <div key={idx} style={{ 
-                                                            padding: '10px 16px', 
-                                                            background: '#f8fafc', 
-                                                            borderRadius: '8px', 
-                                                            border: '1px solid #e2e8f0',
-                                                            display: 'grid',
-                                                            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-                                                            gap: '12px'
-                                                        }}>
-                                                            {typeof item === 'object' ? (
-                                                                Object.entries(item).map(([sk, sv]) => {
-                                                                    if (['id', 'updatedby', 'updateddate'].some(w => sk.toLowerCase().includes(w))) return null;
-                                                                    
-                                                                    const formattedVal = formatValue(sv);
-                                                                    if (formattedVal === '—') return null; // Hide empty/null fields like Coil No in Range mode
-
-                                                                    return (
-                                                                        <div key={sk}>
-                                                                            <div style={{ fontSize: '8px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>{formatKey(sk)}</div>
-                                                                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#334155' }}>{formattedVal}</div>
+                                                    {val.map((item, idx) => {
+                                                        const isModule11Chamber = row.moduleId === 11 && key === 'chambers';
+                                                        
+                                                        return (
+                                                            <div key={idx} style={{ 
+                                                                padding: '10px 16px', 
+                                                                background: '#f8fafc', 
+                                                                borderRadius: '8px', 
+                                                                border: '1px solid #e2e8f0',
+                                                                display: isModule11Chamber ? 'flex' : 'grid',
+                                                                flexDirection: isModule11Chamber ? 'column' : 'initial',
+                                                                gridTemplateColumns: isModule11Chamber ? 'none' : 'repeat(auto-fit, minmax(120px, 1fr))',
+                                                                gap: '12px'
+                                                            }}>
+                                                                {isModule11Chamber ? (
+                                                                    <>
+                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                                                            <span style={{ fontSize: '12px', fontWeight: '800', color: '#1e293b' }}>
+                                                                                Chamber {item.chamberNo}
+                                                                            </span>
                                                                         </div>
-                                                                    );
-                                                                })
-                                                            ) : (
-                                                                <span style={{ fontSize: '12px', fontWeight: '700' }}>{formatValue(item)}</span>
-                                                            )}
-                                                        </div>
-                                                    ))}
+                                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                                                            {(() => {
+                                                                                const benches = [];
+                                                                                if (Array.isArray(item.benchGroups)) {
+                                                                                    item.benchGroups.forEach(g => {
+                                                                                        if (g.benchNo) benches.push(String(g.benchNo));
+                                                                                    });
+                                                                                }
+                                                                                if (benches.length === 0) return <span style={{ fontSize: '11px', color: '#94a3b8' }}>No benches</span>;
+                                                                                return benches.map((b, i) => (
+                                                                                    <span key={i} style={{
+                                                                                        background: '#eff6ff', color: '#1d4ed8',
+                                                                                        padding: '2px 8px', borderRadius: '6px',
+                                                                                        fontSize: '11px', fontWeight: '700',
+                                                                                        border: '1px solid #dbeafe'
+                                                                                    }}>
+                                                                                        Bench {b}
+                                                                                    </span>
+                                                                                ));
+                                                                            })()}
+                                                                        </div>
+                                                                    </>
+                                                                ) : typeof item === 'object' ? (
+                                                                    Object.entries(item).map(([sk, sv]) => {
+                                                                        if (['id', 'updatedby', 'updateddate'].some(w => sk.toLowerCase().includes(w))) return null;
+                                                                        
+                                                                        const formattedVal = formatValue(sv);
+                                                                        if (formattedVal === '—') return null; // Hide empty/null fields like Coil No in Range mode
+
+                                                                        return (
+                                                                            <div key={sk}>
+                                                                                <div style={{ fontSize: '8px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>{formatKey(sk)}</div>
+                                                                                <div style={{ fontSize: '12px', fontWeight: '700', color: '#334155' }}>{formattedVal}</div>
+                                                                            </div>
+                                                                        );
+                                                                    })
+                                                                ) : (
+                                                                    <span style={{ fontSize: '12px', fontWeight: '700' }}>{formatValue(item)}</span>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         );
@@ -485,21 +439,7 @@ const VerificationDetailModal = ({ row, moduleLabel, actionBy, onClose, onDone }
                         </div>
                     )}
 
-                    {/* Transition meta - Slim */}
-                    <div style={{
-                        background: '#f8fafc', border: '1px solid #e2e8f0',
-                        borderRadius: '10px', padding: '10px 16px',
-                        marginBottom: '16px', display: 'flex', gap: '20px',
-                    }}>
-                        <div>
-                            <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>Assigned To</div>
-                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>User {row.assignedTo}</div>
-                        </div>
-                        <div>
-                            <div style={{ fontSize: '9px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>Transition ID</div>
-                            <div style={{ fontSize: '10px', fontFamily: 'monospace', color: '#94a3b8' }}>{row.workflowTransitionId}</div>
-                        </div>
-                    </div>
+
 
                     {/* ── Action Area ── */}
                     {isAlreadyVerified ? (

@@ -4,7 +4,7 @@ import { useToast } from "../../../../context/ToastContext";
 import { getStoredUser } from "../../../../services/authService";
 import { saveCement7DayStrength, getCement7DayStrengthByReqId } from "../../../../services/workflowService";
 
-export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId }) {
+export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId, sharedNC }) {
     const { selectedShift, dutyDate, dutyLocation } = useShift();
     const toast = useToast();
     const user = getStoredUser();
@@ -31,6 +31,13 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
         soundnessResult: ""
     });
     const [editId, setEditId] = useState(null);
+
+    // Auto-fetch Normal Consistency if available
+    useEffect(() => {
+        if (sharedNC && (!form.normalConsistency || form.normalConsistency !== sharedNC)) {
+            setForm(prev => ({ ...prev, normalConsistency: sharedNC }));
+        }
+    }, [sharedNC]);
 
     useEffect(() => {
         if (activeRequestId) {

@@ -6,7 +6,7 @@ import { saveCementSettingTime, getCementSettingTimeByReqId } from "../../../../
 
 const emptyRow = { time: "", needle: "", spot: "" };
 
-export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId }) {
+export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId, sharedNC }) {
     const { selectedShift, dutyDate, dutyLocation } = useShift();
     const toast = useToast();
     const user = getStoredUser();
@@ -16,7 +16,7 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
         type: initialType,
         consignment: "",
         temp: "",
-        weight: "",
+        weight: "400", // Default 400g for setting time
         nc: "",
         waterQty: "",
         waterAddTime: "",
@@ -29,6 +29,16 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
     const [finalTime, setFinalTime] = useState(null);
     const [result, setResult] = useState("");
     const [editId, setEditId] = useState(null);
+
+    // Auto-fetch Normal Consistency if available
+    useEffect(() => {
+        if (sharedNC && (!header.nc || header.nc !== sharedNC)) {
+            const ncVal = parseFloat(sharedNC);
+            const weight = parseFloat(header.weight) || 400;
+            const water = ((ncVal * 0.85 * weight) / 100).toFixed(1);
+            setHeader(prev => ({ ...prev, nc: sharedNC, waterQty: water }));
+        }
+    }, [sharedNC, header.weight]);
 
     useEffect(() => {
         if (activeRequestId) {
@@ -44,7 +54,7 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
                         type: record.typeOfTesting || prev.type,
                         consignment: record.consignmentNo || prev.consignment,
                         temp: record.roomTemp || prev.temp,
-                        weight: record.weight || prev.weight,
+                        weight: record.weight || prev.weight || "400",
                         nc: record.normalConsistency || prev.nc,
                         waterQty: record.waterAdded || prev.waterQty,
                         waterAddTime: record.timeOfAddingWater ? record.timeOfAddingWater.substring(0, 5) : prev.waterAddTime,
@@ -61,7 +71,7 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
                 }
             });
         }
-    }, [activeRequestId, inventoryData]); // Added inventoryData to dependency array
+    }, [activeRequestId, inventoryData]); 
 
     const updateRow = (i, field, val) => {
         const copy = [...rows];

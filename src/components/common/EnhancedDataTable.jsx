@@ -55,6 +55,7 @@ const EnhancedDataTable = ({
           className="search-input"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          style={{ width: '250px', padding: '0 16px', height: '40px', borderRadius: '8px', border: '2px solid #e2e8f0', fontSize: '14px', fontWeight: '500', color: '#13343b', outline: 'none' }}
         />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

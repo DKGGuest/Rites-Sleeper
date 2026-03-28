@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import EnhancedDataTable from '../../components/common/EnhancedDataTable';
 import { apiService } from '../../services/api';
+import { useShift } from '../../context/ShiftContext';
 import './SteamCubeTesting.css';
 import { formatDateForBackend } from '../../utils/helpers';
 
@@ -146,6 +147,7 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
             const payload = {
                 lineNo: formData.lineNo || null,
                 shedNo: formData.shedNo || null,
+                location: formData.lineNo || formData.shedNo,
                 castingDate: DateUtils.formatToBackend(formData.castingDate),
                 lbcTime: formData.lbcTime,
                 batchNo: String(formData.batchNo),
@@ -230,31 +232,32 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
     };
 
 
-    const getColumnsDeclared = (isShedTable) => [
+    const getColumnsDeclared = () => [
         { 
-            key: isShedTable ? 'shedNo' : 'lineNo', 
-            label: isShedTable ? 'Shed No.' : 'Line No.',
-            render: (val) => val || '-'
+            key: 'location', 
+            label: 'Location (Line/Shed)',
+            render: (_, row) => row.location || row.lineNo || row.shedNo || '-'
         },
         { key: 'batchNo', label: 'Batch No.' },
-        {
-            key: 'castingDateTime',
+        { 
+            key: 'castingDateTime', 
             label: 'Date & Time of Casting',
             render: (_, row) => {
-                const date = row.castingDate ? row.castingDate.split('-').reverse().join('/') : '-';
+                const rawDate = row.castingDate || row.date || row.entryDate;
+                const date = rawDate ? (rawDate.includes('-') ? rawDate.split('-').reverse().join('/') : rawDate) : '-';
                 const time = row.lbcTime || '-';
                 return `${date} ${time}`;
             }
         },
-        { key: 'concreteGrade', label: 'Concrete Grade', render: (val) => val || '-' },
-        {
-            key: 'cubeCount',
-            label: 'No. of Cubes',
-            render: (_, row) => row.cubes?.length || 0
+        { key: 'concreteGrade', label: 'Concrete Grade', render: (_, row) => row.concreteGrade || row.grade || '-' },
+        { 
+            key: 'noOfCubes', 
+            label: 'No. of Cubes', 
+            render: (_, row) => (row.cubes || row.cubeResults)?.length || 0 
         },
-        {
-            key: 'gangs',
-            label: isShedTable ? 'Gangs in Shed' : 'Gangs in Line',
+        { 
+            key: 'gangs', 
+            label: 'Gangs/Benches', 
             render: (_, row) => {
                 const benches = (row.otherBenches || []).map(b => b.benchNo).filter(Boolean);
                 return benches.length > 0 ? benches.join(', ') : '-';
@@ -280,29 +283,21 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
     const columnsTested = [
         { 
             key: 'location', 
-            label: 'Shed/Line No.', 
-            render: (_, row) => row.shedNo || row.lineNo || '-'
+            label: 'Location (Shed/Line)', 
+            render: (_, row) => row.location || row.shedNo || row.lineNo || '-'
         },
         { key: 'batchNo', label: 'Batch No.' },
-        { key: 'concreteGrade', label: 'Concrete Grade', render: (val) => val || '-' },
-        {
-            key: 'castingDateTime',
-            label: 'Date & Time of Casting',
-            render: (_, row) => {
-                const date = row.castingDate ? row.castingDate.split('-').reverse().join('/') : '-';
-                const time = row.lbcTime || '-';
-                return `${date} ${time}`;
+        { 
+            key: 'castingDate', 
+            label: 'Date of Casting',
+            render: (val, row) => {
+                const rawDate = val || row.date || row.entryDate;
+                return rawDate ? (rawDate.includes('-') ? rawDate.split('-').reverse().join('/') : rawDate) : '-';
             }
         },
-        {
-            key: 'testDateTime',
-            label: 'Date & Time of Testing',
-            render: (_, row) => {
-                const date = row.testDate ? row.testDate.split('-').reverse().join('/') : '-';
-                const time = row.testTime || '-';
-                return `${date} ${time}`;
-            }
-        },
+        { key: 'concreteGrade', label: 'Concrete Grade', render: (_, row) => row.concreteGrade || row.grade || '-' },
+        { key: 'ageDays', label: 'Age (Days)' },
+        { key: 'testDate', label: 'Date of Testing', render: (val) => val ? (val.includes('-') ? val.split('-').reverse().join('/') : val) : '-' },
         {
             key: 'avgStrength',
             label: 'Avg Strength (N/mm²)',
@@ -445,26 +440,14 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
 
                 {viewMode === 'declared' && (
                     <div className="fade-in">
-                        {/* Split tables for Line and Shed */}
-                        <div className="section-card" style={{ marginBottom: '24px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                <h4 style={{ margin: 0, color: '#10b981', fontWeight: '800' }}>LONG LINE - DECLARED SAMPLES</h4>
-                                <button className="btn-verify" onClick={handleAddSample}>+ Add Line Declaration</button>
-                            </div>
-                            <EnhancedDataTable 
-                                columns={getColumnsDeclared(false)} 
-                                data={declaredSamples.filter(s => s.lineNo && !s.shedNo)} 
-                            />
-                        </div>
-
                         <div className="section-card">
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                <h4 style={{ margin: 0, color: '#3b82f6', fontWeight: '800' }}>SHED - DECLARED SAMPLES</h4>
-                                <button className="btn-verify" style={{ background: '#3b82f6' }} onClick={handleAddSample}>+ Add Shed Declaration</button>
+                                <h4 style={{ margin: 0, color: '#10b981', fontWeight: '800' }}>DECLARED SAMPLES</h4>
+                                <button className="btn-verify" onClick={handleAddSample}>+ Add Declaration</button>
                             </div>
                             <EnhancedDataTable 
-                                columns={getColumnsDeclared(true)} 
-                                data={declaredSamples.filter(s => s.shedNo)} 
+                                columns={getColumnsDeclared()} 
+                                data={declaredSamples} 
                             />
                         </div>
                     </div>
@@ -527,20 +510,34 @@ const StatCard = ({ label, value, unit = '', color = '#1e293b' }) => (
 );
 
 const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave, activeContainer }) => {
-    const isShed = activeContainer?.type === 'Shed';
+    const { containers } = useShift();
     const [formData, setFormData] = useState({
-        lineNo: sample?.lineNo || (activeContainer?.type !== 'Shed' ? activeContainer?.name : null) || '',
-        shedNo: sample?.shedNo || (activeContainer?.type === 'Shed' ? activeContainer?.name : null) || '',
-        castingDate: sample?.castingDate || new Date().toISOString().split('T')[0],
+        lineNo: sample?.lineNo || (activeContainer?.type !== 'Shed' ? activeContainer?.name : null) || (sample?.location && !sample?.shedNo ? sample.location : ''),
+        shedNo: sample?.shedNo || (activeContainer?.type === 'Shed' ? activeContainer?.name : null) || (sample?.location && sample?.shedNo ? sample.location : ''),
+        castingDate: sample?.castingDate || sample?.date || sample?.entryDate || new Date().toISOString().split('T')[0],
+        lbcTime: sample?.lbcTime || (new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })),
         batchNo: sample?.batchNo || '',
-        lbcTime: sample?.lbcTime || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-        concreteGrade: sample?.concreteGrade || '',
+        concreteGrade: sample?.concreteGrade || sample?.grade || 'M60',
         chamberNo: sample?.chamberNo || '',
-        cubes: sample?.cubes || [],
+        cubes: sample?.cubes || sample?.cubeResults || [{ cubeNo: 1, weight: '', load: '', strength: '' }],
         otherBenches: sample?.otherBenches || []
     });
 
     const [currentCube, setCurrentCube] = useState({ benchNo: '', sleeperSequence: '', cubeCode: '' });
+
+    const handleLocationChange = (e) => {
+        const selectedId = parseInt(e.target.value);
+        const container = containers.find(c => c.id === selectedId);
+        if (container) {
+            if (container.type === 'Shed') {
+                setFormData({ ...formData, shedNo: container.name, lineNo: null });
+            } else {
+                setFormData({ ...formData, lineNo: container.name, shedNo: null });
+            }
+        } else {
+            setFormData({ ...formData, lineNo: null, shedNo: null });
+        }
+    };
 
     const addCube = () => {
         if (currentCube.benchNo) {
@@ -565,6 +562,8 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave, activeCo
         });
     };
 
+    const selectedContainerId = containers.find(c => c.name === (formData.lineNo || formData.shedNo))?.id || '';
+
     return (
         <div className="form-modal-overlay" onClick={onClose}>
             <div className="form-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -575,52 +574,63 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave, activeCo
                 <div className="form-modal-body">
                     <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                         <div className="input-group">
-                            <label>Location Type</label>
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer' }}>
-                                    <input
-                                        type="radio"
-                                        name="locType"
-                                        checked={!!formData.lineNo}
-                                        onChange={() => setFormData({...formData, lineNo: 'Line-I', shedNo: null})}
-                                    /> Line
-                                </label>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer' }}>
-                                    <input
-                                        type="radio"
-                                        name="locType"
-                                        checked={!!formData.shedNo}
-                                        onChange={() => setFormData({...formData, lineNo: null, shedNo: 'Shed-I'})}
-                                    /> Shed
-                                </label>
-                            </div>
+                            <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '4px' }}>Location (Line/Shed)</label>
+                            <select 
+                                value={selectedContainerId} 
+                                onChange={handleLocationChange}
+                                style={{
+                                    width: '100%',
+                                    padding: '0 12px',
+                                    height: '42px',
+                                    borderRadius: '8px',
+                                    border: '1.5px solid #e2e8f0',
+                                    fontSize: '14px',
+                                    color: '#1e293b',
+                                    background: '#fff',
+                                    outline: 'none',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <option value="">-- Select Location --</option>
+                                {containers.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
                         </div>
                         <div className="input-group">
-                            <label>{formData.shedNo ? 'Shed No.' : 'Line No.'}</label>
-                            <input
-                                type="text"
-                                value={formData.shedNo || formData.lineNo || ''}
-                                onChange={e => {
-                                    if (formData.shedNo) setFormData({...formData, shedNo: e.target.value});
-                                    else setFormData({...formData, lineNo: e.target.value});
-                                }}
+                            <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '4px' }}>Date of Casting</label>
+                            <input 
+                                type="date" 
+                                value={formData.castingDate} 
+                                onChange={e => setFormData({ ...formData, castingDate: e.target.value })} 
+                                style={{ width: '100%', padding: '0 12px', height: '42px', borderRadius: '8px', border: '1.5px solid #e2e8f0', fontSize: '14px', color: '#1e293b', outline: 'none' }}
                             />
                         </div>
                         <div className="input-group">
-                            <label>Date of Casting</label>
-                            <input type="date" value={formData.castingDate} onChange={e => setFormData({ ...formData, castingDate: e.target.value })} />
+                            <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '4px' }}>Batch No.</label>
+                            <input 
+                                type="text" 
+                                value={formData.batchNo} 
+                                onChange={e => setFormData({ ...formData, batchNo: e.target.value })} 
+                                style={{ width: '100%', padding: '0 12px', height: '42px', borderRadius: '8px', border: '1.5px solid #e2e8f0', fontSize: '14px', color: '#1e293b', outline: 'none' }}
+                            />
                         </div>
                         <div className="input-group">
-                            <label>Batch No.</label>
-                            <input type="text" value={formData.batchNo} onChange={e => setFormData({ ...formData, batchNo: e.target.value })} />
+                            <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '4px' }}>LBC Time</label>
+                            <input 
+                                type="time" 
+                                value={formData.lbcTime} 
+                                onChange={e => setFormData({ ...formData, lbcTime: e.target.value })} 
+                                style={{ width: '100%', padding: '0 12px', height: '42px', borderRadius: '8px', border: '1.5px solid #e2e8f0', fontSize: '14px', color: '#1e293b', outline: 'none' }}
+                            />
                         </div>
                         <div className="input-group">
-                            <label>LBC Time</label>
-                            <input type="time" value={formData.lbcTime} onChange={e => setFormData({ ...formData, lbcTime: e.target.value })} />
-                        </div>
-                        <div className="input-group">
-                            <label>Concrete Grade</label>
-                            <select value={formData.concreteGrade} onChange={e => setFormData({ ...formData, concreteGrade: e.target.value })}>
+                            <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '4px' }}>Concrete Grade</label>
+                            <select 
+                                value={formData.concreteGrade} 
+                                onChange={e => setFormData({ ...formData, concreteGrade: e.target.value })}
+                                style={{ width: '100%', padding: '0 12px', height: '42px', borderRadius: '8px', border: '1.5px solid #e2e8f0', fontSize: '14px', color: '#1e293b', outline: 'none' }}
+                            >
                                 <option value="">-- Select --</option>
                                 <option>M-55</option>
                                 <option>M-60</option>
@@ -633,31 +643,43 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave, activeCo
                         <h4 style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#475569', fontWeight: '700' }}>Add Cubes</h4>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '12px', alignItems: 'end' }}>
                             <div className="input-group">
-                                <label>Bench/Gang No.</label>
+                                <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Bench/Gang No.</label>
                                 <input
                                     type="text"
                                     value={currentCube.benchNo}
                                     onChange={e => setCurrentCube({ ...currentCube, benchNo: e.target.value })}
                                     placeholder="e.g., 401"
+                                    style={{ padding: '0 10px', height: '38px', borderRadius: '6px', border: '1.5px solid #e2e8f0', fontSize: '13px', color: '#1e293b', outline: 'none' }}
                                 />
                             </div>
                             <div className="input-group">
-                                <label>Sleeper Sequence</label>
-                                <select value={currentCube.sleeperSequence} onChange={e => setCurrentCube({ ...currentCube, sleeperSequence: e.target.value })}>
+                                <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Sleeper Sequence</label>
+                                <select 
+                                    value={currentCube.sleeperSequence} 
+                                    onChange={e => setCurrentCube({ ...currentCube, sleeperSequence: e.target.value })}
+                                    style={{ padding: '0 10px', height: '38px', borderRadius: '6px', border: '1.5px solid #e2e8f0', fontSize: '13px', color: '#1e293b', outline: 'none', background: '#fff' }}
+                                >
                                     <option value="">-- Select --</option>
                                     {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
                             <div className="input-group">
-                                <label>Cube Code</label>
+                                <label style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Cube Code</label>
                                 <input
                                     type="text"
                                     value={currentCube.cubeCode}
                                     onChange={e => setCurrentCube({ ...currentCube, cubeCode: e.target.value })}
                                     placeholder="e.g., C1"
+                                    style={{ padding: '0 10px', height: '38px', borderRadius: '6px', border: '1.5px solid #e2e8f0', fontSize: '13px', color: '#1e293b', outline: 'none' }}
                                 />
                             </div>
-                            <button className="btn-verify" onClick={addCube} style={{ height: '40px' }}>+ Add</button>
+                            <button 
+                                className="btn-verify" 
+                                onClick={addCube} 
+                                style={{ height: '38px', padding: '0 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '700' }}
+                            >
+                                + Add
+                            </button>
                         </div>
 
                         {/* Display Added Cubes */}
@@ -862,7 +884,7 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying, activeContaine
                                                     value={cube.cubeNo}
                                                     onChange={e => updateCubeData(idx, 'cubeNo', e.target.value)}
                                                     placeholder="e.g. 401"
-                                                    style={{ width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px', fontWeight: '700', color: '#42818c' }}
+                                                    style={{ width: '100%', padding: '8px 6px', border: '1.5px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', fontWeight: '800', color: '#13343b', outline: 'none' }}
                                                 />
                                             </td>
                                             <td style={{ padding: '6px 8px' }}>
@@ -870,7 +892,7 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying, activeContaine
                                                     type="date"
                                                     value={cube.testDate}
                                                     onChange={e => updateCubeData(idx, 'testDate', e.target.value)}
-                                                    style={{ width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px' }}
+                                                    style={{ width: '100%', padding: '8px 6px', border: '1.5px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', color: '#13343b', fontWeight: '500', outline: 'none' }}
                                                 />
                                             </td>
                                             <td style={{ padding: '6px 8px' }}>
@@ -878,7 +900,7 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying, activeContaine
                                                     type="time"
                                                     value={cube.testTime}
                                                     onChange={e => updateCubeData(idx, 'testTime', e.target.value)}
-                                                    style={{ width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px' }}
+                                                    style={{ width: '100%', padding: '8px 6px', border: '1.5px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', color: '#13343b', fontWeight: '500', outline: 'none' }}
                                                 />
                                             </td>
                                             <td style={{ padding: '6px 8px' }}>
@@ -886,27 +908,25 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying, activeContaine
                                                     type="text"
                                                     readOnly
                                                     value={cube.ageHrs}
-                                                    style={{ width: '60px', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#f8fafc', fontWeight: '700', fontSize: '11px' }}
+                                                    style={{ width: '100%', padding: '8px 6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', background: '#f8fafc', fontWeight: '700', color: '#13343b', textAlign: 'center' }}
                                                 />
                                             </td>
                                             <td style={{ padding: '6px 8px' }}>
                                                 <input
                                                     type="number"
-                                                    step="0.01"
                                                     value={cube.weight}
                                                     onChange={e => updateCubeData(idx, 'weight', e.target.value)}
-                                                    placeholder="8.2"
-                                                    style={{ width: '80px', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px' }}
+                                                    placeholder="0.00"
+                                                    style={{ width: '100%', padding: '8px 6px', border: '1.5px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', color: '#13343b', fontVariantNumeric: 'tabular-nums', fontWeight: '600', outline: 'none' }}
                                                 />
                                             </td>
                                             <td style={{ padding: '6px 8px' }}>
                                                 <input
                                                     type="number"
-                                                    step="0.1"
                                                     value={cube.load}
                                                     onChange={e => updateCubeData(idx, 'load', e.target.value)}
-                                                    placeholder="950"
-                                                    style={{ width: '80px', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px' }}
+                                                    placeholder="0.0"
+                                                    style={{ width: '100%', padding: '8px 6px', border: '1.5px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', color: '#13343b', fontVariantNumeric: 'tabular-nums', fontWeight: '600', outline: 'none' }}
                                                 />
                                             </td>
                                             <td style={{ padding: '6px 8px' }}>
@@ -914,7 +934,7 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying, activeContaine
                                                     type="text"
                                                     readOnly
                                                     value={cube.strength}
-                                                    style={{ width: '80px', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#f0fdf4', fontWeight: '800', color: '#166534', fontSize: '11px' }}
+                                                    style={{ width: '100%', padding: '8px 6px', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#f0fdf4', fontWeight: '800', color: '#166534', fontSize: '14px', textAlign: 'center' }}
                                                 />
                                             </td>
                                             <td style={{ padding: '6px 8px' }}>
@@ -970,13 +990,14 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying, activeContaine
                                 ...testData,
                                 avgStrength,
                                 result,
-                                castingDate: sample.castingDate,
+                                castingDate: sample.castingDate || sample.date || sample.entryDate,
                                 lbcTime: sample.lbcTime,
-                                lineNo: sample.lineNo,
-                                shedNo: sample.shedNo,
+                                lineNo: sample.lineNo || (sample.location && !sample.shedNo ? sample.location : null),
+                                shedNo: sample.shedNo || (sample.location && sample.shedNo ? sample.location : null),
+                                location: sample.location || sample.lineNo || sample.shedNo,
                                 batchNo: sample.batchNo,
                                 chamberNo: sample.chamberNo,
-                                concreteGrade: sample.concreteGrade
+                                concreteGrade: sample.concreteGrade || sample.grade
                             })}
                         >
                             Complete Test & Archive

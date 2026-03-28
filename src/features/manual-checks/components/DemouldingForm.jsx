@@ -262,11 +262,15 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
         if (field === 'gangNo') onShiftFieldChange('benchNo', value);
     };
 
+    const [showValidation, setShowValidation] = useState(false);
+
     const handleSave = () => {
-        if (!formData.gangNo || !formData.batch || !formData.remarks) {
-            alert('Please fill in required fields (Batch, Bench/Gang No. & Remarks).');
+        if (!formData.gangNo || !formData.batch || !formData.remarks || !formData.type || !formData.process) {
+            setShowValidation(true);
+            alert('Please fill in all required fields highlighted in red.');
             return;
         }
+        setShowValidation(false);
 
         // Transform defective sleepers for backend sub-object
         const mappedDefectiveSleepers = formData.defectiveSleeperDetails.length > 0
@@ -406,6 +410,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                         className="form-input-standard"
                         value={formData.batch}
                         onChange={e => handleChange('batch', e.target.value)}
+                        style={{ border: (showValidation && !formData.batch) ? '2px solid #ef4444' : '', background: (showValidation && !formData.batch) ? '#fef2f2' : '' }}
                     >
                         <option value="">-- Select Batch --</option>
                         {batches.map((b, idx) => (
@@ -421,6 +426,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                         className="form-input-standard"
                         value={formData.gangNo}
                         onChange={e => handleChange('gangNo', e.target.value)}
+                        style={{ border: (showValidation && !formData.gangNo) ? '2px solid #ef4444' : '', background: (showValidation && !formData.gangNo) ? '#fef2f2' : '' }}
                     >
                         <option value="">-- Select Bench --</option>
                         {benches.map((b, idx) => (
@@ -436,6 +442,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                         className="form-input-standard"
                         value={formData.type}
                         onChange={e => handleChange('type', e.target.value)}
+                        style={{ border: (showValidation && !formData.type) ? '2px solid #ef4444' : '', background: (showValidation && !formData.type) ? '#fef2f2' : '' }}
                     >
                         <option value="">-- Select Type --</option>
                         {sleeperTypes.map((t, idx) => (
@@ -446,7 +453,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
 
                 <div className="form-field">
                     <label htmlFor="dim-process" style={{ fontSize: '11px', fontWeight: '700' }}>Process Status <span className="required">*</span></label>
-                    <select id="dim-process" value={formData.process} className="form-input-standard" onChange={e => handleChange('process', e.target.value)}>
+                    <select id="dim-process" value={formData.process} className="form-input-standard" onChange={e => handleChange('process', e.target.value)} style={{ border: (showValidation && !formData.process) ? '2px solid #ef4444' : '', background: (showValidation && !formData.process) ? '#fef2f2' : '' }}>
                         <option value="">-- Select --</option>
                         <option value="Satisfactory">Satisfactory</option>
                         <option value="Not Satisfactory">Not Satisfactory</option>
@@ -480,6 +487,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                         className="form-input-standard"
                         value={formData.remarks}
                         onChange={e => handleChange('remarks', e.target.value)}
+                        style={{ border: (showValidation && !formData.remarks) ? '2px solid #ef4444' : '', background: (showValidation && !formData.remarks) ? '#fef2f2' : '' }}
                     />
                 </div>
             </div>

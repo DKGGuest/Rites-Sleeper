@@ -13,7 +13,7 @@ const emptyRow = {
     needle: "",
 };
 
-export default function NormalConsistencyForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId }) {
+export default function NormalConsistencyForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId, onValueChange }) {
     const { selectedShift, dutyDate, dutyLocation } = useShift();
     const toast = useToast();
     const user = getStoredUser();
@@ -119,13 +119,15 @@ export default function NormalConsistencyForm({ onSave, onCancel, inventoryData 
             setNormalConsistency(consistentRow.percent);
             setQtyOfWater(consistentRow.volume);
             setWater85((Number(consistentRow.volume) * 0.85).toFixed(1));
+            // Trigger callback for shared data
+            if (onValueChange) onValueChange(consistentRow.percent);
         } else {
             // Keep empty if none reach 5-7
             setNormalConsistency("");
             setQtyOfWater("");
             setWater85("");
         }
-    }, [rows]);
+    }, [rows, onValueChange]);
 
     const handleFormSubmit = async (e) => {
         e.preventDefault();

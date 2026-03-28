@@ -42,9 +42,10 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
     const [initialType, setInitialType] = useState("New Inventory");
     const [cementHistory, setCementHistory] = useState(MOCK_CEMENT_HISTORY.map(item => ({
         ...item,
-        // Adding mock timestamp for testing the 1-hour rule (yesterday so they are not editable)
         createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
     })));
+
+    const [sharedNC, setSharedNC] = useState(null);
 
     // inventoryData is now passed from parent, already filtered by moduleId and accessibility
     const pendingStocks = inventoryData;
@@ -73,11 +74,13 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
 
     const handleSaveTest = (completedSectionId) => {
         if (completedSectionId < 5) {
-            setActiveFormSection(completedSectionId + 1);
+            // Find current section index and move to next in requested sequence
+            const currentIndex = sections.findIndex(s => s.id === completedSectionId);
+            if (currentIndex !== -1 && currentIndex < sections.length - 1) {
+                setActiveFormSection(sections[currentIndex + 1].id);
+            }
         } else {
             setShowForm(false);
-            // Re-fetch status if needed by forcing a parent refresh, 
-            // for now it will just close the modal.
             setActiveRequestId(null);
         }
     };
@@ -175,11 +178,11 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
     ];
 
     const sections = [
-        { id: 1, label: '7 Day Strength', component: <SevenDayStrengthForm onSave={() => handleSaveTest(1)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} /> },
-        { id: 2, label: 'Normal Consistency', component: <NormalConsistencyForm onSave={() => handleSaveTest(2)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} /> },
+        { id: 2, label: 'Normal Consistency', component: <NormalConsistencyForm onSave={() => handleSaveTest(2)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} onValueChange={(val) => setSharedNC(val)} /> },
         { id: 3, label: 'Specific Surface', component: <SpecificSurfaceForm onSave={() => handleSaveTest(3)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} /> },
-        { id: 4, label: 'Setting Time', component: <SettingTimeForm onSave={() => handleSaveTest(4)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} /> },
-        { id: 5, label: 'Fineness Test', component: <FinenessTestForm onSave={() => handleSaveTest(5)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} /> }
+        { id: 4, label: 'Setting Time', component: <SettingTimeForm onSave={() => handleSaveTest(4)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} sharedNC={sharedNC} /> },
+        { id: 5, label: 'Fineness Test', component: <FinenessTestForm onSave={() => handleSaveTest(5)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} /> },
+        { id: 1, label: '7 Day Strength', component: <SevenDayStrengthForm onSave={() => handleSaveTest(1)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} sharedNC={sharedNC} /> }
     ];
 
     return (

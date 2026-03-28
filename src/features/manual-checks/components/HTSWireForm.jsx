@@ -14,8 +14,8 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
     const [formData, setFormData] = useState({
         location: activeContainer?.name || 'N/A',
         dateTime: getLocalISOString(),
-        batch: sharedBatchNo || '',
-        gangNo: sharedBenchNo || '',
+        batch: '',
+        gangNo: '',
         sleeperType: 'RT-8746',
         noOfWires: '16',
         wireDia: '',
@@ -44,8 +44,6 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
         return `${datePart}T${timePart.substring(0, 5)}`;
     };
 
-    // 7. Prefilled when Modify is clicked (using setFormData({...initialData}))
-    // We only explicitly format dateTime to ensure the HTML input can display it.
     useEffect(() => {
         if (initialData) {
             setFormData({
@@ -63,15 +61,8 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
                 remarks: initialData.remarks || ''
             });
             console.log('📋 HTSWireForm - Prefilled from:', initialData);
-        } else {
-            // sync with shared shift data
-            setFormData(prev => ({
-                ...prev,
-                batch: sharedBatchNo || prev.batch,
-                gangNo: sharedBenchNo || prev.gangNo
-            }));
         }
-    }, [initialData, activeContainer, sharedBatchNo, sharedBenchNo]);
+    }, [initialData, activeContainer]);
 
     const SLEEPER_RULES = {
         'RT-2496': { wires: 18, diaMin: 2.97, diaMax: 3.03, nominalWeight: 0.166 },
@@ -155,10 +146,6 @@ const HTSWireForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initi
             
             return newState;
         });
-
-        // 🔥 Shared Shift logic: Update parent state when batch or bench changes
-        if (field === 'batch') onShiftFieldChange('batchNo', value);
-        if (field === 'gangNo') onShiftFieldChange('benchNo', value);
     };
 
     const formatToBackendDate = (dateStr) => {

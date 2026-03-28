@@ -124,6 +124,11 @@ const ModulusOfRupture = () => {
         }
     };
 
+    // Derived Data
+    const pendingSamples = useMemo(() => {
+        return declaredSamples.filter(s => !testedSamples.some(t => t.morSampleId === s.id));
+    }, [declaredSamples, testedSamples]);
+
     const isWithinHour = (dateString) => {
         if (!dateString) return false;
         const diff = Date.now() - new Date(dateString).getTime();
@@ -136,7 +141,6 @@ const ModulusOfRupture = () => {
         const today = new Date();
         const diffTime = today - sampling;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        // Using 0 for testing convenience if needed, but keeping 15 as per requirement
         return diffDays >= 15;
     };
 
@@ -144,35 +148,24 @@ const ModulusOfRupture = () => {
         { key: 'samplingDate', label: 'Date of Sampling' },
         { key: 'concreteGrade', label: 'Concrete Grade' },
         { key: 'shedLine', label: 'Shed/Line No.' },
-        { key: 'sampleIdentificationNumber', label: 'Sample Identification Number' },
+        { key: 'sampleIdentificationNumber', label: 'Sample ID' },
         {
             key: 'actions',
             label: 'Actions',
-            render: (_, row) => {
-                const canTest = isAgedForTesting(row.samplingDate);
-                const isTested = testedSamples.some(t => t.morSampleId === row.id);
-                
-                if (isTested) return <span style={{ color: '#059669', fontSize: '10px', fontWeight: '700' }}>✓ TESTED</span>;
-
-                return (
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                        {isWithinHour(row.createdDate) && (
-                            <button className="btn-save" style={{ fontSize: '10px', padding: '4px 8px' }} onClick={() => handleModifySample(row)}>Modify</button>
-                        )}
-                        <button
-                            className="btn-verify"
-                            style={{
-                                fontSize: '10px',
-                                padding: '4px 8px',
-                                cursor: 'pointer'
-                            }}
-                            onClick={() => handleEnterTestDetails(row)}
-                        >
-                            Enter Test Details
-                        </button>
-                    </div>
-                );
-            }
+            render: (_, row) => (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    {isWithinHour(row.createdDate) && (
+                        <button className="btn-save" style={{ fontSize: '10px', padding: '4px 8px' }} onClick={() => handleModifySample(row)}>Modify</button>
+                    )}
+                    <button
+                        className="btn-verify"
+                        style={{ fontSize: '10px', padding: '4px 8px' }}
+                        onClick={() => handleEnterTestDetails(row)}
+                    >
+                        Enter Test Details
+                    </button>
+                </div>
+            )
         }
     ];
 
@@ -182,7 +175,7 @@ const ModulusOfRupture = () => {
             return sample ? sample.samplingDate : '-';
         }},
         { key: 'testingDate', label: 'Date of Testing' },
-        { key: 'sampleIdentificationNumber', label: 'Sample Identification', render: (_, row) => {
+        { key: 'sampleIdentificationNumber', label: 'Sample ID', render: (_, row) => {
             const sample = declaredSamples.find(s => s.id === row.morSampleId);
             return sample ? sample.sampleIdentificationNumber : '-';
         }},
@@ -192,7 +185,7 @@ const ModulusOfRupture = () => {
         }},
         { key: 'strength', label: 'Strength' },
         { key: 'result', label: 'Result', render: (val) => (
-            <span style={{ color: val?.toLowerCase() === 'pass' ? '#059669' : '#dc2626', fontWeight: '700' }}>{val}</span>
+            <span style={{ color: (val || '').toLowerCase() === 'pass' ? '#059669' : '#dc2626', fontWeight: '700' }}>{val || 'FAIL'}</span>
         )},
         {
             key: 'actions',
@@ -218,12 +211,15 @@ const ModulusOfRupture = () => {
                 marginBottom: '24px',
                 borderBottom: '1px solid #e2e8f0',
                 display: 'flex',
-                flexWrap: 'wrap',
-                gap: '8px'
+                gap: '4px',
+                background: '#f1f5f9',
+                padding: '4px',
+                borderRadius: '12px',
+                width: 'fit-content'
             }}>
-                <button className={`nav-tab ${viewMode === 'statistics' ? 'active' : ''}`} style={{ flex: '1 1 auto', minWidth: '120px' }} onClick={() => setViewMode('statistics')}>Statistics</button>
-                <button className={`nav-tab ${viewMode === 'declared' ? 'active' : ''}`} style={{ flex: '1 1 auto', minWidth: '120px' }} onClick={() => setViewMode('declared')}>Samples Declared</button>
-                <button className={`nav-tab ${viewMode === 'tested' ? 'active' : ''}`} style={{ flex: '1 1 auto', minWidth: '120px' }} onClick={() => setViewMode('tested')}>Samples Tested</button>
+                <button className={`nav-tab ${viewMode === 'statistics' ? 'active' : ''}`} style={{ border: 'none', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer' }} onClick={() => setViewMode('statistics')}>Statistics</button>
+                <button className={`nav-tab ${viewMode === 'declared' ? 'active' : ''}`} style={{ border: 'none', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer' }} onClick={() => setViewMode('declared')}>Pending Tests</button>
+                <button className={`nav-tab ${viewMode === 'tested' ? 'active' : ''}`} style={{ border: 'none', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer' }} onClick={() => setViewMode('tested')}>Test Log</button>
             </div>
 
             <div className="tab-content">
@@ -237,14 +233,12 @@ const ModulusOfRupture = () => {
                             gap: '12px',
                             marginBottom: '32px'
                         }}>
-                            <StatCard label="Total MOR Samples" value={stats.totalSampling} />
-                            <StatCard label="Total MOR Tests" value={stats.totalTests} />
-                            <StatCard label="Avg. MOR Value" value={stats.avgStrength} unit="N/mm²" />
+                            <StatCard label="Total Samples" value={declaredSamples.length} />
+                            <StatCard label="Tests Completed" value={testedSamples.length} />
+                            <StatCard label="Avg. Strength" value={stats.avgStrength} unit="N/mm²" />
                             <StatCard label="Pass Rate" value={stats.passRate} unit="%" />
-                            <StatCard label="Min / Max MOR" value={`${stats.minStrength} / ${stats.maxStrength}`} />
+                            <StatCard label="Min / Max" value={`${stats.minStrength} / ${stats.maxStrength}`} />
                             <StatCard label="Std. Deviation" value={stats.sd} />
-                            <StatCard label="Last Sampling" value={stats.lastSamplingDate} />
-                            <StatCard label="Last Test" value={stats.lastTestDate} />
                         </div>
                         <TrendChart
                             data={testedSamples}
@@ -254,7 +248,6 @@ const ModulusOfRupture = () => {
                             ]}
                             title="Modulus of Rupture Trend"
                             description="Historical flexural strength results (N/mm²)"
-                            yAxisLabel=""
                         />
                     </div>
                 )}
@@ -262,17 +255,17 @@ const ModulusOfRupture = () => {
                 {viewMode === 'declared' && !loading && (
                     <div className="section-card fade-in">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-                            <h4 style={{ margin: 0, color: '#475569' }}>MOR Samples Pending Testing (15 Day Aging)</h4>
-                            <button className="btn-verify" onClick={handleAddSample}>+ Add New Sample</button>
+                            <h4 style={{ margin: 0, color: '#475569' }}>MOR Samples Pending Testing</h4>
+                            <button className="btn-verify" onClick={handleAddSample}>+ Declare New Sample</button>
                         </div>
-                        <EnhancedDataTable columns={columnsDeclared} data={declaredSamples} />
+                        <EnhancedDataTable columns={columnsDeclared} data={pendingSamples} />
                     </div>
                 )}
 
                 {viewMode === 'tested' && !loading && (
                     <div className="section-card fade-in">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h4 style={{ margin: 0, color: '#475569' }}>MOR Historical Tested Samples</h4>
+                            <h4 style={{ margin: 0, color: '#475569' }}>MOR Analysis Log</h4>
                         </div>
                         <EnhancedDataTable columns={columnsTested} data={testedSamples} />
                     </div>
@@ -340,8 +333,8 @@ const MORSampleDeclarationModal = ({ sample, isModifying, onClose, onSave, savin
                             <label>Concrete Grade</label>
                             <select value={formData.concreteGrade} onChange={e => setFormData({ ...formData, concreteGrade: e.target.value })}>
                                 <option value="">Select Grade</option>
-                                <option>M55</option>
-                                <option>M60</option>
+                                <option>M-55</option>
+                                <option>M-60</option>
                             </select>
                         </div>
                         <div className="input-group">
@@ -394,16 +387,18 @@ const MORTestDetailsModal = ({ sample, onClose, onSave, saving }) => {
         remarks: ''
     });
 
-    let result = 'Pending';
+    let result = 'PENDING';
     if (testData.strength) {
         const cVal = parseFloat(testData.strength);
-        if (sample.concreteGrade === 'M60') {
-            result = cVal > 5.5 ? 'Pass' : 'Fail';
-        } else if (sample.concreteGrade === 'M55') {
-            result = cVal > 5.2 ? 'Pass' : 'Fail';
-        } else {
-            // Default fallback if grade is unknown
-            result = cVal > 5.2 ? 'Pass' : 'Fail';
+        const gradeStr = (sample.concreteGrade || '').toUpperCase().replace(/[-\s]/g, '');
+        
+        if (!isNaN(cVal)) {
+            if (gradeStr === 'M60') {
+                result = cVal >= 5.5 ? 'Pass' : 'Fail';
+            } else {
+                // M55 or default fallback
+                result = cVal >= 5.2 ? 'Pass' : 'Fail';
+            }
         }
     }
 
