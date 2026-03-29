@@ -232,6 +232,9 @@ export const apiService = {
     getFinalInspectionBatches: (moduleId = 1) => api.get(`/FinalInspectionController/inspection/batches/${moduleId}`),
     getFinalInspectionBatchDetail: (batchId) => api.get(`/FinalInspectionController/inspection/batch/${batchId}`),
     saveFinalInspection: (payload) => api.post('/FinalInspectionController/save', payload),
+    submitInspectionCall: (payload) => api.post('/FinalInspectionController/submit-inspection-call', payload),
+    getInspectionCalls: (userId) => api.get(`/FinalInspectionController/inspection-calls?userId=${userId}`),
+    getCompletedBatches: (sleeperType, userId) => api.get(`/FinalInspectionController/completed-batches?sleeperType=${sleeperType}&userId=${userId}`),
 
     // ================= Modulus of Rupture (MOR) =================
     // Sample Declaration

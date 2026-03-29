@@ -248,7 +248,7 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
                         </div>
                         <div className="declaration-item">
                             <span className="item-label">TOTAL IN BATCH</span>
-                            <span className="item-value">{batch.totalSleepers}</span>
+                            <span className="item-value">{batch.totalSleepers ?? batch.noOfSleepers ?? batch.totalBatchQty ?? '—'}</span>
                         </div>
                     </div>
                 </section>

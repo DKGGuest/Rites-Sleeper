@@ -27,34 +27,24 @@ const DimensionalTesting = ({ type }) => {
             const moduleId = typeToModuleId[type] || 1;
             const data = await apiService.getFinalInspectionBatches(moduleId);
             
-            // Recalculate tested percentage properly: (Accepted + Rejected) / Total * 100
-            // The percentage should reflect everything that is NOT 'PENDING'
+            // Use API-provided testedPercentage directly.
+            // Only recalculate if sleeper-level detail is returned (rarely the case in list endpoints).
             const processedData = (data || []).map(batch => {
-                const total = Number(batch.noOfSleepers) || Number(batch.totalBatchQty) || (batch.sleepers?.length) || 1;
-                
-                let testedCount = 0;
-                if (batch.sleepers && Array.isArray(batch.sleepers)) {
-                    // Count everything that has been checked (not in PENDING state)
-                    testedCount = batch.sleepers.filter(s => 
+                let percentage = Number(batch.testedPercentage ?? 0);
+
+                // If the list response happens to include a sleepers array, derive percentage from it
+                if (batch.sleepers && Array.isArray(batch.sleepers) && batch.sleepers.length > 0) {
+                    const total = batch.sleepers.length;
+                    const testedCount = batch.sleepers.filter(s =>
                         s.status && s.status.toUpperCase() !== 'PENDING'
                     ).length;
-                } else {
-                    // Fallback to pre-aggregated counts if sleepers array is missing
-                    // We check common field naming patterns used in the DTOs
-                    const accepted = Number(batch.acceptedCount || batch.acceptedQty || batch.numAccepted || batch.accepted || 0);
-                    const rejected = Number(batch.rejectedCount || batch.rejectedQty || batch.numRejected || batch.rejected || 0);
-                    testedCount = accepted + rejected;
+                    percentage = (testedCount / total) * 100;
                 }
 
-                // If we still have 0 tested items but the API gave us a percentage, 
-                // we might want to respect it if our logic failed to find the counts
-                let percentage = (testedCount / total) * 100;
-                if (testedCount === 0 && (batch.testedPercentage !== undefined && batch.testedPercentage !== null)) {
-                    percentage = Number(batch.testedPercentage);
-                }
-                
                 return {
                     ...batch,
+                    // Ensure noOfSleepers always has a displayable value
+                    noOfSleepers: batch.noOfSleepers ?? batch.totalBatchQty ?? 0,
                     testedPercentage: Math.min(percentage, 100).toFixed(2)
                 };
             });
@@ -72,11 +62,22 @@ const DimensionalTesting = ({ type }) => {
             setFetchingDetails(true);
             setSelectedBatch(batch);
             const details = await apiService.getFinalInspectionBatchDetail(batch.batchId);
-            setBatchDetails(details);
+            // Merge list-level data with detail response to ensure all fields are present
+            setBatchDetails({
+                ...batch,         // fallback: batchNumber, sleeperType, noOfSleepers, totalBatchQty from list
+                ...details,       // override: castingDate, totalSleepers, sleepers[] from detail
+                // Ensure totalSleepers falls back to noOfSleepers if detail doesn't have it
+                totalSleepers: details?.totalSleepers ?? batch.noOfSleepers ?? batch.totalBatchQty ?? 0,
+            });
             setShowForm(true);
         } catch (error) {
             console.error('Error fetching batch details:', error);
-            alert('Failed to load batch details');
+            const msg = error?.message || '';
+            if (msg.toLowerCase().includes('no value present') || msg.toLowerCase().includes('null')) {
+                alert(`Batch #${batch.batchNumber || batch.batchId}: This batch has no linked production declaration. Please ensure the batch is properly declared before inspecting.`);
+            } else {
+                alert(`Failed to load batch details: ${msg || 'Unknown error'}`);
+            }
         } finally {
             setFetchingDetails(false);
         }
@@ -91,32 +92,42 @@ const DimensionalTesting = ({ type }) => {
     const currentConfig = config[type] || config.visual;
 
     const columns = [
-        { key: 'batchNumber', label: 'Batch No.' },
+        { key: 'batchNumber', label: 'Batch No.', render: (val) => val || '—' },
         { key: 'totalBatchQty', label: 'Total Batch Qty' },
         { key: 'sleeperType', label: 'Type of Sleeper' },
-        { key: 'noOfSleepers', label: 'No. of Sleepers' },
         {
-            key: 'testedPercentage',
-            label: 'Tested (%)',
+            key: 'noOfSleepers',
+            label: 'No. of Sleepers',
             render: (val) => (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ flex: 1, height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${val}%`, background: val === 100 ? '#059669' : '#42818c' }}></div>
-                    </div>
-                    <span style={{ fontSize: '11px', fontWeight: '700' }}>{Number(val).toFixed(2)}%</span>
-                </div>
+                <span style={{ fontWeight: '700', color: '#1e293b' }}>
+                    {val ?? '—'}
+                </span>
             )
         },
         {
+            key: 'testedPercentage',
+            label: 'Tested (%)',
+            render: (val) => {
+                const pct = Number(val);
+                return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ flex: 1, height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden', minWidth: '60px' }}>
+                            <div style={{ height: '100%', width: `${pct}%`, background: pct >= 100 ? '#059669' : '#42818c', transition: 'width 0.3s ease' }}></div>
+                        </div>
+                        <span style={{ fontSize: '11px', fontWeight: '700', whiteSpace: 'nowrap' }}>{pct.toFixed(1)}%</span>
+                    </div>
+                );
+            }
+        },
+        {
             key: 'testingStatus',
-            label: 'Status of Testing',
+            label: 'Status',
             render: (val) => {
                 const colors = {
                     'Pending': { bg: '#fff7ed', color: '#c2410c' },
                     'Under Inspection': { bg: '#eff6ff', color: '#1d4ed8' },
                     'Completed': { bg: '#ecfdf5', color: '#059669' }
                 };
-
                 const style = colors[val] || colors.Pending;
                 return (
                     <span style={{
@@ -128,12 +139,16 @@ const DimensionalTesting = ({ type }) => {
                         color: style.color,
                         border: `1px solid ${style.color}22`
                     }}>
-                        {val}
+                        {val || 'Pending'}
                     </span>
                 );
             }
         },
-        { key: 'testingDate', label: 'Date of Testing' },
+        {
+            key: 'testingDate',
+            label: 'Date of Testing',
+            render: (val) => val ? new Date(val).toLocaleDateString('en-IN') : <span style={{ color: '#94a3b8', fontSize: '11px' }}>Not available</span>
+        },
         {
             key: 'actions',
             label: 'Actions',
