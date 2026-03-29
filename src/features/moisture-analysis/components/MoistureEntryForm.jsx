@@ -483,7 +483,7 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                                 <div className="cell data-cell calculated-cell">--</div>
                                 <div className="cell data-cell calculated-cell">--</div>
                                 <div className="cell data-cell">
-                                    <input id="moisture-actual-cement" name="actualCement" type="number" step="0.01" value={commonData.userDryCement} onChange={e => handleCommonChange('userDryCement', e.target.value)} placeholder="0.00" aria-label="Actual Cement Weight" />
+                                    <input id="moisture-actual-cement" name="actualCement" type="number" min="0" step="0.01" value={commonData.userDryCement} onChange={e => handleCommonChange('userDryCement', e.target.value)} placeholder="0.00" aria-label="Actual Cement Weight" />
                                 </div>
                                 <div className="cell data-cell">
                                     <input id="moisture-actual-ca1" name="actualCA1" type="number" step="0.01" value={commonData.userDryCA1} readOnly tabIndex={-1} placeholder="0.00" aria-label="Actual CA1 Weight" style={{ background: '#f8fafc', color: '#64748b' }} />

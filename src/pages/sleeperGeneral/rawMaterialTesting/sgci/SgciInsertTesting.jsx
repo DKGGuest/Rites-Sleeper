@@ -127,17 +127,22 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
         const w = parseFloat(reading.weight);
         if (isNaN(w) || reading.weight === '' || reading.weight === undefined) return null; // blank = no result yet
         
+        // Negative weight should not be allowed
+        if (w < 0) return 'FAIL';
+
         const typeKey = (type || '');
+        if (!typeKey) return null; // Logic needs type select first
+
         let isWeightOk = false;
         
         if (typeKey === 'T-6901') {
-            isWeightOk = w >= 1.440 && w <= 1.484;
-        } else if (typeKey === 'T-381') {
-            isWeightOk = w >= 1.504 && w <= 1.560;
+            isWeightOk = w >= 1.484;
+        } else if (typeKey === 'T-3815' || typeKey === 'T-381') {
+            isWeightOk = w >= 1.55;
         } else if (typeKey === 'T-3705') {
-            isWeightOk = w >= 1.880 && w <= 1.940;
+            isWeightOk = w >= 1.95;
         } else {
-            isWeightOk = !isNaN(w); // fallback
+            isWeightOk = w > 0; // fallback
         }
         
         return (isWeightOk && !reading.dimensionalNotOk && !reading.hammerNotOk) ? 'PASS' : 'FAIL';
@@ -429,10 +434,10 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                                     </div>
                                     <div className="input-group">
                                         <label>Insert Type (Drawing No)</label>
-                                        <select {...register('type')}>
+                                         <select {...register('type', { required: "Select insert type first" })}>
                                             <option value="">-- Select --</option>
                                             <option value="T-6901">T-6901</option>
-                                            <option value="T-381">T-381</option>
+                                            <option value="T-3815">T-3815</option>
                                             <option value="T-3705">T-3705</option>
                                         </select>
                                     </div>
@@ -446,10 +451,40 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                                     </div>
                                 </div>
 
+                                {!selectedType && (
+                                     <div style={{ 
+                                         padding: '8px 12px', 
+                                         background: '#fff7ed', 
+                                         border: '1px solid #ffedd5', 
+                                         borderRadius: '8px',
+                                         color: '#9a3412',
+                                         fontSize: '11px',
+                                         fontWeight: '600',
+                                         marginTop: '12px',
+                                         display: 'flex',
+                                         alignItems: 'center',
+                                         gap: '8px'
+                                     }}>
+                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                         Please select **Insert Type (Drawing No)** to enable reading entries.
+                                     </div>
+                                 )}
+
                                 <div className="section-divider"></div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                                     <h3 style={{ fontSize: '14px' }}>Readings</h3>
-                                    <button type="button" className="btn-save" style={{ width: 'auto', padding: '0 12px' }} onClick={handleAppend}>+ Add Row</button>
+                                    <button 
+                                        type="button" 
+                                        className={`btn-save ${!selectedType ? 'disabled-btn' : ''}`} 
+                                        style={{ width: 'auto', padding: '0 12px' }} 
+                                        onClick={() => {
+                                            if (!selectedType) {
+                                                alert("Please select Insert Type first");
+                                                return;
+                                            }
+                                            handleAppend();
+                                        }}
+                                    >+ Add Row</button>
                                 </div>
 
                                 <div className="table-wrapper" style={{ maxHeight: '300px', overflowY: 'auto' }}>
@@ -460,11 +495,11 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                                                 <th>Pattern</th>
                                                 <th>
                                                     Weight (kg)
-                                                    {selectedType && (
+                                                     {selectedType && (
                                                         <span style={{ display: 'block', fontSize: '9px', color: '#94a3b8', fontWeight: '400', marginTop: '2px' }}>
-                                                            Range: {selectedType === 'T-6901' ? '1.440-1.484' : selectedType === 'T-381' ? '1.504-1.560' : selectedType === 'T-3705' ? '1.880-1.940' : '—'} kg
+                                                            Min Weight: {selectedType === 'T-6901' ? '1.484' : (selectedType === 'T-3815' || selectedType === 'T-381') ? '1.55' : selectedType === 'T-3705' ? '1.95' : '—'} kg
                                                         </span>
-                                                    )}
+                                                     )}
                                                 </th>
                                                 <th>Dim Not OK</th>
                                                 <th>Reason of Rejection</th>
@@ -478,12 +513,14 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                                                 const rowResult = computeResult(readings[index], selectedType);
                                                 return (
                                                     <tr key={field.id}>
-                                                        <td><input type="text" {...register(`readings.${index}.heatNo`)} /></td>
-                                                        <td><input type="text" {...register(`readings.${index}.patternNo`)} /></td>
+                                                        <td><input type="text" disabled={!selectedType} {...register(`readings.${index}.heatNo`)} /></td>
+                                                        <td><input type="text" disabled={!selectedType} {...register(`readings.${index}.patternNo`)} /></td>
                                                         <td>
                                                             <input
                                                                 type="number"
+                                                                min={0}
                                                                 step="0.0001"
+                                                                disabled={!selectedType}
                                                                 style={{
                                                                     borderColor: readings[index]?.weight && rowResult === 'FAIL' ? '#ef4444' : readings[index]?.weight && rowResult === 'PASS' ? '#10b981' : undefined,
                                                                     borderWidth: readings[index]?.weight ? '2px' : undefined
@@ -491,10 +528,11 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                                                                 {...register(`readings.${index}.weight`)}
                                                             />
                                                         </td>
-                                                        <td style={{ textAlign: 'center' }}><input type="checkbox" {...register(`readings.${index}.dimensionalNotOk`)} /></td>
+                                                        <td style={{ textAlign: 'center' }}><input type="checkbox" disabled={!selectedType} {...register(`readings.${index}.dimensionalNotOk`)} /></td>
                                                         <td>
                                                             {readings[index]?.dimensionalNotOk && (
                                                                 <select 
+                                                                    disabled={!selectedType}
                                                                     style={{ fontSize: '11px', padding: '4px' }}
                                                                     {...register(`readings.${index}.rejectionReason`, { required: readings[index]?.dimensionalNotOk })}
                                                                 >
@@ -510,7 +548,7 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                                                                 </select>
                                                             )}
                                                         </td>
-                                                        <td style={{ textAlign: 'center' }}><input type="checkbox" {...register(`readings.${index}.hammerNotOk`)} /></td>
+                                                        <td style={{ textAlign: 'center' }}><input type="checkbox" disabled={!selectedType} {...register(`readings.${index}.hammerNotOk`)} /></td>
                                                         <td style={{ textAlign: 'center' }}>
                                                             {rowResult === null ? (
                                                                 <span style={{ color: '#94a3b8', fontSize: '11px' }}>—</span>

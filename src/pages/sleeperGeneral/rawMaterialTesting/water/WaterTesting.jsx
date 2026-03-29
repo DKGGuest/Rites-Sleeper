@@ -29,7 +29,7 @@ const SubCard = ({ id, title, color, count, label, isActive, onClick }) => (
 );
 
 const WaterTesting = ({ onBack }) => {
-    const [viewMode, setViewMode] = useState('new-stocks'); // Default to new stocks
+    const [viewMode, setViewMode] = useState('history'); // Default to history
     const [showForm, setShowForm] = useState(false);
     const [history, setHistory] = useState(MOCK_WATER_HISTORY.map(h => ({
         ...h,
@@ -176,15 +176,6 @@ const WaterTesting = ({ onBack }) => {
 
             <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap' }}>
                 <SubCard id="stats" title="Analytics" color="#42818c" count="N/A" label="Statistics" isActive={viewMode === 'stats'} onClick={() => setViewMode('stats')} />
-                <SubCard
-                    id="new-stocks"
-                    title="Inventory"
-                    color="#f59e0b"
-                    count={pendingStocks.length}
-                    label="Current Sources"
-                    isActive={viewMode === 'new-stocks'}
-                    onClick={() => setViewMode('new-stocks')}
-                />
                 <SubCard id="history" title="Historical" color="#10b981" count={history.length} label="Test Logs" isActive={viewMode === 'history'} onClick={() => setViewMode('history')} />
             </div>
 
@@ -208,14 +199,6 @@ const WaterTesting = ({ onBack }) => {
                     </div>
                 )}
 
-                {viewMode === 'new-stocks' && (
-                    <div className="table-outer-wrapper fade-in">
-                        <div className="content-title-row" style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', marginBottom: 0 }}>
-                            <h4 style={{ margin: 0 }}>Active Water Sources</h4>
-                        </div>
-                        <EnhancedDataTable columns={inventoryColumns} data={pendingStocks} />
-                    </div>
-                )}
 
                 {viewMode === 'history' && (
                     <div className="table-outer-wrapper fade-in">

@@ -29,6 +29,20 @@ export const ShiftProvider = ({ children }) => {
         setDutyUnit('');
         setDutyLocation('');
         setActiveContainerId(1);
+        setContainers([{ id: 1, type: 'Line', name: 'Line I' }]);
+
+        // Reset all logs as requested
+        setManualCheckEntries({
+            mouldPrep: [],
+            htsWire: [],
+            demoulding: []
+        });
+        setAllBatchDeclarations({ 1: [] });
+        setAllTensionRecords({ 1: [] });
+        setAllCompactionRecords({ 1: [] });
+        setAllWitnessedRecords({ 1: [] });
+        setAllSessionConfigs({ 1: { sandType: 'River Sand', sensorStatus: 'working' } });
+        setSteamRecords([]);
         
         localStorage.removeItem('dutyStarted');
         localStorage.removeItem('selectedShift');

@@ -1,7 +1,8 @@
 .moisture-form-container {
-    padding: 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
+    padding: 1.5rem;
+    width: 100%;
+    margin: 0;
+    box-sizing: border-box;
 }
 
 .moisture-section {
@@ -274,9 +275,9 @@
 
 .comparison-grid-row {
     display: grid;
-    grid-template-columns: 160px repeat(8, 1fr);
-    min-width: 1050px;
-    /* Ensure columns don't squash too much */
+    grid-template-columns: 120px repeat(8, 1fr);
+    width: 100%;
+    /* Remove strict min-width to avoid horizontal scroll */
 }
 
 .comparison-grid-row:hover {
@@ -298,14 +299,15 @@
 }
 
 .cell {
-    padding: 14px 18px;
+    padding: 10px 8px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: flex-start;
-    font-size: 0.825rem;
+    align-items: center;
+    font-size: 0.8rem;
     border-right: 1px solid #f1f5f9;
     transition: all 0.2s ease;
+    text-align: center;
 }
 
 .cell:last-child {

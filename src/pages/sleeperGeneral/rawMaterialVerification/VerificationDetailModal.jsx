@@ -128,7 +128,7 @@ const formatValue = (val) => {
         try {
             const d = new Date(val);
             if (!isNaN(d.getTime())) {
-                return d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                return d.toLocaleDateString('en-GB');
             }
         } catch (e) {}
     }

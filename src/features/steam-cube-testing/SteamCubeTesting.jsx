@@ -95,11 +95,7 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
         };
     }, [declaredSamples, testedRecords]);
 
-    const isWithinHour = (isoString) => {
-        if (!isoString) return false;
-        const diff = Date.now() - new Date(isoString).getTime();
-        return diff < (60 * 60 * 1000);
-    };
+
 
     const handleAddSample = () => {
         setSelectedSample(null);
@@ -215,18 +211,29 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
     };
 
     const handleDeleteTest = async (id) => {
+        if (!id) {
+            alert("No valid record ID found to delete.");
+            return;
+        }
+
         if (window.confirm('Are you sure you want to delete this test record?')) {
             try {
                 // Optimistic local update
+                const previousDeclared = [...declaredSamples];
+                const previousTested = [...testedRecords];
+
                 setDeclaredSamples(prev => prev.filter(r => r.id !== id));
                 setTestedRecords(prev => prev.filter(r => r.id !== id));
 
-                await apiService.deleteSteamCube(id);
+                const response = await apiService.deleteSteamCube(id);
+                
+                // Show success if not caught by interceptor
+                alert('Record deleted successfully.');
                 loadData().catch(console.error); // Sync in background
             } catch (error) {
                 console.error('Error deleting test record:', error);
-                alert('Failed to delete record. Refreshing...');
-                loadData();
+                alert(`Failed to delete record: ${error.message}`);
+                loadData(); // Re-fetch to restore UI
             }
         }
     };
@@ -268,13 +275,9 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
             label: 'Actions',
             render: (_, row) => (
                 <div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="btn-verify" style={{ fontSize: '10px', padding: '4px 8px' }} onClick={() => handleEnterTestDetails(row)}>Enter Test Details</button>
-                    {(isWithinHour(row.createdAt) || isWithinHour(row.timestamp)) && (
-                        <>
-                            <button className="btn-save" style={{ fontSize: '10px', padding: '4px 8px' }} onClick={() => handleModifySample(row)}>Modify</button>
-                            <button className="btn-action" style={{ fontSize: '10px', padding: '4px 8px', background: '#fee2e2', color: '#ef4444' }} onClick={() => handleDeleteTest(row.id)}>Delete</button>
-                        </>
-                    )}
+                    <button className="btn-save" onClick={() => handleModifySample(row)}>Modify</button>
+                    <button className="btn-verify" onClick={() => handleEnterTestDetails(row)}>Enter Test Details</button>
+                    <button className="btn-delete-entry" onClick={() => handleDeleteTest(row.id)}>Delete</button>
                 </div>
             )
         }
@@ -334,12 +337,10 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
             key: 'actions',
             label: 'Actions',
             render: (_, row) => (
-                isWithinHour(row.timestamp) ? (
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                        <button className="btn-save" style={{ fontSize: '10px', padding: '4px 8px' }} onClick={() => handleEnterTestDetails(row)}>Edit</button>
-                        <button className="btn-action" style={{ fontSize: '10px', padding: '4px 8px', background: '#fee2e2', color: '#ef4444' }} onClick={() => handleDeleteTest(row.id)}>Delete</button>
-                    </div>
-                ) : <span style={{ fontSize: '10px', color: '#94a3b8' }}>Locked</span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn-save" onClick={() => handleEnterTestDetails(row)}>Edit</button>
+                    <button className="btn-delete-entry" onClick={() => handleDeleteTest(row.id)}>Delete</button>
+                </div>
             )
         }
     ];
@@ -448,6 +449,7 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
                             <EnhancedDataTable 
                                 columns={getColumnsDeclared()} 
                                 data={declaredSamples} 
+                                selectable={false}
                             />
                         </div>
                     </div>
@@ -458,7 +460,7 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                             <h4 style={{ margin: 0, color: '#475569' }}>Witnessed Log Table</h4>
                         </div>
-                        <EnhancedDataTable columns={columnsTested} data={testedRecords} />
+                        <EnhancedDataTable columns={columnsTested} data={testedRecords} selectable={false} />
                     </div>
                 )}
             </div>

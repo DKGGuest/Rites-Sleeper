@@ -471,7 +471,7 @@ const WaterCubeTesting = () => {
                     Declare Samples for Testing
                 </button>
                 <button className={`nav-tab ${activeTab === 'pending' ? 'active' : ''}`} onClick={() => setActiveTab('pending')}>
-                    List of Batch remaining for Testing
+                    Declared Samples
                 </button>
                 <button className={`nav-tab ${activeTab === 'done' ? 'active' : ''}`} onClick={() => setActiveTab('done')}>
                     List of Testing Done
@@ -728,6 +728,15 @@ const SampleDeclarationModal = ({ batch, isModifying, onClose, onSave }) => {
                                 alert("Please provide both Bench Number and Sequence for all samples.");
                                 return;
                             }
+                            
+                            // Check for duplicates
+                            const combinations = allCubes.map(c => `${c.bench}-${c.seq}`);
+                            const uniqueCombinations = new Set(combinations);
+                            if (uniqueCombinations.size !== combinations.length) {
+                                alert("Duplicate combination of Bench and Sequence detected. Each cube must have a unique Bench & Sequence combination.");
+                                return;
+                            }
+                            
                             onSave({
                                 batchNo: batch.batchNo,
                                 grade: batch.grade,

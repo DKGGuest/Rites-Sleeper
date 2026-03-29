@@ -266,7 +266,8 @@ const MODULE_TABLE_FIELDS = {
     9: [
         { label: "Manufacturer", key: "manufacturer" },
         { label: "Batch No", key: "invoiceNumber" },
-        { label: "Specification", key: "ritesIcNumber" }
+        { label: "Specification", key: "ritesIcNumber" },
+        { label: "Test Date", key: "testDate" }
     ],
 
     // 🔟 Dowel
@@ -593,11 +594,17 @@ const IncomingVerificationDashboard = ({ initialGroup = null }) => {
                                                     onMouseLeave={e => e.currentTarget.style.background = '#fff'}
                                                 >
                                                     <td style={tdStyle}>{idx + 1}</td>
-                                                    {MODULE_TABLE_FIELDS[selectedModuleId]?.map(col => (
-                                                        <td key={col.key} style={tdStyle}>
-                                                            {row.detail?.[col.key] ?? '-'}
-                                                        </td>
-                                                    ))}
+                                                     {MODULE_TABLE_FIELDS[selectedModuleId]?.map(col => {
+                                                         const val = row.detail?.[col.key];
+                                                         const isIsoDate = typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(val);
+                                                         const formattedVal = isIsoDate ? new Date(val).toLocaleDateString('en-GB') : (val ?? '-');
+                                                         
+                                                         return (
+                                                             <td key={col.key} style={tdStyle}>
+                                                                 {formattedVal}
+                                                             </td>
+                                                         );
+                                                     })}
 
                                                     <td style={tdStyle}>
                                                         {(() => {

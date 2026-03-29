@@ -17,7 +17,11 @@ const api = axios.create({
 api.interceptors.response.use(
     (response) => response.data,
     (error) => {
-        const message = error.response?.data?.message || error.message || 'An unexpected error occurred';
+        const message = 
+            error.response?.data?.responseStatus?.message || 
+            error.response?.data?.message || 
+            error.message || 
+            'An unexpected error occurred';
         console.error('API Error:', message, error.config?.url);
         return Promise.reject(new Error(message));
     }
@@ -256,6 +260,6 @@ export const apiService = {
     getAllMFTests: () => api.get('/mf-test-details'),
     getMFTestById: (id) => api.get(`/mf-test-details/${id}`),
     createMFTest: (payload) => api.post('/mf-test-details', payload),
-    updateMFTest: (id, payload) => api.put('/mf-test-details/${id}', payload),
-    deleteMFTest: (id) => api.delete('/mf-test-details/${id}'),
+    updateMFTest: (id, payload) => api.put(`/mf-test-details/${id}`, payload),
+    deleteMFTest: (id) => api.delete(`/mf-test-details/${id}`),
 };
