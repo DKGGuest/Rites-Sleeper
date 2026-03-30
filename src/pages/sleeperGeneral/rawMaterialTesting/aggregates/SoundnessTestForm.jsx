@@ -4,7 +4,7 @@ import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
 import { saveAggregateSoundness, getAggregateSoundnessByReqId } from "../../../../services/workflowService";
 
-export default function SoundnessTestForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId }) {
+export default function SoundnessTestForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId, editData }) {
     const { selectedShift, dutyLocation, dutyDate } = useShift();
     const toast = useToast();
     const [submitting, setSubmitting] = useState(false);

@@ -4,7 +4,7 @@ import { useToast } from "../../../../context/ToastContext";
 import { getStoredUser } from "../../../../services/authService";
 import { saveCementFineness, getCementFinenessByReqId } from "../../../../services/workflowService";
 
-export default function FinenessTestForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId }) {
+export default function FinenessTestForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId, editData }) {
     const { selectedShift, dutyDate, dutyLocation } = useShift();
     const toast = useToast();
     const user = getStoredUser();
@@ -51,8 +51,19 @@ export default function FinenessTestForm({ onSave, onCancel, inventoryData = [],
                     }));
                 }
             });
+        } else if (initialType === "Periodic" && editData) {
+            setEditId(editData.id);
+            setHeader(prev => ({
+                ...prev,
+                typeOfTesting: "Periodic",
+                consignmentNo: editData.consignmentNo || "",
+                sampleWt: editData.sampleWeightW1 || 100,
+                residue1: editData.residue1 || "",
+                residue2: editData.residue2 || "",
+                residue3: editData.residue3 || ""
+            }));
         }
-    }, [activeRequestId]);
+    }, [activeRequestId, editData, initialType]);
 
     useEffect(() => {
         const { sampleWt, residue1, residue2, residue3 } = header;
@@ -124,7 +135,7 @@ export default function FinenessTestForm({ onSave, onCancel, inventoryData = [],
 
             await saveCementFineness(payload, editId);
             toast.success(`Cement Fineness Test record ${editId ? 'updated' : 'saved'} successfully!`);
-            if (onSave) onSave();
+            if (onSave) onSave(payload);
         } catch (error) {
             console.error("Save failed:", error);
             toast.error("Error saving record. Please check console.");

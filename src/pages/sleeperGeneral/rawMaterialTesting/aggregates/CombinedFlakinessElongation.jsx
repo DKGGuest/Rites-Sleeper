@@ -97,7 +97,7 @@ const FlakinessTable = ({ title, category, sieveData, initialRows, onDataChange 
     );
 };
 
-export default function CombinedFlakinessElongation({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId }) {
+export default function CombinedFlakinessElongation({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId, editData }) {
     const { selectedShift, dutyLocation, dutyDate } = useShift();
     const toast = useToast();
     const [testDate, setTestDate] = useState(new Date().toISOString().split('T')[0]);
@@ -130,7 +130,7 @@ export default function CombinedFlakinessElongation({ onSave, onCancel, inventor
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!consignmentNo) {
-            showToast("Please select a consignment", "warning");
+            toast.warning("Please select a consignment");
             return;
         }
 

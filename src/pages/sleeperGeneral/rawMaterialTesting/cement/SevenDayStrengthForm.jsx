@@ -4,7 +4,7 @@ import { useToast } from "../../../../context/ToastContext";
 import { getStoredUser } from "../../../../services/authService";
 import { saveCement7DayStrength, getCement7DayStrengthByReqId } from "../../../../services/workflowService";
 
-export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId, sharedNC }) {
+export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId, sharedNC, editData }) {
     const { selectedShift, dutyDate, dutyLocation } = useShift();
     const toast = useToast();
     const user = getStoredUser();
@@ -40,6 +40,15 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
     }, [sharedNC]);
 
     useEffect(() => {
+        const formatFromISO = (d) => {
+            if (!d) return "";
+            if (d.includes('-') && d.split('-')[0].length === 4) {
+                const [y, m, day] = d.split('-');
+                return `${day}-${m}-${y}`;
+            }
+            return d;
+        };
+
         if (activeRequestId) {
             const row = inventoryData.find(i => i.requestId === activeRequestId);
             if (row && !form.consignmentNo) {
@@ -48,16 +57,6 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
             getCement7DayStrengthByReqId(activeRequestId).then(record => {
                 if (record && record.id) {
                     setEditId(record.id);
-                    
-                    const formatFromISO = (d) => {
-                        if (!d) return "";
-                        if (d.includes('-') && d.split('-')[0].length === 4) {
-                            const [y, m, day] = d.split('-');
-                            return `${day}-${m}-${y}`;
-                        }
-                        return d;
-                    };
-
                     setForm(prev => ({
                         ...prev,
                         typeOfTesting: record.typeOfTesting || prev.typeOfTesting,
@@ -82,8 +81,32 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
                     }));
                 }
             });
+        } else if (initialType === "Periodic" && editData) {
+            setEditId(editData.id);
+            setForm(prev => ({
+                ...prev,
+                typeOfTesting: "Periodic",
+                consignmentNo: editData.consignmentNo || "",
+                roomTemp: editData.roomTemp || "",
+                normalConsistency: editData.normalConsistency || "",
+                waterRequired: editData.waterRequired || "",
+                area: editData.area || 4984,
+                avgStrength: editData.avgStrength || "",
+                isValidTest: editData.isValidTest !== undefined ? editData.isValidTest : true,
+                cubeResult: editData.cubeResult || "",
+                soundness: editData.soundness || "",
+                soundnessResult: editData.soundnessResult || "",
+                cubes: (editData.cubes && editData.cubes.length > 0) ? editData.cubes.map(c => ({
+                    castDate: formatFromISO(c.castDate),
+                    castTime: c.castTime ? c.castTime.substring(0, 5) : "",
+                    testDate: formatFromISO(c.testDate),
+                    testTime: c.testTime ? c.testTime.substring(0, 5) : "",
+                    loadNewton: c.loadNewton || "",
+                    strength: c.strength || ""
+                })) : prev.cubes
+            }));
         }
-    }, [activeRequestId]);
+    }, [activeRequestId, inventoryData, editData, initialType]);
 
     // Auto calculate water required
     useEffect(() => {
@@ -187,7 +210,7 @@ export default function SevenDayStrengthForm({ onSave, onCancel, inventoryData =
             await saveCement7DayStrength(payload, editId);
 
             toast.success(`Cement 7-Day Strength record ${editId ? 'updated' : 'saved'} successfully!`);
-            if (onSave) onSave();
+            if (onSave) onSave(payload);
         } catch (error) {
             console.error("Save failed:", error);
             toast.error("Error saving record. Please check console.");

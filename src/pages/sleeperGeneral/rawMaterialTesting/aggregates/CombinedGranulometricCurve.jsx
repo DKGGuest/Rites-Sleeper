@@ -70,7 +70,7 @@ const SieveTable = ({ title, sectionType, sieveSizes, sampleWeight, onDataChange
     );
 };
 
-export default function CombinedGranulometricCurve({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId }) {
+export default function CombinedGranulometricCurve({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId, editData }) {
     const { selectedShift, dutyLocation, dutyDate } = useShift();
     const toast = useToast();
     const sieveSizes = [

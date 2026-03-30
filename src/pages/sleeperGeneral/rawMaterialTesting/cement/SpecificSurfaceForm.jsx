@@ -4,7 +4,7 @@ import { useToast } from "../../../../context/ToastContext";
 import { getStoredUser } from "../../../../services/authService";
 import { saveCementSpecificSurface, getCementSpecificSurfaceByReqId } from "../../../../services/workflowService";
 
-export default function SpecificSurfaceForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId }) {
+export default function SpecificSurfaceForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId, editData }) {
     const { selectedShift, dutyDate, dutyLocation } = useShift();
     const toast = useToast();
     const user = getStoredUser();
@@ -55,8 +55,24 @@ export default function SpecificSurfaceForm({ onSave, onCancel, inventoryData = 
                     });
                 }
             });
+        } else if (initialType === "Periodic" && editData) {
+            setEditId(editData.id);
+            setHeader(prev => ({
+                ...prev,
+                type: "Periodic",
+                consignment: editData.consignmentNo || "",
+                roomTemp: editData.roomTemp || "",
+                weight: editData.weight || "",
+                standardTime: editData.standardTimeTs || "",
+                standardSurface: editData.standardSurfaceFs || ""
+            }));
+            setReadings({
+                t1: editData.sampleTime1 || "",
+                t2: editData.sampleTime2 || "",
+                t3: editData.sampleTime3 || ""
+            });
         }
-    }, [activeRequestId]);
+    }, [activeRequestId, editData, initialType]);
 
     // Calculate Average Time
     useEffect(() => {
@@ -109,7 +125,7 @@ export default function SpecificSurfaceForm({ onSave, onCancel, inventoryData = 
 
             await saveCementSpecificSurface(payload, editId);
             toast.success(`Specific Surface Test record ${editId ? 'updated' : 'saved'} successfully!`);
-            if (onSave) onSave();
+            if (onSave) onSave(payload);
         } catch (error) {
             console.error("Save failed:", error);
             toast.error("Error saving record. Please check console.");

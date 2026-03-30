@@ -4,7 +4,7 @@ import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
 import { saveAggregate20mmQuality, getAggregate20mmQualityByReqId } from "../../../../services/workflowService";
 
-export default function CrushingImpactAbrasion20mm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId }) {
+export default function CrushingImpactAbrasion20mm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId, editData }) {
     const { selectedShift, dutyDate, dutyLocation } = useShift();
     const toast = useToast();
     const [submitting, setSubmitting] = useState(false);

@@ -4,7 +4,7 @@ import { useShift } from "../../../../context/ShiftContext";
 import { useToast } from "../../../../context/ToastContext";
 import { saveAggregate10mmQuality, getAggregate10mmQualityByReqId } from "../../../../services/workflowService";
 
-export default function CrushingImpactAbrasion10mm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId }) {
+export default function CrushingImpactAbrasion10mm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId, editData }) {
     const { selectedShift, dutyDate, dutyLocation } = useShift();
     const toast = useToast();
     const [submitting, setSubmitting] = useState(false);
@@ -32,8 +32,14 @@ export default function CrushingImpactAbrasion10mm({ onSave, onCancel, inventory
                     });
                 }
             });
+        } else if (initialType === "Periodic" && editData) {
+            setEditId(editData.id);
+            reset({
+                ...editData,
+                testDate: editData.testDate ? editData.testDate.substring(0, 10) : new Date().toISOString().split('T')[0]
+            });
         }
-    }, [activeRequestId, inventoryData, reset, setValue]);
+    }, [activeRequestId, inventoryData, reset, setValue, initialType, editData]);
 
     // Sections toggle state
     const [expanded, setExpanded] = useState({

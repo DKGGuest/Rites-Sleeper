@@ -7,7 +7,12 @@ import NormalConsistencyForm from './NormalConsistencyForm';
 import SevenDayStrengthForm from './SevenDayStrengthForm';
 import FinenessTestForm from './FinenessTestForm';
 import { MOCK_INVENTORY, MOCK_CEMENT_HISTORY } from '../../../../utils/rawMaterialMockData';
-import { getCementBulkStatus } from '../../../../services/workflowService';
+import { 
+    getCementBulkStatus, 
+    getCementSpecificSurfaceByReqId, 
+    getCementNormalConsistencyByReqId, 
+    getCementFinenessByReqId 
+} from '../../../../services/workflowService';
 import CollectionAwaitingInspection from '../../../../components/CollectionAwaitingInspection';
 import TrendChart from '../../../../components/common/TrendChart';
 import './CementForms.css';
@@ -40,9 +45,13 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
     const [showForm, setShowForm] = useState(false);
     const [activeFormSection, setActiveFormSection] = useState(1);
     const [initialType, setInitialType] = useState("New Inventory");
-    const [cementHistory, setCementHistory] = useState(MOCK_CEMENT_HISTORY.map(item => ({
+    const [cementHistory, setCementHistory] = useState(MOCK_CEMENT_HISTORY.filter(h => h.testType !== 'Periodic').map(item => ({
         ...item,
         createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
+    })));
+    const [periodicHistory, setPeriodicHistory] = useState(MOCK_CEMENT_HISTORY.filter(h => h.testType === 'Periodic').map(item => ({
+        ...item,
+        createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString()
     })));
 
     const [sharedNC, setSharedNC] = useState(null);
@@ -52,6 +61,7 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
 
     const [statusMap, setStatusMap] = useState({});
     const [activeRequestId, setActiveRequestId] = useState(null);
+    const [editItem, setEditItem] = useState(null);
 
     React.useEffect(() => {
         const fetchStatus = async () => {
@@ -59,35 +69,120 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
                 const reqIds = pendingStocks.map(s => s.requestId);
                 const statuses = await getCementBulkStatus(reqIds);
                 setStatusMap(statuses);
+
+                const fetchedHistory = [];
+                for (const stock of pendingStocks) {
+                    if (statuses[stock.requestId] === 'Completed') {
+                        const nc = await getCementNormalConsistencyByReqId(stock.requestId);
+                        const ss = await getCementSpecificSurfaceByReqId(stock.requestId);
+                        const fn = await getCementFinenessByReqId(stock.requestId);
+                        fetchedHistory.push({
+                            id: stock.requestId,
+                            requestId: stock.requestId,
+                            testDate: (nc?.testDate || ss?.testDate || fn?.testDate || new Date().toISOString()).substring(0, 10),
+                            consignmentNo: stock.consignmentNo,
+                            lotNo: stock.lotNo || (stock.details?.batchDetails && stock.details.batchDetails[0]?.mtcNo) || 'N/A',
+                            surface: ss?.specificSurfaceInfo || '-',
+                            consistency: nc?.consistency || '-',
+                            soundness: '-', // Placeholder since Soundness API is unlinked
+                            fineness: fn?.finenessPercentage || '-',
+                            testType: 'New Inventory',
+                            createdAt: nc?.createdAt || ss?.createdAt || new Date().toISOString()
+                        });
+                    }
+                }
+                
+                if (fetchedHistory.length > 0) {
+                    setCementHistory(prev => {
+                        const existingIds = new Set(prev.map(p => p.id));
+                        const newRecords = fetchedHistory.filter(f => !existingIds.has(f.id));
+                        return [...newRecords, ...prev];
+                    });
+                }
             }
         };
         fetchStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pendingStocks]);
 
-    // Rule: Modify/Delete allowed only for 1 hour from entering
+    // Rule: Modify/Delete allowed only for 24 hours from entering
     const canModify = (createdAt) => {
         if (!createdAt) return false;
         const entryTime = new Date(createdAt).getTime();
         const now = new Date().getTime();
-        return (now - entryTime) < (60 * 60 * 1000); // 1 hour
+        return (now - entryTime) < (24 * 60 * 60 * 1000); 
     };
 
-    const handleSaveTest = (completedSectionId) => {
-        if (completedSectionId < 5) {
-            // Find current section index and move to next in requested sequence
-            const currentIndex = sections.findIndex(s => s.id === completedSectionId);
-            if (currentIndex !== -1 && currentIndex < sections.length - 1) {
-                setActiveFormSection(sections[currentIndex + 1].id);
+    const handleSaveTest = (completedSectionId, savedData) => {
+        if (initialType === "Periodic") {
+            let currentRecord = editItem;
+            
+            // If no editItem (New Periodic), check if a record for this consignment already exists in history
+            if (!currentRecord && savedData?.consignmentNo) {
+                const existing = periodicHistory.find(h => h.consignmentNo === savedData.consignmentNo);
+                if (existing) currentRecord = existing;
             }
+
+            const updatedEntries = { ...(currentRecord?.formEntries || {}) };
+            if (savedData) updatedEntries[completedSectionId] = savedData;
+
+            const updatedData = {
+                testDate: savedData?.testDate || currentRecord?.testDate || new Date().toISOString().split('T')[0],
+                consignmentNo: savedData?.consignmentNo || currentRecord?.consignmentNo || 'N/A',
+                lotNo: savedData?.lotNo || currentRecord?.lotNo || 'N/A',
+                createdAt: currentRecord?.createdAt || new Date().toISOString(),
+                formEntries: updatedEntries
+            };
+
+            // Maintain summary fields for the table columns
+            if (completedSectionId === 2) {
+                const cVal = savedData?.normalConsistency || savedData?.consistency || '-';
+                updatedData.consistency = String(cVal).replace('%', '') + '%';
+            }
+            if (completedSectionId === 3) updatedData.surface = savedData?.surfaceArea || savedData?.specificSurfaceInfo || '-';
+            if (completedSectionId === 4) {
+                const it = savedData?.initialSettingTime || savedData?.initialSetting;
+                const ft = savedData?.finalSettingTime || savedData?.finalSetting;
+                updatedData.settingTime = (it && ft) ? `${it}/${ft}` : (savedData?.settingTime || '-');
+            }
+            if (completedSectionId === 5) {
+                const fVal = savedData?.finenessPercentage || savedData?.finenessPercent || savedData?.fineness || '-';
+                updatedData.fineness = String(fVal).replace('%', '') + '%';
+            }
+            if (completedSectionId === 1) updatedData.strength = savedData?.cubeResult || savedData?.strength7Day || savedData?.strength || '-';
+
+            if (currentRecord && currentRecord.id) {
+                setPeriodicHistory(prev => prev.map(r => r.id === currentRecord.id ? { ...r, ...updatedData } : r));
+                setEditItem({ ...currentRecord, ...updatedData });
+            } else {
+                const newRecord = {
+                    id: Date.now(),
+                    testType: 'Periodic',
+                    surface: '-', consistency: '-', settingTime: '-', fineness: '-', strength: '-',
+                    ...updatedData
+                };
+                setPeriodicHistory(prev => [newRecord, ...prev]);
+                setEditItem(newRecord);
+            }
+        }
+
+        const currentIndex = sections.findIndex(s => s.id === completedSectionId);
+        if (currentIndex !== -1 && currentIndex < sections.length - 1) {
+            setActiveFormSection(sections[currentIndex + 1].id);
         } else {
             setShowForm(false);
-            setActiveRequestId(null);
+            setEditItem(null);
+            setInitialType("New Inventory");
         }
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = (id, isPeriodic = false) => {
         if (window.confirm('Are you sure you want to delete this test record?')) {
-            setCementHistory(prev => prev.filter(item => item.id !== id));
+            if (isPeriodic) {
+                setPeriodicHistory(prev => prev.filter(h => h.id !== id));
+            } else {
+                setCementHistory(prev => prev.filter(item => item.id !== id));
+            }
         }
     };
 
@@ -128,6 +223,7 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
                             setInitialType("New Inventory");
                             setActiveFormSection(1);
                             setShowForm(true);
+                            setEditItem(null);
                         }}
                     >
                         {status === 'Completed' ? 'Modify test details' : 'Add Test Detail'}
@@ -156,10 +252,12 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
                             className={`btn-action mini ${!editable ? 'disabled-btn' : ''}`}
                             disabled={!editable}
                             onClick={() => {
+                                setActiveRequestId(row.requestId);
                                 setActiveFormSection(1);
+                                setInitialType("New Inventory");
                                 setShowForm(true);
                             }}
-                            title={!editable ? "Action expired (1-hour limit)" : ""}
+                            title={!editable ? "Action expired (24-hour limit)" : ""}
                         >
                             Modify
                         </button>
@@ -167,7 +265,7 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
                             className={`btn-action mini danger ${!editable ? 'disabled-btn' : ''}`}
                             disabled={!editable}
                             onClick={() => handleDelete(row.id)}
-                            title={!editable ? "Action expired (1-hour limit)" : ""}
+                            title={!editable ? "Action expired (24-hour limit)" : ""}
                         >
                             Delete
                         </button>
@@ -177,12 +275,80 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
         }
     ];
 
+    const periodicColumns = [
+        { key: 'testDate', label: 'Date', render: (val) => val ? val.split('-').reverse().join('/') : '' },
+        { key: 'consignmentNo', label: 'Consignment' },
+        { 
+            key: 'surface', 
+            label: 'Surface',
+            render: (_, row) => row.surfaceArea || row.specificSurfaceInfo || row.surface || row.formEntries?.[3]?.surfaceArea || '-'
+        },
+        { 
+            key: 'consistency', 
+            label: 'Consistency',
+            render: (_, row) => {
+                const val = row.normalConsistency || row.consistency || row.percentWaterAdded || row.formEntries?.[2]?.normalConsistency || row.formEntries?.[2]?.consistency;
+                if (!val) return '-';
+                return `${String(val).replace('%', '')}%`;
+            }
+        },
+        { 
+            key: 'settingTime', 
+            label: 'Initial/Final ST',
+            render: (_, row) => {
+                const it = row.initialSettingTime || row.initialSetting || row.formEntries?.[4]?.initialSettingTime;
+                const ft = row.finalSettingTime || row.finalSetting || row.formEntries?.[4]?.finalSettingTime;
+                if (it && ft) return `${it}/${ft}`;
+                return row.settingTime || '-';
+            }
+        },
+        { 
+            key: 'fineness', 
+            label: 'Fineness (%)',
+            render: (_, row) => {
+                const val = row.finenessPercentage || row.finenessPercent || row.fineness || row.formEntries?.[5]?.finenessPercentage || row.formEntries?.[5]?.finenessPercent;
+                if (!val) return '-';
+                return `${String(val).replace('%', '')}%`;
+            }
+        },
+        { 
+            key: 'strength', 
+            label: '7-Day Strength',
+            render: (_, row) => row.cubeResult || row.strength7Day || row.strength || row.formEntries?.[1]?.cubeResult || row.formEntries?.[1]?.strength7Day || '-'
+        },
+        {
+            key: 'actions',
+            label: 'Actions',
+            render: (_, row) => (
+                <div className="btn-group-center" style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                    <button
+                        className="btn-action mini"
+                        onClick={() => {
+                            setInitialType("Periodic");
+                            setActiveFormSection(2); // Start with Consistency
+                            setEditItem(row);
+                            setShowForm(true);
+                        }}
+                    >
+                        Modify
+                    </button>
+                    <button
+                        className="btn-action mini danger"
+                        onClick={() => handleDelete(row.id, true)}
+                    >
+                        Delete
+                    </button>
+                </div>
+            )
+        }
+    ];
+
     const sections = [
-        { id: 2, label: 'Normal Consistency', component: <NormalConsistencyForm onSave={() => handleSaveTest(2)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} onValueChange={(val) => setSharedNC(val)} /> },
-        { id: 3, label: 'Specific Surface', component: <SpecificSurfaceForm onSave={() => handleSaveTest(3)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} /> },
-        { id: 4, label: 'Setting Time', component: <SettingTimeForm onSave={() => handleSaveTest(4)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} sharedNC={sharedNC} /> },
-        { id: 5, label: 'Fineness Test', component: <FinenessTestForm onSave={() => handleSaveTest(5)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} /> },
-        { id: 1, label: '7 Day Strength', component: <SevenDayStrengthForm onSave={() => handleSaveTest(1)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} sharedNC={sharedNC} /> }
+        { id: 2, label: 'Normal Consistency', component: <NormalConsistencyForm onSave={(data) => handleSaveTest(2, data)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} editData={initialType === "Periodic" ? editItem?.formEntries?.[2] : editItem} onValueChange={(val) => setSharedNC(val)} /> },
+        { id: 3, label: 'Specific Surface', component: <SpecificSurfaceForm onSave={(data) => handleSaveTest(3, data)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} editData={initialType === "Periodic" ? editItem?.formEntries?.[3] : editItem} /> },
+        { id: 4, label: 'Setting Time', component: <SettingTimeForm onSave={(data) => handleSaveTest(4, data)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} editData={initialType === "Periodic" ? editItem?.formEntries?.[4] : editItem} sharedNC={sharedNC} /> },
+        { id: 5, label: 'Fineness Test', component: <FinenessTestForm onSave={(data) => handleSaveTest(5, data)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} editData={initialType === "Periodic" ? editItem?.formEntries?.[5] : editItem} /> },
+        { id: 1, label: '7 Day Strength', component: <SevenDayStrengthForm onSave={(data) => handleSaveTest(1, data)} onCancel={() => setShowForm(false)} inventoryData={pendingStocks} initialType={initialType} activeRequestId={activeRequestId} editData={initialType === "Periodic" ? editItem?.formEntries?.[1] : editItem} sharedNC={sharedNC} /> }
     ];
 
     return (
@@ -192,7 +358,8 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
                 <div style={{ display: 'flex', gap: '12px' }}>
                     <button className="toggle-btn mini" onClick={() => { 
                         setInitialType("Periodic");
-                        setActiveFormSection(1); 
+                        setActiveFormSection(2); // Reset to first tab for Periodic
+                        setEditItem(null);
                         setShowForm(true); 
                     }}>+ Add New (Periodic)</button>
                     <button className="toggle-btn secondary mini" onClick={onBack}>Back to Dashboard</button>
@@ -214,7 +381,7 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
                     id="new-stocks"
                     title="Inventory"
                     color="#f59e0b"
-                    count={pendingStocks.length}
+                    count={pendingStocks.filter(s => statusMap[s.requestId] !== 'Completed').length}
                     label="Pending for Test"
                     isActive={viewMode === 'new-stocks'}
                     onClick={() => setViewMode('new-stocks')}
@@ -227,6 +394,15 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
                     label="Quality Logs"
                     isActive={viewMode === 'history'}
                     onClick={() => setViewMode('history')}
+                />
+                <SubCard
+                    id="periodic"
+                    title="Periodic Testing"
+                    color="#8b5cf6"
+                    count={periodicHistory.length}
+                    label="Periodic Logs"
+                    isActive={viewMode === 'periodic'}
+                    onClick={() => setViewMode('periodic')}
                 />
             </div>
 
@@ -253,7 +429,7 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
                         <div className="content-title-row" style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', marginBottom: 0 }}>
                             <h4 style={{ margin: 0 }}>Verified Inventory Pending Testing</h4>
                         </div>
-                        <EnhancedDataTable columns={inventoryColumns} data={pendingStocks} />
+                        <EnhancedDataTable columns={inventoryColumns.filter(c => c.key !== 'testingStatus')} data={pendingStocks.filter(s => statusMap[s.requestId] !== 'Completed')} />
                     </div>
                 )}
 
@@ -263,6 +439,15 @@ const CementTesting = ({ onBack, inventoryData = [] }) => {
                             <h4 style={{ margin: 0 }}>Historical Cement Quality Logs</h4>
                         </div>
                         <EnhancedDataTable columns={historyColumns} data={cementHistory} />
+                    </div>
+                )}
+
+                {viewMode === 'periodic' && (
+                    <div className="table-outer-wrapper fade-in">
+                        <div className="content-title-row" style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', marginBottom: 0 }}>
+                            <h4 style={{ margin: 0 }}>Periodic Testing Logs</h4>
+                        </div>
+                        <EnhancedDataTable columns={periodicColumns} data={periodicHistory} />
                     </div>
                 )}
             </div>

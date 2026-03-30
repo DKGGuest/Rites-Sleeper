@@ -6,7 +6,7 @@ import { saveCementSettingTime, getCementSettingTimeByReqId } from "../../../../
 
 const emptyRow = { time: "", needle: "", spot: "" };
 
-export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId, sharedNC }) {
+export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId, sharedNC, editData }) {
     const { selectedShift, dutyDate, dutyLocation } = useShift();
     const toast = useToast();
     const user = getStoredUser();
@@ -70,8 +70,29 @@ export default function SettingTimeForm({ onSave, onCancel, inventoryData = [], 
                     }
                 }
             });
+        } else if (initialType === "Periodic" && editData) {
+            setEditId(editData.id);
+            setHeader(prev => ({
+                ...prev,
+                type: "Periodic",
+                consignment: editData.consignmentNo || "",
+                temp: editData.roomTemp || "",
+                weight: editData.weight || "400",
+                nc: editData.normalConsistency || "",
+                waterQty: editData.waterAdded || "",
+                waterAddTime: editData.timeOfAddingWater ? editData.timeOfAddingWater.substring(0, 5) : "",
+                mouldTime: editData.mouldReadyAt ? editData.mouldReadyAt.substring(0, 5) : ""
+            }));
+            if (editData.observations && editData.observations.length > 0) {
+                const mapped = editData.observations.map(o => ({
+                    time: o.readingTime ? o.readingTime.substring(0, 5) : "",
+                    needle: o.needlePenetration || "",
+                    spot: o.finalSpot || ""
+                }));
+                setRows(mapped.length > 0 ? mapped : [{ ...emptyRow }]);
+            }
         }
-    }, [activeRequestId, inventoryData]); 
+    }, [activeRequestId, inventoryData, editData, initialType]);
 
     const updateRow = (i, field, val) => {
         const copy = [...rows];

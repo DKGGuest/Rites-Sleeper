@@ -13,7 +13,7 @@ const emptyRow = {
     needle: "",
 };
 
-export default function NormalConsistencyForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId, onValueChange }) {
+export default function NormalConsistencyForm({ onSave, onCancel, inventoryData = [], initialType = "New Inventory", activeRequestId, editData, onValueChange }) {
     const { selectedShift, dutyDate, dutyLocation } = useShift();
     const toast = useToast();
     const user = getStoredUser();
@@ -53,10 +53,6 @@ export default function NormalConsistencyForm({ onSave, onCancel, inventoryData 
 
     useEffect(() => {
         if (activeRequestId) {
-            const row = inventoryData.find(i => i.requestId === activeRequestId);
-            if (row && !header.consignmentNo) {
-                setHeader(prev => ({ ...prev, consignmentNo: row.consignmentNo }));
-            }
             getCementNormalConsistencyByReqId(activeRequestId).then(record => {
                 if (record && record.id) {
                     setEditId(record.id);
@@ -82,8 +78,31 @@ export default function NormalConsistencyForm({ onSave, onCancel, inventoryData 
                     }
                 }
             });
+        } else if (initialType === "Periodic" && editData) {
+            const record = editData;
+            setEditId(record.id);
+            setHeader(prev => ({
+                ...prev,
+                typeOfTesting: "Periodic",
+                consignmentNo: record.consignmentNo || "",
+                roomTemp: record.roomTemp || "",
+                sampleWeight: record.sampleWeight || 400
+            }));
+            if (record.observations && record.observations.length > 0) {
+                const mapped = record.observations.map(o => ({
+                    percent: o.percentWaterAdded || "",
+                    volume: o.volume || "",
+                    addTime: o.timeOfAdding ? o.timeOfAdding.substring(0, 5) : "",
+                    readTime: o.readingTime ? o.readingTime.substring(0, 5) : "",
+                    needle: o.needleReading || ""
+                }));
+                const totalMap = mapped.length < 4 
+                    ? [...mapped, ...Array(4 - mapped.length).fill({ ...emptyRow })] 
+                    : mapped;
+                setRows(totalMap);
+            }
         }
-    }, [activeRequestId]);
+    }, [activeRequestId, editData, initialType]);
 
     // handle table input
     const updateRow = (index, field, value) => {
@@ -157,7 +176,7 @@ export default function NormalConsistencyForm({ onSave, onCancel, inventoryData 
 
             await saveCementNormalConsistency(payload, editId);
             toast.success(`Cement Normal Consistency record ${editId ? 'updated' : 'saved'} successfully!`);
-            if (onSave) onSave();
+            if (onSave) onSave(payload);
         } catch (error) {
             console.error("Save failed:", error);
             toast.error("Error saving record. Please check console.");

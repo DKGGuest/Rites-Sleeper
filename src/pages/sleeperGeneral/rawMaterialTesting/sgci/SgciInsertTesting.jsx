@@ -52,6 +52,7 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
         const fetchStatus = async () => {
             if (!pendingStocks?.length) return;
             const newStatusMap = { ...statusMap };
+            const fetchedHistory = [];
             let updated = false;
             try {
                 for (const stock of pendingStocks) {
@@ -59,18 +60,38 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                         const record = await getSgciInsertAuditByRequestId(stock.requestId);
                         if (record && record.id) {
                             newStatusMap[stock.requestId] = "Completed";
+                            fetchedHistory.push({
+                                ...record,
+                                id: record.id,
+                                testDate: record.testDate ? record.testDate.substring(0, 10) : new Date().toISOString().split('T')[0],
+                                consignmentNo: record.consignmentNo || stock.consignmentNo,
+                                supplier: record.supplier || stock.vendor,
+                                checked: record.checked,
+                                accepted: record.accepted,
+                                createdAt: record.createdAt || new Date().toISOString()
+                            });
                         } else {
                             newStatusMap[stock.requestId] = "Pending";
                         }
                         updated = true;
                     }
                 }
-                if (updated) setStatusMap(newStatusMap);
+                if (updated) {
+                    setStatusMap(newStatusMap);
+                    if (fetchedHistory.length > 0) {
+                        setHistory(prev => {
+                            const existingIds = new Set(prev.map(p => p.id));
+                            const newRecords = fetchedHistory.filter(f => !existingIds.has(f.id));
+                            return [...newRecords, ...prev];
+                        });
+                    }
+                }
             } catch (error) {
                 console.error("Error fetching SGCI status", error);
             }
         };
         fetchStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pendingStocks, refreshTrigger]);
 
     const { register, control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm({
@@ -351,7 +372,7 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                     id="new-stocks"
                     title="Inventory"
                     color="#f59e0b"
-                    count={pendingStocks.length}
+                    count={pendingStocks.filter(s => statusMap[s.requestId] !== 'Completed').length}
                     label="Pending for Test"
                     isActive={viewMode === 'new-stocks'}
                     onClick={() => setViewMode('new-stocks')}
@@ -381,7 +402,7 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                         <div className="content-title-row" style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', marginBottom: 0 }}>
                             <h4 style={{ margin: 0 }}>SGCI Inventory Pending Testing</h4>
                         </div>
-                        <EnhancedDataTable columns={inventoryColumns} data={pendingStocks} />
+                        <EnhancedDataTable columns={inventoryColumns.filter(c => c.key !== 'testingStatus')} data={pendingStocks.filter(s => statusMap[s.requestId] !== 'Completed')} />
                     </div>
                 )}
 

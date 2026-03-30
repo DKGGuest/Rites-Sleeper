@@ -261,6 +261,19 @@
     justify-content: center;
 }
 
+.cement-forms-scope .form-modal-footer {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.cement-forms-scope .form-modal-footer .btn-save {
+    width: auto;
+    min-width: 150px;
+    margin-top: 0;
+}
+
 .cement-forms-scope .btn-save:hover {
     background-color: #356972;
     transform: translateY(-1px);
