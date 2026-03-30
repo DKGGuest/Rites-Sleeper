@@ -310,7 +310,7 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
         ? ((parseFloat(ca1Calc.batchWtDry) + parseFloat(ca2Calc.batchWtDry) + parseFloat(faCalc.batchWtDry)) / M)
         : 0;
 
-    // 35 = (Water / Cement) Ratio = D / M (Using D from mix design)
+    // 35 = (Water / Cement) Ratio = W/C (Using D from mix design)
     const D = parseFloat(commonData.designValues?.water) || 0;
     const step35_WCRatio = M > 0 ? (D / M) : 0;
 
@@ -523,7 +523,7 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
                                 <span className="hint-text">Target: {commonData.designAC}</span>
                             </div>
                             <div className="calc-card">
-                                <span className="mini-label">D / M Ratio (35)</span>
+                                <span className="mini-label">W/C Ratio (35)</span>
                                 <div className="calc-value">{wcRatio}</div>
                                 <span className="hint-text">Mix Design D: {D}</span>
                             </div>
