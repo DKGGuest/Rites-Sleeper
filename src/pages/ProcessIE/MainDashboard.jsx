@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useShift } from '../../context/ShiftContext';
 import { getCompanyMappingByUser, getShedsByVendorCode } from '../../services/workflowService';
+import DutyMetaInfo from '../../features/duty/components/DutyMetaInfo';
 import './MainDashboard.css';
 
 /**
@@ -201,6 +202,7 @@ const MainDashboard = () => {
                     </button>
                     <div className="header-titles">
                         <h1>Process IE – Portal Home</h1>
+                        {hasActiveDuty && <DutyMetaInfo />}
                     </div>
                 </div>
             </header>

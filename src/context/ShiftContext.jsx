@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiService } from '../services/api';
 import { useToast } from '../context/ToastContext';
+import { mapWireTensionRecords, mapCompactionRecords, mapSteamCuringRecords, mapBatchWeighmentData } from '../utils/shiftMappingUtils';
 
 const ShiftContext = createContext();
 
@@ -150,40 +151,7 @@ export const ShiftProvider = ({ children }) => {
 
             // Mapping backend wire tensioning to frontend flat state
             if (wireTensionResponse?.responseData) {
-                const flattenedRecords = [];
-                wireTensionResponse.responseData.forEach(batchRecord => {
-                    const { batchNo, sleeperType, wiresPerSleeper, targetLoadKn } = batchRecord;
-
-                    // Add manual records
-                    (batchRecord.manualRecords || []).forEach(m => {
-                        flattenedRecords.push({
-                            ...m,
-                            batchNo,
-                            parentId: batchRecord.id, // Store Batch ID for editing
-                            modulus: m.modulus || m.youngsModulus,
-                            source: 'Manual',
-                            sleeperType,
-                            wiresPerSleeper,
-                            targetLoadKn
-                        });
-                    });
-
-                    // Add witnessed scada records
-                    (batchRecord.scadaRecords || []).forEach(s => {
-                        flattenedRecords.push({
-                            ...s,
-                            batchNo,
-                            parentId: batchRecord.id, // Store Batch ID for editing
-                            time: s.time || s.plcTime,
-                            modulus: s.modulus || s.youngsModulus,
-                            source: 'Scada',
-                            sleeperType,
-                            wiresPerSleeper,
-                            targetLoadKn
-                        });
-                    });
-                });
-
+                const flattenedRecords = mapWireTensionRecords(wireTensionResponse.responseData);
                 setAllTensionRecords(prev => ({
                     ...prev,
                     [activeContainerId]: flattenedRecords
@@ -192,33 +160,7 @@ export const ShiftProvider = ({ children }) => {
 
             // Mapping backend compaction to frontend flat state
             if (compactionResponse?.responseData) {
-                const flattenedRecords = [];
-                compactionResponse.responseData.forEach(batchRecord => {
-                    const { batchNo, sleeperType, entryDate } = batchRecord;
-
-                    (batchRecord.manualRecords || []).forEach(m => {
-                        flattenedRecords.push({
-                            ...m,
-                            batchNo,
-                            parentId: batchRecord.id, // Batch ID for updates
-                            date: entryDate,
-                            source: 'Manual',
-                            sleeperType
-                        });
-                    });
-
-                    (batchRecord.scadaRecords || []).forEach(s => {
-                        flattenedRecords.push({
-                            ...s,
-                            batchNo,
-                            parentId: batchRecord.id, // Batch ID for updates
-                            date: entryDate,
-                            source: 'Scada',
-                            sleeperType
-                        });
-                    });
-                });
-
+                const flattenedRecords = mapCompactionRecords(compactionResponse.responseData);
                 setAllCompactionRecords(prev => ({
                     ...prev,
                     [activeContainerId]: flattenedRecords
@@ -227,120 +169,15 @@ export const ShiftProvider = ({ children }) => {
 
             // Mapping backend batch weighment to frontend state
             if (batchWeighmentResponse?.responseData) {
-                const allDeclarations = {};
-                const allConfigs = {};
-                const allWitnessed = {};
-
-                batchWeighmentResponse.responseData.forEach(session => {
-                    const matchedContainer = containers.find(c => c.name === session.lineNo);
-                    const containerId = matchedContainer ? matchedContainer.id : 1;
-
-                    // Map Declarations (Append to existing)
-                    const newDeclarations = (session.batchDetails || []).map(d => ({
-                        id: d.id,
-                        parentId: session.id, // Important for updates
-                        batchNo: d.batchNo,
-                        proportionMatch: d.proportionStatus,
-                        setValues: {
-                            ca1: d.ca1Set, ca2: d.ca2Set, fa: d.faSet,
-                            cement: d.cementSet, water: d.waterSet, admixture: d.admixtureSet
-                        },
-                        adjustedWeights: {
-                            ca1: d.ca1Ref, ca2: d.ca2Ref, fa: d.faRef,
-                            cement: d.cementRef, water: d.waterRef, admixture: d.admixtureRef
-                        }
-                    }));
-                    allDeclarations[containerId] = [...(allDeclarations[containerId] || []), ...newDeclarations];
-
-                    allConfigs[containerId] = {
-                        sandType: session.sandType,
-                        sensorStatus: (session.moistureSensorStatus || 'working').toLowerCase()
-                    };
-
-                    // Map Witnessed Records (Flattened, Append to existing)
-                    const witnessed = [];
-                    (session.scadaRecords || []).forEach(s => {
-                        witnessed.push({
-                            ...s,
-                            id: s.id,
-                            parentId: session.id, // Important for fetching parent object
-                            location: session.lineNo,
-                            concreteGrade: session.concreteGrade,
-                            source: 'Scada',
-                            type: 'weight-batching',
-                            // Normalize to frontend display keys
-                            ca1: s.ca1Actual,
-                            ca2: s.ca2Actual,
-                            fa: s.faActual,
-                            cement: s.cementActual,
-                            water: s.waterActual,
-                            admixture: s.admixtureActual
-                        });
-                    });
-                    (session.manualRecords || []).forEach(m => {
-                        witnessed.push({
-                            ...m,
-                            id: m.id,
-                            parentId: session.id, // Important for fetching parent object
-                            location: session.lineNo,
-                            concreteGrade: session.concreteGrade,
-                            source: 'Manual',
-                            type: 'weight-batching',
-                            // Normalize to frontend display keys
-                            ca1: m.ca1Actual,
-                            ca2: m.ca2Actual,
-                            fa: m.faActual,
-                            cement: m.cementActual,
-                            water: m.waterActual,
-                            admixture: m.admixtureActual
-                        });
-                    });
-                    allWitnessed[containerId] = [...(allWitnessed[containerId] || []), ...witnessed];
-                });
-
-                setAllWitnessedRecords(allWitnessed);
-                setAllBatchDeclarations(allDeclarations);
-                setAllSessionConfigs(prev => ({ ...prev, ...allConfigs }));
+                const { declarations, configs, witnessed } = mapBatchWeighmentData(batchWeighmentResponse.responseData, containers);
+                setAllWitnessedRecords(witnessed);
+                setAllBatchDeclarations(declarations);
+                setAllSessionConfigs(prev => ({ ...prev, ...configs }));
             }
 
             // Mapping backend steam curing to frontend flat state
             if (steamResponse?.responseData) {
-                const flattenedRecords = [];
-                steamResponse.responseData.forEach(batchRecord => {
-                    const { batchNo, chamber, grade, entryDate, id } = batchRecord;
-
-                    (batchRecord.manualRecords || []).forEach(m => {
-                        flattenedRecords.push({
-                            ...m,
-                            id: `${id}-m-${flattenedRecords.length}`,
-                            manualId: m.id, // Store actual manual record ID
-                            parentId: id, // Batch ID
-                            batchNo,
-                            chamberNo: chamber,
-                            date: entryDate,
-                            source: 'Manual',
-                            grade,
-                            minConstTemp: m.minTemp,
-                            maxConstTemp: m.maxTemp
-                        });
-                    });
-
-                    (batchRecord.scadaRecords || []).forEach(s => {
-                        flattenedRecords.push({
-                            ...s,
-                            id: `${id}-s-${flattenedRecords.length}`,
-                            parentId: id, // Batch ID
-                            batchNo,
-                            chamberNo: chamber,
-                            date: entryDate,
-                            source: 'Scada',
-                            grade,
-                            minConstTemp: s.minTemp || 0,
-                            maxConstTemp: s.maxTemp || 0
-                        });
-                    });
-                });
-                setSteamRecords(flattenedRecords);
+                setSteamRecords(mapSteamCuringRecords(steamResponse.responseData));
             }
 
             const htsListData = htsWireResponse?.responseData || [];

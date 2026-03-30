@@ -5,15 +5,17 @@ import './CriticalDimensionForm.css';
 const CriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
     // List of all sleepers in the batch
     const allSleepersPool = useMemo(() => {
-        return batch?.sleepers
-            ?.filter(s => s.status?.toUpperCase() !== 'REJECTED')
-            ?.map(s => ({
-                ...s,
-                id: s.sleeperId,
-                displayNo: s.sleeperNo,
-                isRejected: false,
-                isAlreadyPassed: s.status?.toUpperCase() === 'OK' || s.status?.toUpperCase() === 'PASSED'
-            })) || [];
+        return (batch?.sleepers || [])
+            .map(s => {
+                const isAlreadyRejected = s.status?.toUpperCase() === 'REJECTED';
+                return {
+                    ...s,
+                    id: s.sleeperId,
+                    displayNo: s.sleeperNo,
+                    isRejected: isAlreadyRejected,
+                    isAlreadyPassed: s.status?.toUpperCase() === 'OK' || s.status?.toUpperCase() === 'PASSED'
+                };
+            });
     }, [batch]);
 
     const [selectedSleepers, setSelectedSleepers] = useState(() => 

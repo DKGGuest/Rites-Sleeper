@@ -140,10 +140,46 @@ const MomentOfResistance = () => {
                 <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>Structural integrity testing for concrete sleepers</p>
             </header>
 
-            <div className="nav-tabs" style={{ marginBottom: '24px', borderBottom: '1px solid #e2e8f0' }}>
-                <button className={`nav-tab ${activeTab === 'declaration' ? 'active' : ''}`} onClick={() => setActiveTab('declaration')}>Sample Declaration</button>
-                <button className={`nav-tab ${activeTab === 'testing' ? 'active' : ''}`} onClick={() => setActiveTab('testing')}>Enter Test Results</button>
-                <button className={`nav-tab ${activeTab === 'historical' ? 'active' : ''}`} onClick={() => setActiveTab('historical')}>Historical Records</button>
+            <div className="nav-tabs" style={{
+                marginBottom: '32px',
+                display: 'flex',
+                gap: '8px',
+                background: '#f1f5f9',
+                padding: '6px',
+                borderRadius: '14px',
+                width: 'fit-content',
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)',
+                border: '1px solid #e2e8f0'
+            }}>
+                {[
+                    { id: 'declaration', label: 'Sample Declaration' },
+                    { id: 'testing', label: 'Enter Test Results' },
+                    { id: 'historical', label: 'Historical Records' }
+                ].map(tab => (
+                    <button
+                        key={tab.id}
+                        className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
+                        style={{
+                            border: 'none',
+                            padding: '10px 24px',
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                            fontWeight: activeTab === tab.id ? '800' : '600',
+                            background: activeTab === tab.id ? '#fff' : 'transparent',
+                            color: activeTab === tab.id ? '#13343b' : '#64748b',
+                            boxShadow: activeTab === tab.id ? '0 4px 12px rgba(0, 0, 0, 0.08)' : 'none',
+                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            transform: activeTab === tab.id ? 'scale(1.02)' : 'scale(1)',
+                        }}
+                        onClick={() => setActiveTab(tab.id)}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
             </div>
 
             <div className="tab-content">

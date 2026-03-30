@@ -21,6 +21,8 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
         remarks: ''
     });
 
+    const [validationErrors, setValidationErrors] = useState([]);
+
     const formatFromBackendDatePart = (dateStr) => {
         if (!dateStr) return '';
         if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr.substring(0, 10);
@@ -91,10 +93,18 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
     };
 
     const handleSave = () => {
-        if (!formData.benchNo || !formData.batchNo || !formData.mouldCleaned || !formData.oilApplied) {
-            alert('Please fill in all required fields (Batch, Bench, Cleaning & Oiling).');
+        const errors = [];
+        if (!formData.batchNo) errors.push('Batch No.');
+        if (!formData.benchNo) errors.push(`${fieldLabel} No.`);
+        if (!formData.mouldCleaned) errors.push('Mould Cleaning Status');
+        if (!formData.oilApplied) errors.push('Oil Application Status');
+
+        if (errors.length > 0) {
+            setValidationErrors(errors);
             return;
         }
+
+        setValidationErrors([]);
 
         if (!initialData) {
             const isDuplicate = (existingEntries || []).some(entry => 
@@ -131,7 +141,7 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
         }));
     };
 
-    const fieldLabel = isLongLine ? 'Gang' : 'Bench';
+    const fieldLabel = (formData.location || '').toLowerCase().includes('line') ? 'Gang' : 'Bench';
 
     return (
         <div className="form-container" style={{ padding: '20px' }}>
@@ -247,6 +257,84 @@ const MouldPrepForm = ({ onSave, onCancel, isLongLine, existingEntries = [], ini
                 </button>
                 {initialData && <button className="toggle-btn secondary" onClick={onCancel}>Cancel</button>}
             </div>
+
+            {/* Validation Errors Modal */}
+            {validationErrors.length > 0 && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(15, 23, 42, 0.45)',
+                    zIndex: 99999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backdropFilter: 'blur(4px)',
+                    padding: '24px'
+                }}>
+                    <div className="fade-in" style={{
+                        maxWidth: '400px',
+                        width: '100%',
+                        background: '#fff',
+                        borderRadius: '24px',
+                        padding: '2rem',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+                        border: '1px solid #e2e8f0',
+                        textAlign: 'center'
+                    }}>
+                        <div style={{
+                            width: '48px',
+                            height: '48px',
+                            background: '#fee2e2',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: '0 auto 1.5rem auto',
+                            color: '#ef4444',
+                            fontSize: '20px'
+                        }}>!</div>
+                        <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', fontWeight: '800', color: '#1e293b' }}>Missing Information</h3>
+                        <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.9rem', color: '#64748b', lineHeight: '1.5' }}>
+                            Please provide the following required details:
+                        </p>
+                        
+                        <div style={{ 
+                            background: '#f8fafc', 
+                            borderRadius: '12px', 
+                            padding: '16px', 
+                            marginBottom: '2rem',
+                            textAlign: 'left',
+                            border: '1px solid #f1f5f9'
+                        }}>
+                            <ul style={{ margin: 0, padding: '0 0 0 20px', color: '#dc2626', fontSize: '0.875rem', fontWeight: '700', lineHeight: '1.8' }}>
+                                {validationErrors.map((err, idx) => (
+                                    <li key={idx}>{err}</li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <button
+                            onClick={() => setValidationErrors([])}
+                            style={{
+                                width: '100%',
+                                padding: '14px',
+                                borderRadius: '14px',
+                                border: 'none',
+                                background: '#1e293b',
+                                color: '#fff',
+                                fontWeight: '800',
+                                fontSize: '0.9rem',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 6px -1px rgba(30, 41, 59, 0.2)',
+                                transition: 'all 0.2s'
+                            }}
+                        >Confirm & Edit</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

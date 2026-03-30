@@ -6,7 +6,7 @@ const BatchStats = ({ batchStats, batchDeclarations, selectedBatchNo, setSelecte
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
                     <h3 style={{ margin: 0 }}>Process Performance Analytics</h3>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Real-time deviations and compliance metrics.</p>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}></p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b' }}>Select Batch:</span>

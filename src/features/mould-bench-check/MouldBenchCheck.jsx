@@ -439,6 +439,39 @@ const InspectionForm = ({ formState, setFormState, onSave, onCancel, editingEntr
     );
 };
 
+const MouldBenchSubCard = ({ id, title, subtitle, color, count, label, isActive, onClick }) => (
+    <div
+        onClick={onClick}
+        style={{
+            flex: '1 1 200px',
+            padding: '16px 20px',
+            background: isActive ? '#fff' : '#f8fafc',
+            border: `1px solid ${isActive ? color : '#e2e8f0'}`,
+            borderTop: `4px solid ${color}`,
+            borderRadius: '12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            boxShadow: isActive ? `0 4px 12px ${color}20` : 'none',
+            transform: isActive ? 'translateY(-2px)' : 'none',
+            position: 'relative',
+            minHeight: '120px'
+        }}
+    >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+            <span style={{ fontSize: '9px', fontWeight: '700', color: isActive ? color : '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{subtitle}</span>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, opacity: isActive ? 1 : 0.4 }}></span>
+        </div>
+        <span style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b' }}>{title}</span>
+        <div style={{ fontSize: '24px', fontWeight: '900', color: '#1e293b', margin: '4px 0' }}>{count}</div>
+        <div style={{ marginTop: 'auto', fontSize: '10px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>
+            {label}
+        </div>
+    </div>
+);
+
 // --- Main Component ---
 
 const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, activeContainer, isInline = false, showForm, setShowForm }) => {
@@ -626,29 +659,21 @@ const MouldBenchCheck = ({ onBack, sharedState, initialModule, initialViewMode, 
     };
 
     const dashboardCards = useMemo(() => [
-        { id: 'summary', title: 'Summary', color: '#42818c', count: allAssets?.length || 0, label: 'Quality Metrics' },
-        { id: 'checked', title: 'List of Checking Done', color: '#10b981', count: records.length, label: 'Add / View Logs' },
-        { id: 'allAssets', title: 'All Benches & Moulds', color: '#3b82f6', count: allAssets?.length || 0, label: 'Checking Status' }
+        { id: 'summary', title: 'Summary', subtitle: 'Asset integrity & dimensional check', color: '#42818c', count: allAssets?.length || 0, label: 'Quality Metrics' },
+        { id: 'checked', title: 'List of Checking Done', subtitle: 'Logs & Records', color: '#10b981', count: records.length, label: 'Add / View Logs' },
+        { id: 'allAssets', title: 'All Benches & Moulds', subtitle: 'Asset Inventory', color: '#3b82f6', count: allAssets?.length || 0, label: 'Checking Status' }
     ], [allAssets, records]);
 
     const content = (
         <div className="mould-bench-container">
             <div className="mould-bench-dashboard-grid mb-24">
                 {dashboardCards.map(card => (
-                    <div
+                    <MouldBenchSubCard
                         key={card.id}
-                        className={`asset-card ${activeModule === card.id ? 'active' : ''}`}
+                        {...card}
+                        isActive={activeModule === card.id}
                         onClick={() => { setActiveModule(card.id); handleCloseForm(); }}
-                        style={{ borderColor: activeModule === card.id ? card.color : '#e2e8f0', '--active-color-alpha': `${card.color}20` }}
-                    >
-                        <div className="asset-card-header">
-                            <div>
-                                <h4 className="asset-card-title">{card.title}</h4>
-                                <div className="asset-card-count">{card.count}</div>
-                            </div>
-                        </div>
-                        <div className="asset-card-label" style={{ color: card.color }}>{card.label}</div>
-                    </div>
+                    />
                 ))}
             </div>
 

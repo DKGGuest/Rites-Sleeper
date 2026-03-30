@@ -5,7 +5,7 @@ const BatchLogs = ({ batchDeclarations, witnessedRecords, handleSaveWitness, act
     return (
         <div className="fade-in">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '16px' }}>
-                <div>
+                <div style={{ display: 'none' }}>
                     <h3 style={{ margin: 0 }}>Historical Witnessed Logs</h3>
                     <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Manage all witnessed batch declarations.</p>
                 </div>

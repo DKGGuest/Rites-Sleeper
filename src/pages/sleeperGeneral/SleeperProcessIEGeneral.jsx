@@ -6,6 +6,7 @@ import FinalInspectionDashboard from './finalInspection/FinalInspectionDashboard
 import RawMaterialInventory from '../../features/inventory/RawMaterialInventory';
 import IncomingVerificationDashboard from './rawMaterialVerification/IncomingVerificationDashboard';
 import PlantDeclarationVerification from './plantDeclaration/PlantDeclarationVerification';
+import DutyMetaInfo from '../../features/duty/components/DutyMetaInfo';
 
 
 import { getVerificationStats } from '../ProcessIE/PlantVerificationData';
@@ -88,11 +89,7 @@ const SleeperProcessIEGeneral = () => {
                     </button>
                     <div className="header-titles">
                         <h1>Sleeper Process IE-General</h1>
-                        <div className="header-meta-pills">
-                            <span className="meta-pill date"> {dutyDate ? dutyDate.split('-').reverse().join('/') : '10/03/2026'}</span>
-                            <span className="meta-pill shift"> {selectedShift === 'General' ? 'General' : `Shift ${selectedShift}`}</span>
-                            <span className="meta-pill loc"> {dutyLocation || 'Plant Area'}</span>
-                        </div>
+                        <DutyMetaInfo />
                     </div>
                 </div>
             </header>

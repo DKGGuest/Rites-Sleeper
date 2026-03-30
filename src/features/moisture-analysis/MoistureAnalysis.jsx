@@ -359,24 +359,23 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
         <div className={displayMode === 'modal' ? "modal-body" : "inline-container"} style={{ padding: displayMode === 'modal' ? '1.5rem' : '0', width: '100%' }}>
             {(isFormOpen || editRecord) ? (
                 <div ref={formRef} style={{ width: '100%', paddingBottom: '2rem' }}>
-                    {/* Form Header */}
-                    <div style={{
-                        marginBottom: '1.25rem', padding: '12px 16px',
-                        background: '#f0f9ff', borderRadius: '10px',
-                        border: '1px solid #bae6fd'
-                    }}>
-                        <div>
-                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: '#0c4a6e' }}>
-                                {editRecord ? '✏️ Modifying Moisture Record' : '➕ New Moisture Entry'}
-                            </h3>
-                            {editRecord && (
+                    {editRecord && (
+                        <div style={{
+                            marginBottom: '1.25rem', padding: '12px 16px',
+                            background: '#f0f9ff', borderRadius: '10px',
+                            border: '1px solid #bae6fd'
+                        }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: '#0c4a6e' }}>
+                                    ✏️ Modifying Moisture Record
+                                </h3>
                                 <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#0369a1' }}>
                                     Batch {editRecord.batchNo} • {formatDateForDisplay(editRecord.date)}
                                 </p>
-                            )}
+                            </div>
                         </div>
-                    </div>
-                    <div style={{ width: '100%', maxWidth: '1100px' }}>
+                    )}
+                    <div style={{ width: '100%' }}>
                         <MoistureEntryForm
                             onCancel={closeForm}
                             onSave={handleSaveEntry}
@@ -476,7 +475,7 @@ const MoistureAnalysis = ({ onBack, onSave, initialView = 'list', records = [], 
 
     return (
         <div className="modal-overlay" onClick={onBack}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1300px', width: '96%', height: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '100%', width: '100%', height: '100vh', borderRadius: '0', display: 'flex', flexDirection: 'column' }}>
                 <header className="modal-header">
                     <div>
                         <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Moisture Analysis Dashboard</h2>

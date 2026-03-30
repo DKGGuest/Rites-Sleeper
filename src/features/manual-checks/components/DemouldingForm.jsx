@@ -50,6 +50,8 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
         defectiveSleeperDetails: []
     });
 
+    const [validationErrors, setValidationErrors] = useState([]);
+
     const [batches, setBatches] = useState([]);
     const [benches, setBenches] = useState([]);
     const [sleeperTypes, setSleeperTypes] = useState([]);
@@ -265,12 +267,20 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
     const [showValidation, setShowValidation] = useState(false);
 
     const handleSave = () => {
-        if (!formData.gangNo || !formData.batch || !formData.remarks || !formData.type || !formData.process) {
+        const errors = [];
+        if (!formData.batch) errors.push('Batch No.');
+        if (!formData.gangNo) errors.push(`${fieldLabel} No.`);
+        if (!formData.type) errors.push('Sleeper Type');
+        if (!formData.process) errors.push('Process Status');
+        if (!formData.remarks) errors.push('Overall Remarks');
+
+        if (errors.length > 0) {
+            setValidationErrors(errors);
             setShowValidation(true);
-            alert('Please fill in all required fields highlighted in red.');
             return;
         }
         setShowValidation(false);
+        setValidationErrors([]);
 
         // Transform defective sleepers for backend sub-object
         const mappedDefectiveSleepers = formData.defectiveSleeperDetails.length > 0
@@ -353,7 +363,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
         }));
     };
 
-    const fieldLabel = isLongLine ? 'Gang' : 'Bench';
+    const fieldLabel = (formData.location || '').toLowerCase().includes('line') ? 'Gang' : 'Bench';
 
     return (
         <div className="form-container" style={{ padding: '20px' }}>
@@ -420,7 +430,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                 </div>
 
                 <div className="form-field">
-                    <label htmlFor="dim-gang" style={{ fontSize: '11px', fontWeight: '700' }}>Bench No. <span className="required">*</span></label>
+                    <label htmlFor="dim-gang" style={{ fontSize: '11px', fontWeight: '700' }}>{fieldLabel} No. <span className="required">*</span></label>
                     <select
                         id="dim-gang"
                         className="form-input-standard"
@@ -498,7 +508,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                     <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }}></div>
-                            <h4 style={{ margin: 0, color: '#1e293b', fontSize: '15px', fontWeight: '800' }}>RECORDING DEFECTIVE SLEEPERS (BENCH {formData.gangNo || '—'})</h4>
+                            <h4 style={{ margin: 0, color: '#1e293b', fontSize: '15px', fontWeight: '800' }}>RECORDING DEFECTIVE SLEEPERS ({fieldLabel.toUpperCase()} {formData.gangNo || '—'})</h4>
                         </div>
                         <div style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}>
                             {formData.visualCheck === 'All Rejected' || formData.dimCheck === 'All Rejected' ? '* All sleepers are marked rejected' : '* Click to mark sleeper as defective'}
@@ -663,6 +673,84 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                 </button>
                 {initialData && <button className="toggle-btn secondary" type="button" onClick={onCancel}>Cancel</button>}
             </div>
+
+            {/* Validation Errors Modal */}
+            {validationErrors.length > 0 && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(15, 23, 42, 0.45)',
+                    zIndex: 99999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backdropFilter: 'blur(4px)',
+                    padding: '24px'
+                }}>
+                    <div className="fade-in" style={{
+                        maxWidth: '400px',
+                        width: '100%',
+                        background: '#fff',
+                        borderRadius: '24px',
+                        padding: '2rem',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+                        border: '1px solid #e2e8f0',
+                        textAlign: 'center'
+                    }}>
+                        <div style={{
+                            width: '48px',
+                            height: '48px',
+                            background: '#fee2e2',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: '0 auto 1.5rem auto',
+                            color: '#ef4444',
+                            fontSize: '20px'
+                        }}>!</div>
+                        <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', fontWeight: '800', color: '#1e293b' }}>Incomplete Data</h3>
+                        <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.9rem', color: '#64748b', lineHeight: '1.5' }}>
+                            The following mandatory fields are required before saving:
+                        </p>
+                        
+                        <div style={{ 
+                            background: '#f8fafc', 
+                            borderRadius: '12px', 
+                            padding: '16px', 
+                            marginBottom: '2rem',
+                            textAlign: 'left',
+                            border: '1px solid #f1f5f9'
+                        }}>
+                            <ul style={{ margin: 0, padding: '0 0 0 20px', color: '#dc2626', fontSize: '0.875rem', fontWeight: '700', lineHeight: '1.8' }}>
+                                {validationErrors.map((err, idx) => (
+                                    <li key={idx}>{err}</li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <button
+                            onClick={() => setValidationErrors([])}
+                            style={{
+                                width: '100%',
+                                padding: '14px',
+                                borderRadius: '14px',
+                                border: 'none',
+                                background: '#1e293b',
+                                color: '#fff',
+                                fontWeight: '800',
+                                fontSize: '0.9rem',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 6px -1px rgba(30, 41, 59, 0.2)',
+                                transition: 'all 0.2s'
+                            }}
+                        >Understand & Close</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

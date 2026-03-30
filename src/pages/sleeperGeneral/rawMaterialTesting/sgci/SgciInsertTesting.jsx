@@ -35,7 +35,7 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
     const [viewMode, setViewMode] = useState('new-stocks'); // Default to new stocks
     const [showForm, setShowForm] = useState(false);
     const { selectedShift, dutyDate, dutyLocation } = useShift();
-    const { showToast } = useToast();
+    const toast = useToast();
     const [history, setHistory] = useState(MOCK_SGCI_HISTORY.map(h => ({
         ...h,
         createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
@@ -145,7 +145,7 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
             isWeightOk = w > 0; // fallback
         }
         
-        return (isWeightOk && !reading.dimensionalNotOk && !reading.hammerNotOk) ? 'PASS' : 'FAIL';
+        return (isWeightOk && !reading.dimensionalNotOk && !reading.hammerNotOk && w >= 0) ? 'PASS' : 'FAIL';
     };
 
     const summary = useMemo(() => {
@@ -185,6 +185,12 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                 createdBy: parseInt(localStorage.getItem('userId') || '1', 10), // Default 
                 readings: data.readings
             };
+
+            const hasNegativeWeight = data.readings?.some(r => parseFloat(r.weight) < 0);
+            if (hasNegativeWeight) {
+                toast.error("Negative weights are not allowed!");
+                return;
+            }
 
             await saveSgciInsertAudit(payload, editId);
             toast.success(`SGCI Insert Audit record ${editId ? 'updated' : 'saved'}!`);
@@ -521,11 +527,19 @@ const SgciInsertTesting = ({ onBack, inventoryData = [] }) => {
                                                                 min={0}
                                                                 step="0.0001"
                                                                 disabled={!selectedType}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === '-' || e.key === 'e') {
+                                                                        e.preventDefault();
+                                                                    }
+                                                                }}
                                                                 style={{
                                                                     borderColor: readings[index]?.weight && rowResult === 'FAIL' ? '#ef4444' : readings[index]?.weight && rowResult === 'PASS' ? '#10b981' : undefined,
                                                                     borderWidth: readings[index]?.weight ? '2px' : undefined
                                                                 }}
-                                                                {...register(`readings.${index}.weight`)}
+                                                                {...register(`readings.${index}.weight`, { 
+                                                                    required: false,
+                                                                    min: { value: 0, message: "Cannot be negative" }
+                                                                })}
                                                             />
                                                         </td>
                                                         <td style={{ textAlign: 'center' }}><input type="checkbox" disabled={!selectedType} {...register(`readings.${index}.dimensionalNotOk`)} /></td>

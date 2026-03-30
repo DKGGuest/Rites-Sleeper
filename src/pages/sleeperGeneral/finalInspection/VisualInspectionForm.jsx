@@ -5,14 +5,18 @@ import './CriticalDimensionForm.css'; // Reusing styles if applicable or ensurin
 const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
     // Sleeper data from batch details
     const initialSleepers = useMemo(() => {
-        return batch?.sleepers
-            ?.filter(s => s.status?.toUpperCase() !== 'REJECTED')
-            ?.map(s => ({
-                ...s,
-                id: s.sleeperId,
-                displayNo: s.sleeperNo,
-                status: s.status?.toLowerCase() === 'pending' ? 'pending' : (s.status?.toLowerCase() === 'ok' ? 'passed' : 'rejected')
-            })) || [];
+        return (batch?.sleepers || [])
+            .map(s => {
+                const statusUpper = s.status?.toUpperCase();
+                return {
+                    ...s,
+                    id: s.sleeperId,
+                    displayNo: s.sleeperNo,
+                    status: statusUpper === 'REJECTED' ? 'rejected' : 
+                            (statusUpper === 'PENDING' ? 'pending' : 
+                             (statusUpper === 'OK' || statusUpper === 'PASSED' ? 'passed' : 'rejected'))
+                };
+            });
     }, [batch]);
 
     const [sleepers, setSleepers] = useState(initialSleepers);

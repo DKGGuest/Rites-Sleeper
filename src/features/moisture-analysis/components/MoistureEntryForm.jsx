@@ -362,7 +362,7 @@ const MoistureEntryForm = ({ onCancel, onSave, initialData }) => {
     return (
         <div className="moisture-form-container">
             <div className="form-section-header">
-                <h3>{initialData ? 'Edit Moisture Analysis' : 'New Moisture Analysis Entry'}</h3>
+                <h3>{initialData ? 'Edit Moisture Analysis' : ''}</h3>
             </div>
 
             {/* Common Form Section */}

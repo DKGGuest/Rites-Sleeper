@@ -146,9 +146,9 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
     const [viewMode, setViewMode] = useState(initialViewMode === 'form' ? 'form' : 'dashboard');
     const [activeModule, setActiveModule] = useState(initialSubModule || 'mouldPrep');
     const [editingEntry, setEditingEntry] = useState(initialEditData || null);
+    const [logViewMode, setLogViewMode] = useState('Line');
 
     const isLongLine = activeContainer?.type === 'Line';
-    const fieldLabel = isLongLine ? 'Gang' : 'Bench';
 
     const handleShiftFieldChange = (field, value) => {
         if (field === 'batchNo') setSharedBatchNo(value);
@@ -295,11 +295,13 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
         const lineRecords = records.filter(r => !(r.lineShedNo || r.location || '').toLowerCase().includes('shed'));
         const shedRecords = records.filter(r => (r.lineShedNo || r.location || '').toLowerCase().includes('shed'));
 
-        const renderTable = (recordsSubset, title, groupColor) => (
-            <div style={{ marginBottom: '2.5rem' }}>
-                <div style={{ padding: '8px 16px', background: `${groupColor}10`, borderLeft: `4px solid ${groupColor}`, marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h4 style={{ margin: 0, fontSize: '0.85rem', color: groupColor, fontWeight: '800' }}>{title} ({recordsSubset.length})</h4>
-                </div>
+        const renderTable = (recordsSubset, title, groupColor, tableType) => {
+            const tableFieldLabel = tableType === 'Line' ? 'Gang' : 'Bench';
+            return (
+                <div style={{ marginBottom: '2.5rem' }}>
+                    <div style={{ padding: '8px 16px', background: `${groupColor}10`, borderLeft: `4px solid ${groupColor}`, marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '4px' }}>
+                        <h4 style={{ margin: 0, fontSize: '0.85rem', color: groupColor, fontWeight: '800' }}>{title} ({recordsSubset.length})</h4>
+                    </div>
                 <div className="table-responsive">
                     <table className="ui-table">
                         <thead>
@@ -309,7 +311,7 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                                         <th style={{ background: '#fffbeb' }}>Line No / Shed No</th>
                                         <th style={{ background: '#fffbeb' }}>Date & Time</th>
                                         <th style={{ background: '#fffbeb' }}>Batch</th>
-                                        <th style={{ background: '#fffbeb' }}>{fieldLabel} No.</th>
+                                        <th style={{ background: '#fffbeb' }}>{tableFieldLabel} No.</th>
                                         <th style={{ background: '#fffbeb' }}>Mould Cleaned?</th>
                                         <th style={{ background: '#fffbeb' }}>Oil Applied?</th>
                                     </>
@@ -317,7 +319,9 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                                     <>
                                         {mod === 'htsWire' ? (
                                             HTS_TABLE_MAPPING.map(col => (
-                                                <th key={col.Header} style={{ background: '#fffbeb' }}>{col.Header}</th>
+                                                <th key={col.Header} style={{ background: '#fffbeb' }}>
+                                                    {col.Header === 'Gang No.' ? `${tableFieldLabel} No.` : col.Header}
+                                                </th>
                                             ))
                                         ) : (
                                             <>
@@ -326,14 +330,14 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                                                 {mod === 'demoulding' ? (
                                                     <>
                                                         <th style={{ background: '#fffbeb' }}>Batch</th>
-                                                        <th style={{ background: '#fffbeb' }}>Bench No.</th>
+                                                        <th style={{ background: '#fffbeb' }}>{tableFieldLabel} No.</th>
                                                         <th style={{ background: '#fffbeb' }}>Sleeper Type</th>
                                                         <th style={{ background: '#fffbeb' }}>Casting</th>
                                                         <th style={{ background: '#fffbeb' }}>Process</th>
                                                         <th style={{ background: '#fffbeb' }}>Check Status</th>
                                                     </>
                                                 ) : (
-                                                    <th style={{ background: '#fffbeb' }}>{fieldLabel} No.</th>
+                                                    <th style={{ background: '#fffbeb' }}>{tableFieldLabel} No.</th>
                                                 )}
                                             </>
                                         )}
@@ -444,16 +448,64 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                     </table>
                 </div>
             </div>
-        );
+            );
+        };
 
         return (
             <div className="table-outer-wrapper fade-in" style={{ background: 'transparent', border: 'none', padding: 0 }}>
-                {lineRecords.length > 0 && renderTable(lineRecords, "LONG LINE LOGS", "#3b82f6")}
-                {shedRecords.length > 0 && renderTable(shedRecords, "SHED LOGS", "#8b5cf6")}
-                {records.length === 0 && (
-                    <div className="ui-table" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1.5rem', textAlign: 'center' }}>
-                        <span style={{ color: '#64748b', fontStyle: 'italic' }}>No logs found for this module.</span>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+                    <div style={{
+                        display: 'inline-flex',
+                        background: '#f1f5f9',
+                        padding: '4px',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0'
+                    }}>
+                        <button
+                            onClick={() => setLogViewMode('Line')}
+                            style={{
+                                padding: '8px 20px',
+                                borderRadius: '10px',
+                                border: 'none',
+                                background: logViewMode === 'Line' ? '#fff' : 'transparent',
+                                color: logViewMode === 'Line' ? '#3b82f6' : '#64748b',
+                                fontWeight: '800',
+                                fontSize: '11px',
+                                cursor: 'pointer',
+                                boxShadow: logViewMode === 'Line' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                                transition: 'all 0.2s'
+                            }}
+                        >LONG LINE</button>
+                        <button
+                            onClick={() => setLogViewMode('Shed')}
+                            style={{
+                                padding: '8px 20px',
+                                borderRadius: '10px',
+                                border: 'none',
+                                background: logViewMode === 'Shed' ? '#fff' : 'transparent',
+                                color: logViewMode === 'Shed' ? '#8b5cf6' : '#64748b',
+                                fontWeight: '800',
+                                fontSize: '11px',
+                                cursor: 'pointer',
+                                boxShadow: logViewMode === 'Shed' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                                transition: 'all 0.2s'
+                            }}
+                        >SHED</button>
                     </div>
+                </div>
+
+                {logViewMode === 'Line' ? (
+                    lineRecords.length > 0 ? renderTable(lineRecords, "LONG LINE LOGS", "#3b82f6", "Line") : (
+                        <div className="ui-table" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1.5rem', textAlign: 'center' }}>
+                            <span style={{ color: '#64748b', fontStyle: 'italic' }}>No long line logs found for this module.</span>
+                        </div>
+                    )
+                ) : (
+                    shedRecords.length > 0 ? renderTable(shedRecords, "SHED LOGS", "#8b5cf6", "Shed") : (
+                        <div className="ui-table" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1.5rem', textAlign: 'center' }}>
+                            <span style={{ color: '#64748b', fontStyle: 'italic' }}>No shed logs found for this module.</span>
+                        </div>
+                    )
                 )}
             </div>
         );

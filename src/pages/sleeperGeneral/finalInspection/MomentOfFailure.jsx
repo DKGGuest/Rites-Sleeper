@@ -203,15 +203,45 @@ const MomentOfFailure = () => {
             </header>
 
             <div className="nav-tabs" style={{
-                marginBottom: '24px',
-                borderBottom: '1px solid #e2e8f0',
+                marginBottom: '32px',
                 display: 'flex',
-                flexWrap: 'wrap',
-                gap: '8px'
+                gap: '8px',
+                background: '#f1f5f9',
+                padding: '6px',
+                borderRadius: '14px',
+                width: 'fit-content',
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)',
+                border: '1px solid #e2e8f0'
             }}>
-                <button className={`nav-tab ${viewMode === 'statistics' ? 'active' : ''}`} style={{ flex: '1 1 auto', minWidth: '120px' }} onClick={() => setViewMode('statistics')}>Statistics</button>
-                <button className={`nav-tab ${viewMode === 'declared' ? 'active' : ''}`} style={{ flex: '1 1 auto', minWidth: '120px' }} onClick={() => setViewMode('declared')}>Samples Declared</button>
-                <button className={`nav-tab ${viewMode === 'tested' ? 'active' : ''}`} style={{ flex: '1 1 auto', minWidth: '120px' }} onClick={() => setViewMode('tested')}>Samples Tested</button>
+                {[
+                    { id: 'statistics', label: 'Structural Integrity' },
+                    { id: 'declared', label: 'Moment of Resistance' },
+                    { id: 'tested', label: 'Standard Compliance' }
+                ].map(tab => (
+                    <button
+                        key={tab.id}
+                        className={`nav-tab ${viewMode === tab.id ? 'active' : ''}`}
+                        style={{
+                            border: 'none',
+                            padding: '10px 24px',
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                            fontWeight: viewMode === tab.id ? '800' : '600',
+                            background: viewMode === tab.id ? '#fff' : 'transparent',
+                            color: viewMode === tab.id ? '#13343b' : '#64748b',
+                            boxShadow: viewMode === tab.id ? '0 4px 12px rgba(0, 0, 0, 0.08)' : 'none',
+                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            transform: viewMode === tab.id ? 'scale(1.02)' : 'scale(1)',
+                        }}
+                        onClick={() => setViewMode(tab.id)}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
             </div>
 
             <div className="tab-content" style={{ animation: 'fadeIn 0.3s ease' }}>

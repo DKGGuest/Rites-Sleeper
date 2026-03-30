@@ -24,6 +24,7 @@ const MainLayout = ({ children, activeItem, onItemClick }) => {
 
     const handleLogout = () => {
         logoutUser();
+        onItemClick('Main Dashboard');
         navigate(ROUTES.LOGIN, { replace: true });
     };
 

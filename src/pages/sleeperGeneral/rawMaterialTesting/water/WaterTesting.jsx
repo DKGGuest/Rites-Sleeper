@@ -202,10 +202,6 @@ const WaterTesting = ({ onBack }) => {
 
                 {viewMode === 'history' && (
                     <div className="table-outer-wrapper fade-in">
-                        <div className="content-title-row" style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', marginBottom: 0 }}>
-                            <h4 style={{ margin: 0 }}>Historical Quality Logs</h4>
-                            <button className="toggle-btn mini" onClick={() => { reset(); setShowForm(true); }}>+ Add New (Periodic)</button>
-                        </div>
                         <EnhancedDataTable columns={historyColumns} data={history} />
                     </div>
                 )}

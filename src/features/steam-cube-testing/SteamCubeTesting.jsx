@@ -275,9 +275,8 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
             label: 'Actions',
             render: (_, row) => (
                 <div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="btn-save" onClick={() => handleModifySample(row)}>Modify</button>
-                    <button className="btn-verify" onClick={() => handleEnterTestDetails(row)}>Enter Test Details</button>
-                    <button className="btn-delete-entry" onClick={() => handleDeleteTest(row.id)}>Delete</button>
+                    <button className="btn-save" style={{ marginTop: 0, padding: '4px 12px', height: '28px' }} onClick={() => handleModifySample(row)}>Modify</button>
+                    <button className="btn-verify" style={{ padding: '4px 12px', height: '28px', fontSize: '11px' }} onClick={() => handleEnterTestDetails(row)}>Enter Test Details</button>
                 </div>
             )
         }
@@ -338,8 +337,7 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
             label: 'Actions',
             render: (_, row) => (
                 <div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="btn-save" onClick={() => handleEnterTestDetails(row)}>Edit</button>
-                    <button className="btn-delete-entry" onClick={() => handleDeleteTest(row.id)}>Delete</button>
+                    <button className="btn-save" style={{ marginTop: 0, padding: '4px 12px', height: '28px' }} onClick={() => handleEnterTestDetails(row)}>Edit</button>
                 </div>
             )
         }
@@ -444,7 +442,7 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
                         <div className="section-card">
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                                 <h4 style={{ margin: 0, color: '#10b981', fontWeight: '800' }}>DECLARED SAMPLES</h4>
-                                <button className="btn-verify" onClick={handleAddSample}>+ Add Declaration</button>
+                                <button className="btn-verify" style={{ height: '32px', padding: '0 16px', fontSize: '11px', borderRadius: '16px' }} onClick={handleAddSample}>+ Add Declaration</button>
                             </div>
                             <EnhancedDataTable 
                                 columns={getColumnsDeclared()} 
@@ -471,6 +469,10 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
                     isModifying={isModifying}
                     onClose={() => setShowDeclareModal(false)}
                     onSave={saveDeclaration}
+                    onDelete={(id) => {
+                        setShowDeclareModal(false);
+                        handleDeleteTest(id);
+                    }}
                     activeContainer={activeContainer}
                 />
             )}
@@ -480,6 +482,10 @@ const SteamCubeTesting = ({ onBack, testedRecords: propTestedRecords, setTestedR
                     sample={selectedSample}
                     onClose={() => setShowTestModal(false)}
                     onSave={saveTestDetails}
+                    onDelete={(id) => {
+                        setShowTestModal(false);
+                        handleDeleteTest(id);
+                    }}
                     isModifying={isModifying}
                     activeContainer={activeContainer}
                 />
@@ -511,7 +517,7 @@ const StatCard = ({ label, value, unit = '', color = '#1e293b' }) => (
     </div>
 );
 
-const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave, activeContainer }) => {
+const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave, onDelete, activeContainer }) => {
     const { containers } = useShift();
     const [formData, setFormData] = useState({
         lineNo: sample?.lineNo || (activeContainer?.type !== 'Shed' ? activeContainer?.name : null) || (sample?.location && !sample?.shedNo ? sample.location : ''),
@@ -678,7 +684,7 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave, activeCo
                             <button 
                                 className="btn-verify" 
                                 onClick={addCube} 
-                                style={{ height: '38px', padding: '0 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '700' }}
+                                style={{ height: '32px', padding: '0 16px', borderRadius: '16px', fontSize: '11px', fontWeight: '700' }}
                             >
                                 + Add
                             </button>
@@ -721,16 +727,31 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave, activeCo
                     </div>
 
 
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '32px', justifyContent: 'flex-end' }}>
                         <button
                             className="btn-verify"
-                            style={{ flex: 1 }}
+                            style={{ padding: '8px 24px', fontSize: '12px', height: '36px', width: 'auto' }}
                             onClick={() => onSave(formData)}
                             disabled={!formData.batchNo || !formData.concreteGrade || formData.cubes.length === 0}
                         >
                             {isModifying ? 'Update Declaration' : 'Save Declaration'}
                         </button>
-                        <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#64748b' }} onClick={onClose}>Cancel</button>
+                        {isModifying && (
+                            <button 
+                                className="btn-delete-entry" 
+                                style={{ padding: '8px 24px', fontSize: '12px', height: '36px', width: 'auto', background: '#fee2e2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '20px', cursor: 'pointer', fontWeight: '700' }} 
+                                onClick={() => onDelete(sample.id)}
+                            >
+                                Delete Record
+                            </button>
+                        )}
+                        <button 
+                            className="btn-save" 
+                            style={{ padding: '8px 24px', fontSize: '12px', height: '36px', width: 'auto', background: '#f1f5f9', color: '#64748b', marginTop: 0 }} 
+                            onClick={onClose}
+                        >
+                            Cancel
+                        </button>
                     </div>
                 </div>
             </div>
@@ -738,7 +759,7 @@ const SampleDeclarationModal = ({ sample, isModifying, onClose, onSave, activeCo
     );
 };
 
-const TestDetailsModal = ({ sample, onClose, onSave, isModifying, activeContainer }) => {
+const TestDetailsModal = ({ sample, onClose, onSave, onDelete, isModifying, activeContainer }) => {
     const isShed = activeContainer?.type === 'Shed';
     const [testData, setTestData] = useState({
         testDate: sample.testDate || new Date().toISOString().split('T')[0],
@@ -947,7 +968,7 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying, activeContaine
                                 </tbody>
                             </table>
                         </div>
-                        <button onClick={addCubeRow} style={{ marginTop: '12px', background: '#f5f3ff', color: '#7c3aed', border: '1px dashed #7c3aed', borderRadius: '6px', padding: '6px 16px', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}>+ Add Cube</button>
+                        <button onClick={addCubeRow} style={{ marginTop: '12px', background: '#f5f3ff', color: '#7c3aed', border: '1px dashed #7c3aed', borderRadius: '16px', padding: '6px 16px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', height: '32px', display: 'flex', alignItems: 'center' }}>+ Add Cube</button>
                     </div>
 
                     {/* Summary Section */}
@@ -984,10 +1005,10 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying, activeContaine
                         </p>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '24px', justifyContent: 'flex-end' }}>
                         <button
                             className="btn-verify"
-                            style={{ flex: 1, padding: '14px' }}
+                            style={{ padding: '8px 24px', fontSize: '12px', height: '36px', width: 'auto' }}
                             onClick={() => onSave({
                                 ...testData,
                                 avgStrength,
@@ -1004,7 +1025,20 @@ const TestDetailsModal = ({ sample, onClose, onSave, isModifying, activeContaine
                         >
                             Complete Test & Archive
                         </button>
-                        <button className="btn-save" style={{ flex: 1, background: '#f1f5f9', color: '#64748b' }} onClick={onClose}>Cancel</button>
+                        <button 
+                            className="btn-delete-entry" 
+                            style={{ padding: '8px 24px', fontSize: '12px', height: '36px', width: 'auto', background: '#fee2e2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '20px', cursor: 'pointer', fontWeight: '700' }} 
+                            onClick={() => onDelete(sample.id)}
+                        >
+                            Delete Record
+                        </button>
+                        <button 
+                            className="btn-save" 
+                            style={{ padding: '8px 24px', fontSize: '12px', height: '36px', width: 'auto', background: '#f1f5f9', color: '#64748b', marginTop: 0 }} 
+                            onClick={onClose}
+                        >
+                            Cancel
+                        </button>
                     </div>
                 </div>
             </div>

@@ -90,7 +90,7 @@ const BatchWeighment = ({
     const tabs = [
         { id: 'stats', label: 'Statistics', desc: 'View weight distribution and material consumption.' },
         { id: 'witnessed', label: 'Witnessed Logs', desc: 'Manage all witnessed batch declarations.' },
-        { id: 'scada', label: 'Scada Data', desc: 'Raw SCADA feed for weight batching.' }
+        { id: 'scada', label: 'Scada Data', desc: '' }
     ];
 
     const renderContent = () => {

@@ -51,7 +51,7 @@ export const storeAuthData = (authData) => {
   localStorage.setItem('userId', authData.userId);
   localStorage.setItem('userName', authData.userName);
   localStorage.setItem('roleName', authData.roleName);
-  // Important: Reset navigation state so user lands on "Portal Home" after login
+  // Reset navigation to landing page upon login
   localStorage.setItem('activeMainView', 'Main Dashboard');
 };
 
@@ -96,14 +96,6 @@ export const logoutUser = () => {
   localStorage.removeItem('userId');
   localStorage.removeItem('userName');
   localStorage.removeItem('roleName');
-  // Clear navigation/session persistence
-  localStorage.removeItem('activeMainView');
-  localStorage.removeItem('activeSubView_General');
-  localStorage.removeItem('dutyStarted');
-  localStorage.removeItem('selectedShift');
-  localStorage.removeItem('dutyDate');
-  localStorage.removeItem('dutyUnit');
-  localStorage.removeItem('dutyLocation');
-  localStorage.removeItem('activeContainerId');
-  localStorage.removeItem('vendorCode');
+  // Reset navigation to landing page upon logout
+  localStorage.setItem('activeMainView', 'Main Dashboard');
 };
