@@ -30,6 +30,14 @@ const SleeperProcessDuty = () => {
         activeContainerId,
         setActiveContainerId,
         loadShiftData,
+        fetchMoisture,
+        fetchManualChecks,
+        fetchWireTension,
+        fetchCompaction,
+        fetchBatchWeighment,
+        fetchSteamCuring,
+        fetchBenchMoulds,
+        isLoading,
         moistureRecords,
         setMoistureRecords,
         testedRecords,
@@ -167,8 +175,9 @@ const SleeperProcessDuty = () => {
                                 activeContainer={activeContainer}
                                 showEntryForm={showBatchEntryForm}
                                 setShowEntryForm={setShowBatchEntryForm}
-                                loadShiftData={loadShiftData}
+                                loadShiftData={fetchBatchWeighment}
                             />
+
                         </div>
                     )}
 
@@ -297,7 +306,7 @@ const SleeperProcessDuty = () => {
                                     setAllWitnessedRecords: (data) => setAllWitnessedRecords(prev => ({ ...prev, [activeContainerId]: typeof data === 'function' ? data(prev[activeContainerId] || []) : data }))
                                 }}
                                 activeContainer={activeContainer}
-                                loadShiftData={loadShiftData}
+                                loadShiftData={fetchBatchWeighment}
                             />
                         ) : activeTab === 'Manual Checks' ? (
                             <ManualChecks
@@ -313,8 +322,9 @@ const SleeperProcessDuty = () => {
                                 onBack={() => setDetailView('dashboard')}
                                 onSave={() => {
                                     setMoistureAlert(false);
-                                    loadShiftData();
+                                    fetchMoisture();
                                 }}
+
                                 initialView={viewMode}
                                 records={moistureRecords}
                                 setRecords={setMoistureRecords}
@@ -328,7 +338,7 @@ const SleeperProcessDuty = () => {
                                     setTensionRecords: (data) => setAllTensionRecords(prev => ({ ...prev, [activeContainerId]: typeof data === 'function' ? data(prev[activeContainerId] || []) : data }))
                                 }}
                                 activeContainer={activeContainer}
-                                loadShiftData={loadShiftData}
+                                loadShiftData={fetchWireTension}
                             />
                         ) : activeTab === 'Compaction of Concrete (Vibrator Report)' ? (
                             <CompactionConcrete onBack={() => setDetailView('dashboard')} onSave={() => { }} />
@@ -436,6 +446,28 @@ const SleeperProcessDuty = () => {
                             >Remove</button>
                         </div>
                     </div>
+                </div>
+            )}
+            {/* Loading Overlay */}
+            {isLoading && (
+                <div style={{
+                    position: 'fixed',
+                    bottom: '24px',
+                    right: '24px',
+                    padding: '12px 20px',
+                    background: '#1e293b',
+                    color: '#fff',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    zIndex: 99999,
+                    fontSize: '12px',
+                    fontWeight: '700'
+                }}>
+                    <div className="loading-spinner-mini"></div>
+                    Updating Live Data...
                 </div>
             )}
         </div>

@@ -102,8 +102,8 @@ export const ShiftProvider = ({ children }) => {
     const [testedRecords, setTestedRecords] = useState([]);
 
     const [benchMouldCheckRecords, setBenchMouldCheckRecords] = useState([]);
-
     const [allBenchesMoulds, setAllBenchesMoulds] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
 
     const [newContainer, setNewContainer] = useState({ type: 'Line', name: '' });
     const containerValues = [
@@ -132,93 +132,106 @@ export const ShiftProvider = ({ children }) => {
 
     const activeContainer = containers.find(c => c.id === activeContainerId);
 
-    const loadShiftData = async () => {
-        try {
-            const [moisture, mouldPrep, htsWireResponse, demoulding, benchMould, wireTensionResponse, compactionResponse, steamResponse, batchWeighmentResponse, stressBenches] = await Promise.all([
-                apiService.getAllMoistureAnalysis(),
-                apiService.getAllMouldPreparations(),
-                apiService.getAllHtsWirePlacement(),
-                apiService.getAllDemouldingInspection(),
-                apiService.getAllBenchMouldInspections(),
-                apiService.getAllWireTensioning(),
-                apiService.getAllCompaction(),
-                apiService.getAllSteamCuring(),
-                apiService.getAllBatchWeighment(),
-                apiService.getAllStressBenches()
-            ]);
+    // Granular fetch functions for better performance and targeted updates
+    const fetchMoisture = async () => {
+        const res = await apiService.getAllMoistureAnalysis();
+        if (res?.responseData) setMoistureRecords(res.responseData);
+    };
 
-            if (moisture?.responseData) setMoistureRecords(moisture.responseData);
+    const fetchManualChecks = async () => {
+        const [mouldPrep, htsWire, demoulding] = await Promise.all([
+            apiService.getAllMouldPreparations(),
+            apiService.getAllHtsWirePlacement(),
+            apiService.getAllDemouldingInspection()
+        ]);
+        const htsListData = htsWire?.responseData || [];
+        setHtsData(htsListData);
+        setManualCheckEntries({
+            mouldPrep: mouldPrep?.responseData || [],
+            htsWire: htsListData,
+            demoulding: demoulding?.responseData || []
+        });
+    };
 
-            // Mapping backend wire tensioning to frontend flat state
-            if (wireTensionResponse?.responseData) {
-                const flattenedRecords = mapWireTensionRecords(wireTensionResponse.responseData);
-                setAllTensionRecords(prev => ({
-                    ...prev,
-                    [activeContainerId]: flattenedRecords
-                }));
-            }
-
-            // Mapping backend compaction to frontend flat state
-            if (compactionResponse?.responseData) {
-                const flattenedRecords = mapCompactionRecords(compactionResponse.responseData);
-                setAllCompactionRecords(prev => ({
-                    ...prev,
-                    [activeContainerId]: flattenedRecords
-                }));
-            }
-
-            // Mapping backend batch weighment to frontend state
-            if (batchWeighmentResponse?.responseData) {
-                const { declarations, configs, witnessed } = mapBatchWeighmentData(batchWeighmentResponse.responseData, containers);
-                setAllWitnessedRecords(witnessed);
-                setAllBatchDeclarations(declarations);
-                setAllSessionConfigs(prev => ({ ...prev, ...configs }));
-            }
-
-            // Mapping backend steam curing to frontend flat state
-            if (steamResponse?.responseData) {
-                setSteamRecords(mapSteamCuringRecords(steamResponse.responseData));
-            }
-
-            const htsListData = htsWireResponse?.responseData || [];
-            if (htsWireResponse?.responseData) {
-                setHtsData(htsListData);
-            }
-
-            setManualCheckEntries({
-                mouldPrep: mouldPrep?.responseData || [],
-                htsWire: htsListData,
-                demoulding: demoulding?.responseData || []
-            });
-            if (benchMould?.responseData) setBenchMouldCheckRecords(benchMould.responseData);
-            
-            if (stressBenches?.responseData) {
-                // Map to both master list and plant verification data
-                const masterList = stressBenches.responseData.map(b => ({
-                    id: b.id,
-                    type: 'Bench',
-                    name: b.entryType === 'Single' ? `Bench ${b.benchNo}` : `Range ${b.benchFrom}-${b.benchTo}`,
-                    assetNo: b.entryType === 'Single' ? b.benchNo : `${b.benchFrom}-${b.benchTo}`,
-                    lastCasting: b.latestCastingDate || '2025-01-31',
-                    lastChecking: b.lastCheckingDate || '2026-01-30',
-                    sleeperType: b.sleeperCategory
-                }));
-                setAllBenchesMoulds(masterList);
-                
-                setPlantVerificationData(prev => ({
-                    ...prev,
-                    benches: stressBenches.responseData.map(b => ({
-                        ...b,
-                        moduleId: 2,
-                        requestId: b.id,
-                        status: b.status || 'Pending'
-                    }))
-                }));
-            }
-        } catch (error) {
-            console.error("Error loading shift data:", error);
+    const fetchWireTension = async () => {
+        const res = await apiService.getAllWireTensioning();
+        if (res?.responseData) {
+            const flattenedRecords = mapWireTensionRecords(res.responseData);
+            setAllTensionRecords(prev => ({ ...prev, [activeContainerId]: flattenedRecords }));
         }
     };
+
+    const fetchCompaction = async () => {
+        const res = await apiService.getAllCompaction();
+        if (res?.responseData) {
+            const flattenedRecords = mapCompactionRecords(res.responseData);
+            setAllCompactionRecords(prev => ({ ...prev, [activeContainerId]: flattenedRecords }));
+        }
+    };
+
+    const fetchBatchWeighment = async () => {
+        const res = await apiService.getAllBatchWeighment();
+        if (res?.responseData) {
+            const { declarations, configs, witnessed } = mapBatchWeighmentData(res.responseData, containers);
+            setAllWitnessedRecords(witnessed);
+            setAllBatchDeclarations(declarations);
+            setAllSessionConfigs(prev => ({ ...prev, ...configs }));
+        }
+    };
+
+    const fetchSteamCuring = async () => {
+        const res = await apiService.getAllSteamCuring();
+        if (res?.responseData) {
+            setSteamRecords(mapSteamCuringRecords(res.responseData));
+        }
+    };
+
+    const fetchBenchMoulds = async () => {
+        const [benchMould, stressBenches] = await Promise.all([
+            apiService.getAllBenchMouldInspections(),
+            apiService.getAllStressBenches()
+        ]);
+        if (benchMould?.responseData) setBenchMouldCheckRecords(benchMould.responseData);
+        if (stressBenches?.responseData) {
+            const masterList = stressBenches.responseData.map(b => ({
+                id: b.id,
+                type: 'Bench',
+                name: b.entryType === 'Single' ? `Bench ${b.benchNo}` : `Range ${b.benchFrom}-${b.benchTo}`,
+                assetNo: b.entryType === 'Single' ? b.benchNo : `${b.benchFrom}-${b.benchTo}`,
+                lastCasting: b.latestCastingDate || '2025-01-31',
+                lastChecking: b.lastCheckingDate || '2026-01-30',
+                sleeperType: b.sleeperCategory
+            }));
+            setAllBenchesMoulds(masterList);
+            setPlantVerificationData(prev => ({
+                ...prev,
+                benches: stressBenches.responseData.map(b => ({
+                    ...b, moduleId: 2, requestId: b.id, status: b.status || 'Pending'
+                }))
+            }));
+        }
+    };
+
+    const loadShiftData = async () => {
+        setIsLoading(true);
+        try {
+            // Firing all groups in parallel but each updates its own state when ready
+            await Promise.allSettled([
+                fetchMoisture(),
+                fetchManualChecks(),
+                fetchWireTension(),
+                fetchCompaction(),
+                fetchBatchWeighment(),
+                fetchSteamCuring(),
+                fetchBenchMoulds()
+            ]);
+        } catch (error) {
+            console.error("Error loading shift data:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
 
     const value = {
         dutyStarted,
@@ -272,8 +285,17 @@ export const ShiftProvider = ({ children }) => {
         plantVerificationData,
         setPlantVerificationData,
         loadShiftData,
+        fetchMoisture,
+        fetchManualChecks,
+        fetchWireTension,
+        fetchCompaction,
+        fetchBatchWeighment,
+        fetchSteamCuring,
+        fetchBenchMoulds,
+        isLoading,
         endDuty
     };
+
 
 
     return <ShiftContext.Provider value={value}>{children}</ShiftContext.Provider>;

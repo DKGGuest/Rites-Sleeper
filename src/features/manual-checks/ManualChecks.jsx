@@ -142,7 +142,8 @@ const HTS_TABLE_MAPPING = [
 
 const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMode, sharedState, initialEditData, isInline = false }) => {
     const { entries, setEntries } = sharedState;
-    const { loadShiftData, sharedBatchNo, setSharedBatchNo, sharedBenchNo, setSharedBenchNo } = useShift();
+    const { fetchManualChecks, sharedBatchNo, setSharedBatchNo, sharedBenchNo, setSharedBenchNo } = useShift();
+
     const [viewMode, setViewMode] = useState(initialViewMode === 'form' ? 'form' : 'dashboard');
     const [activeModule, setActiveModule] = useState(initialSubModule || 'mouldPrep');
     const [editingEntry, setEditingEntry] = useState(initialEditData || null);
@@ -206,9 +207,9 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
             // Transition to dashboard immediately – fire background refresh without awaiting
             setEditingEntry(null);
             setViewMode('dashboard');
-
-            // Non-blocking background sync so the UI does not freeze
-            if (loadShiftData) loadShiftData().catch(console.error);
+            
+            // Targeted background sync so the UI does not freeze
+            if (fetchManualChecks) fetchManualChecks().catch(console.error);
 
         } catch (error) {
             console.error(`❌ Error saving ${subModule}:`, error.message);
@@ -228,8 +229,8 @@ const ManualChecks = ({ onBack, activeContainer, initialSubModule, initialViewMo
                     ...prev,
                     [subModule]: prev[subModule].filter(e => e.id !== entryId)
                 }));
-                // 7. After operations, re-fetch
-                await loadShiftData();
+                // 7. After operations, re-fetch only needed data
+                if (fetchManualChecks) await fetchManualChecks();
             } catch (error) {
                 console.error(`Error deleting ${subModule}:`, error);
                 alert(`Failed to delete ${subModule}.`);

@@ -274,6 +274,24 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
         if (!formData.process) errors.push('Process Status');
         if (!formData.remarks) errors.push('Overall Remarks');
 
+        // Validation: only require manual sleeper selection when checks are non-OK
+        const bothAllOk = formData.visualCheck === 'All OK' && formData.dimCheck === 'All OK';
+        if (!bothAllOk && formData.defectiveSleeperDetails.length === 0) {
+            errors.push(`At least one ${fieldLabel} sleeper must be selected from the grid below`);
+        }
+
+        // If checks are not OK, ensure reasons are filled
+        if (!bothAllOk && formData.defectiveSleeperDetails.length > 0) {
+            const hasUnfilledReasons = formData.defectiveSleeperDetails.some(d => {
+                const needsVisual = formData.visualCheck !== 'All OK';
+                const needsDim = formData.dimCheck !== 'All OK';
+                return (needsVisual && !d.visualReason) || (needsDim && !d.dimReason);
+            });
+            if (hasUnfilledReasons) {
+                errors.push('All selected defective sleepers must have a defect reason filled in');
+            }
+        }
+
         if (errors.length > 0) {
             setValidationErrors(errors);
             setShowValidation(true);
@@ -282,17 +300,27 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
         setShowValidation(false);
         setValidationErrors([]);
 
-        // Transform defective sleepers for backend sub-object
-        const mappedDefectiveSleepers = formData.defectiveSleeperDetails.length > 0
-            ? formData.defectiveSleeperDetails.map(item => ({
-                benchGangNo: String(item.benchNo || ""),
+        // Build defective sleepers payload:
+        // - "All OK": auto-send all 8 positions with empty reasons (backend requires non-empty array)
+        // - Non-OK: use manually selected sleepers with their reasons
+        const gangNo = formData.gangNo || '';
+        const allSleeperSeqs = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+
+        const mappedDefectiveSleepers = bothAllOk
+            ? allSleeperSeqs.map(seq => ({
+                benchGangNo: gangNo,
+                sequenceNo: seq,
+                sleeperNo: gangNo ? `${gangNo}${seq}` : seq,
+                visualReason: "",
+                dimReason: ""
+            }))
+            : formData.defectiveSleeperDetails.map(item => ({
+                benchGangNo: String(item.benchNo || gangNo || ""),
                 sequenceNo: String(item.sequence || ""),
-                sleeperNo: String(item.sleeperNo || ""),
-                // ONLY send reason if the top-level check permits it
+                sleeperNo: String(item.sleeperNo || `${item.benchNo || gangNo}${item.sequence}` || ""),
                 visualReason: formData.visualCheck !== 'All OK' ? String(item.visualReason || "") : "",
                 dimReason: formData.dimCheck !== 'All OK' ? String(item.dimReason || "") : ""
-            }))
-            : []; // Send empty array rather than empty object instance
+            }));
 
         console.log("Saving Date:", formData.inspectionDate);
         console.log("Saving Time:", formData.inspectionTime);
@@ -502,30 +530,34 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                 </div>
             </div>
 
-            {/* Defective Section: Visual Grid of Sleepers A-H */}
+            {/* Defective Section: Only shown when at least one check is non-OK */}
             {(formData.visualCheck !== 'All OK' || formData.dimCheck !== 'All OK') && (
                 <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                     <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }}></div>
-                            <h4 style={{ margin: 0, color: '#1e293b', fontSize: '15px', fontWeight: '800' }}>RECORDING DEFECTIVE SLEEPERS ({fieldLabel.toUpperCase()} {formData.gangNo || '—'})</h4>
+                            <h4 style={{ margin: 0, color: '#1e293b', fontSize: '15px', fontWeight: '800' }}>
+                                DEFECTIVE SLEEPERS — {fieldLabel.toUpperCase()} {formData.gangNo || '—'}
+                            </h4>
                         </div>
-                        <div style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}>
-                            {formData.visualCheck === 'All Rejected' || formData.dimCheck === 'All Rejected' ? '* All sleepers are marked rejected' : '* Click to mark sleeper as defective'}
+                        <div style={{ fontSize: '11px', color: '#ef4444', fontStyle: 'italic', fontWeight: '700', background: '#fef2f2', padding: '4px 10px', borderRadius: '6px', border: '1px solid #fecaca' }}>
+                            {formData.visualCheck === 'All Rejected' || formData.dimCheck === 'All Rejected'
+                                ? '* All sleepers are marked rejected'
+                                : '⚠ Required: Click sleepers to mark as defective'}
                         </div>
                     </div>
 
-                    {/* The Grid Tooltips/Chips */}
-                    <div style={{ 
-                        display: 'flex', 
-                        flexWrap: 'wrap', 
-                        gap: '10px', 
-                        padding: '16px', 
-                        background: '#f8fafc', 
-                        borderRadius: '12px', 
-                        border: '1px dashed #cbd5e1',
-                        marginBottom: '20px'
-                    }}>
+                {/* The Grid Tooltips/Chips */}
+                <div style={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: '10px', 
+                    padding: '16px', 
+                    background: '#f8fafc', 
+                    borderRadius: '12px', 
+                    border: '1px dashed #cbd5e1',
+                    marginBottom: '20px'
+                }}>
                         {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(seq => {
                             // Check if this sleeper is currently marked as defective
                             const isDefective = formData.defectiveSleeperDetails.some(d => d.sequence === seq);
@@ -651,7 +683,8 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                                             )}
 
                                             <td style={{ padding: '8px', textAlign: 'center' }}>
-                                                {(formData.visualCheck === 'Partially OK' || formData.dimCheck === 'Partially OK') && (
+                                                {/* Show remove button always — not just for Partially OK */}
+                                                {!(formData.visualCheck === 'All Rejected' || formData.dimCheck === 'All Rejected') && (
                                                     <button
                                                         onClick={() => removeDefectiveSleeper(idx)}
                                                         style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px', padding: '4px' }}

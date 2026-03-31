@@ -103,21 +103,26 @@ const PlantDeclarationVerification = () => {
     const [loading, setLoading]                   = useState(false);
     const [error, setError]                       = useState(null);
     
-    // Data states
-    const [pendingByModule, setPendingByModule]     = useState({}); 
-    const [completedByModule, setCompletedByModule] = useState({});
+    // Data states (raw lists for counts)
+    const [rawPendingByModule, setRawPendingByModule]     = useState({}); 
+    const [rawCompletedByModule, setRawCompletedByModule] = useState({});
+
+    // Enriched states (with full record details for table)
+    const [enrichedPending, setEnrichedPending]     = useState({});
+    const [enrichedCompleted, setEnrichedCompleted] = useState({});
 
     const [selectedModuleId, setSelectedModuleId] = useState(null);
     const [detailModal, setDetailModal]           = useState(null); 
     const [benchType, setBenchType]               = useState('STRESS_BENCH'); 
     const [submitting, setSubmitting]             = useState(false);
+    const [enriching, setEnriching]               = useState(false);
 
-    // ── Load Data ──
+
+    // ── Load High-Level Lists ──
     const loadData = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            // Fetch both in parallel
             const [pendingRes, completedRes] = await Promise.all([
                 apiService.getAllPendingWorkflowTransitions('IE'),
                 getAllCompletedCalls()
@@ -126,62 +131,89 @@ const PlantDeclarationVerification = () => {
             const rawPending = Array.isArray(pendingRes) ? pendingRes : (pendingRes?.responseData || []);
             const rawCompleted = Array.isArray(completedRes) ? completedRes : (completedRes?.responseData || []);
 
-            // Helper to process a list into enriched-by-module map
-            const processRecords = async (rawList) => {
-                const myRecords = rawList.filter(r =>
+            // Helper to filter and group by moduleId
+            const groupRecords = (list) => {
+                const myRecords = list.filter(r =>
                     Array.isArray(r.accessibleUserIds) &&
                     r.accessibleUserIds.includes(LOGGED_IN_USER_ID)
                 );
                 const plantModuleIds = PLANT_DECLARATION_MODULES.map(m => m.moduleId);
                 const plantRecords = myRecords.filter(r => plantModuleIds.includes(r.moduleId));
-
+                
                 const grouped = {};
-                for (const mod of PLANT_DECLARATION_MODULES) { grouped[mod.moduleId] = []; }
-                for (const item of plantRecords) {
+                plantModuleIds.forEach(id => { grouped[id] = []; });
+                plantRecords.forEach(item => {
                     if (grouped[item.moduleId]) grouped[item.moduleId].push(item);
-                }
-
-                const enriched = {};
-                await Promise.all(
-                    Object.entries(grouped).map(async ([mid, items]) => {
-                        const numId = Number(mid);
-                        const modConf = PLANT_DECLARATION_MODULES.find(m => m.moduleId === numId);
-                        enriched[numId] = await Promise.all(
-                            items.map(async item => {
-                                const detail = await fetchRecordDetail(numId, item.requestId);
-                                return {
-                                    ...item,
-                                    detail: detail || {},
-                                    moduleLabel: modConf?.label || `Module ${numId}`,
-                                };
-                            })
-                        );
-                    })
-                );
-                return enriched;
+                });
+                return grouped;
             };
 
-            const [pEnriched, cEnriched] = await Promise.all([
-                processRecords(rawPending),
-                processRecords(rawCompleted)
-            ]);
+            const pGrouped = groupRecords(rawPending);
+            const cGrouped = groupRecords(rawCompleted);
 
-            setPendingByModule(pEnriched);
-            setCompletedByModule(cEnriched);
+            setRawPendingByModule(pGrouped);
+            setRawCompletedByModule(cGrouped);
+            
+            // Clear enriched cache on manual refresh
+            setEnrichedPending({});
+            setEnrichedCompleted({});
 
             if (selectedModuleId === null) {
                 setSelectedModuleId(PLANT_DECLARATION_MODULES[0].moduleId);
             }
         } catch (err) {
-            setError(err.message || 'Failed to load records.');
+            setError(err.message || 'Failed to load list.');
         } finally {
             setLoading(false);
         }
     }, [selectedModuleId]);
 
+    // ── Lazy Enrichment of Active Tab ──
+    const enrichModule = useCallback(async (mid) => {
+        if (!mid) return;
+        
+        // If already enriched, skip (unless we want to force refresh)
+        if (enrichedPending[mid] || enrichedCompleted[mid]) return;
+
+        setEnriching(true);
+        try {
+            const midsToEnrich = mid === 2 ? [2, 12] : [mid];
+            
+            for (const targetMid of midsToEnrich) {
+                const pItems = rawPendingByModule[targetMid] || [];
+                const cItems = rawCompletedByModule[targetMid] || [];
+
+                const [pEnriched, cEnriched] = await Promise.all([
+                    Promise.all(pItems.map(async item => ({
+                        ...item,
+                        detail: (await fetchRecordDetail(targetMid, item.requestId)) || {}
+                    }))),
+                    Promise.all(cItems.map(async item => ({
+                        ...item,
+                        detail: (await fetchRecordDetail(targetMid, item.requestId)) || {}
+                    })))
+                ]);
+
+                setEnrichedPending(prev => ({ ...prev, [targetMid]: pEnriched }));
+                setEnrichedCompleted(prev => ({ ...prev, [targetMid]: cEnriched }));
+            }
+        } catch (err) {
+            console.error("Enrichment error:", err);
+        } finally {
+            setEnriching(false);
+        }
+    }, [rawPendingByModule, rawCompletedByModule, enrichedPending, enrichedCompleted]);
+
     useEffect(() => {
         loadData();
-    }, [loadData]);
+    }, []); // Run once on mount
+
+    useEffect(() => {
+        if (selectedModuleId && !loading) {
+            enrichModule(selectedModuleId);
+        }
+    }, [selectedModuleId, loading, rawPendingByModule]);
+
 
     const handleAction = async (row, action) => {
         const confirmMsg = action === 'UNLOCK' 
@@ -315,14 +347,15 @@ const PlantDeclarationVerification = () => {
                     {/* Module Tabs */}
                     <div className="pdv-api-module-cards">
                         {PLANT_DECLARATION_MODULES.filter(m => !m.hidden).map(mod => {
-                            let pCount = (pendingByModule[mod.moduleId] || []).length;
-                            let hCount = (completedByModule[mod.moduleId] || []).length;
+                            let pCount = (rawPendingByModule[mod.moduleId] || []).length;
+                            let hCount = (rawCompletedByModule[mod.moduleId] || []).length;
                             
                             // If it's the Bench/Mould tab, include Long Line (12) counts
                             if (mod.moduleId === 2) {
-                                pCount += (pendingByModule[12] || []).length;
-                                hCount += (completedByModule[12] || []).length;
+                                pCount += (rawPendingByModule[12] || []).length;
+                                hCount += (rawCompletedByModule[12] || []).length;
                             }
+
 
                             const isActive = selectedModuleId === mod.moduleId;
                             return (
@@ -357,13 +390,20 @@ const PlantDeclarationVerification = () => {
                                         </div>
                                     )}
                                 </div>
-                                {renderTable(
-                                    selectedModuleId === 2
-                                        ? (benchType === 'STRESS_BENCH' 
-                                            ? (pendingByModule[2] || []) 
-                                            : (pendingByModule[12] || []))
-                                        : (pendingByModule[selectedModuleId] || []),
-                                    false
+                                {enriching ? (
+                                    <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
+                                        <div className="pdv-spinner-inline" style={{ marginBottom: '10px' }}></div>
+                                        Fetching record details...
+                                    </div>
+                                ) : (
+                                    renderTable(
+                                        selectedModuleId === 2
+                                            ? (benchType === 'STRESS_BENCH' 
+                                                ? (enrichedPending[2] || []) 
+                                                : (enrichedPending[12] || []))
+                                            : (enrichedPending[selectedModuleId] || []),
+                                        false
+                                    )
                                 )}
                             </div>
 
@@ -378,15 +418,23 @@ const PlantDeclarationVerification = () => {
                                         </div>
                                     )}
                                 </div>
-                                {renderTable(
-                                    selectedModuleId === 2
-                                        ? (benchType === 'STRESS_BENCH' 
-                                            ? (completedByModule[2] || []) 
-                                            : (completedByModule[12] || []))
-                                        : (completedByModule[selectedModuleId] || []),
-                                    true
+                                {enriching ? (
+                                    <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
+                                        <div className="pdv-spinner-inline" style={{ marginBottom: '10px' }}></div>
+                                        Fetching record details...
+                                    </div>
+                                ) : (
+                                    renderTable(
+                                        selectedModuleId === 2
+                                            ? (benchType === 'STRESS_BENCH' 
+                                                ? (enrichedCompleted[2] || []) 
+                                                : (enrichedCompleted[12] || []))
+                                            : (enrichedCompleted[selectedModuleId] || []),
+                                        true
+                                    )
                                 )}
                             </div>
+
                         </div>
                     )}
                 </>

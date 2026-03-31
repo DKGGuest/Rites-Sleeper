@@ -13,6 +13,22 @@ const api = axios.create({
     },
 });
 
+// Simple promise-based cache to prevent redundant simultaneous requests
+const pendingRequests = new Map();
+
+const getWithCache = (url, options) => {
+    if (pendingRequests.has(url)) {
+        return pendingRequests.get(url);
+    }
+    const promise = api.get(url, options).finally(() => {
+        // Clear cache after a short delay to allow fresh fetches later
+        setTimeout(() => pendingRequests.delete(url), 1000);
+    });
+    pendingRequests.set(url, promise);
+    return promise;
+};
+
+
 // Response interceptor for standardized error handling
 api.interceptors.response.use(
     (response) => response.data,
@@ -29,28 +45,28 @@ api.interceptors.response.use(
 
 export const apiService = {
     // ================= Moisture Analysis =================
-    getAllMoistureAnalysis: () => api.get('/MoistureAnalysis/all'),
+    getAllMoistureAnalysis: () => getWithCache('/MoistureAnalysis/all'),
     getMoistureAnalysisById: (id) => api.get(`/MoistureAnalysis/${id}`),
     createMoistureAnalysis: (payload) => api.post('/MoistureAnalysis/create', payload),
     updateMoistureAnalysis: (id, payload) => api.put(`/MoistureAnalysis/update/${id}`, payload),
     deleteMoistureAnalysis: (id) => api.delete(`/MoistureAnalysis/${id}`),
 
     // ================= HTS Wire Placement =================
-    getAllHtsWirePlacement: () => api.get('/HtsWirePlacement/all'),
+    getAllHtsWirePlacement: () => getWithCache('/HtsWirePlacement/all'),
     getHtsWirePlacementById: (id) => api.get(`/HtsWirePlacement/${id}`),
     createHtsWirePlacement: (payload) => api.post('/HtsWirePlacement/create', payload),
     updateHtsWirePlacement: (id, payload) => api.put(`/HtsWirePlacement/update/${id}`, payload),
     deleteHtsWirePlacement: (id) => api.delete(`/HtsWirePlacement/delete/${id}`),
 
     // ================= Demoulding Inspection =================
-    getAllDemouldingInspection: () => api.get('/DemouldingInspection/all'),
+    getAllDemouldingInspection: () => getWithCache('/DemouldingInspection/all'),
     getDemouldingInspectionById: (id) => api.get(`/DemouldingInspection/${id}`),
     createDemouldingInspection: (payload) => api.post('/DemouldingInspection/create', payload),
     updateDemouldingInspection: (id, payload) => api.put(`/DemouldingInspection/update/${id}`, payload),
     deleteDemouldingInspection: (id) => api.delete(`/DemouldingInspection/delete/${id}`),
 
     // ================= Mould Preparation =================
-    getAllMouldPreparations: () => api.get('/MouldPreparation/all'),
+    getAllMouldPreparations: () => getWithCache('/MouldPreparation/all'),
     getMouldPreparationById: (id) => api.get(`/MouldPreparation/${id}`),
     createMouldPreparation: (data) => api.post('/MouldPreparation/create', data),
     updateMouldPreparation: (id, payload) => api.put(`/MouldPreparation/update/${id}`, payload),
@@ -59,7 +75,7 @@ export const apiService = {
     // ================= Steam Cube Testing =================
     waterCubeSamples: {
         create: (data) => api.post('/water-cube-sample/create', data),
-        getAll: () => api.get('/water-cube-sample/getAll'),
+        getAll: () => getWithCache('/water-cube-sample/getAll'),
         getById: (id) => api.get(`/water-cube-sample/getById/${id}`),
         update: (id, data) => api.put(`/water-cube-sample/update/${id}`, data),
         delete: (id) => api.delete(`/water-cube-sample/delete/${id}`),
@@ -67,49 +83,49 @@ export const apiService = {
         saveTestResult: (data) => api.post('/water-cube-sample/save-test-result', data),
         getTestResultsByUser: (userId) => api.get(`/water-cube-sample/test-results/user/${userId}`)
     },
-    getAllSteamCubes: () => api.get('/SteamCube/get-all'),
+    getAllSteamCubes: () => getWithCache('/SteamCube/get-all'),
     getSteamCubeById: (id) => api.get(`/SteamCube/get/${id}`),
     createSteamCube: (payload) => api.post('/SteamCube/create', payload),
     updateSteamCube: (id, payload) => api.put(`/SteamCube/update/${id}`, payload),
     deleteSteamCube: (id) => api.delete(`/SteamCube/delete/${id}`),
 
     // ================= Stress Bench / Mould Master =================
-    getAllStressBenches: () => api.get('/stress-bench/getAll'),
+    getAllStressBenches: () => getWithCache('/stress-bench/getAll'),
     getStressBenchById: (id) => api.get(`/stress-bench/get/${id}`),
     createStressBench: (payload) => api.post('/stress-bench/create', payload),
     updateStressBench: (id, payload) => api.put(`/stress-bench/update/${id}`, payload),
     deleteStressBench: (id) => api.delete(`/stress-bench/delete/${id}`),
 
     // ================= Bench / Mould Shift Inspection =================
-    getAllBenchMouldInspections: () => api.get('/bench-mould-inspection/get-all'),
+    getAllBenchMouldInspections: () => getWithCache('/bench-mould-inspection/get-all'),
     getBenchMouldInspectionById: (id) => api.get(`/bench-mould-inspection/get/${id}`),
     createBenchMouldInspection: (payload) => api.post('/bench-mould-inspection/create', payload),
     updateBenchMouldInspection: (id, payload) => api.put(`/bench-mould-inspection/update/${id}`, payload),
     deleteBenchMouldInspection: (id) => api.delete(`/bench-mould-inspection/delete/${id}`),
 
     // ================= Wire Tensioning =================
-    getAllWireTensioning: () => api.get('/wire-tensioning/get-all'),
+    getAllWireTensioning: () => getWithCache('/wire-tensioning/get-all'),
     getWireTensioningById: (id) => api.get(`/wire-tensioning/get/${id}`),
     createWireTensioning: (payload) => api.post('/wire-tensioning/create', payload),
     updateWireTensioning: (id, payload) => api.put(`/wire-tensioning/update/${id}`, payload),
     deleteWireTensioning: (id) => api.delete(`/wire-tensioning/delete/${id}`),
 
     // ================= Compaction (Vibrator Report) =================
-    getAllCompaction: () => api.get('/compaction/getAll'),
+    getAllCompaction: () => getWithCache('/compaction/getAll'),
     getCompactionById: (id) => api.get(`/compaction/${id}`),
     createCompaction: (payload) => api.post('/compaction/create', payload),
     updateCompaction: (id, payload) => api.put(`/compaction/update/${id}`, payload),
     deleteCompaction: (id) => api.delete(`/compaction/delete/${id}`),
 
     // ================= Steam Curing =================
-    getAllSteamCuring: () => api.get('/steam-curing/getAll'),
+    getAllSteamCuring: () => getWithCache('/steam-curing/getAll'),
     getSteamCuringById: (id) => api.get(`/steam-curing/${id}`),
     createSteamCuring: (payload) => api.post('/steam-curing/create', payload),
     updateSteamCuring: (id, payload) => api.put(`/steam-curing/update/${id}`, payload),
     deleteSteamCuring: (id) => api.delete(`/steam-curing/delete/${id}`),
 
     // ================= Batch Weighment =================
-    getAllBatchWeighment: () => api.get('/batch-weighment/get-all'),
+    getAllBatchWeighment: () => getWithCache('/batch-weighment/get-all'),
     getBatchWeighmentById: (id) => api.get(`/batch-weighment/get/${id}`),
     createBatchWeighment: (payload) => api.post('/batch-weighment/create', payload),
     updateBatchWeighment: (id, payload) => api.put(`/batch-weighment/update/${id}`, payload),
