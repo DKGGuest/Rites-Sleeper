@@ -67,11 +67,18 @@ const MainDashboard = () => {
         dutyLocation,
         setDutyLocation,
         containers,
-        plantVerificationData
+        plantVerificationData,
+        vendorCode,
+        setVendorCode,
+        companyName,
+        setCompanyName,
+        vendorId,
+        setVendorId
     } = useShift();
 
     const [showDutyForm, setShowDutyForm] = useState(false);
     const [companyNames, setCompanyNames] = useState([]);
+    const [availableUnitNames, setAvailableUnitNames] = useState([]);
     const [unitVendorMap, setUnitVendorMap] = useState({});
     const [companyUnitMap, setCompanyUnitMap] = useState({});
     const [vendorSheds, setVendorSheds] = useState([]);
@@ -91,9 +98,17 @@ const MainDashboard = () => {
                 if (response) {
                     if (response.vendorCode) {
                         localStorage.setItem('vendorCode', response.vendorCode);
+                        setVendorCode(response.vendorCode);
+                    }
+                    if (response.vendorId) {
+                        localStorage.setItem('vendorId', response.vendorId);
+                        setVendorId(response.vendorId);
                     }
                     if (response.unitVendorMap) {
                         setUnitVendorMap(response.unitVendorMap);
+                    }
+                    if (response.unitNames) {
+                        setAvailableUnitNames(response.unitNames);
                     }
                     if (response.companyUnitMap) {
                         setCompanyUnitMap(response.companyUnitMap);
@@ -102,11 +117,13 @@ const MainDashboard = () => {
                         setCompanyNames(response.companyNames);
                         if (response.companyNames.length === 1) {
                             setFormData(prev => ({ ...prev, companyName: response.companyNames[0] }));
+                            setCompanyName(response.companyNames[0]);
                         }
                     } else if (response.companyName) {
                         // Fallback
                         setCompanyNames([response.companyName]);
                         setFormData(prev => ({ ...prev, companyName: response.companyName }));
+                        setCompanyName(response.companyName);
                     }
                 }
             }
@@ -117,11 +134,26 @@ const MainDashboard = () => {
     // Effect to fetch sheds when unit changes
     useEffect(() => {
         const fetchSheds = async () => {
-            if (formData.unit && unitVendorMap[formData.unit]) {
-                const vendorCode = unitVendorMap[formData.unit];
-                const sheds = await getShedsByVendorCode(vendorCode);
+            const currentVendorId = unitVendorMap[formData.unit] || vendorId || localStorage.getItem('vendorId');
+            if (formData.unit && currentVendorId) {
+                const sheds = await getShedsByVendorCode(currentVendorId, formData.unit);
                 if (sheds) {
-                    setVendorSheds(sheds.sort((a,b) => a - b));
+                    // responseData structure is like {"Stress Bench": [2], "Long Line": [1]}
+                    let shedList = [];
+                    if (typeof sheds === 'object' && sheds !== null) {
+                        Object.entries(sheds).forEach(([type, ids]) => {
+                            if (Array.isArray(ids)) {
+                                ids.forEach(id => {
+                                    const roman = id === 1 ? 'I' : id === 2 ? 'II' : id === 3 ? 'III' : id === 4 ? 'IV' : id === 5 ? 'V' : id;
+                                    shedList.push(`${type} ${roman}`);
+                                });
+                            }
+                        });
+                    } else if (Array.isArray(sheds)) {
+                        shedList = sheds.map(s => `Shed ${s}`);
+                    }
+                    
+                    setVendorSheds(shedList.sort());
                 } else {
                     setVendorSheds([]);
                 }
@@ -130,7 +162,7 @@ const MainDashboard = () => {
             }
         };
         fetchSheds();
-    }, [formData.unit, unitVendorMap]);
+    }, [formData.unit, unitVendorMap, vendorId]);
 
     const hasActiveDuty = dutyStarted;
 
@@ -150,9 +182,10 @@ const MainDashboard = () => {
         setDutyLocation(formData.location);
 
         // Save numeric vendorId for API calls
-        const vendorId = unitVendorMap[formData.unit];
-        if (vendorId) {
-            localStorage.setItem('vendorId', vendorId);
+        const mappedVendorId = unitVendorMap[formData.unit];
+        if (mappedVendorId) {
+            localStorage.setItem('vendorId', mappedVendorId);
+            setVendorId(mappedVendorId);
         }
 
         // Find or create container ID based on location
@@ -288,29 +321,35 @@ const MainDashboard = () => {
                                         required
                                     >
                                         <option value="">Select Unit</option>
-                                        {(() => {
-                                            const options = [];
-                                            if (formData.companyName && companyUnitMap[formData.companyName]) {
-                                                companyUnitMap[formData.companyName].forEach((unitName, idx) => {
-                                                    const profile = plantVerificationData?.profiles?.find(p => p.plantName === unitName);
-                                                    const statusText = (profile && profile.status !== 'Verified') ? ` (${profile.status})` : '';
-                                                    options.push(
-                                                        <option key={`${unitName}-${idx}`} value={unitName}>
-                                                            {unitName}{statusText}
-                                                        </option>
-                                                    );
-                                                });
-                                            } else {
-                                                plantVerificationData?.profiles?.forEach(profile => {
-                                                    options.push(
-                                                        <option key={profile.id} value={profile.plantName}>
-                                                            {profile.plantName} {profile.status !== 'Verified' ? `(${profile.status})` : ''}
-                                                        </option>
-                                                    );
-                                                });
-                                            }
-                                            return options;
-                                        })()}
+                                        {availableUnitNames && availableUnitNames.length > 0 ? (
+                                            availableUnitNames.map((unitName, idx) => (
+                                                <option key={idx} value={unitName}>{unitName}</option>
+                                            ))
+                                        ) : (
+                                            (() => {
+                                                const options = [];
+                                                if (formData.companyName && companyUnitMap[formData.companyName]) {
+                                                    companyUnitMap[formData.companyName].forEach((unitName, idx) => {
+                                                        const profile = plantVerificationData?.profiles?.find(p => p.plantName === unitName);
+                                                        const statusText = (profile && profile.status !== 'Verified') ? ` (${profile.status})` : '';
+                                                        options.push(
+                                                            <option key={`${unitName}-${idx}`} value={unitName}>
+                                                                {unitName}{statusText}
+                                                            </option>
+                                                        );
+                                                    });
+                                                } else {
+                                                    plantVerificationData?.profiles?.forEach(profile => {
+                                                        options.push(
+                                                            <option key={profile.id} value={profile.plantName}>
+                                                                {profile.plantName} {profile.status !== 'Verified' ? `(${profile.status})` : ''}
+                                                            </option>
+                                                        );
+                                                    });
+                                                }
+                                                return options;
+                                            })()
+                                        )}
                                     </select>
                                 </label>
 
@@ -329,10 +368,8 @@ const MainDashboard = () => {
                                             const selectedProfile = plantVerificationData?.profiles?.find(p => p.plantName === formData.unit);
                                             
                                             if (vendorSheds && vendorSheds.length > 0) {
-                                                vendorSheds.forEach(shedStr => {
-                                                    const shedNum = Number(shedStr);
-                                                    const roman = shedNum === 1 ? 'I' : shedNum === 2 ? 'II' : shedNum === 3 ? 'III' : shedNum === 4 ? 'IV' : shedNum === 5 ? 'V' : shedNum;
-                                                    locations.push(`Shed ${roman}`);
+                                                vendorSheds.forEach(locStr => {
+                                                    locations.push(locStr);
                                                 });
                                             } else if (selectedProfile && selectedProfile.status === 'Verified') {
                                                 // Fallback to old behavior if no vendor sheds are fetched

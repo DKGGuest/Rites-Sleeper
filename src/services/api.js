@@ -200,7 +200,9 @@ export const apiService = {
     // getPlantProfileById:       (id) => api.get(`/plant-profile/getById/${id}`),
     getPlantProfileById: (id) => api.get(`/plant-profile/${id}`),
     getDistinctShedsByVendorCode: (vendorCode) => api.get(`/plant-profile/vendor/${vendorCode}/sheds`),
-    getPlantSheds: (vendorId, plantId) => api.get(`/plant-profile/vendor/${vendorId}/${plantId}/sheds`, { params: { vendorId, plantId } }),
+    getPlantSheds: (vendorId, plantId) => api.get(`/plant-profile/vendor/{vendorId}/{plantId}/sheds`, { 
+        params: { vendorId, plantId } 
+    }),
 
 
     // moduleId=2  STRESS_BENCH_MASTER

@@ -55,6 +55,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
     const [batches, setBatches] = useState([]);
     const [benches, setBenches] = useState([]);
     const [sleeperTypes, setSleeperTypes] = useState([]);
+    const [availableLocations, setAvailableLocations] = useState([]);
 
     const vendorId = contextVendorId || localStorage.getItem('vendorId') || "134";
 
@@ -113,6 +114,39 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
             });
         }
     }, [initialData, activeContainer]);
+
+    // Fetch Dynamic Locations for current Unit
+    useEffect(() => {
+        const fetchLocations = async () => {
+            const vId = contextVendorId || localStorage.getItem('vendorId');
+            if (dutyUnit && vId) {
+                try {
+                    // Reusing the same service function updated for the new API
+                    const sheds = await apiService.getPlantSheds(vId, dutyUnit);
+
+                    let locList = [];
+                    const data = sheds?.responseData || sheds;
+                    if (typeof data === 'object' && data !== null) {
+                        Object.entries(data).forEach(([type, ids]) => {
+                            if (Array.isArray(ids)) {
+                                ids.forEach(id => {
+                                    const roman = id === 1 ? 'I' : id === 2 ? 'II' : id === 3 ? 'III' : id === 4 ? 'IV' : id;
+                                    locList.push(`${type} ${roman}`);
+                                });
+                            }
+                        });
+                    }
+                    setAvailableLocations(locList);
+                    if (locList.length > 0 && !formData.location) {
+                        setFormData(prev => ({ ...prev, location: locList[0] }));
+                    }
+                } catch (err) {
+                    console.error("Error fetching locations in form:", err);
+                }
+            }
+        };
+        fetchLocations();
+    }, [dutyUnit, contextVendorId]);
 
     const formatToBackendDate = (dateStr) => {
         if (!dateStr) return null;
@@ -410,13 +444,21 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                         style={{ width: '100%', boxSizing: 'border-box' }}
                     >
                         <option value="N/A">-- Select --</option>
-                        <option value="Long Line">Long Line</option>
-                        <option value="Line 1">Line 1</option>
-                        <option value="Line 2">Line 2</option>
-                        <option value="Line 3">Line 3</option>
-                        <option value="Shed 1">Shed 1</option>
-                        <option value="Shed 2">Shed 2</option>
-                        <option value="Shed 3">Shed 3</option>
+                        {availableLocations.length > 0 ? (
+                            availableLocations.map(loc => (
+                                <option key={loc} value={loc}>{loc}</option>
+                            ))
+                        ) : (
+                            <>
+                                <option value="Long Line">Long Line</option>
+                                <option value="Line 1">Line 1</option>
+                                <option value="Line 2">Line 2</option>
+                                <option value="Line 3">Line 3</option>
+                                <option value="Shed 1">Shed 1</option>
+                                <option value="Shed 2">Shed 2</option>
+                                <option value="Shed 3">Shed 3</option>
+                            </>
+                        )}
                     </select>
                 </div>
 

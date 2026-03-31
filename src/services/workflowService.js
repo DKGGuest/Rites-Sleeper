@@ -91,14 +91,18 @@ export const getCompanyMappingByUser = async (userId) => {
 };
 
 /**
- * Fetch distinct sheds by vendor code
- * @param {string} vendorCode
+ * Fetch distinct sheds by vendor code and plant unit
+ * @param {string|number} vendorId
+ * @param {string} plantId
  * @returns {Promise<Array>} List of distinct shed numbers
  */
-export const getShedsByVendorCode = async (vendorCode) => {
+export const getShedsByVendorCode = async (vendorId, plantId) => {
   try {
     const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/plant-profile/vendor/${vendorCode}/sheds`, {
+    // Using the unusual literal path parameters as required by the backend
+    const url = `${API_BASE_URL}/plant-profile/vendor/{vendorId}/{plantId}/sheds?vendorId=${vendorId}&plantId=${encodeURIComponent(plantId)}`;
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
