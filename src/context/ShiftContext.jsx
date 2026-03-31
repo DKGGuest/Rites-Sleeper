@@ -19,6 +19,9 @@ export const ShiftProvider = ({ children }) => {
     const [dutyDate, setDutyDate] = useState(() => localStorage.getItem('dutyDate') || new Date().toISOString().split('T')[0]);
     const [dutyUnit, setDutyUnit] = useState(() => localStorage.getItem('dutyUnit') || '');
     const [dutyLocation, setDutyLocation] = useState(() => localStorage.getItem('dutyLocation') || '');
+    const [vendorCode, setVendorCode] = useState(() => localStorage.getItem('vendorCode') || '');
+    const [companyName, setCompanyName] = useState(() => localStorage.getItem('companyName') || '');
+    const [vendorId, setVendorId] = useState(() => localStorage.getItem('vendorId') || '');
 
     const [containers, setContainers] = useState([{ id: 1, type: 'Line', name: 'Line I' }]);
     const [activeContainerId, setActiveContainerId] = useState(() => parseInt(localStorage.getItem('activeContainerId')) || 1);
@@ -29,6 +32,9 @@ export const ShiftProvider = ({ children }) => {
         setDutyDate(new Date().toISOString().split('T')[0]);
         setDutyUnit('');
         setDutyLocation('');
+        setVendorCode('');
+        setCompanyName('');
+        setVendorId('');
         setActiveContainerId(1);
         setContainers([{ id: 1, type: 'Line', name: 'Line I' }]);
 
@@ -52,6 +58,8 @@ export const ShiftProvider = ({ children }) => {
         localStorage.removeItem('dutyLocation');
         localStorage.removeItem('activeContainerId');
         localStorage.removeItem('vendorCode');
+        localStorage.removeItem('companyName');
+        localStorage.removeItem('vendorId');
     };
 
     // Persist basic shift state
@@ -61,8 +69,30 @@ export const ShiftProvider = ({ children }) => {
         localStorage.setItem('dutyDate', dutyDate);
         localStorage.setItem('dutyUnit', dutyUnit);
         localStorage.setItem('dutyLocation', dutyLocation);
+        localStorage.setItem('vendorCode', vendorCode);
+        localStorage.setItem('companyName', companyName);
+        localStorage.setItem('vendorId', vendorId);
         localStorage.setItem('activeContainerId', activeContainerId);
-    }, [dutyStarted, selectedShift, dutyDate, dutyUnit, dutyLocation, activeContainerId]);
+    }, [dutyStarted, selectedShift, dutyDate, dutyUnit, dutyLocation, activeContainerId, vendorCode, companyName, vendorId]);
+
+    // Silent mapping fetch for header info (if missing)
+    useEffect(() => {
+        if (!companyName && dutyStarted) {
+            const fetchHeaderMapping = async () => {
+                const userId = localStorage.getItem('userId') || '134';
+                try {
+                    const res = await apiService.getCompanyUnitsByUser(userId);
+                    const data = res?.responseData || {};
+                    if (data.companyName) setCompanyName(data.companyName);
+                    if (data.vendorCode) setVendorCode(data.vendorCode);
+                    if (data.vendorId) setVendorId(data.vendorId);
+                } catch (err) {
+                    console.error("Header mapping fetch error:", err);
+                }
+            };
+            fetchHeaderMapping();
+        }
+    }, [companyName, dutyStarted]);
 
     // Shared state for all features
     const [allWitnessedRecords, setAllWitnessedRecords] = useState({ 1: [] });
@@ -244,6 +274,12 @@ export const ShiftProvider = ({ children }) => {
         setDutyUnit,
         dutyLocation,
         setDutyLocation,
+        vendorCode,
+        setVendorCode,
+        companyName,
+        setCompanyName,
+        vendorId,
+        setVendorId,
         containers,
         setContainers,
         activeContainerId,

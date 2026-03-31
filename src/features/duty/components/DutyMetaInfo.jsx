@@ -2,7 +2,7 @@ import React from 'react';
 import { useShift } from '../../../context/ShiftContext';
 
 const DutyMetaInfo = ({ showUnit = true, showLocation = true }) => {
-    const { dutyDate, selectedShift, dutyUnit, dutyLocation } = useShift();
+    const { dutyDate, selectedShift, dutyUnit, dutyLocation, companyName, vendorCode, vendorId } = useShift();
 
     const formatDate = (dateStr) => {
         if (!dateStr) return '';
@@ -26,6 +26,14 @@ const DutyMetaInfo = ({ showUnit = true, showLocation = true }) => {
                 <span className="meta-pill shift">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                     {formatShift(selectedShift)}
+                </span>
+            )}
+            {companyName && (
+                <span className="meta-pill company" style={{ background: '#f0f9ff', color: '#0369a1', borderColor: '#bae6fd', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e91e63" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span style={{ fontWeight: '700' }}>
+                        {companyName} {vendorId && `(Plant ID: ${vendorId})`} {vendorCode && `(${vendorCode})`}
+                    </span>
                 </span>
             )}
             {showUnit && dutyUnit && (

@@ -338,9 +338,8 @@ const IncomingVerificationDashboard = ({ initialGroup = null }) => {
                 ? res
                 : (Array.isArray(res?.responseData) ? res.responseData : []);
 
-            const myRecords = rawList.filter(r =>
-                Array.isArray(r.accessibleUserIds) &&
-                r.accessibleUserIds.includes(LOGGED_IN_USER_ID)
+            const myRecords = rawList.filter(r => 
+                Number(r.assignedTo) === LOGGED_IN_USER_ID
             );
 
             // Filter by initialGroup's module IDs

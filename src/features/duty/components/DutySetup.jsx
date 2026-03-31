@@ -13,21 +13,78 @@ const DutySetup = () => {
         setContainers,
         activeContainerId,
         setActiveContainerId,
-        activeContainer
+        activeContainer,
+        setVendorCode,
+        setCompanyName,
+        setVendorId,
+        companyName,
+        vendorId,
+        setDutyLocation
     } = useShift();
 
     const [showContainerForm, setShowContainerForm] = useState(false);
     const [newContainer, setNewContainer] = useState({ type: '', value: '' });
     const [containerToDelete, setContainerToDelete] = useState(null);
+    const [availableUnits, setAvailableUnits] = useState([]);
+    const [loadingUnits, setLoadingUnits] = useState(false);
 
-    const handleAddContainer = () => {
+    // ── Fetch Mapping Data ──
+    React.useEffect(() => {
+        const fetchMapping = async () => {
+            const userId = localStorage.getItem('userId') || '134';
+            setLoadingUnits(true);
+            try {
+                const res = await apiService.getCompanyUnitsByUser(userId);
+                const data = res?.responseData || {};
+                
+                // Map to Context
+                if (data.companyName) setCompanyName(data.companyName);
+                if (data.vendorCode) setVendorCode(data.vendorCode);
+                if (data.vendorId) setVendorId(data.vendorId);
+                
+                // Local state for Unit dropdown
+                if (Array.isArray(data.unitNames)) {
+                    setAvailableUnits(data.unitNames);
+                }
+            } catch (err) {
+                console.error("Mapping fetch error:", err);
+            } finally {
+                setLoadingUnits(false);
+            }
+        };
+        fetchMapping();
+    }, []);
+
+    const fetchPlantLocation = async (unitId) => {
+        if (!vendorId || !unitId) return;
+        try {
+            const res = await apiService.getPlantSheds(vendorId, unitId);
+            const data = res?.responseData || {};
+            // data format: {"Stress Bench": [2]}
+            const locationStr = Object.entries(data)
+                .map(([type, ids]) => `${type} ${ids.join(', ')}`)
+                .join(', ');
+            if (locationStr) setDutyLocation(locationStr);
+        } catch (err) {
+            console.error("Location fetch error:", err);
+        }
+    };
+
+    const handleAddContainer = async () => {
         if (!newContainer.type || !newContainer.value) {
             alert("Please select both Type and Identity.");
             return;
         }
+
         const id = Date.now();
         setContainers(prev => [...prev, { id, type: newContainer.type, name: newContainer.value }]);
         setActiveContainerId(id);
+        
+        // Auto-fetch location if a unit is selected
+        if (newContainer.type === 'Unit' || newContainer.value.includes('/')) {
+            await fetchPlantLocation(newContainer.value);
+        }
+
         setShowContainerForm(false);
         setNewContainer({ type: '', value: '' });
     };
@@ -46,6 +103,15 @@ const DutySetup = () => {
             <div className="duty-welcome-card" style={{ maxWidth: '440px', width: '92%', padding: '2.5rem', textAlign: 'center', background: '#fff', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02)', border: '1px solid #e2e8f0' }}>
                 <div style={{ fontSize: 'var(--fs-lg)', marginBottom: '0.75rem', fontWeight: '900', color: '#42818c', textTransform: 'uppercase', letterSpacing: '3px' }}>Shift Log</div>
                 <h1 style={{ fontSize: 'var(--fs-2xl)', fontWeight: '700', color: '#42818c', margin: '0 0 8px 0' }}>Sleeper Process Duty</h1>
+                {companyName && (
+                    <div style={{ 
+                        margin: '8px 0 16px', fontSize: '12px', fontWeight: '800', color: '#0369a1',
+                        background: '#f0f9ff', padding: '6px 16px', borderRadius: '20px', display: 'inline-block',
+                        border: '1px solid #bae6fd'
+                    }}>
+                        🏢 {companyName}
+                    </div>
+                )}
                 <p style={{ margin: 0, color: '#64748b', fontSize: 'var(--fs-sm)' }}>Real-time production monitoring and quality control</p>
                 <p style={{ color: '#64748b', marginBottom: '2rem', fontSize: 'var(--fs-xs)', fontWeight: '500' }}>Confirm your working line or shed to initialize today's duty</p>
 
@@ -127,12 +193,13 @@ const DutySetup = () => {
                                 <label style={{ fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '6px', display: 'block' }}>Type</label>
                                 <select
                                     value={newContainer.type}
-                                    onChange={e => setNewContainer({ ...newContainer, type: e.target.value, value: containerValues[e.target.value][0] })}
+                                    onChange={e => setNewContainer({ ...newContainer, type: e.target.value })}
                                     style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: 'var(--fs-xs)', fontWeight: '600' }}
                                 >
                                     <option value="">Select Type</option>
                                     <option value="Line">Line</option>
                                     <option value="Shed">Shed</option>
+                                    <option value="Unit">Unit</option>
                                 </select>
                             </div>
                             <div className="form-field" style={{ margin: 0 }}>
@@ -143,7 +210,11 @@ const DutySetup = () => {
                                     style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: 'var(--fs-xs)', fontWeight: '600' }}
                                 >
                                     <option value="">Select Identity</option>
-                                    {newContainer.type && containerValues[newContainer.type].map(val => <option key={val} value={val}>{val}</option>)}
+                                    {availableUnits.length > 0 ? (
+                                        availableUnits.map(val => <option key={val} value={val}>{val}</option>)
+                                    ) : (
+                                        newContainer.type && containerValues[newContainer.type]?.map(val => <option key={val} value={val}>{val}</option>)
+                                    )}
                                 </select>
                             </div>
                         </div>
@@ -156,13 +227,18 @@ const DutySetup = () => {
 
                 <button
                     className="toggle-btn hover-lift"
-                    style={{ width: '100%', padding: '1rem', fontSize: 'var(--fs-sm)', fontWeight: '900', borderRadius: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}
+                    style={{ 
+                        width: '100%', padding: '1rem', fontSize: 'var(--fs-sm)', fontWeight: '900', borderRadius: '14px', 
+                        textTransform: 'uppercase', letterSpacing: '1px',
+                        opacity: loadingUnits ? 0.7 : 1
+                    }}
                     onClick={() => {
                         if (!activeContainerId) alert("Please select a line or shed to continue.");
                         else setDutyStarted(true);
                     }}
+                    disabled={loadingUnits}
                 >
-                    Start Duty {activeContainer ? `for ${activeContainer.name}` : ''}
+                    {loadingUnits ? 'Checking mapping...' : (`Start Duty ${activeContainer ? `for ${activeContainer.name}` : ''}`)}
                 </button>
             </div>
         </div>

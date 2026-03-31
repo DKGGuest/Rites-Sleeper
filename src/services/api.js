@@ -47,6 +47,7 @@ export const apiService = {
     // ================= Moisture Analysis =================
     getAllMoistureAnalysis: () => getWithCache('/MoistureAnalysis/all'),
     getMoistureAnalysisById: (id) => api.get(`/MoistureAnalysis/${id}`),
+    getLastFiveMoisture: () => getWithCache('/MoistureAnalysis/lastFiveMoisture'),
     createMoistureAnalysis: (payload) => api.post('/MoistureAnalysis/create', payload),
     updateMoistureAnalysis: (id, payload) => api.put(`/MoistureAnalysis/update/${id}`, payload),
     deleteMoistureAnalysis: (id) => api.delete(`/MoistureAnalysis/${id}`),
@@ -199,6 +200,7 @@ export const apiService = {
     // getPlantProfileById:       (id) => api.get(`/plant-profile/getById/${id}`),
     getPlantProfileById: (id) => api.get(`/plant-profile/${id}`),
     getDistinctShedsByVendorCode: (vendorCode) => api.get(`/plant-profile/vendor/${vendorCode}/sheds`),
+    getPlantSheds: (vendorId, plantId) => api.get(`/plant-profile/vendor/${vendorId}/${plantId}/sheds`, { params: { vendorId, plantId } }),
 
 
     // moduleId=2  STRESS_BENCH_MASTER
@@ -232,7 +234,10 @@ export const apiService = {
 
     getProductionDeclarationRecordById: (id) => api.get(`/production-declaration/${id}`),
     getVerifiedProductionDeclarations: () => api.get('/production-declaration/verified-declarations'),
-    getAllProductionBatches: (vendorId, castingDate) => api.get(`/production-declaration/getAll/batches?vendorId=${vendorId}&castingDate=${castingDate}`),
+    getAllProductionBatches: (vendorId, castingDate, plantId, productionUnit) =>
+        api.get('/production-declaration/getAll/batches', {
+            params: { vendorId, castingDate, plantId, productionUnit }
+        }),
     getAllProductionBenches: (batchNo) => api.get(`/production-declaration/getAll/benches?batchNo=${batchNo}`),
     getAllProductionSleeperTypes: (batchNo, benchNo) => api.get(`/production-declaration/getAll/sleeper-types?batchNo=${batchNo}&benchNo=${benchNo}`),
     getAllProductionSleepers: (batchNo, benchNo, sleeperType) => api.get(`/production-declaration/getAll/sleepers?batchNo=${batchNo}&benchNo=${benchNo}&sleeperType=${sleeperType}`),

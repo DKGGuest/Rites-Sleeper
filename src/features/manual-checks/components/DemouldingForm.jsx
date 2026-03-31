@@ -4,8 +4,9 @@ import '../../../components/common/Checkbox.css';
 import { useShift } from '../../../context/ShiftContext';
 
 const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], initialData, activeContainer, sharedBatchNo, sharedBenchNo, onShiftFieldChange }) => {
-    const { allWitnessedRecords } = useShift();
-    // 1. Exact State Mapping as requested by User
+    const { allWitnessedRecords, dutyUnit, dutyLocation, vendorId: contextVendorId } = useShift();
+    
+    // Exact State Mapping as requested by User
     // Helper for safe date/time (Forcing Asia/Kolkata to stop 12:54/UTC issues)
     const getSafeToday = () => {
         try {
@@ -51,12 +52,11 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
     });
 
     const [validationErrors, setValidationErrors] = useState([]);
-
     const [batches, setBatches] = useState([]);
     const [benches, setBenches] = useState([]);
     const [sleeperTypes, setSleeperTypes] = useState([]);
 
-    const vendorId = localStorage.getItem('vendorId') || "118"; // Use numeric ID for Long parameters
+    const vendorId = contextVendorId || localStorage.getItem('vendorId') || "134";
 
     // Helper for DateTime/Date input compatibility
     const formatFromBackendDatePart = (dateStr) => {
@@ -83,7 +83,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
         return d;
     };
 
-    // 5. Modify Must Spread Full Row
+    // Modify Must Spread Full Row
     useEffect(() => {
         if (initialData) {
             console.log("Fetched Time:", initialData.inspectionTime);
@@ -114,16 +114,30 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
         }
     }, [initialData, activeContainer]);
 
+    const formatToBackendDate = (dateStr) => {
+        if (!dateStr) return null;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            const [year, month, day] = dateStr.split("-");
+            return `${day}/${month}/${year}`;
+        }
+        return dateStr;
+    };
+
     // Fetch batches when casting date changes
     useEffect(() => {
         if (formData.casting && !initialData) {
             const fetchBatches = async () => {
                 try {
                     const formattedDate = formatToBackendDate(formData.casting);
-                    const response = await apiService.getAllProductionBatches(vendorId, formattedDate);
+                    // Pass selected plant id (dutyUnit) and location (dutyLocation) as requested
+                    const response = await apiService.getAllProductionBatches(
+                        vendorId, 
+                        formattedDate, 
+                        dutyUnit, 
+                        dutyLocation
+                    );
                     if (response?.responseData) {
                         setBatches(response.responseData);
-                        // If current batch is not in new list, clear it
                         if (!response.responseData.includes(formData.batch)) {
                             setFormData(prev => ({ ...prev, batch: '', gangNo: '', type: '' }));
                         }
@@ -134,7 +148,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
             };
             fetchBatches();
         }
-    }, [formData.casting, vendorId, initialData]);
+    }, [formData.casting, vendorId, initialData, dutyUnit, dutyLocation]);
 
     // Fetch benches when batch changes
     useEffect(() => {
@@ -201,15 +215,6 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
             setSleeperTypes([]);
         }
     }, [formData.batch, formData.gangNo, initialData]);
-
-    const formatToBackendDate = (dateStr) => {
-        if (!dateStr) return null;
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-            const [year, month, day] = dateStr.split("-");
-            return `${day}/${month}/${year}`;
-        }
-        return dateStr;
-    };
 
     const handleChange = (field, value) => {
         setFormData(prev => {
@@ -415,7 +420,7 @@ const DemouldingForm = ({ onSave, onCancel, isLongLine, existingEntries = [], in
                     </select>
                 </div>
 
-                {/* 2. Properly Bound using VALUE and ONCHANGE */}
+                {/* Properly Bound using VALUE and ONCHANGE */}
                 <div className="form-field" style={{ gridColumn: 'span 2' }}>
                     <label htmlFor="dim-inspectionDateTime" style={{ fontSize: '11px', fontWeight: '700' }}>Inspection Date & Time <span className="required">*</span></label>
                     <input

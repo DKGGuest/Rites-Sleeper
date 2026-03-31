@@ -12,14 +12,78 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate, onSensorU
         sandType: ''
     });
 
-    const [batches, setBatches] = useState(externalBatches || []);
+    const [batches, setBatches] = useState([]);
     const [saving, setSaving] = useState(false);
+    const [lastFiveMoisture, setLastFiveMoisture] = useState([]);
+    const [selectedMoistureReportId, setSelectedMoistureReportId] = useState('');
+    const [fetchingMoistureDetail, setFetchingMoistureDetail] = useState(false);
 
+    // Fetch last five moisture reports on mount
     useEffect(() => {
-        if (externalBatches && externalBatches.length > 0) {
-            setBatches(externalBatches);
+        const fetchReports = async () => {
+            try {
+                const res = await apiService.getLastFiveMoisture();
+                if (res?.responseData) {
+                    setLastFiveMoisture(res.responseData);
+                }
+            } catch (err) {
+                console.error("Failed to fetch last 5 moisture reports:", err);
+            }
+        };
+        fetchReports();
+    }, []);
+
+    // Handle Moisture Report Selection
+    const handleMoistureReportSelect = async (e) => {
+        const id = e.target.value;
+        setSelectedMoistureReportId(id);
+        if (!id) {
+            setBatches([]);
+            return;
         }
-    }, [externalBatches]);
+
+        const report = lastFiveMoisture.find(r => String(r.id) === String(id));
+        
+        setFetchingMoistureDetail(true);
+        try {
+            const res = await apiService.getMoistureAnalysisById(id);
+            if (res?.responseData) {
+                const detail = res.responseData;
+                
+                // Initialize/Update the batch card for this specific report
+                setBatches([{
+                    id: 1, 
+                    batchNo: detail.batchNo || report?.batchNo || "",
+                    parentId: id,
+                    setValues: { ca1: 0, ca2: 0, fa: 0, cement: 0, water: 0, admixture: 0 },
+                    adjustedWeights: { 
+                        ca1: detail.ca1AdjWeight || 436.2, 
+                        ca2: detail.ca2AdjWeight || 178.6, 
+                        fa: detail.faAdjWeight || 207.1, 
+                        cement: detail.cementWeight || 175.5, 
+                        water: detail.waterWeight || 37.0, 
+                        admixture: detail.admixtureWeight || 1.440 
+                    },
+                    proportionMatch: 'NOT OK'
+                }]);
+            }
+        } catch (err) {
+            console.error("Failed to fetch moisture details:", err);
+        } finally {
+            setFetchingMoistureDetail(false);
+        }
+    };
+
+    // Only sync external batches if they match the selected lab report context
+    useEffect(() => {
+        if (externalBatches && externalBatches.length > 0 && lastFiveMoisture.length > 0) {
+            const match = lastFiveMoisture.find(r => String(r.batchNo) === String(externalBatches[0].batchNo));
+            if (match && !selectedMoistureReportId) {
+                setSelectedMoistureReportId(match.id);
+                setBatches(externalBatches);
+            }
+        }
+    }, [externalBatches, lastFiveMoisture, selectedMoistureReportId]);
 
     const handleSensorChange = (e) => {
         const { name, value, type } = e.target;
@@ -39,7 +103,6 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate, onSensorU
                     updatedBatch.setValues = { ...batch.setValues, [field]: parseFloat(value) || 0 };
                 }
 
-                // Validation logic: check if SET values match ADJ within tolerance
                 const isMatch = Object.keys(updatedBatch.setValues).every(ing => {
                     const setVal = updatedBatch.setValues[ing];
                     const adjVal = updatedBatch.adjustedWeights[ing];
@@ -52,27 +115,18 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate, onSensorU
         }));
     };
 
-    const addBatch = () => {
-        const nextId = batches.length > 0 ? Math.max(...batches.map(b => b.id)) + 1 : 1;
-        setBatches(prev => [...prev, {
-            id: nextId,
-            batchNo: '',
-            setValues: { ca1: 0, ca2: 0, fa: 0, cement: 0, water: 0, admixture: 0 },
-            adjustedWeights: { ca1: 436.2, ca2: 178.6, fa: 207.1, cement: 175.5, water: 37.0, admixture: 1.440 },
-            proportionMatch: 'NOT OK'
-        }]);
-    };
-
     const removeBatch = (id) => {
-        if (batches.length > 1) {
-            setBatches(prev => prev.filter(b => b.id !== id));
-        }
+        setBatches([]);
+        setSelectedMoistureReportId('');
     };
 
     const handleSaveDeclaration = async () => {
+        if (batches.length === 0 || !selectedMoistureReportId) {
+            alert("No Batch Selected. Please select a Batch Number from the dropdown above to start configuration.");
+            return;
+        }
         setSaving(true);
         try {
-            // Mapping frontend state to BatchWeighmentRequestDto
             const payload = {
                 lineNo: activeContainer?.name || "Line I",
                 entryDate: new Date().toLocaleDateString('en-GB'),
@@ -103,7 +157,6 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate, onSensorU
                 manualRecords: []
             };
 
-            // Determine if this is an update or create
             const existingId = batches.find(b => b.parentId)?.parentId;
 
             if (existingId) {
@@ -114,7 +167,6 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate, onSensorU
 
             if (loadShiftData) loadShiftData().catch(() => { });
             alert("Declaration deployed successfully!");
-            // Return to parent/dashboard immediately
             if (onBatchUpdate) onBatchUpdate(batches);
 
         } catch (error) {
@@ -144,7 +196,7 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate, onSensorU
     return (
         <div className="declaration-flow">
             <div className="form-section-header">
-                <h4>Sensor Configuration</h4>
+                <h4>Sensor & Lab Integration</h4>
             </div>
 
             <div className="form-grid" style={{ marginBottom: '2rem' }}>
@@ -186,6 +238,7 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate, onSensorU
                         </label>
                     </div>
                 </div>
+
                 <div className="form-field">
                     <label>Sand Type</label>
                     <select name="sandType" value={sensors.sandType} onChange={handleSensorChange}>
@@ -194,32 +247,65 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate, onSensorU
                         <option value="Natural Sand">Natural Sand</option>
                     </select>
                 </div>
+
+                <div className="form-field">
+                    <label>Select Batch (From Last 5 Lab Reports) <span className="required">*</span> {fetchingMoistureDetail && <span style={{ fontSize: '0.65rem', color: '#42818c' }}>(Fetching Detail...)</span>}</label>
+                    <select 
+                        value={selectedMoistureReportId} 
+                        onChange={handleMoistureReportSelect}
+                        style={{ 
+                            border: (selectedMoistureReportId ? '1px solid #42818c' : '2px solid #ef4444'),
+                            background: (selectedMoistureReportId ? '#eff6f7' : '#fef2f2'),
+                            fontWeight: '700'
+                        }}
+                    >
+                        <option value="">-- Choose Batch No --</option>
+                        {lastFiveMoisture.map(report => (
+                            <option key={report.id} value={report.id}>
+                                Batch #{report.batchNo} ({report.entryDate})
+                            </option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
+            {(!selectedMoistureReportId || batches.length === 0) && !fetchingMoistureDetail && (
+                <div style={{ textAlign: 'center', padding: '4rem 2rem', background: '#f8fafc', borderRadius: '20px', border: '2px dashed #cbd5e1', color: '#64748b' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '1.5rem', opacity: 0.5 }}>📊</div>
+                    <h5 style={{ margin: '0 0 8px 0', color: '#334155', fontSize: '1.1rem', fontWeight: '800' }}>No Batch Selected</h5>
+                    <p style={{ margin: 0, fontSize: '0.9rem', color: '#64748b', fontWeight: '500' }}>Please select a Batch Number from the dropdown above to start configuration.</p>
+                </div>
+            )}
+
             {batches.map((batch) => (
-                <div key={batch.id} className="batch-card fade-in" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1.5rem', marginBottom: '1.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                <div key={batch.id} className="batch-card fade-in" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1.5rem', marginBottom: '1.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-                        <div className="form-field" style={{ minWidth: '150px' }}>
-                            <label>Batch No. <span className="required">*</span></label>
-                            <input type="number" min="0" value={batch.batchNo} onChange={(e) => handleBatchChange(batch.id, 'batchNo', null, e.target.value)} placeholder="e.g. 601" />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ background: '#42818c', color: 'white', width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontWeight: '800', fontSize: '1.2rem' }}>
+                                <span style={{ margin: 'auto' }}>{batch.batchNo.slice(-1) || 'B'}</span>
+                            </div>
+                            <div>
+                                <h5 style={{ margin: 0, fontSize: '0.9rem', fontWeight: '800', color: '#1e293b' }}>Batch Configuration: #{batch.batchNo}</h5>
+                                <p style={{ margin: 0, fontSize: '0.7rem', color: '#64748b' }}>Verified and Adjusted from Lab Analysis</p>
+                            </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                             <div style={{ textAlign: 'center' }}>
-                                <div className="mini-label">Proportion</div>
+                                <div className="mini-label">Status</div>
                                 <div style={{
                                     fontSize: '0.65rem', fontWeight: '800', padding: '4px 12px', borderRadius: '50px',
                                     border: `1px solid ${batch.proportionMatch === 'OK' ? '#059669' : '#dc2626'}`,
-                                    color: batch.proportionMatch === 'OK' ? '#059669' : '#dc2626'
+                                    color: batch.proportionMatch === 'OK' ? '#059669' : '#dc2626',
+                                    background: batch.proportionMatch === 'OK' ? '#f0fdf4' : '#fef2f2'
                                 }}>{batch.proportionMatch}</div>
                             </div>
-                            {batches.length > 1 && (
-                                <button className="toggle-btn secondary" onClick={() => removeBatch(batch.id)} style={{ color: '#dc2626', borderColor: '#fee2e2' }}>Remove</button>
-                            )}
+                            <button className="toggle-btn secondary" onClick={() => removeBatch(batch.id)} style={{ padding: '4px 8px', fontSize: '0.7rem' }}>Clear Selection</button>
                         </div>
                     </div>
 
-                    <div style={{ marginBottom: '1.5rem', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px', fontSize: '0.8rem', color: '#64748b', border: '1px solid #e2e8f0' }}>
-                        <strong>Calculation Source:</strong> {sensors.sensorStatus === 'working' ? 'Online Moisture Sensor (Live)' : 'Latest Moisture Analysis Lab Report'}
+                    <div style={{ marginBottom: '1.5rem', padding: '0.75rem', background: '#f0f9fa', borderRadius: '8px', fontSize: '0.8rem', color: '#42818c', border: '1px solid #c8e2e6', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#42818c' }}></div>
+                        <strong>Active Calibration:</strong> Lab Report #{lastFiveMoisture.find(r => String(r.id) === String(selectedMoistureReportId))?.batchNo}
                     </div>
 
                     <div className="calculated-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem' }}>
@@ -260,8 +346,7 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate, onSensorU
             ))}
 
             <div className="form-actions-center" style={{ marginTop: '2.5rem', flexWrap: 'wrap', gap: '12px' }}>
-                <button className="toggle-btn secondary" style={{ flex: '1 1 180px' }} onClick={addBatch}>+ New Batch Class</button>
-                <button className="toggle-btn" style={{ flex: '1 1 180px' }} onClick={handleSaveDeclaration} disabled={saving}>{saving ? 'Saving...' : 'Deploy Configuration'}</button>
+                <button className="toggle-btn" style={{ flex: '1 1 180px' , height: '48px', maxWidth: '300px' }} onClick={handleSaveDeclaration} disabled={saving}>{saving ? 'Saving...' : 'Deploy Configuration'}</button>
             </div>
         </div>
     );
