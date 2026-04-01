@@ -209,12 +209,15 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
         try {
             setSaving(true);
             const payload = {
-                batchId: batch.batchId,
+                batchId: batch.id,
                 moduleId: 1,
                 shift: shift || 'General',
                 createdBy: parseInt(localStorage.getItem('userId') || '118', 10),
                 sleepers: sleepers.filter(s => selectedSleepers.includes(s.id)).map(s => {
-                    const isRejected = s.status === 'rejected';
+                    const currentIsRejected = sections.some(sect => {
+                        const sectState = sectionStates[sect.id];
+                        return sectState.result === 'all-rejected' || sectState.failedSleepers.includes(s.id);
+                    });
 
                     const sleeperParams = sections.map((sect, idx) => {
                         const sectState = sectionStates[sect.id];
@@ -247,8 +250,8 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
                     return {
                         sleeperId: s.id,
                         sleeperNo: s.displayNo,
-                        result: isRejected ? 'REJECTED' : 'OK',
-                        rejectionReason: rejectionReason.trim(),
+                        result: currentIsRejected ? 'REJECTED' : 'OK',
+                        rejectionReason: rejectionReason.trim().replace(/;$/, ''),
                         parameters: sleeperParams
                     };
                 })

@@ -128,7 +128,7 @@ const CriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
         try {
             setSaving(true);
             const payload = {
-                batchId: batch.batchId,
+                batchId: batch.id,
                 moduleId: 2,
                 shift: shift || 'General',
                 createdBy: parseInt(localStorage.getItem('userId') || '118', 10),
