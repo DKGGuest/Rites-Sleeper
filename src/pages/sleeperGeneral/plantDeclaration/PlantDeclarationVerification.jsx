@@ -133,11 +133,8 @@ const PlantDeclarationVerification = () => {
 
             // Helper to filter and group by moduleId
             const groupRecords = (list) => {
-                const myRecords = list.filter(r => 
-                    Number(r.assignedTo) === LOGGED_IN_USER_ID
-                );
                 const plantModuleIds = PLANT_DECLARATION_MODULES.map(m => m.moduleId);
-                const plantRecords = myRecords.filter(r => plantModuleIds.includes(r.moduleId));
+                const plantRecords = list.filter(r => plantModuleIds.includes(r.moduleId));
                 
                 const grouped = {};
                 plantModuleIds.forEach(id => { grouped[id] = []; });
