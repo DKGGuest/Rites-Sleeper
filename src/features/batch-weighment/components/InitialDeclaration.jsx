@@ -47,22 +47,40 @@ const InitialDeclaration = ({ batches: externalBatches, onBatchUpdate, onSensorU
         setFetchingMoistureDetail(true);
         try {
             const res = await apiService.getMoistureAnalysisById(id);
-            if (res?.responseData) {
-                const detail = res.responseData;
-                
+            // Handle both {responseData: ...} and direct data responses
+            const detail = res?.responseData || res;
+            
+            if (detail) {
+                // Set Values (Dry Weights / Target Weights before moisture correction)
+                const ca1Set = detail.actualCA1 ?? ca1S?.batchWtDry ?? 0;
+                const ca2Set = detail.actualCA2 ?? ca2S?.batchWtDry ?? 0;
+                const faSet = detail.actualFA ?? faS?.batchWtDry ?? 0;
+
+                // Adjusted Weights (Adopted Weights after moisture correction)
+                const ca1Adj = detail.wtAdoptedCa1 ?? ca1S?.adoptedWeight ?? 0;
+                const ca2Adj = detail.wtAdoptedCa2 ?? ca2S?.adoptedWeight ?? 0;
+                const faAdj = detail.wtAdoptedFa ?? faS?.adoptedWeight ?? 0;
+
                 // Initialize/Update the batch card for this specific report
                 setBatches([{
                     id: 1, 
                     batchNo: detail.batchNo || report?.batchNo || "",
                     parentId: id,
-                    setValues: { ca1: 0, ca2: 0, fa: 0, cement: 0, water: 0, admixture: 0 },
+                    setValues: { 
+                        ca1: ca1Set, 
+                        ca2: ca2Set, 
+                        fa: faSet, 
+                        cement: detail.actualCement ?? detail.designCement ?? 0, 
+                        water: detail.actualWater ?? detail.designWater ?? 0, 
+                        admixture: detail.actualAdmix ?? detail.designAdmix ?? 1.44 
+                    },
                     adjustedWeights: { 
-                        ca1: detail.ca1AdjWeight || 436.2, 
-                        ca2: detail.ca2AdjWeight || 178.6, 
-                        fa: detail.faAdjWeight || 207.1, 
-                        cement: detail.cementWeight || 175.5, 
-                        water: detail.waterWeight || 37.0, 
-                        admixture: detail.admixtureWeight || 1.440 
+                        ca1: ca1Adj, 
+                        ca2: ca2Adj, 
+                        fa: faAdj, 
+                        cement: detail.actualCement ?? detail.designCement ?? 0, 
+                        water: detail.adjustedWaterWt ?? detail.actualWater ?? 0, 
+                        admixture: detail.actualAdmix ?? detail.designAdmix ?? 1.44 
                     },
                     proportionMatch: 'NOT OK'
                 }]);

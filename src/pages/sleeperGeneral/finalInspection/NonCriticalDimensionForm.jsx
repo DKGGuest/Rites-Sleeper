@@ -19,13 +19,14 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
     }, [batch]);
 
     const [selectedSleepers, setSelectedSleepers] = useState(() => 
-        allSleepersPool.filter(s => s.isAlreadyPassed).map(s => s.id)
+        // Initial select: both OK and REJECTED ones.
+        allSleepersPool.filter(s => s.isAlreadyPassed || s.isRejected).map(s => s.id)
     );
     const [saving, setSaving] = useState(false);
 
     const toggleSleeperSelection = (id) => {
-        const sleeper = allSleepersPool.find(s => s.id === id);
-        if (sleeper?.isRejected) return;
+        // Allow selecting even if rejected to allow re-inspection/acceptance
+        // if (sleeper?.isRejected) return;
 
         setSelectedSleepers(prev =>
             prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
@@ -48,8 +49,23 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
         }), {})
     );
 
-    const [overallResult, setOverallResult] = useState(null); // 'ok', 'partial-ok', 'all-rejected'
-    const [rejectionDetails, setRejectionDetails] = useState({}); // { sleeperId: { mainReason: '', subReason: '' } }
+    const [overallResult, setOverallResult] = useState(() => 
+        allSleepersPool.some(s => s.isRejected) ? 'partial-ok' : 'ok'
+    );
+    const [rejectionDetails, setRejectionDetails] = useState(() => {
+        const initialRejections = {};
+        allSleepersPool.filter(s => s.isRejected).forEach(s => {
+            let main = '';
+            let sub = '';
+            if (s.rejectionReason && s.rejectionReason.includes(':')) {
+                const parts = s.rejectionReason.split(':');
+                main = parts[0]?.trim() || '';
+                sub = parts[1]?.trim() || '';
+            }
+            initialRejections[s.id] = { mainReason: main, subReason: sub };
+        });
+        return initialRejections;
+    });
 
     const isChecklistComplete = parametersToCheck.every(p => checklistState[p.label]);
 
@@ -187,11 +203,11 @@ const NonCriticalDimensionForm = ({ batch, onSave, onCancel, shift }) => {
                                     onClick={() => !saving && toggleSleeperSelection(s.id)}
                                     className={`sleeper-chip ${isSelected ? 'selected' : ''} ${s.isRejected ? 'already-rejected' : ''}`}
                                     style={{
-                                        background: s.isRejected ? '#fee2e2' : (isSelected ? '#15803d' : '#d1d5db'),
-                                        color: s.isRejected ? '#b91c1c' : (isSelected ? '#fff' : '#374151'),
-                                        borderColor: s.isRejected ? '#ef4444' : (isSelected ? '#14532d' : '#9ca3af'),
-                                        cursor: (saving || s.isRejected) ? 'not-allowed' : 'pointer',
-                                        textDecoration: s.isRejected ? 'line-through' : 'none'
+                                        background: isSelected ? (rejectionDetails[s.id] ? '#ef4444' : '#15803d') : (s.isRejected ? '#fee2e2' : '#f3f4f6'),
+                                        color: isSelected ? '#fff' : (s.isRejected ? '#b91c1c' : '#374151'),
+                                        borderColor: isSelected ? (rejectionDetails[s.id] ? '#991b1b' : 'transparent') : (s.isRejected ? '#ef4444' : '#9ca3af'),
+                                        cursor: saving ? 'not-allowed' : 'pointer',
+                                        textDecoration: 'none'
                                     }}
                                 >
                                     {s.displayNo}

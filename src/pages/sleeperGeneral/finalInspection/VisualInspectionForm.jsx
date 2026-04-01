@@ -21,13 +21,14 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
 
     const [sleepers, setSleepers] = useState(initialSleepers);
     const [selectedSleepers, setSelectedSleepers] = useState(() => 
-        initialSleepers.filter(s => s.status === 'passed').map(s => s.id)
+        // Select both passed AND rejected sleepers for re-inspection by default
+        initialSleepers.filter(s => s.status === 'passed' || s.status === 'rejected').map(s => s.id)
     );
     const [saving, setSaving] = useState(false);
 
     const toggleSleeperSelection = (id) => {
-        const sleeper = sleepers.find(s => s.id === id);
-        if (sleeper?.status === 'rejected') return;
+        // Allow selecting even if rejected to allow re-inspection/acceptance
+        // if (sleeper?.status === 'rejected') return;
 
         setSelectedSleepers(prev =>
             prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
@@ -40,19 +41,52 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
         { id: 'ftc', label: 'FTC', section: 'Section 3' },
     ];
 
-    const [sectionStates, setSectionStates] = useState(
-        sections.reduce((acc, s) => ({
-            ...acc,
-            [s.id]: {
-                allChecked: initialSleepers.some(sl => sl.status === 'passed'), // Auto-check if some already passed
-                result: 'all-ok', 
-                failedSleepers: [],
-                rejectionDetails: {},
-                globalReason: '',
-                globalSubReason: ''
+    const [sectionStates, setSectionStates] = useState(() => {
+        const parseVisualRejection = (reasonStr, label) => {
+            if (!reasonStr || !reasonStr.includes(label)) return null;
+            const sectionPart = reasonStr.split(';').find(part => part.includes(label));
+            if (!sectionPart) return null;
+            const content = sectionPart.split(':')[1]?.trim() || '';
+            if (!content) return null;
+            let reason = content;
+            let subReason = '';
+            if (content.includes('(')) {
+                const parts = content.split('(');
+                reason = parts[0].trim();
+                subReason = parts[1].replace(')', '').trim();
             }
-        }), {})
-    );
+            return { reason, subReason };
+        };
+
+        return sections.reduce((acc, s) => {
+            const label = s.label; // e.g., "Visual Checking"
+            const failedSids = [];
+            const rDetails = {};
+
+            initialSleepers.filter(sl => sl.status === 'rejected').forEach(sl => {
+                const parsed = parseVisualRejection(sl.rejectionReason, label);
+                // If this section contributed to the rejection, mark it here
+                if (parsed || sl.rejectionReason?.includes(label)) {
+                    failedSids.push(sl.id);
+                    if (parsed) {
+                        rDetails[sl.id] = parsed;
+                    }
+                }
+            });
+
+            return {
+                ...acc,
+                [s.id]: {
+                    allChecked: initialSleepers.some(sl => sl.status === 'passed' || sl.status === 'rejected'),
+                    result: failedSids.length > 0 ? 'partial-ok' : (initialSleepers.some(sl => sl.status === 'rejected') ? 'all-ok' : 'all-ok'),
+                    failedSleepers: failedSids,
+                    rejectionDetails: rDetails,
+                    globalReason: '',
+                    globalSubReason: ''
+                }
+            };
+        }, {});
+    });
 
     const handleSectionChange = (sectionId, field, value) => {
         setSectionStates(prev => {
@@ -273,11 +307,11 @@ const VisualInspectionForm = ({ batch, onSave, onCancel, shift }) => {
                                     onClick={() => !saving && toggleSleeperSelection(s.id)}
                                     className={`sleeper-chip ${isSelected ? 'selected' : ''} ${isAlreadyRejected ? 'already-rejected' : ''}`}
                                     style={{
-                                        background: isAlreadyRejected ? '#fee2e2' : getStatusColor(s.status, isSelected),
-                                        color: isAlreadyRejected ? '#b91c1c' : isSelected ? '#fff' : '#374151',
-                                        borderColor: isAlreadyRejected ? '#ef4444' : isSelected ? 'transparent' : '#9ca3af',
-                                        cursor: (saving || isAlreadyRejected) ? 'not-allowed' : 'pointer',
-                                        textDecoration: isAlreadyRejected ? 'line-through' : 'none'
+                                        background: isSelected ? getStatusColor(s.status, isSelected) : (isAlreadyRejected ? '#fee2e2' : '#f3f4f6'),
+                                        color: isSelected ? '#fff' : (isAlreadyRejected ? '#b91c1c' : '#374151'),
+                                        borderColor: isSelected ? 'transparent' : (isAlreadyRejected ? '#ef4444' : '#9ca3af'),
+                                        cursor: saving ? 'not-allowed' : 'pointer',
+                                        textDecoration: 'none'
                                     }}
                                 >
                                     {s.displayNo}

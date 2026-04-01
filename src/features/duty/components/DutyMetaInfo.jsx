@@ -32,11 +32,11 @@ const DutyMetaInfo = ({ showUnit = true, showLocation = true }) => {
                 <span className="meta-pill company" style={{ background: '#f0f9ff', color: '#0369a1', borderColor: '#bae6fd', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e91e63" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                     <span style={{ fontWeight: '700' }}>
-                        {companyName} {vendorId && `(Plant ID: ${vendorId})`} {vendorCode && `(${vendorCode})`}
+                        {companyName}
                     </span>
                 </span>
             )}
-            {showUnit && dutyUnit && (
+            {dutyUnit && (
                 <span className="meta-pill unit">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
                     {dutyUnit}
